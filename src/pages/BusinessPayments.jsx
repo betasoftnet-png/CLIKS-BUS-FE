@@ -1,0 +1,657 @@
+import React, { useState } from 'react';
+import { 
+    CreditCard, 
+    Plus, 
+    Search, 
+    ArrowUpRight, 
+    ArrowDownRight, 
+    Wallet, 
+    DollarSign, 
+    MessageSquare, 
+    FileText, 
+    X, 
+    CheckCircle2, 
+    AlertCircle, 
+    User, 
+    Activity, 
+    Smartphone, 
+    Building, 
+    Clock, 
+    Calendar,
+    Send,
+    TrendingUp
+} from 'lucide-react';
+import '../App.css';
+
+const BusinessPayments = () => {
+    const [activeTab, setActiveTab] = useState('receivables'); // 'receivables', 'payables', 'bank', 'reminders'
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+
+    // Stateful Inward (Customer) Payments database
+    const [receivables, setReceivables] = useState([
+        {
+            payment_id: 'PAY-1001',
+            payment_number: 'REC-2026-901',
+            payment_type: 'receive',
+            payment_date: '2026-05-04',
+            payment_status: 'completed',
+            customer_name: 'Acme Corporates (Rahul Dev)',
+            invoice_id: 'INV-2026-104',
+            total_amount: 10000,
+            paid_amount: 4000,
+            pending_amount: 6000,
+            payment_mode: 'UPI',
+            transaction_reference: 'UPI-908123012',
+            receipt_number: 'RCT-1049',
+            reconciliation_status: 'matched'
+        },
+        {
+            payment_id: 'PAY-1002',
+            payment_number: 'REC-2026-902',
+            payment_type: 'receive',
+            payment_date: '2026-05-05',
+            payment_status: 'completed',
+            customer_name: 'Karan Johar Tech',
+            invoice_id: 'INV-2026-109',
+            total_amount: 75000,
+            paid_amount: 75000,
+            pending_amount: 0,
+            payment_mode: 'Bank Transfer',
+            transaction_reference: 'TXN-HDFC-88902',
+            receipt_number: 'RCT-1050',
+            reconciliation_status: 'matched'
+        }
+    ]);
+
+    // Stateful Outward (Supplier) Payments database
+    const [payables, setPayables] = useState([
+        {
+            payment_id: 'PAY-8001',
+            payment_number: 'VCH-2026-401',
+            payment_type: 'pay',
+            payment_date: '2026-05-02',
+            payment_status: 'completed',
+            supplier_name: 'Delhi Distributors Ltd.',
+            purchase_id: 'BILL-77091',
+            total_amount: 35000,
+            paid_amount: 15000,
+            pending_amount: 20000,
+            payment_mode: 'Cheque',
+            cheque_number: 'CHQ-901182',
+            reconciliation_status: 'matched'
+        }
+    ]);
+
+    // Bank & Cash accounts balances ledger
+    const [accounts, setAccounts] = useState([
+        { bank_account_id: 'ACC-01', bank_account_name: 'State Bank of India (SBI)', account_number: 'xxxx-xxxx-4402', current_balance: 1450000, type: 'bank' },
+        { bank_account_id: 'ACC-02', bank_account_name: 'HDFC Current Account', account_number: 'xxxx-xxxx-8901', current_balance: 2890000, type: 'bank' },
+        { bank_account_id: 'ACC-03', bank_account_name: 'Cash-In-Hand Vault', account_number: 'N/A', current_balance: 78000, type: 'cash' }
+    ]);
+
+    // Overdue alerts database
+    const [overdues, setOverdues] = useState([
+        {
+            customer_name: 'Acme Corporates (Rahul Dev)',
+            invoice_id: 'INV-2026-104',
+            pending_amount: 6000,
+            due_date: '2026-04-20',
+            overdue_days: 16,
+            phone: '+91 98765 43210',
+            reminder_sent: 'Not Sent'
+        },
+        {
+            customer_name: 'Sharma Retail Store',
+            invoice_id: 'INV-2026-099',
+            pending_amount: 12500,
+            due_date: '2026-04-15',
+            overdue_days: 21,
+            phone: '+91 99999 88888',
+            reminder_sent: 'Sent via WhatsApp'
+        }
+    ]);
+
+    // Forms input states
+    const [customerForm, setCustomerForm] = useState({
+        customer_name: 'Acme Corporates (Rahul Dev)',
+        invoice_id: 'INV-2026-104',
+        total_amount: 10000,
+        paid_amount: 4000,
+        payment_mode: 'UPI',
+        transaction_reference: 'UPI-9092210A'
+    });
+
+    const [supplierForm, setSupplierForm] = useState({
+        supplier_name: 'Delhi Distributors Ltd.',
+        purchase_id: 'BILL-77091',
+        total_amount: 35000,
+        paid_amount: 10000,
+        payment_mode: 'Bank Transfer',
+        transaction_reference: 'REF-88910B'
+    });
+
+    const [transferForm, setTransferForm] = useState({
+        from_acc_id: 'ACC-03',
+        to_acc_id: 'ACC-01',
+        amount: 25000
+    });
+
+    const handleSaveCustomerPayment = (e) => {
+        e.preventDefault();
+        const originalTotal = parseFloat(customerForm.total_amount) || 0;
+        const enteredPaid = parseFloat(customerForm.paid_amount) || 0;
+        const calculatedPending = Math.max(0, originalTotal - enteredPaid);
+
+        const newPay = {
+            payment_id: `PAY-${Date.now().toString().slice(-4)}`,
+            payment_number: `REC-2026-${Date.now().toString().slice(-3)}`,
+            payment_type: 'receive',
+            payment_date: new Date().toISOString().split('T')[0],
+            payment_status: 'completed',
+            customer_name: customerForm.customer_name,
+            invoice_id: customerForm.invoice_id,
+            total_amount: originalTotal,
+            paid_amount: enteredPaid,
+            pending_amount: calculatedPending,
+            payment_mode: customerForm.payment_mode,
+            transaction_reference: customerForm.transaction_reference,
+            receipt_number: `RCT-${Date.now().toString().slice(-4)}`,
+            reconciliation_status: 'matched'
+        };
+
+        setReceivables([newPay, ...receivables]);
+
+        // Adjust Cash or Bank balances
+        const targetAcc = customerForm.payment_mode === 'Cash' ? 'ACC-03' : 'ACC-01';
+        setAccounts(accounts.map(acc => acc.bank_account_id === targetAcc ? {
+            ...acc,
+            current_balance: acc.current_balance + enteredPaid
+        } : acc));
+
+        setIsPaymentModalOpen(false);
+        alert('Customer payment received, linked invoice settled, and cash accounts updated!');
+    };
+
+    const handleSaveSupplierPayment = (e) => {
+        e.preventDefault();
+        const originalTotal = parseFloat(supplierForm.total_amount) || 0;
+        const enteredPaid = parseFloat(supplierForm.paid_amount) || 0;
+        const calculatedPending = Math.max(0, originalTotal - enteredPaid);
+
+        const newPay = {
+            payment_id: `PAY-${Date.now().toString().slice(-4)}`,
+            payment_number: `VCH-2026-${Date.now().toString().slice(-3)}`,
+            payment_type: 'pay',
+            payment_date: new Date().toISOString().split('T')[0],
+            payment_status: 'completed',
+            supplier_name: supplierForm.supplier_name,
+            purchase_id: supplierForm.purchase_id,
+            total_amount: originalTotal,
+            paid_amount: enteredPaid,
+            pending_amount: calculatedPending,
+            payment_mode: supplierForm.payment_mode,
+            transaction_reference: supplierForm.transaction_reference,
+            reconciliation_status: 'matched'
+        };
+
+        setPayables([newPay, ...payables]);
+
+        // Deduct from Cash or Bank
+        const targetAcc = supplierForm.payment_mode === 'Cash' ? 'ACC-03' : 'ACC-01';
+        setAccounts(accounts.map(acc => acc.bank_account_id === targetAcc ? {
+            ...acc,
+            current_balance: Math.max(0, acc.current_balance - enteredPaid)
+        } : acc));
+
+        setIsSupplierModalOpen(false);
+        alert('Supplier payment disbursement logged and bank account debited successfully!');
+    };
+
+    const handleInternalTransfer = (e) => {
+        e.preventDefault();
+        const transAmt = parseFloat(transferForm.amount) || 0;
+        const sourceAcc = accounts.find(a => a.bank_account_id === transferForm.from_acc_id);
+
+        if (transAmt > (sourceAcc?.current_balance || 0)) {
+            alert('Insufficient balance in source account to make internal transfer!');
+            return;
+        }
+
+        setAccounts(accounts.map(acc => {
+            if (acc.bank_account_id === transferForm.from_acc_id) {
+                return { ...acc, current_balance: acc.current_balance - transAmt };
+            }
+            if (acc.bank_account_id === transferForm.to_acc_id) {
+                return { ...acc, current_balance: acc.current_balance + transAmt };
+            }
+            return acc;
+        }));
+
+        setIsTransferModalOpen(false);
+        alert('Internal fund transfer settled across cash/bank registers!');
+    };
+
+    const sendWhatsAppReminder = (custName) => {
+        setOverdues(overdues.map(ov => ov.customer_name === custName ? {
+            ...ov,
+            reminder_sent: 'Sent via WhatsApp'
+        } : ov));
+        alert(`Overdue reminder template successfully generated and dispatched to ${custName}!`);
+    };
+
+    const totalOutstandingReceivables = overdues.reduce((sum, o) => sum + o.pending_amount, 0);
+    const totalDailyCollections = receivables.reduce((sum, r) => sum + r.paid_amount, 0);
+
+    const filteredReceivables = receivables.filter(r => 
+        r.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.payment_number.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const filteredPayables = payables.filter(p => 
+        p.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.payment_number.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+                <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
+                            <CreditCard size={22} />
+                        </div>
+                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Payments & Cash Flow Engine</h1>
+                    </div>
+                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Receive customer payments, pay suppliers, link invoices, manage bank accounts/cash, and dispatch overdue reminder templates.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button 
+                        onClick={() => setIsSupplierModalOpen(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                    >
+                        <ArrowUpRight size={16} /> Pay Supplier
+                    </button>
+                    <button 
+                        onClick={() => setIsPaymentModalOpen(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}
+                    >
+                        <ArrowDownRight size={16} /> Receive Payment
+                    </button>
+                </div>
+            </div>
+
+            {/* Quick Metrics Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+                {[
+                    { label: 'Outstanding Receivables', value: `₹${totalOutstandingReceivables.toLocaleString()}`, icon: TrendingUp, color: '#EF4444', bg: '#FEF2F2' },
+                    { label: 'Daily Customer Collections', value: `₹${totalDailyCollections.toLocaleString()}`, icon: ArrowDownRight, color: '#1B6B3A', bg: '#F0FDF4' },
+                    { label: 'Combined Bank & Cash Balances', value: `₹${accounts.reduce((sum, a) => sum + a.current_balance, 0).toLocaleString()}`, icon: Wallet, color: '#2563EB', bg: '#EFF6FF' },
+                    { label: 'Collection Efficiency Rate', value: '94.2%', icon: CheckCircle2, color: '#06B6D4', bg: '#ECFEFF' }
+                ].map((stat, idx) => (
+                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
+                            <stat.icon size={24} />
+                        </div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                    </div>
+                ))}
+            </div>
+
+            {/* Tabs Row */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                {[
+                    { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
+                    { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
+                    { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet },
+                    { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock }
+                ].map(tab => (
+                    <button 
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        style={{ 
+                            padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                            background: activeTab === tab.id ? '#064E3B' : 'white', 
+                            color: activeTab === tab.id ? 'white' : '#475569',
+                            border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        }}
+                    >
+                        <tab.icon size={18} /> {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Tab 1: Customer Receivables */}
+            {activeTab === 'receivables' && (
+                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                        <div style={{ position: 'relative', width: '400px' }}>
+                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <input 
+                                type="text" 
+                                placeholder="Search customer payments..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt ID</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice Linked</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Original</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reconciliation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredReceivables.map((r) => (
+                                    <tr key={r.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{r.payment_number}</p>
+                                        </td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{r.payment_date}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{r.customer_name}</td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{r.invoice_id}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>₹{r.total_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#1B6B3A' }}>₹{r.paid_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{r.payment_mode}</span>
+                                        </td>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{r.reconciliation_status.toUpperCase()}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 2: Supplier Payables */}
+            {activeTab === 'payables' && (
+                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                        <div style={{ position: 'relative', width: '400px' }}>
+                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <input 
+                                type="text" 
+                                placeholder="Search supplier disbursements..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Voucher No</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Name</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Purchase Linked</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Due</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
+                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Number</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredPayables.map((p) => (
+                                    <tr key={p.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{p.payment_number}</p>
+                                        </td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{p.payment_date}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{p.supplier_name}</td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{p.purchase_id}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>₹{p.total_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#EF4444' }}>₹{p.paid_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{p.payment_mode}</span>
+                                        </td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{p.cheque_number || 'N/A'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 3: Bank registers */}
+            {activeTab === 'bank' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                    {accounts.map(acc => (
+                        <div key={acc.bank_account_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{acc.bank_account_id}</span>
+                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{acc.type.toUpperCase()}</span>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
+                            <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number}</p>
+
+                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>₹{acc.current_balance.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    ))}
+                    <div style={{ background: 'white', borderRadius: '28px', border: '1px dashed #DDD6FE', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }} onClick={() => setIsTransferModalOpen(true)}>
+                        <ArrowUpRight size={32} style={{ color: '#1B6B3A', marginBottom: '0.75rem' }} />
+                        <h4 style={{ fontWeight: '800', color: '#064E3B' }}>Internal Transfer Funds</h4>
+                        <p style={{ fontSize: '0.8rem', color: '#64748B' }}>Move money between Cash-In-Hand and Bank accounts</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 4: Overdue reminders */}
+            {activeTab === 'reminders' && (
+                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Overdue Customer Accounts Reminders (myBillBook flow)</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ background: '#F8FAFC' }}>
+                            <tr>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Customer Profile</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Linked Invoice</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Amount Overdue</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Due Date</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Delay Days</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reminder Status</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>WhatsApp Alert</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {overdues.map((ov) => (
+                                <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{ov.customer_name}</td>
+                                    <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#EF4444' }}>₹{ov.pending_amount.toLocaleString()}</td>
+                                    <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{ov.overdue_days} Days Overdue</span>
+                                    </td>
+                                    <td style={{ padding: '1rem', color: '#64748B', fontWeight: '700' }}>{ov.reminder_sent}</td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <button 
+                                            onClick={() => sendWhatsAppReminder(ov.customer_name)}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', background: '#10B981', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}
+                                        >
+                                            <MessageSquare size={14} /> Send Reminder
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Inward Customer Payment Modal */}
+            {isPaymentModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Record Customer Payment</h3>
+                            <button onClick={() => setIsPaymentModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleSaveCustomerPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Customer Profile</label>
+                                <select value={customerForm.customer_name} onChange={(e) => setCustomerForm({ ...customerForm, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <option>Acme Corporates (Rahul Dev)</option>
+                                    <option>Karan Johar Tech</option>
+                                    <option>Sharma Retail Store</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Linked ID</label>
+                                    <input required type="text" value={customerForm.invoice_id} onChange={(e) => setCustomerForm({ ...customerForm, invoice_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Amount</label>
+                                    <input required type="number" value={customerForm.total_amount} onChange={(e) => setCustomerForm({ ...customerForm, total_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid amount (Receipt worth)</label>
+                                <input required type="number" value={customerForm.paid_amount} onChange={(e) => setCustomerForm({ ...customerForm, paid_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
+                                    <select value={customerForm.payment_mode} onChange={(e) => setCustomerForm({ ...customerForm, payment_mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        <option>UPI</option>
+                                        <option>Bank Transfer</option>
+                                        <option>Cash</option>
+                                        <option>Cheque</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Ref ID / UPI reference</label>
+                                    <input required type="text" value={customerForm.transaction_reference} onChange={(e) => setCustomerForm({ ...customerForm, transaction_reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
+                                Finalize Payment Collection
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Outward Supplier Payment Modal */}
+            {isSupplierModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Record Supplier Disbursement</h3>
+                            <button onClick={() => setIsSupplierModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleSaveSupplierPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Supplier Profile</label>
+                                <select value={supplierForm.supplier_name} onChange={(e) => setSupplierForm({ ...supplierForm, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <option>Delhi Distributors Ltd.</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Purchase Bill Linked ID</label>
+                                    <input required type="text" value={supplierForm.purchase_id} onChange={(e) => setSupplierForm({ ...supplierForm, purchase_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Due Amount</label>
+                                    <input required type="number" value={supplierForm.total_amount} onChange={(e) => setSupplierForm({ ...supplierForm, total_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount (Outflow worth)</label>
+                                <input required type="number" value={supplierForm.paid_amount} onChange={(e) => setSupplierForm({ ...supplierForm, paid_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Disbursement Mode</label>
+                                    <select value={supplierForm.payment_mode} onChange={(e) => setSupplierForm({ ...supplierForm, payment_mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        <option>Bank Transfer</option>
+                                        <option>Cheque</option>
+                                        <option>UPI</option>
+                                        <option>Cash</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Cheque / Ref No</label>
+                                    <input required type="text" value={supplierForm.transaction_reference} onChange={(e) => setSupplierForm({ ...supplierForm, transaction_reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
+                                Disburse Supplier Funds
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Internal Transfers Modal */}
+            {isTransferModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Internal Vault Transfer</h3>
+                            <button onClick={() => setIsTransferModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleInternalTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Account</label>
+                                    <select value={transferForm.from_acc_id} onChange={(e) => setTransferForm({ ...transferForm, from_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        {accounts.map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Account</label>
+                                    <select value={transferForm.to_acc_id} onChange={(e) => setTransferForm({ ...transferForm, to_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        {accounts.map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Amount</label>
+                                <input required type="number" value={transferForm.amount} onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
+                                Settle Fund Transfer
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default BusinessPayments;

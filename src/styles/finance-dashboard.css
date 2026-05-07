@@ -1,0 +1,291 @@
+/* ============================================================
+   Finance Dashboard — Additional Styles
+   Uses existing CSS variables from tokens.css / App.css
+   ============================================================ */
+
+/* ── Record Dropdown ── */
+.fd-record-menu-wrap {
+  position: relative;
+}
+
+.fd-record-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.fd-record-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.fd-record-item:last-child {
+  border-bottom: none;
+}
+
+.fd-record-item:hover {
+  background: #F8FAFC;
+}
+
+.fd-record-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fd-record-icon--green  { background: #DCFCE7; color: #15803D; }
+.fd-record-icon--red    { background: #FEE2E2; color: #B91C1C; }
+.fd-record-icon--blue   { background: #DBEAFE; color: #1D4ED8; }
+
+.fd-record-text { display: flex; flex-direction: column; }
+.fd-record-title { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+.fd-record-desc  { font-size: 0.75rem;  color: var(--text-muted); margin-top: 1px; }
+
+/* ── Widget Picker Modal (grid of cards) ── */
+.fd-widget-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.fd-widget-option {
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1rem;
+  cursor: pointer;
+  background: var(--card-bg);
+  transition: all 0.15s;
+  text-align: left;
+  font-family: inherit;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fd-widget-option:hover {
+  border-color: #1B6B3A;
+  background: #F0FDF4;
+}
+
+.fd-widget-option.selected {
+  border-color: #1B6B3A;
+  background: #F0FDF4;
+}
+
+.fd-widget-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1B6B3A;
+}
+
+.fd-widget-opt-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #E0EAFF;
+  color: #1B6B3A;
+}
+
+.fd-widget-opt-name { font-size: 0.82rem; font-weight: 700; color: var(--text-main); }
+.fd-widget-opt-desc { font-size: 0.72rem; color: var(--text-muted); line-height: 1.3; }
+
+/* ── Dynamic extra widgets section ── */
+.fd-extra-widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Individual dynamic widget tiles */
+.fd-widget-tile {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 1.75rem 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.fd-widget-tile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.fd-widget-tile-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.fd-widget-remove-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fd-widget-remove-btn:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
+/* Spending chart bars */
+.fd-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 80px;
+  padding-top: 0.5rem;
+}
+
+.fd-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fd-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: #1B6B3A;
+  opacity: 0.8;
+  min-height: 4px;
+  transition: height 0.5s ease-out;
+}
+
+.fd-bar-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Accounts summary rows */
+.fd-acc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.fd-acc-row:last-child { border-bottom: none; }
+
+.fd-acc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fd-acc-name { font-size: 0.875rem; font-weight: 600; color: var(--text-main); flex: 1; }
+.fd-acc-bal  { font-size: 0.875rem; font-weight: 700; color: var(--text-main); }
+
+/* Liquidity mini widget */
+.fd-liquidity-widget {
+  background: #1B6B3A;
+  color: white;
+  border-radius: 1.5rem;
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fd-liquidity-label  { font-size: 0.85rem; opacity: 0.85; font-weight: 500; }
+.fd-liquidity-amount { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+
+/* Record activity items — new entries */
+.fd-new-entry {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: #F8FAFC;
+  border: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+}
+
+.fd-entry-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fd-entry-icon--income   { background: #DCFCE7; color: #15803D; }
+.fd-entry-icon--expense  { background: #FEE2E2; color: #B91C1C; }
+.fd-entry-icon--transfer { background: #DBEAFE; color: #1D4ED8; }
+
+.fd-entry-info { flex: 1; }
+.fd-entry-title { font-size: 0.875rem; font-weight: 600; color: var(--text-main); }
+.fd-entry-sub   { font-size: 0.75rem;  color: var(--text-muted); }
+
+.fd-entry-amount         { font-size: 0.9rem; font-weight: 700; }
+.fd-entry-amount--income   { color: #15803D; }
+.fd-entry-amount--expense  { color: #B91C1C; }
+.fd-entry-amount--transfer { color: #1D4ED8; }
+
+/* btn-success (green) variant */
+.btn-success {
+  background-color: #10B981;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25);
+  transition: background-color 0.2s;
+}
+
+.btn-success:hover { background-color: #059669; }

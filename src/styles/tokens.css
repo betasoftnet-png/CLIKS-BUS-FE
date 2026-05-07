@@ -1,0 +1,27 @@
+:root {
+    --primary: #1B6B3A;
+    --primary-hover: #14522d;
+    --secondary: #228B4C;
+    --bg-color: #F0FDF4;
+    /* User requested brand green bg */
+    --text-main: #064E3B;
+    --text-muted: #4B635A;
+    --card-bg: #FFFFFF;
+    --border-color: #DCF2E4;
+    /* Slightly greener border to match bg */
+
+    --card-blue: #10B981;
+    --card-dark-blue: #064E3B;
+
+    --gauge-red: #EF4444;
+    --gauge-yellow: #EAB308;
+    --gauge-green: #22C55E;
+
+    font-family: var(--font-main, 'Inter', system-ui, -apple-system, sans-serif);
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+html {
+    font-size: 14.5px;
+}

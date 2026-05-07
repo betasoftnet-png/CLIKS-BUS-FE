@@ -1,0 +1,687 @@
+/* ============================================================
+   Social Feed — Scoped Styles
+   Uses CSS variables from tokens.css
+   ============================================================ */
+
+/* ── Outer Layout ── */
+.sf-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  gap: 1.5rem;
+  align-items: start;
+  padding: 0 1.5rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1200px) {
+  .sf-layout {
+    grid-template-columns: 200px 1fr 240px;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sf-layout {
+    grid-template-columns: 1fr;
+  }
+  .sf-sidebar-left,
+  .sf-sidebar-right {
+    display: none;
+  }
+}
+
+/* ── Sticky Sidebars ── */
+.sf-sidebar-left,
+.sf-sidebar-right {
+  position: sticky;
+  top: 80px;
+}
+
+/* ═══════════════════════════════
+   LEFT SIDEBAR — Community Menu
+   ═══════════════════════════════ */
+.sf-community-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.sf-community-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.sf-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+}
+
+.sf-nav-item:hover,
+.sf-nav-item.active {
+  background: #F0FDF4;
+  color: var(--primary);
+}
+
+.sf-nav-item.active {
+  font-weight: 600;
+}
+
+.sf-nav-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F0FDF4;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sf-nav-item:hover .sf-nav-icon,
+.sf-nav-item.active .sf-nav-icon {
+  background: #F0FDF4;
+  color: var(--primary);
+}
+
+/* Profile mini card */
+.sf-profile-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #F0FDF4, #DCF2E4);
+  border: 1px solid #A7D7BC;
+}
+
+.sf-profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.sf-profile-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.sf-profile-role {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════
+   CENTER FEED
+   ═══════════════════════════════ */
+.sf-feed-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Compose Box ── */
+.sf-compose-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.sf-compose-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.sf-compose-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.sf-compose-textarea {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text-main);
+  background: var(--bg-color);
+  resize: none;
+  outline: none;
+  min-height: 80px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.5;
+}
+
+.sf-compose-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.sf-compose-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(27, 107, 58, 0.1);
+  background: var(--card-bg);
+}
+
+.sf-compose-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.sf-compose-tools {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sf-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sf-tool-btn:hover {
+  background: #F0FDF4;
+  color: var(--text-main);
+}
+
+.sf-post-btn {
+  padding: 0.5rem 1.35rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(27, 107, 58, 0.22);
+}
+
+.sf-post-btn:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 4px 14px rgba(27, 107, 58, 0.32);
+}
+
+/* ── Post Card ── */
+.sf-post-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.2s;
+}
+
+.sf-post-card:hover {
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.09);
+}
+
+/* Post header row */
+.sf-post-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.sf-post-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+  color: white;
+}
+
+.sf-avatar-blue   { background: linear-gradient(135deg, #1B6B3A, #22C55E); }
+.sf-avatar-green  { background: linear-gradient(135deg, #059669, #34D399); }
+.sf-avatar-purple { background: linear-gradient(135deg, #7C3AED, #A78BFA); }
+.sf-avatar-orange { background: linear-gradient(135deg, #D97706, #FBBF24); }
+.sf-avatar-red    { background: linear-gradient(135deg, #DC2626, #F87171); }
+.sf-avatar-teal   { background: linear-gradient(135deg, #0891B2, #22D3EE); }
+
+.sf-post-meta { flex: 1; }
+.sf-post-username { font-size: 0.925rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+
+.sf-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-trader   { background: #DCFCE7; color: #15803D; }
+.role-investor { background: #F0FDF4; color: #1B6B3A; }
+.role-analyst  { background: #F3E8FF; color: #7C3AED; }
+.role-crypto   { background: #FEF9C3; color: #B45309; }
+.role-advisor  { background: #FFE4E6; color: #BE123C; }
+
+.sf-post-time { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+.sf-post-menu {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.sf-post-menu:hover { background: #F0FDF4; }
+
+/* Post content */
+.sf-post-content {
+  font-size: 0.9rem;
+  color: var(--text-main);
+  line-height: 1.65;
+  margin-bottom: 1rem;
+}
+
+/* Optional tags */
+.sf-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.sf-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: #F0FDF4;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* Post image */
+.sf-post-image {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  object-fit: cover;
+  max-height: 280px;
+  background: linear-gradient(135deg, #E0EAFF, #C7D2FE);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Interaction Bar */
+.sf-interact-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.sf-interact-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.sf-interact-btn:hover {
+  background: #F0FDF4;
+  color: var(--text-main);
+}
+
+.sf-interact-btn.liked {
+  color: #E11D48;
+  background: #FFF1F2;
+}
+
+.sf-interact-btn.liked:hover {
+  background: #FFE4E6;
+}
+
+.sf-interact-spacer { flex: 1; }
+
+/* ═══════════════════════════════
+   RIGHT SIDEBAR
+   ═══════════════════════════════ */
+.sf-sidebar-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sf-widget {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.sf-widget-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+}
+
+.sf-community-stats {
+  background: linear-gradient(135deg, #F0FDF4, #DCF2E4) !important;
+  border: 1px solid #A7D7BC !important;
+}
+
+.sf-community-stats .sf-widget-title {
+  color: #1B6B3A !important;
+}
+
+/* Trending stocks */
+.sf-stock-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sf-stock-row:last-child { border-bottom: none; }
+
+.sf-stock-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #F0FDF4;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sf-stock-name  { font-size: 0.875rem; font-weight: 600; color: var(--text-main); flex: 1; }
+.sf-stock-ticker { font-size: 0.72rem; color: var(--text-muted); }
+
+.sf-stock-change {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+
+.sf-change-pos { background: #DCFCE7; color: #15803D; }
+.sf-change-neg { background: #FEE2E2; color: #B91C1C; }
+
+/* Crypto widget */
+.sf-crypto-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sf-crypto-row:last-child { border-bottom: none; }
+
+.sf-crypto-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sf-crypto-name  { font-size: 0.875rem; font-weight: 600; color: var(--text-main); flex: 1; }
+.sf-crypto-price { font-size: 0.875rem; font-weight: 700; color: var(--text-main); }
+.sf-crypto-chg   { font-size: 0.72rem; font-weight: 600; }
+.sf-crypto-chg.pos { color: #15803D; }
+.sf-crypto-chg.neg { color: #B91C1C; }
+
+/* Events widget */
+.sf-event-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sf-event-row:last-child { border-bottom: none; }
+
+.sf-event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sf-event-info { flex: 1; }
+.sf-event-name { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+.sf-event-date { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+
+.sf-event-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+}
+
+.sf-event-badge.soon   { background: #FEF3C7; color: #92400E; }
+.sf-event-badge.live   { background: #FEE2E2; color: #991B1B; }
+.sf-event-badge.upcoming { background: #F0FDF4; color: #1D4ED8; }
+
+/* Divider between sidebar sections */
+.sf-sidebar-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.25rem 0;
+}
+
+/* Empty feed state */
+.sf-empty {
+  background: var(--card-bg);
+  border: 1.5px dashed var(--border-color);
+  border-radius: 18px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.sf-empty-icon {
+  margin: 0 auto 1rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #F0FDF4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+}
+
+.sf-empty-title { font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.4rem; }
+.sf-empty-desc  { font-size: 0.875rem; color: var(--text-muted); }
+
+/* Feed section header */
+.sf-feed-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.sf-feed-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.sf-feed-filter-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.sf-filter-tab {
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sf-filter-tab.active {
+  background: var(--card-bg);
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ── Chart mockup inside a post ── */
+.sf-chart-mockup {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #F0FDF4 0%, #DCF2E4 100%);
+  border: 1px solid #A7D7BC;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sf-chart-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sf-chart-bars-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 54px;
+}
+
+.sf-chart-bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: var(--primary);
+  opacity: 0.7;
+  min-height: 6px;
+}
+
+.sf-chart-bar.highlight { opacity: 1; background: #1B6B3A; }
+
+.sf-chart-price {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.sf-chart-change {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #15803D;
+}
