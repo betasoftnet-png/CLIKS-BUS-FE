@@ -131,6 +131,7 @@ async function request(endpoint, options = {}) {
         fetchOptions.body = JSON.stringify(body);
     }
 
+    let response;
     try {
         const token = localStorage.getItem('books_auth_token');
         if (token === 'mock-test-token') {
