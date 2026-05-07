@@ -12,8 +12,8 @@ const Auth = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const CLIENT_ID = 'cliks-app';
-    const REDIRECT_URI = 'https://cliks.beta-softnet.com/auth';
+    const CLIENT_ID = 'cliks-business';
+    const REDIRECT_URI = 'https://cliksbusiness.com/auth';
     const BNX_AUTH_URL = 'https://www.b2auth.com';
     const BNX_API_URL = 'https://api.bnxmail.com';
 
@@ -39,7 +39,7 @@ const Auth = () => {
                     grantType: 'authorization_code',
                     code,
                     clientId: CLIENT_ID,
-                    clientSecret: 'secure-cliks-secret-2026'
+                    clientSecret: 'secure-cliks-biz-secret-2026'
                 })
             });
 
@@ -55,11 +55,8 @@ const Auth = () => {
             // 2. Perform SSO Login with backend
             const authData = await ssoLogin(bnxToken);
 
-            // 3. Redirect based on role
-            const role = authData.user?.role || 'user';
-
+            // 3. Redirect to dashboard
             navigate('/business/dashboard', { replace: true });
-
 
         } catch (err) {
             console.error('[Auth] SSO error:', err);
@@ -70,16 +67,9 @@ const Auth = () => {
     };
 
     const handleLoginWithBNX = () => {
-        // Mocking login for testing
-        mockLogin();
-        navigate('/business/dashboard', { replace: true });
-
-        /* Original logic
-        const state = 'cliks-auth-state';
-
+        const state = 'cliks-business-auth-state';
         window.location.href =
-            `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&state=${state}`;
-        */
+            `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&mode=business`;
     };
 
     return (

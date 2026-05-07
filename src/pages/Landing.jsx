@@ -79,10 +79,7 @@ const Landing = () => {
 
     const handleLogin = (e) => {
         if (e) e.preventDefault();
-        // Mocking login for testing
-        mockLogin();
-        navigate('/business/dashboard');
-        // navigate('/auth');
+        navigate('/auth');
     };
 
     const scrollToSection = (id) => {
