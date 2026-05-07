@@ -17,14 +17,17 @@ const Auth = () => {
     const BNX_AUTH_URL = 'https://www.b2auth.com';
     const BNX_API_URL = 'https://api.bnxmail.com';
 
+    const [processedCode, setProcessedCode] = useState(null);
+
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
         const code = urlParams.get('code');
 
-        if (code) {
+        if (code && code !== processedCode) {
+            setProcessedCode(code);
             handleOAuthCallback(code);
         }
-    }, [location, handleOAuthCallback]);
+    }, [location, processedCode]);
 
     const handleOAuthCallback = React.useCallback(async (code) => {
         setIsLoading(true);
@@ -39,7 +42,8 @@ const Auth = () => {
                     grantType: 'authorization_code',
                     code,
                     clientId: CLIENT_ID,
-                    clientSecret: 'secure-cliks-biz-secret-2026'
+                    clientSecret: 'secure-cliks-biz-secret-2026',
+                    redirectUri: REDIRECT_URI
                 })
             });
 
