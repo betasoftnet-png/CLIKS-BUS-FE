@@ -7,8 +7,8 @@ export const authService = {
     /**
      * SSO Login using BNX Token
      */
-    ssoLogin: async (bnxToken) => {
-        const res = await apiClient.post('/auth/sso', { bnxToken });
+    ssoLogin: async (bnxToken, appType = null) => {
+        const res = await apiClient.post('/auth/sso', { bnxToken, appType });
         return res.data;
     },
 

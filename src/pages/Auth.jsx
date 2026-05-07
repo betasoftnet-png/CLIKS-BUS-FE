@@ -57,7 +57,7 @@ const Auth = () => {
             const bnxToken = tokenData.data.access_token;
 
             // 2. Perform SSO Login with backend
-            await ssoLogin(bnxToken);
+            await ssoLogin(bnxToken, 'BUSINESS');
 
             // 3. Redirect to dashboard
             navigate('/business/dashboard', { replace: true });

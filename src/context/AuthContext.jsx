@@ -51,8 +51,8 @@ export const AuthProvider = ({ children }) => {
         initAuth();
     }, [token, logout, user]);
 
-    const ssoLogin = async (bnxToken) => {
-        const data = await authService.ssoLogin(bnxToken);
+    const ssoLogin = async (bnxToken, appType = null) => {
+        const data = await authService.ssoLogin(bnxToken, appType);
         const { accessToken, user: newUser } = data;
 
         localStorage.setItem('books_auth_token', accessToken);
