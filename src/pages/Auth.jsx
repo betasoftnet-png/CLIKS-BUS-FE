@@ -7,7 +7,7 @@ import logoPng from '../assets/cliks.png';
 const Auth = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { ssoLogin, mockLogin } = useAuth();
+    const { ssoLogin } = useAuth();
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -24,9 +24,9 @@ const Auth = () => {
         if (code) {
             handleOAuthCallback(code);
         }
-    }, [location]);
+    }, [location, handleOAuthCallback]);
 
-    const handleOAuthCallback = async (code) => {
+    const handleOAuthCallback = React.useCallback(async (code) => {
         setIsLoading(true);
         setError('');
 
@@ -53,7 +53,7 @@ const Auth = () => {
             const bnxToken = tokenData.data.access_token;
 
             // 2. Perform SSO Login with backend
-            const authData = await ssoLogin(bnxToken);
+            await ssoLogin(bnxToken);
 
             // 3. Redirect to dashboard
             navigate('/business/dashboard', { replace: true });
@@ -64,7 +64,7 @@ const Auth = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [ssoLogin, navigate]);
 
     const handleLoginWithBNX = () => {
         const state = 'cliks-business-auth-state';

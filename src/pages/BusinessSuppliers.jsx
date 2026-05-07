@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
     Users, 
     Plus, 
@@ -41,12 +41,12 @@ const BusinessSuppliers = () => {
     const [filterType, setFilterType] = useState('All');
 
     // Supplier Payment Form states
-    const [paymentForm, setPaymentForm] = useState({
+    const [paymentForm, setPaymentForm] = useState(() => ({
         amount: 0,
         mode: 'UPI',
         reference: `TXN-${Date.now().toString().slice(-4)}`,
         date: new Date().toISOString().split('T')[0]
-    });
+    }));
 
     // Stateful Supplier database initialized with Vyapar realistic sample data
     const [suppliers, setSuppliers] = useState([
@@ -167,7 +167,7 @@ const BusinessSuppliers = () => {
         }
     ]);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(() => ({
         supplier_code: `SUP-${Date.now().toString().slice(-4)}`,
         supplier_type: 'local',
         supplier_status: 'active',
@@ -191,7 +191,7 @@ const BusinessSuppliers = () => {
         opening_balance: 0,
         credit_limit: 200000,
         payment_terms: 'Net 30'
-    });
+    }));
 
     const handleOpenCreateModal = () => {
         setEditingSupplier(null);
@@ -272,7 +272,7 @@ const BusinessSuppliers = () => {
         setIsModalOpen(false);
     };
 
-    const handleOpenPaymentModal = (supplier) => {
+    const handleOpenPaymentModal = useCallback((supplier) => {
         setSelectedSupplier(supplier);
         setPaymentForm({
             amount: Math.max(0, supplier.current_balance),
@@ -281,7 +281,7 @@ const BusinessSuppliers = () => {
             date: new Date().toISOString().split('T')[0]
         });
         setIsPaymentModalOpen(true);
-    };
+    }, []);
 
     const handleRecordPayment = (e) => {
         e.preventDefault();

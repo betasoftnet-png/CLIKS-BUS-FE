@@ -142,7 +142,7 @@ const BusinessStock = () => {
     ]);
 
     // Batch & Expiry records database
-    const [batches, setBatches] = useState([
+    const [batches] = useState([
         {
             batch_number: 'B-DEL-99',
             product_name: 'Dell Inspiron 15 Laptop',

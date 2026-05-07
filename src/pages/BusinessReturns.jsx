@@ -151,7 +151,7 @@ const BusinessReturns = () => {
     ]);
 
     // Form inputs for new return
-    const [formHeader, setFormHeader] = useState({
+    const [formHeader, setFormHeader] = useState(() => ({
         return_number: `RN-${Date.now().toString().slice(-4)}`,
         invoice_id: '',
         purchase_id: '',
@@ -161,7 +161,7 @@ const BusinessReturns = () => {
         refund_mode: 'Cash',
         reason_code: 'Damaged Item',
         warehouse_id: 'Main Godown'
-    });
+    }));
 
     const [formItems, setFormItems] = useState([
         {

@@ -25,7 +25,7 @@ import '../App.css';
 
 const BusinessWarehouse = () => {
     const [activeTab, setActiveTab] = useState('profiles'); // 'profiles', 'stock', 'operations', 'transfers'
-    const [searchTerm, setSearchTerm] = useState('');
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -292,10 +292,7 @@ const BusinessWarehouse = () => {
         alert('Transfer marked complete! Stock landed at destination warehouse.');
     };
 
-    const filteredWarehouses = warehouses.filter(w => 
-        w.warehouse_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        w.city.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+
 
     const totalWarehouseValue = whStocks.reduce((sum, s) => sum + s.warehouse_stock_value, 0);
 
@@ -374,7 +371,7 @@ const BusinessWarehouse = () => {
             {/* Tab 1: Godown Profiles */}
             {activeTab === 'profiles' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-                    {filteredWarehouses.map((wh) => (
+                    {warehouses.map((wh) => (
                         <div key={wh.warehouse_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                                 <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{wh.warehouse_code}</span>

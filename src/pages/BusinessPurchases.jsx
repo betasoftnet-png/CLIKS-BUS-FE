@@ -179,7 +179,7 @@ const BusinessPurchases = () => {
     const [receiveQuantities, setReceiveQuantities] = useState({});
 
     // New Document Form States
-    const [formHeader, setFormHeader] = useState({
+    const [formHeader, setFormHeader] = useState(() => ({
         purchase_number: `TX-${Date.now().toString().slice(-5)}`,
         purchase_type: 'GST',
         purchase_date: new Date().toISOString().split('T')[0],
@@ -197,7 +197,7 @@ const BusinessPurchases = () => {
         shipping_charge: 0,
         place_of_supply: 'Maharashtra',
         return_reason: 'Damaged Goods' // for returns
-    });
+    }));
 
     const [formItems, setFormItems] = useState([
         {

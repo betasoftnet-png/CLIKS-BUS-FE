@@ -5,7 +5,6 @@ import { ProtectedRoute } from './routes/ProtectedRoute';
 import { ErrorBoundary } from './components/common';
 import MainLayout from './layouts/MainLayout';
 import Landing from './pages/Landing';
-import { useAuth } from './context';
 
 // Lazy Load Pages to optimize bundle size
 const Auth = React.lazy(() => import('./pages/Auth'));
@@ -49,7 +48,6 @@ const PageLoader = () => (
 );
 
 function AppContent() {
-  const { user } = useAuth();
   return (
     <Router>
       <Routes>

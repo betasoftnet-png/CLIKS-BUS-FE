@@ -53,7 +53,7 @@ const BusinessBilling = () => {
             setPrintData(null);
         }, 500);
     };
-    const [bankAccounts, setBankAccounts] = useState(() => paymentsStore.getBankAccounts());
+    const bankAccounts = paymentsStore.getBankAccounts();
     const [formData, setFormData] = useState(() => ({
         invoice_number: `INV-${Date.now().toString().slice(-6)}`,
         client_name: '',
@@ -234,7 +234,7 @@ const BusinessBilling = () => {
 
     const createMutation = useMutation({
         mutationFn: billingService.createInvoice,
-        onSuccess: (data) => {
+        onSuccess: () => {
             // Deduct stock for each item if it's a Sales Invoice
             if (formData.invoice_type === 'GST' || formData.invoice_type === 'Non-GST') {
                 formData.items.forEach(item => {

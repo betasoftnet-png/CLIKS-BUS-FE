@@ -8,7 +8,7 @@ import logoPng from '../assets/cliks.png'; // Final branding
 import { ProfileDropdown } from './ProfileDropdown';
 
 const Topbar = ({ onToggleSidebar }) => {
-    const { logout, user } = useAuth();
+    const { logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);

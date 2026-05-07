@@ -174,7 +174,7 @@ const BusinessInventory = () => {
         { id: 'M-3', date: '2026-05-04', item_name: 'Ergonomic Mesh Office Chair', type: 'Out (Sales)', quantity: 15, ref: 'Invoice #INV-244', warehouse: 'Shop Front' },
     ]);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(() => ({
         product_code: `PRO-${Date.now().toString().slice(-4)}`,
         sku: '',
         barcode: '',
@@ -209,7 +209,7 @@ const BusinessInventory = () => {
         conversion_rate: 1,
         warehouse: 'Main Godown',
         rack_number: ''
-    });
+    }));
 
     const closeModal = () => {
         setIsModalOpen(false);

@@ -35,7 +35,7 @@ const BusinessStaffing = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
     const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
-    const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+
 
     // Comprehensive Employee Database (Stateful)
     const [employees, setEmployees] = useState([

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
     ShoppingCart, 
     Plus, 
@@ -139,7 +139,7 @@ const BusinessSalesOrders = () => {
     ]);
 
     // Order Form State
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(() => ({
         order_number: `SO-${Date.now().toString().slice(-6)}`,
         customer: '',
         customer_phone: '',
@@ -157,9 +157,9 @@ const BusinessSalesOrders = () => {
         items: [
             { name: '', sku: '', quantity: 1, price: 0, hsn: '', discount: 0, gst: 18, total: 0 }
         ]
-    });
+    }));
 
-    const calculateTotals = (items, shipCharge) => {
+    const calculateTotals = useCallback((items, shipCharge) => {
         let subtotal = 0;
         let totalDiscount = 0;
         let totalTax = 0;
@@ -179,7 +179,7 @@ const BusinessSalesOrders = () => {
 
         const grand_total = subtotal - totalDiscount + totalTax + parseFloat(shipCharge || 0);
         return { subtotal, total_discount: totalDiscount, total_tax: totalTax, grand_total };
-    };
+    }, []);
 
     const handleAddItem = () => {
         setFormData({
@@ -207,32 +207,7 @@ const BusinessSalesOrders = () => {
         });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const calced = calculateTotals(formData.items, formData.shipping_charge);
-        const pending = calced.grand_total - parseFloat(formData.advance_amount || 0);
-
-        const newOrder = {
-            ...formData,
-            id: editingOrder ? editingOrder.id : `SO-${Date.now().toString().slice(-4)}`,
-            ...calced,
-            pending_amount: pending >= 0 ? pending : 0
-        };
-
-        if (editingOrder) {
-            setOrders(orders.map(o => o.id === editingOrder.id ? newOrder : o));
-            alert('Sales Order updated successfully!');
-        } else {
-            setOrders([...orders, newOrder]);
-            alert('Sales Order created successfully!');
-        }
-
-        setIsModalOpen(false);
-        setEditingOrder(null);
-        resetForm();
-    };
-
-    const resetForm = () => {
+    const resetForm = useCallback(() => {
         setFormData({
             order_number: `SO-${Date.now().toString().slice(-6)}`,
             customer: '',
@@ -250,7 +225,32 @@ const BusinessSalesOrders = () => {
             dispatch_date: '',
             items: [{ name: '', sku: '', quantity: 1, price: 0, hsn: '', discount: 0, gst: 18, total: 0 }]
         });
-    };
+    }, []);
+
+    const handleSubmit = useCallback((e) => {
+        e.preventDefault();
+        const calced = calculateTotals(formData.items, formData.shipping_charge);
+        const pending = calced.grand_total - parseFloat(formData.advance_amount || 0);
+
+        const newOrder = {
+            ...formData,
+            id: editingOrder ? editingOrder.id : `SO-${Date.now().toString().slice(-4)}`,
+            ...calced,
+            pending_amount: pending >= 0 ? pending : 0
+        };
+
+        if (editingOrder) {
+            setOrders(orders => orders.map(o => o.id === editingOrder.id ? newOrder : o));
+            alert('Sales Order updated successfully!');
+        } else {
+            setOrders(orders => [...orders, newOrder]);
+            alert('Sales Order created successfully!');
+        }
+
+        setIsModalOpen(false);
+        setEditingOrder(null);
+        resetForm();
+    }, [formData, editingOrder, calculateTotals, resetForm]);
 
     const handleEdit = (order) => {
         setEditingOrder(order);

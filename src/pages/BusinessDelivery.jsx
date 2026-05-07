@@ -210,7 +210,7 @@ const BusinessDelivery = () => {
         return local ? JSON.parse(local) : INITIAL_DELIVERIES;
     });
 
-    const [staff, setStaff] = useState(INITIAL_STAFF);
+    const staff = INITIAL_STAFF;
     const [activeTab, setActiveTab] = useState('all'); // 'all' | 'staff' | 'challans' | 'returns' | 'reports'
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isActionOpen, setIsActionOpen] = useState(false);
@@ -227,7 +227,7 @@ const BusinessDelivery = () => {
     const [failedReasonInput, setFailedReasonInput] = useState('');
 
     // Create Form State
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(() => ({
         delivery_number: `CLIKS/DEL/26/${100 + deliveries.length + 1}`,
         delivery_status: 'Packed',
         delivery_date: '',
@@ -257,7 +257,7 @@ const BusinessDelivery = () => {
         challan_date: '2026-05-06',
         linked_invoice_id: '',
         otp_code: Math.floor(1000 + Math.random() * 9000).toString(),
-    });
+    }));
 
     const saveDeliveries = (updated) => {
         setDeliveries(updated);

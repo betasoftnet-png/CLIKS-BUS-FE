@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context';
 import { Tooltip } from './common';
 import {
     LayoutDashboard,
@@ -34,7 +33,6 @@ import '../App.css';
 import logoPng from '../assets/cliks.png';
 
 const Sidebar = ({ isOpen }) => {
-    const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 

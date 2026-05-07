@@ -119,10 +119,10 @@ const BusinessExpenses = () => {
     ]);
 
     // Stateful Recurring automatic monthly expenses
-    const [recurrings, setRecurrings] = useState([
+    const recurrings = [
         { id: 'REC-01', category_name: 'Rent', recurring_type: 'monthly', next_due_date: '2026-06-01', auto_create: 'Active', recurring_status: 'active', amount: 25000 },
         { id: 'REC-02', category_name: 'Internet & SaaS', recurring_type: 'monthly', next_due_date: '2026-06-04', auto_create: 'Active', recurring_status: 'active', amount: 1500 }
-    ]);
+    ];
 
     // Form states
     const [newExpense, setNewExpense] = useState({

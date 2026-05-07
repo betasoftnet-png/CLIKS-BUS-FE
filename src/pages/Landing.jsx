@@ -42,7 +42,7 @@ const Landing = () => {
     const [scrolled, setScrolled] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const { isAuthenticated, user, mockLogin } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     useScrollAnimation(loading);
 
     useEffect(() => {

@@ -36,7 +36,7 @@ import '../App.css';
 const BusinessCRM = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isLedgerOpen, setIsLedgerOpen] = useState(false);
+
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedParty, setSelectedParty] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
@@ -51,7 +51,7 @@ const BusinessCRM = () => {
         notes: ''
     });
 
-    const [formData, setFormData] = useState({ 
+    const [formData, setFormData] = useState(() => ({ 
         customer_code: `CUST-${Date.now().toString().slice(-4)}`,
         name: '', 
         business_name: '', 
@@ -78,7 +78,7 @@ const BusinessCRM = () => {
         notes: '',
         reminder_enabled: true,
         preferred_contact: 'WhatsApp'
-    });
+    }));
 
     // Realistic Pre-populated Customer Master
     const [customers, setCustomers] = useState([
@@ -285,7 +285,7 @@ const BusinessCRM = () => {
             return;
         }
 
-        const isPaymentIn = paymentData.type === 'Payment In';
+
         const updatedLedger = [...(selectedParty.ledger || [])];
         const lastBalance = updatedLedger.length > 0 ? updatedLedger[updatedLedger.length - 1].balance : 0;
         const newBalance = lastBalance - amt;

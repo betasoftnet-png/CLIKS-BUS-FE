@@ -25,7 +25,7 @@ const BusinessPayroll = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
-    const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+
 
     // Stateful Payroll Database
     const [payrollRecords, setPayrollRecords] = useState([
