@@ -132,11 +132,6 @@ const Topbar = ({ onToggleSidebar }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                {/* Audit Button (Standalone Pill) */}
-                <button className="icon-btn" title="Scan QR" aria-label="Scan QR Code" style={{ color: '#1B6B3A' }}>
-                    <QrCode size={20} />
-                </button>
-
                 <ProfileDropdown
                     onAccount={() => navigate('/profile')}
                     onSettings={() => navigate('/settings')}
