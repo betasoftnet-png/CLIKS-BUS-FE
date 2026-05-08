@@ -98,16 +98,27 @@ const BusinessDashboard = () => {
                             </div>
                         </div>
                         <div className="dashboard-chart-bars-container">
-                            {[45, 65, 40, 85, 55, 95, 75, 80, 60, 85, 55, 100].map((h, i) => (
-                                <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                                    <div style={{ height: `${h}%`, width: '100%', background: 'linear-gradient(to top, #1B6B3A, #064E3B)', borderRadius: '8px 8px 4px 4px', position: 'relative' }}>
-                                        {i === 11 && <div style={{ position: 'absolute', top: '-30px', left: '50%', transform: 'translateX(-50%)', background: '#064E3B', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>₹4.5L</div>}
-                                    </div>
-                                    <span style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: '700', color: '#94A3B8', textAlign: 'center' }}>
-                                        {['J','F','M','A','M','J','J','A','S','O','N','D'][i]}
-                                    </span>
-                                </div>
-                            ))}
+                            {(() => {
+                                const salesData = chartSales?.data || Array(12).fill(0);
+                                const maxSales = Math.max(...salesData, 1000);
+                                return salesData.map((val, i) => {
+                                    const heightPct = val > 0 ? (val / maxSales) * 100 : 5;
+                                    return (
+                                        <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+                                            <div style={{ height: `${heightPct}%`, width: '100%', background: 'linear-gradient(to top, #1B6B3A, #064E3B)', borderRadius: '8px 8px 4px 4px', position: 'relative' }}>
+                                                {val > 0 && (
+                                                    <div style={{ position: 'absolute', top: '-30px', left: '50%', transform: 'translateX(-50%)', background: '#064E3B', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                                        ₹{val >= 100000 ? `${(val / 100000).toFixed(1)}L` : `${(val / 1000).toFixed(1)}k`}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: '700', color: '#94A3B8', textAlign: 'center' }}>
+                                                {['J','F','M','A','M','J','J','A','S','O','N','D'][i]}
+                                            </span>
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
 
