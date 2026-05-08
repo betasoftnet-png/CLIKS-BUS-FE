@@ -57,6 +57,18 @@ const BusinessWarehouse = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             alert('New Physical Warehouse Profile successfully created!');
+            setNewWarehouse({
+                warehouse_code: '',
+                warehouse_name: '',
+                warehouse_type: 'godown',
+                address: '',
+                city: '',
+                state: '',
+                pincode: '',
+                contact_person: '',
+                phone_number: '',
+                email: ''
+            });
             setIsCreateModalOpen(false);
         }
     });
@@ -160,16 +172,16 @@ const BusinessWarehouse = () => {
 
     // Form states
     const [newWarehouse, setNewWarehouse] = useState({
-        warehouse_code: 'WH-DEL-04',
-        warehouse_name: 'Delhi NCR Godown',
+        warehouse_code: '',
+        warehouse_name: '',
         warehouse_type: 'godown',
-        address: 'Sector 62, Noida Industrial Estate',
-        city: 'Noida',
-        state: 'Uttar Pradesh',
-        pincode: '201301',
-        contact_person: 'Amit Kumar (Manager)',
-        phone_number: '+91 99888 77766',
-        email: 'delhiwh@cliksbusiness.com'
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        contact_person: '',
+        phone_number: '',
+        email: ''
     });
 
     const [newInward, setNewInward] = useState({

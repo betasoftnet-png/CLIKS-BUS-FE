@@ -82,7 +82,7 @@ const BusinessGST = () => {
     });
 
     // fallbacks mapping
-    const invoices = dbInvoices.length > 0 ? dbInvoices.map(item => ({
+    const invoices = dbInvoices.map(item => ({
         gst_invoice_number: item.invoice_number,
         invoice_type: item.invoice_type || 'B2B',
         date: (item.created_at || '').split('T')[0] || '2026-05-08',
@@ -96,40 +96,9 @@ const BusinessGST = () => {
         reverse_charge: item.reverse_charge || 'No',
         irn_number: item.irn_number || '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
         qr_status: item.qr_status || 'Generated'
-    })) : [
-        {
-            gst_invoice_number: 'GST-2026-104',
-            invoice_type: 'B2B',
-            date: '2026-05-02',
-            place_of_supply: '27-Maharashtra',
-            taxable_value: 100000,
-            gst_percentage: 18,
-            cgst_amount: 9000,
-            sgst_amount: 9000,
-            igst_amount: 0,
-            total_tax: 18000,
-            reverse_charge: 'No',
-            irn_number: '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
-            qr_status: 'Generated'
-        },
-        {
-            gst_invoice_number: 'GST-2026-105',
-            invoice_type: 'B2C',
-            date: '2026-05-04',
-            place_of_supply: '29-Karnataka',
-            taxable_value: 50000,
-            gst_percentage: 12,
-            cgst_amount: 0,
-            sgst_amount: 0,
-            igst_amount: 6000,
-            total_tax: 6000,
-            reverse_charge: 'No',
-            irn_number: '5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f',
-            qr_status: 'Generated'
-        }
-    ];
+    }));
 
-    const reconciliations = dbReconciliations.length > 0 ? dbReconciliations.map(item => ({
+    const reconciliations = dbReconciliations.map(item => ({
         vendor_gstin: item.vendor_gstin || '27AAAAA1111A1Z1',
         vendor_name: item.vendor_name || 'Acme Hardware Corporates',
         invoice_amount: parseFloat(item.invoice_amount) || 35000,
@@ -140,32 +109,7 @@ const BusinessGST = () => {
         invoice_match_status: item.invoice_match_status || 'matched',
         mismatch_reason: item.mismatch_reason || 'None',
         reconciliation_date: (item.created_at || '').split('T')[0] || '2026-05-08'
-    })) : [
-        {
-            vendor_gstin: '27AAAAA1111A1Z1',
-            vendor_name: 'Acme Hardware Corporates',
-            invoice_amount: 35000,
-            input_cgst: 3150,
-            input_sgst: 3150,
-            input_igst: 0,
-            eligible_itc: 6300,
-            invoice_match_status: 'matched',
-            mismatch_reason: 'None',
-            reconciliation_date: '2026-05-01'
-        },
-        {
-            vendor_gstin: '29BBBBB2222B2Z2',
-            vendor_name: 'Bengaluru Spares Ltd.',
-            invoice_amount: 15000,
-            input_cgst: 0,
-            input_sgst: 0,
-            input_igst: 2700,
-            eligible_itc: 2700,
-            invoice_match_status: 'mismatch',
-            mismatch_reason: 'Tax rate mismatch (Supplier logged 12% instead of 18%)',
-            reconciliation_date: '2026-05-03'
-        }
-    ];
+    }));
 
     const { data: dbEways = [] } = useQuery({
         queryKey: ['gstEways'],
@@ -173,7 +117,7 @@ const BusinessGST = () => {
     });
 
     const activeEways = dbInvoices.filter(item => item.is_eway_bill === 'true');
-    const eways = activeEways.length > 0 ? activeEways.map(item => ({
+    const eways = activeEways.map(item => ({
         eway_bill_number: item.eway_bill_number,
         transporter_name: item.transporter_name || 'Bluedart Logistics',
         vehicle_number: item.vehicle_number || 'MH-02-AB-1234',
@@ -182,18 +126,7 @@ const BusinessGST = () => {
         delivery_location: item.delivery_location || 'Pune',
         status: item.status || 'Active',
         reference_invoice: 'GST-2026-104'
-    })) : [
-        {
-            eway_bill_number: 'EWB-2026-9011',
-            transporter_name: 'Bluedart Freight Ltd.',
-            vehicle_number: 'MH-02-EH-9081',
-            transport_distance: 240,
-            dispatch_location: 'Mumbai Warehouse',
-            delivery_location: 'Pune Retail Store',
-            status: 'Active',
-            reference_invoice: 'GST-2026-104'
-        }
-    ];
+    }));
 
     // Form inputs states
     const [invoiceForm, setInvoiceForm] = useState({
