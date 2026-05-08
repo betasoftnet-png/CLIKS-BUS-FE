@@ -7,20 +7,14 @@ import logoPng from '../assets/image copy.png'; // Final branding
 
 import { ProfileDropdown } from './ProfileDropdown';
 
-const Topbar = ({ onToggleSidebar }) => {
+const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const { logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const [isOpen, setIsOpen] = useState(false);
-
-    const toggleMenu = () => {
-        setIsOpen(!isOpen);
-    };
 
     const handleNavigation = (path) => {
         navigate(path);
-        setIsOpen(false);
-    }
+    };
 
     const handleLogout = () => {
         logout();
@@ -65,11 +59,11 @@ const Topbar = ({ onToggleSidebar }) => {
                 </div>
             </div>
 
-            {/* Hamburger Button (Mobile) */}
+            {/* Hamburger Button (Mobile) - Now toggles Sidebar! */}
             <button
-                className={`hamburger ${isOpen ? 'active' : ''}`}
-                onClick={toggleMenu}
-                aria-label="Menu"
+                className={`hamburger ${isSidebarOpen ? 'active' : ''}`}
+                onClick={onToggleSidebar}
+                aria-label="Toggle Sidebar"
             >
                 <span></span>
                 <span></span>
@@ -77,7 +71,7 @@ const Topbar = ({ onToggleSidebar }) => {
             </button>
 
             {/* Center: Navigation (New Lamp Style) */}
-            <div className={`top-nav-links ${isOpen ? 'active' : ''}`} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div className="top-nav-links" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -121,7 +115,7 @@ const Topbar = ({ onToggleSidebar }) => {
                                 }}
                             >
                                 <span className="hidden md:inline">{item.name}</span>
-                                <span className="md:hidden">
+                                <span className="md:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Icon size={18} />
                                 </span>
                             </button>

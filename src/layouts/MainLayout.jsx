@@ -20,7 +20,7 @@ const MainLayout = ({ children }) => {
 
     return (
         <div className={`app-root select-none ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-            <Topbar onToggleSidebar={toggleSidebar} onToggleAudit={toggleAudit} />
+            <Topbar onToggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} onToggleAudit={toggleAudit} />
             <div className="app-body" style={{ position: 'relative' }}>
                 {isSidebarOpen && (
                     <div 
