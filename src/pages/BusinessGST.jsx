@@ -72,14 +72,20 @@ const BusinessGST = () => {
         }
     });
 
-    // Business GST registration metadata
-    const [gstProfile] = useState({
-        gstin: '27ABCDE1234F1Z5',
-        legal_name: 'CLIKS Digital Services Pvt. Ltd.',
-        business_type: 'Regular Taxpayer',
-        place_of_business: 'Mumbai HQ, Maharashtra',
-        state_code: '27'
+    // Queries
+    const { data: dbSettings = {} } = useQuery({
+        queryKey: ['gstSettings'],
+        queryFn: () => gstService.getSettings()
     });
+
+    // Business GST registration metadata
+    const gstProfile = {
+        gstin: dbSettings.gstin || '27ABCDE1234F1Z5',
+        legal_name: dbSettings.legal_name || 'CLIKS Digital Services Pvt. Ltd.',
+        business_type: dbSettings.business_type || 'Regular Taxpayer',
+        place_of_business: dbSettings.place_of_business || 'Mumbai HQ, Maharashtra',
+        state_code: dbSettings.state_code || '27'
+    };
 
     // fallbacks mapping
     const invoices = dbInvoices.map(item => ({
@@ -87,25 +93,25 @@ const BusinessGST = () => {
         invoice_type: item.invoice_type || 'B2B',
         date: (item.created_at || '').split('T')[0] || '2026-05-08',
         place_of_supply: item.place_of_supply || '27-Maharashtra',
-        taxable_value: parseFloat(item.taxable_value) || 100000,
+        taxable_value: parseFloat(item.taxable_value) || 0,
         gst_percentage: parseFloat(item.gst_percentage) || 18,
-        cgst_amount: parseFloat(item.cgst_amount) || 9000,
-        sgst_amount: parseFloat(item.sgst_amount) || 9000,
+        cgst_amount: parseFloat(item.cgst_amount) || 0,
+        sgst_amount: parseFloat(item.sgst_amount) || 0,
         igst_amount: parseFloat(item.igst_amount) || 0,
-        total_tax: parseFloat(item.total_tax) || 18000,
+        total_tax: parseFloat(item.total_tax) || 0,
         reverse_charge: item.reverse_charge || 'No',
-        irn_number: item.irn_number || '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
+        irn_number: item.irn_number || '',
         qr_status: item.qr_status || 'Generated'
     }));
 
     const reconciliations = dbReconciliations.map(item => ({
-        vendor_gstin: item.vendor_gstin || '27AAAAA1111A1Z1',
-        vendor_name: item.vendor_name || 'Acme Hardware Corporates',
-        invoice_amount: parseFloat(item.invoice_amount) || 35000,
-        input_cgst: parseFloat(item.input_cgst) || 3150,
-        input_sgst: parseFloat(item.input_sgst) || 3150,
+        vendor_gstin: item.vendor_gstin || '',
+        vendor_name: item.vendor_name || '',
+        invoice_amount: parseFloat(item.invoice_amount) || 0,
+        input_cgst: parseFloat(item.input_cgst) || 0,
+        input_sgst: parseFloat(item.input_sgst) || 0,
         input_igst: parseFloat(item.input_igst) || 0,
-        eligible_itc: parseFloat(item.eligible_itc) || 6300,
+        eligible_itc: parseFloat(item.eligible_itc) || 0,
         invoice_match_status: item.invoice_match_status || 'matched',
         mismatch_reason: item.mismatch_reason || 'None',
         reconciliation_date: (item.created_at || '').split('T')[0] || '2026-05-08'
@@ -116,39 +122,38 @@ const BusinessGST = () => {
         queryFn: () => gstService.getEways()
     });
 
-    const activeEways = dbInvoices.filter(item => item.is_eway_bill === 'true');
-    const eways = activeEways.map(item => ({
+    const eways = dbEways.map(item => ({
         eway_bill_number: item.eway_bill_number,
-        transporter_name: item.transporter_name || 'Bluedart Logistics',
-        vehicle_number: item.vehicle_number || 'MH-02-AB-1234',
-        transport_distance: parseInt(item.transport_distance) || 100,
-        dispatch_location: item.dispatch_location || 'Mumbai',
-        delivery_location: item.delivery_location || 'Pune',
+        transporter_name: item.transporter_name || '',
+        vehicle_number: item.vehicle_number || '',
+        transport_distance: parseInt(item.transport_distance) || 0,
+        dispatch_location: item.dispatch_location || '',
+        delivery_location: item.delivery_location || '',
         status: item.status || 'Active',
-        reference_invoice: 'GST-2026-104'
+        reference_invoice: item.reference_invoice || ''
     }));
 
     // Form inputs states
     const [invoiceForm, setInvoiceForm] = useState({
         invoice_type: 'B2B',
         place_of_supply: '27-Maharashtra',
-        taxable_value: 40000,
+        taxable_value: '',
         gst_percentage: 18,
         reverse_charge: 'No'
     });
 
     const [ewayForm, setEwayForm] = useState({
-        transporter_name: 'Delhivry Express',
-        vehicle_number: 'MH-04-AB-1234',
-        transport_distance: 120,
-        dispatch_location: 'Mumbai Warehouse',
-        delivery_location: 'Thane Outlet'
+        transporter_name: '',
+        vehicle_number: '',
+        transport_distance: '',
+        dispatch_location: '',
+        delivery_location: ''
     });
 
     const [reconcileForm, setReconcileForm] = useState({
-        vendor_gstin: '27CCCCC3333C3Z3',
-        vendor_name: 'Mumbai Spares Hub',
-        invoice_amount: 12000,
+        vendor_gstin: '',
+        vendor_name: '',
+        invoice_amount: '',
         gst_rate: 18,
         match_status: 'matched'
     });
