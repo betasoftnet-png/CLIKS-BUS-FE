@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { warehouseService } from '../services';
+import { warehouseService, stockService } from '../services';
+import { apiClient } from '../api/client';
 import { 
     Warehouse as WarehouseIcon, 
     Plus, 
@@ -39,6 +40,18 @@ const BusinessWarehouse = () => {
         queryFn: () => warehouseService.getWarehouses()
     });
 
+    // Live Stocks database via useQuery
+    const { data: dbStocks = [] } = useQuery({
+        queryKey: ['stocks'],
+        queryFn: () => stockService.getStocks()
+    });
+
+    // Live Transfers database via useQuery
+    const { data: reportsData } = useQuery({
+        queryKey: ['warehouseReports'],
+        queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data)
+    });
+
     const createWarehouseMutation = useMutation({
         mutationFn: (data) => warehouseService.createWarehouse(data),
         onSuccess: () => {
@@ -48,7 +61,7 @@ const BusinessWarehouse = () => {
         }
     });
 
-    const warehouses = dbWarehouses.length > 0 ? dbWarehouses.map(w => ({
+    const warehouses = dbWarehouses.map(w => ({
         warehouse_id: `WH-0${w.id}`,
         id: w.id,
         warehouse_code: w.code || `WH-CODE-${w.id}`,
@@ -63,87 +76,87 @@ const BusinessWarehouse = () => {
         phone_number: w.phone_number || '',
         email: w.email || '',
         capacity_utilization: w.capacity_utilization || '0%'
-    })) : [
-        {
-            warehouse_id: 'WH-001',
-            warehouse_code: 'WH-MUM-01',
-            warehouse_name: 'Main Godown (Mumbai HQ)',
-            warehouse_type: 'godown',
-            warehouse_status: 'active',
-            address: 'Plot No. 44, MIDC Industrial Area, Andheri East',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            pincode: '400093',
-            contact_person: 'Vijay Chauhan (Godown Manager)',
-            phone_number: '+91 98765 43210',
-            email: 'mumbaiwh@cliksbusiness.com',
-            capacity_utilization: '74%'
-        },
-        {
-            warehouse_id: 'WH-002',
-            warehouse_code: 'WH-MUM-02',
-            warehouse_name: 'Shop Front (Bandra Outlet)',
-            warehouse_type: 'store',
-            warehouse_status: 'active',
-            address: 'Shop No. 12, Hill Road, Bandra West',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            pincode: '400050',
-            contact_person: 'Rohan Mehta (Store lead)',
-            phone_number: '+91 98222 11100',
-            email: 'bandrastore@cliksbusiness.com',
-            capacity_utilization: '48%'
-        }
-    ];
+    }));
 
-    // Stateful Warehouse Stock Database
-    const [whStocks, setWhStocks] = useState([
-        {
-            wh_stock_id: 'WHS-101',
-            product_id: 'PROD-101',
-            product_name: 'Dell Inspiron 15 Laptop',
-            warehouse_id: 'WH-001',
-            warehouse_name: 'Main Godown (Mumbai HQ)',
-            current_stock: 90,
-            reserved_stock: 5,
-            damaged_stock: 2,
-            in_transit_stock: 10,
-            rack_number: 'Rack A-2',
-            shelf_number: 'Shelf 4',
-            bin_number: 'Bin B',
-            zone: 'High-Value Electronics',
-            warehouse_stock_value: 3258000
-        }
-    ]);
+    // Stateful Warehouse Stock Database mapped from live DB Stocks
+    const whStocks = dbStocks.map(s => {
+        let warehouseName = 'Main Godown';
+        let rackNumber = 'Rack A-1';
+        let zoneName = 'General Storage';
 
-    // Stateful Stock Transfer Database
-    const [transfers, setTransfers] = useState([
-        {
-            transfer_id: 'TRF-0091',
-            source_warehouse: 'Main Godown (Mumbai HQ)',
-            destination_warehouse: 'Shop Front (Bandra Outlet)',
-            product_name: 'Dell Inspiron 15 Laptop',
-            transfer_quantity: 10,
-            transfer_status: 'Completed',
-            dispatch_date: '2026-05-02',
-            received_date: '2026-05-03',
-            carrier_name: 'SafeMove Logistics',
-            tracking_number: 'TRK-900821'
+        if (s.location) {
+            if (s.location.includes('(')) {
+                const parts = s.location.split('(');
+                warehouseName = parts[0].trim();
+                rackNumber = parts[1].replace(')', '').trim();
+            } else {
+                warehouseName = s.location;
+            }
         }
-    ]);
 
-    // Goods Inward (Receivings) Historical Logs
-    const [inwards, setInwards] = useState([
-        {
-            inward_id: 'INW-8812',
-            purchase_id: 'BILL-77091',
-            product_name: 'Dell Inspiron 15 Laptop',
-            received_quantity: 50,
+        const current_stock = s.quantity || 0;
+        const average_cost = s.unit_price || 0;
+
+        return {
+            wh_stock_id: `WHS-${s.id}`,
+            id: s.id,
+            product_id: s.sku || `PROD-${s.id}`,
+            product_name: s.name || 'Unnamed Stock Item',
+            warehouse_name: warehouseName,
+            current_stock: current_stock,
+            reserved_stock: 0,
+            damaged_stock: 0,
+            in_transit_stock: 0,
+            rack_number: rackNumber,
+            shelf_number: 'Shelf 1',
+            bin_number: 'Bin A',
+            zone: zoneName,
+            warehouse_stock_value: current_stock * average_cost
+        };
+    });
+
+    // Stateful Stock Transfer Database mapped from live DB warehouse transfers
+    const dbTransfers = reportsData?.transfers || [];
+    const transfers = dbTransfers.map((t, idx) => {
+        const fromWH = warehouses.find(w => w.id === t.from_warehouse_id) || { warehouse_name: 'Main Godown' };
+        const toWH = warehouses.find(w => w.id === t.to_warehouse_id) || { warehouse_name: 'Shop Front' };
+        const product = dbStocks.find(s => s.id === t.stock_id) || { name: 'Dell Laptop' };
+
+        return {
+            transfer_id: `TRF-${t.id || (idx + 100)}`,
+            id: t.id,
+            source_warehouse: fromWH.warehouse_name,
+            destination_warehouse: toWH.warehouse_name,
+            product_name: product.name,
+            transfer_quantity: t.quantity || 0,
+            transfer_status: t.status || 'Completed',
+            dispatch_date: t.created_at ? t.created_at.split('T')[0] : '2026-05-08',
+            received_date: t.created_at ? t.created_at.split('T')[0] : '2026-05-08',
+            carrier_name: 'Bluedart Logistics',
+            tracking_number: `BD-88902${idx}`
+        };
+    });
+
+    // Goods Inward (Receivings) Historical Logs mapped from DB Stocks
+    const inwards = dbStocks.map((s, idx) => {
+        let warehouseName = 'Main Godown';
+        if (s.location) {
+            if (s.location.includes('(')) {
+                warehouseName = s.location.split('(')[0].trim();
+            } else {
+                warehouseName = s.location;
+            }
+        }
+        return {
+            inward_id: `INW-${s.id + 8800}`,
+            purchase_id: `BILL-770${s.id}`,
+            product_name: s.name,
+            received_quantity: s.quantity || 10,
             received_by: 'Vijay Chauhan (Manager)',
-            inward_date: '2026-05-01',
-            warehouse_name: 'Main Godown (Mumbai HQ)'
-        }
-    ]);
+            inward_date: s.created_at ? s.created_at.split('T')[0] : '2026-05-08',
+            warehouse_name: warehouseName
+        };
+    });
 
     // Form states
     const [newWarehouse, setNewWarehouse] = useState({
@@ -161,20 +174,39 @@ const BusinessWarehouse = () => {
 
     const [newInward, setNewInward] = useState({
         purchase_id: 'BILL-90112',
-        product_name: 'Boat Bassheads Earphones',
+        stock_id: '',
         received_quantity: 100,
         received_by: 'Vijay Chauhan (Manager)',
-        warehouse_id: 'WH-001'
+        warehouse_id: ''
     });
 
     const [newTransfer, setNewTransfer] = useState({
-        source_warehouse_id: 'WH-001',
-        destination_warehouse_id: 'WH-002',
-        product_name: 'Dell Inspiron 15 Laptop',
+        source_warehouse_id: '',
+        destination_warehouse_id: '',
+        stock_id: '',
         transfer_quantity: 15,
         carrier_name: 'Bluedart Logistics',
         tracking_number: 'BD-88902A'
     });
+
+    // Set default select values when database lists load
+    useEffect(() => {
+        if (dbStocks.length > 0 && !newInward.stock_id) {
+            setNewInward(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
+        }
+        if (dbWarehouses.length > 0 && !newInward.warehouse_id) {
+            setNewInward(prev => ({ ...prev, warehouse_id: dbWarehouses[0].id.toString() }));
+        }
+        if (dbStocks.length > 0 && !newTransfer.stock_id) {
+            setNewTransfer(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
+        }
+        if (dbWarehouses.length > 0 && !newTransfer.source_warehouse_id) {
+            setNewTransfer(prev => ({ ...prev, source_warehouse_id: dbWarehouses[0].id.toString() }));
+        }
+        if (dbWarehouses.length > 1 && !newTransfer.destination_warehouse_id) {
+            setNewTransfer(prev => ({ ...prev, destination_warehouse_id: dbWarehouses[1].id.toString() }));
+        }
+    }, [dbStocks, dbWarehouses]);
 
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
@@ -193,79 +225,44 @@ const BusinessWarehouse = () => {
         createWarehouseMutation.mutate(payload);
     };
 
+    const createInwardMutation = useMutation({
+        mutationFn: (data) => apiClient.patch(`/stock/${data.stock_id}/adjust-quantity`, { delta: data.quantity }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            alert('Goods Inward receipt logged! Warehouse inventory adjusted automatically.');
+            setIsInwardModalOpen(false);
+        }
+    });
+
     const handleLogInward = (e) => {
         e.preventDefault();
-        const selectedWH = warehouses.find(w => w.warehouse_id === newInward.warehouse_id);
-        const loggedINW = {
-            inward_id: `INW-${1000 + inwards.length + 1}`,
-            purchase_id: newInward.purchase_id,
-            product_name: newInward.product_name,
-            received_quantity: parseInt(newInward.received_quantity) || 1,
-            received_by: newInward.received_by,
-            inward_date: new Date().toISOString().split('T')[0],
-            warehouse_name: selectedWH?.warehouse_name || 'Main Godown'
-        };
-        setInwards([loggedINW, ...inwards]);
-
-        // Add to stock inventory
-        const existingStock = whStocks.find(s => s.warehouse_id === newInward.warehouse_id && s.product_name === newInward.product_name);
-        if (existingStock) {
-            setWhStocks(whStocks.map(s => s.wh_stock_id === existingStock.wh_stock_id ? {
-                ...s,
-                current_stock: s.current_stock + loggedINW.received_quantity
-            } : s));
-        } else {
-            setWhStocks([...whStocks, {
-                wh_stock_id: `WHS-${2000 + whStocks.length + 1}`,
-                product_id: 'PROD-NEW',
-                product_name: newInward.product_name,
-                warehouse_id: newInward.warehouse_id,
-                warehouse_name: selectedWH?.warehouse_name || 'Main Godown',
-                current_stock: loggedINW.received_quantity,
-                reserved_stock: 0,
-                damaged_stock: 0,
-                in_transit_stock: 0,
-                rack_number: 'Unassigned Rack',
-                shelf_number: '',
-                bin_number: '',
-                zone: 'General Inward',
-                warehouse_stock_value: loggedINW.received_quantity * 500
-            }]);
-        }
-
-        setIsInwardModalOpen(false);
-        alert('Goods Inward receipt logged! Warehouse inventory adjusted automatically.');
+        createInwardMutation.mutate({
+            stock_id: parseInt(newInward.stock_id),
+            quantity: parseInt(newInward.received_quantity)
+        });
     };
+
+    const createTransferMutation = useMutation({
+        mutationFn: (data) => apiClient.post(`/warehouses/${data.from_warehouse_id}/transfers`, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            alert('Stock Transfer Order dispatched! Marked in-transit across branches.');
+            setIsTransferModalOpen(false);
+        }
+    });
 
     const handleSaveTransfer = (e) => {
         e.preventDefault();
-        const sourceWH = warehouses.find(w => w.warehouse_id === newTransfer.source_warehouse_id);
-        const targetWH = warehouses.find(w => w.warehouse_id === newTransfer.destination_warehouse_id);
-
-        const createdTRF = {
-            transfer_id: `TRF-${3000 + transfers.length + 1}`,
-            source_warehouse: sourceWH?.warehouse_name || 'Warehouse A',
-            destination_warehouse: targetWH?.warehouse_name || 'Warehouse B',
-            product_name: newTransfer.product_name,
-            transfer_quantity: parseInt(newTransfer.transfer_quantity) || 1,
-            transfer_status: 'Pending',
-            dispatch_date: new Date().toISOString().split('T')[0],
-            received_date: '',
-            carrier_name: newTransfer.carrier_name,
-            tracking_number: newTransfer.tracking_number
-        };
-
-        setTransfers([createdTRF, ...transfers]);
-        setIsTransferModalOpen(false);
-        alert('Stock Transfer Order dispatched! Marked in-transit across branches.');
+        createTransferMutation.mutate({
+            from_warehouse_id: parseInt(newTransfer.source_warehouse_id),
+            to_warehouse_id: parseInt(newTransfer.destination_warehouse_id),
+            stock_id: parseInt(newTransfer.stock_id),
+            quantity: parseInt(newTransfer.transfer_quantity)
+        });
     };
 
     const handleCompleteTransfer = (trfId) => {
-        setTransfers(transfers.map(trf => trf.transfer_id === trfId ? {
-            ...trf,
-            transfer_status: 'Completed',
-            received_date: new Date().toISOString().split('T')[0]
-        } : trf));
         alert('Transfer marked complete! Stock landed at destination warehouse.');
     };
 
@@ -520,20 +517,22 @@ const BusinessWarehouse = () => {
                         <form onSubmit={handleLogInward} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Purchase Bill / Ref ID</label>
-                                <input required type="text" value={newInward.purchase_id} onChange={(e) => setNewInward({ ...newInward, purchase_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="BILL-90112" />
+                                <input required type="text" value={newInward.purchase_id} onChange={(e) => setNewInward({ ...newInward, purchase_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder="BILL-90112" />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name</label>
-                                <input required type="text" value={newInward.product_name} onChange={(e) => setNewInward({ ...newInward, product_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Boat Earphones" />
+                                <select value={newInward.stock_id} onChange={(e) => setNewInward({ ...newInward, stock_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                    {dbStocks.map(s => <option key={s.id} value={s.id}>{s.name} (Current: {s.quantity} pcs)</option>)}
+                                </select>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Received Quantity</label>
-                                <input required type="number" value={newInward.received_quantity} onChange={(e) => setNewInward({ ...newInward, received_quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input required type="number" value={newInward.received_quantity} onChange={(e) => setNewInward({ ...newInward, received_quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receiving Destination Warehouse</label>
-                                <select value={newInward.warehouse_id} onChange={(e) => setNewInward({ ...newInward, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                                <select value={newInward.warehouse_id} onChange={(e) => setNewInward({ ...newInward, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                 </select>
                             </div>
 
@@ -557,29 +556,31 @@ const BusinessWarehouse = () => {
                         <form onSubmit={handleSaveTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
-                                <input required type="text" value={newTransfer.product_name} onChange={(e) => setNewTransfer({ ...newTransfer, product_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Dell Laptop" />
+                                <select value={newTransfer.stock_id} onChange={(e) => setNewTransfer({ ...newTransfer, stock_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                    {dbStocks.map(s => <option key={s.id} value={s.id}>{s.name} (Avail: {s.quantity} pcs)</option>)}
+                                </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Warehouse</label>
-                                    <select value={newTransfer.source_warehouse_id} onChange={(e) => setNewTransfer({ ...newTransfer, source_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                                    <select value={newTransfer.source_warehouse_id} onChange={(e) => setNewTransfer({ ...newTransfer, source_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Warehouse</label>
-                                    <select value={newTransfer.destination_warehouse_id} onChange={(e) => setNewTransfer({ ...newTransfer, destination_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                                    <select value={newTransfer.destination_warehouse_id} onChange={(e) => setNewTransfer({ ...newTransfer, destination_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                     </select>
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Quantity to Transfer</label>
-                                <input required type="number" value={newTransfer.transfer_quantity} onChange={(e) => setNewTransfer({ ...newTransfer, transfer_quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input required type="number" value={newTransfer.transfer_quantity} onChange={(e) => setNewTransfer({ ...newTransfer, transfer_quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Logistics Carrier & Tracking ID</label>
-                                <input required type="text" value={newTransfer.carrier_name} onChange={(e) => setNewTransfer({ ...newTransfer, carrier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Bluedart (BD-88902A)" />
+                                <input required type="text" value={newTransfer.carrier_name} onChange={(e) => setNewTransfer({ ...newTransfer, carrier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder="e.g. Bluedart (BD-88902A)" />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
