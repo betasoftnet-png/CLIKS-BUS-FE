@@ -2367,3 +2367,30 @@ div[style*="background-color: '#F0F9F4'"] {
     }
 }
 
+/* Sidebar Backdrop for Mobile */
+.sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(6, 78, 59, 0.4); /* soft emerald translucent shade to match cliks branding! */
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 25; /* sits behind sidebar (30) but in front of content */
+        animation: fadeInBackdrop 0.2s ease-out;
+    }
+}
+
+@keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+

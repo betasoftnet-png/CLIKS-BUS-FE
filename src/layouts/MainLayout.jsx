@@ -7,7 +7,7 @@ import '../App.css';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 const MainLayout = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
 
     const toggleSidebar = () => {
@@ -21,8 +21,14 @@ const MainLayout = ({ children }) => {
     return (
         <div className={`app-root select-none ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
             <Topbar onToggleSidebar={toggleSidebar} onToggleAudit={toggleAudit} />
-            <div className="app-body">
-                <Sidebar isOpen={isSidebarOpen} />
+            <div className="app-body" style={{ position: 'relative' }}>
+                {isSidebarOpen && (
+                    <div 
+                        className="sidebar-backdrop" 
+                        onClick={() => setIsSidebarOpen(false)}
+                    />
+                )}
+                <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 <div className="main-content-area">
                     <div style={{ padding: '0 2rem', paddingTop: '1.5rem', flexShrink: 0 }}>
                         <Breadcrumbs />

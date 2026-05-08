@@ -32,7 +32,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import '../App.css';
 import logoPng from '../assets/image copy.png';
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = ({ isOpen, onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -81,6 +81,9 @@ const Sidebar = ({ isOpen }) => {
     const handleItemClick = (label, path) => {
         setActiveItem(label);
         if (path) navigate(path);
+        if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) {
+            onClose();
+        }
     };
 
     return (
