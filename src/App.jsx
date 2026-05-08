@@ -38,6 +38,7 @@ import BusinessAttendance from './pages/BusinessAttendance';
 import BusinessPayroll from './pages/BusinessPayroll';
 import BusinessDelivery from './pages/BusinessDelivery';
 import BusinessManufacturing from './pages/BusinessManufacturing';
+import BusinessSubscription from './pages/BusinessSubscription';
 
 import './App.css';
 
@@ -99,6 +100,7 @@ function AppContent() {
                     <Route path="/business/delivery" element={<BusinessDelivery />} />
                     <Route path="/business/manufacturing" element={<BusinessManufacturing />} />
                     <Route path="/business/reports" element={<BusinessReports />} />
+                    <Route path="/business/subscription" element={<BusinessSubscription />} />
                     <Route path="/business/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
                     <Route path="/business/investors" element={<BusinessPlaceholder title="Business Investors" />} />
                     <Route path="/business/referral" element={<BusinessPlaceholder title="Refer & Earn" />} />

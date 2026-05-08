@@ -3,7 +3,7 @@ import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users } from 'lucide-
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
-import logoPng from '../assets/cliks.png'; // Final branding
+import logoPng from '../assets/image copy.png'; // Final branding
 
 import { ProfileDropdown } from './ProfileDropdown';
 
@@ -59,8 +59,8 @@ const Topbar = ({ onToggleSidebar }) => {
                     <div className="brand-logo-small" style={{ backgroundColor: 'transparent', borderRadius: '50%' }}>
                         <img src={logoPng} alt="CLIKS Logo" style={{ width: '28px', height: '28px' }} />
                     </div>
-                    <span style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: '700', letterSpacing: '0.5px' }}>
-                        CLIKS
+                    <span style={{ color: '#064E3B', fontSize: '1.25rem', fontWeight: '800', letterSpacing: '0.5px' }}>
+                        Cliks Business
                     </span>
                 </div>
             </div>
@@ -133,7 +133,7 @@ const Topbar = ({ onToggleSidebar }) => {
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
                 {/* Audit Button (Standalone Pill) */}
-                <button className="icon-btn" title="Scan QR" aria-label="Scan QR Code" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                <button className="icon-btn" title="Scan QR" aria-label="Scan QR Code" style={{ color: '#1B6B3A' }}>
                     <QrCode size={20} />
                 </button>
 

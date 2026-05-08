@@ -23,6 +23,9 @@ import {
 } from 'lucide-react';
 import '../App.css';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { expensesService } from '../services';
+
 const BusinessExpenses = () => {
     const [activeTab, setActiveTab] = useState('registry'); // 'registry', 'recurring', 'budget', 'claims'
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,8 +33,80 @@ const BusinessExpenses = () => {
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
 
-    // Stateful Expense Registry Database
-    const [expenses, setExpenses] = useState([
+    const queryClient = useQueryClient();
+
+    // Queries
+    const { data: dbExpenses = [] } = useQuery({
+        queryKey: ['expensesList'],
+        queryFn: () => expensesService.getExpenses()
+    });
+
+    const { data: dbBudgets = [] } = useQuery({
+        queryKey: ['budgetsList'],
+        queryFn: () => expensesService.getBudgets()
+    });
+
+    const { data: dbClaims = [] } = useQuery({
+        queryKey: ['claimsList'],
+        queryFn: () => expensesService.getClaims()
+    });
+
+    // Mutations
+    const createExpenseMutation = useMutation({
+        mutationFn: (data) => expensesService.createExpense(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            setIsExpenseModalOpen(false);
+            alert('Operational Business Expense successfully tracked and allocated!');
+        }
+    });
+
+    const createBudgetMutation = useMutation({
+        mutationFn: (data) => expensesService.createBudget(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            setIsBudgetModalOpen(false);
+            alert('New Departmental Budget target successfully allocated!');
+        }
+    });
+
+    const lodgeClaimMutation = useMutation({
+        mutationFn: (data) => expensesService.lodgeClaim(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            setIsClaimModalOpen(false);
+            alert('Employee reimbursement claim logged in managers verification queue!');
+        }
+    });
+
+    const approveClaimMutation = useMutation({
+        mutationFn: (id) => expensesService.approveClaim(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            alert('Claim approved and reimbursed successfully!');
+        }
+    });
+
+    // fallbacks mapping
+    const expenses = dbExpenses.length > 0 ? dbExpenses.map(item => ({
+        expense_id: item.id,
+        expense_number: item.expense_number || `EXP-2026-${item.id}`,
+        expense_date: item.expense_date || (item.created_at || '').split('T')[0] || '2026-05-08',
+        expense_status: item.expense_status || 'paid',
+        category_name: item.category_name || 'General',
+        subcategory: item.subcategory || 'Miscellaneous',
+        payee_name: item.payee_name || 'Generic Merchant',
+        payee_phone: item.payee_phone || '+91 xxxxx xxxxx',
+        payee_gstin: item.payee_gstin || '27XXXXX0000X0Z0',
+        expense_amount: parseFloat(item.expense_amount) || 0,
+        gst_percentage: parseFloat(item.gst_percentage) || 0,
+        subtotal: parseFloat(item.subtotal) || 0,
+        tax_amount: parseFloat(item.tax_amount) || 0,
+        payment_mode: item.payment_mode || 'UPI',
+        transaction_reference: item.transaction_reference || 'TXN-908122',
+        input_tax_credit: item.input_tax_credit || 'Not Applicable'
+    })) : [
         {
             expense_id: 'EXP-101',
             expense_number: 'EXP-2026-801',
@@ -67,37 +142,29 @@ const BusinessExpenses = () => {
             payment_mode: 'UPI',
             transaction_reference: 'UPI-ADANI-908122',
             input_tax_credit: 'Eligible (ITC Claimed)'
-        },
-        {
-            expense_id: 'EXP-103',
-            expense_number: 'EXP-2026-803',
-            expense_date: '2026-05-04',
-            expense_status: 'paid',
-            category_name: 'Internet',
-            subcategory: 'Office Broadband Subscription',
-            payee_name: 'Reliance Jio Fiber',
-            payee_phone: '+91 97777 55544',
-            payee_gstin: '27CCCCC3333C3Z3',
-            expense_amount: 1500,
-            gst_percentage: 18,
-            subtotal: 1271,
-            tax_amount: 229,
-            payment_mode: 'UPI',
-            transaction_reference: 'UPI-JIO-77112',
-            input_tax_credit: 'Eligible'
         }
-    ]);
+    ];
 
-    // Stateful Departmental Budgets Database
-    const [budgets, setBudgets] = useState([
+    const budgets = dbBudgets.length > 0 ? dbBudgets.map(item => ({
+        category_name: item.category_name || 'Fuel & Logistics',
+        budget_limit: parseFloat(item.budget_limit) || 15000,
+        spent_amount: parseFloat(item.spent_amount) || 0,
+        alert_status: item.alert_status || 'Optimal'
+    })) : [
         { category_name: 'Rent', budget_limit: 30000, spent_amount: 25000, alert_status: 'Optimal' },
         { category_name: 'Electricity', budget_limit: 6000, spent_amount: 5000, alert_status: 'Optimal' },
-        { category_name: 'Internet & SaaS', budget_limit: 2000, spent_amount: 1500, alert_status: 'Optimal' },
-        { category_name: 'Travel & Marketing', budget_limit: 10000, spent_amount: 9500, alert_status: 'Warning: 95% Spent' } // Active budget overspend warning
-    ]);
+        { category_name: 'Internet & SaaS', budget_limit: 2000, spent_amount: 1500, alert_status: 'Optimal' }
+    ];
 
-    // Stateful Employee Reimbursement Claims Database
-    const [claims, setClaims] = useState([
+    const claims = dbClaims.length > 0 ? dbClaims.map(item => ({
+        claim_id: item.id,
+        employee_name: item.employee_name || 'Rajesh Mishra',
+        travel_expense: item.travel_expense || 'Travel Meet',
+        claim_amount: parseFloat(item.claim_amount) || 0,
+        reimbursement_status: item.reimbursement_status || 'Pending',
+        approval_by: item.approval_by || '',
+        date: item.date || '2026-05-08'
+    })) : [
         {
             claim_id: 'CLM-901',
             employee_name: 'Rajesh Mishra (Sales)',
@@ -106,19 +173,9 @@ const BusinessExpenses = () => {
             reimbursement_status: 'Approved',
             approval_by: 'Ankit Sharma (Manager)',
             date: '2026-05-02'
-        },
-        {
-            claim_id: 'CLM-902',
-            employee_name: 'Siddharth Roy (Operations)',
-            travel_expense: 'Warehouse Hardware Spares Repair',
-            claim_amount: 1800,
-            reimbursement_status: 'Pending',
-            approval_by: '',
-            date: '2026-05-05'
         }
-    ]);
+    ];
 
-    // Stateful Recurring automatic monthly expenses
     const recurrings = [
         { id: 'REC-01', category_name: 'Rent', recurring_type: 'monthly', next_due_date: '2026-06-01', auto_create: 'Active', recurring_status: 'active', amount: 25000 },
         { id: 'REC-02', category_name: 'Internet & SaaS', recurring_type: 'monthly', next_due_date: '2026-06-04', auto_create: 'Active', recurring_status: 'active', amount: 1500 }
@@ -149,79 +206,21 @@ const BusinessExpenses = () => {
 
     const handleCreateExpense = (e) => {
         e.preventDefault();
-        const amt = parseFloat(newExpense.expense_amount) || 0;
-        const gst = parseFloat(newExpense.gst_percentage) || 0;
-        const sub = Math.round(amt / (1 + gst / 100));
-        const tax = amt - sub;
-
-        const createdEXP = {
-            expense_id: `EXP-${Date.now().toString().slice(-3)}`,
-            expense_number: `EXP-2026-${Date.now().toString().slice(-3)}`,
-            expense_date: new Date().toISOString().split('T')[0],
-            expense_status: 'paid',
-            category_name: newExpense.category_name,
-            subcategory: newExpense.subcategory,
-            payee_name: newExpense.payee_name,
-            payee_phone: '+91 xxxxx xxxxx',
-            payee_gstin: '27XXXXX0000X0Z0',
-            expense_amount: amt,
-            gst_percentage: gst,
-            subtotal: sub,
-            tax_amount: tax,
-            payment_mode: newExpense.payment_mode,
-            transaction_reference: newExpense.transaction_reference,
-            input_tax_credit: gst > 0 ? 'Eligible (ITC Claimed)' : 'Not Applicable'
-        };
-
-        setExpenses([createdEXP, ...expenses]);
-
-        // Adjust Budgets Spent value automatically
-        setBudgets(budgets.map(b => b.category_name === newExpense.category_name ? {
-            ...b,
-            spent_amount: b.spent_amount + amt,
-            alert_status: (b.spent_amount + amt) >= b.budget_limit ? 'Warning: Limit Reached' : 'Optimal'
-        } : b));
-
-        setIsExpenseModalOpen(false);
-        alert('Operational Business Expense successfully tracked and allocated!');
+        createExpenseMutation.mutate(newExpense);
     };
 
     const handleCreateBudget = (e) => {
         e.preventDefault();
-        const createdBGT = {
-            category_name: newBudget.category_name,
-            budget_limit: parseFloat(newBudget.budget_limit) || 5000,
-            spent_amount: 0,
-            alert_status: 'Optimal'
-        };
-        setBudgets([...budgets, createdBGT]);
-        setIsBudgetModalOpen(false);
-        alert('New Departmental Budget target successfully allocated!');
+        createBudgetMutation.mutate(newBudget);
     };
 
     const handleCreateClaim = (e) => {
         e.preventDefault();
-        const createdCLM = {
-            claim_id: `CLM-${Date.now().toString().slice(-3)}`,
-            employee_name: newClaim.employee_name,
-            travel_expense: newClaim.travel_expense,
-            claim_amount: parseFloat(newClaim.claim_amount) || 500,
-            reimbursement_status: 'Pending',
-            approval_by: '',
-            date: new Date().toISOString().split('T')[0]
-        };
-        setClaims([...claims, createdCLM]);
-        setIsClaimModalOpen(false);
-        alert('Employee reimbursement claim logged in managers verification queue!');
+        lodgeClaimMutation.mutate(newClaim);
     };
 
     const handleApproveClaim = (claimId) => {
-        setClaims(claims.map(c => c.claim_id === claimId ? {
-            ...c,
-            reimbursement_status: 'Approved',
-            approval_by: 'Ankit Sharma (Manager)'
-        } : c));
-        alert('Claim approved and reimbursed successfully!');
+        approveClaimMutation.mutate(claimId);
     };
 
     const filteredExpenses = expenses.filter(e => 

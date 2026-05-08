@@ -23,16 +23,70 @@ import {
     Smartphone
 } from 'lucide-react';
 import '../App.css';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { accountingService } from '../services/accountingService';
 
 const BusinessAccounting = () => {
     const [activeTab, setActiveTab] = useState('p&l'); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
 
-    // Mock data for Accounting
+    const queryClient = useQueryClient();
+
+    // Queries
+    const { data: dbPL } = useQuery({
+        queryKey: ['profitLoss'],
+        queryFn: () => accountingService.getProfitLoss()
+    });
+
+    const { data: dbLedger = [] } = useQuery({
+        queryKey: ['ledger'],
+        queryFn: () => accountingService.getLedger()
+    });
+
+    const { data: dbExpenses = [] } = useQuery({
+        queryKey: ['expenses'],
+        queryFn: () => accountingService.getExpenses()
+    });
+
+    // Mutations
+    const recordEntryMutation = useMutation({
+        mutationFn: (data) => accountingService.recordEntry(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+            queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            setIsEntryModalOpen(false);
+            alert('Financial Entry registered and saved successfully!');
+        }
+    });
+
+    // Form inputs state
+    const [entryForm, setEntryForm] = useState({
+        entry_type: 'income',
+        date: new Date().toISOString().split('T')[0],
+        amount: '',
+        category: 'Sales Revenue',
+        mode: 'Cash in Hand',
+        notes: ''
+    });
+
+    const handleSaveEntry = (e) => {
+        e.preventDefault();
+        recordEntryMutation.mutate({
+            entry_type: entryForm.entry_type,
+            date: entryForm.date,
+            amount: parseFloat(entryForm.amount) || 0,
+            category: entryForm.category,
+            mode: entryForm.mode,
+            notes: entryForm.notes
+        });
+    };
+
+    // fallback data
     const summaryStats = [
-        { label: 'Gross Revenue', value: '₹12,45,000', icon: TrendingUp, color: '#1B6B3A' },
-        { label: 'Total Expenses', value: '₹8,12,000', icon: TrendingDown, color: '#EF4444' },
-        { label: 'Net Profit', value: '₹4,33,000', icon: IndianRupee, color: '#064E3B' },
+        { label: 'Gross Revenue', value: dbPL ? `₹${parseFloat(dbPL.gross_revenue).toLocaleString()}` : '₹12,45,000', icon: TrendingUp, color: '#1B6B3A' },
+        { label: 'Total Expenses', value: dbPL ? `₹${parseFloat(dbPL.total_expenses).toLocaleString()}` : '₹8,12,000', icon: TrendingDown, color: '#EF4444' },
+        { label: 'Net Profit', value: dbPL ? `₹${parseFloat(dbPL.net_profit).toLocaleString()}` : '₹4,33,000', icon: IndianRupee, color: '#064E3B' },
         { label: 'GST Payable', value: '₹54,200', icon: ShieldCheck, color: '#0D9488' }
     ];
 
@@ -42,11 +96,29 @@ const BusinessAccounting = () => {
         { name: 'ITC Summary', period: 'Q1 2024', status: 'Verified', tax: '₹12,500' }
     ];
 
-    const dayBook = [
+    const dayBook = dbLedger.length > 0 ? dbLedger.map(item => ({
+        id: item.id,
+        type: item.entry_type === 'income' ? 'Income' : 'Expense',
+        category: item.category || 'Revenue',
+        amount: `₹${parseFloat(item.amount).toLocaleString()}`,
+        mode: item.mode || 'Cash',
+        date: item.date || '2026-05-08'
+    })) : [
         { id: 1, type: 'Income', category: 'Sales', amount: '₹45,000', mode: 'UPI', date: '2024-05-04' },
         { id: 2, type: 'Expense', category: 'Inventory', amount: '₹12,000', mode: 'Bank', date: '2024-05-04' },
         { id: 3, type: 'Income', category: 'Services', amount: '₹8,500', mode: 'Cash', date: '2024-05-03' },
         { id: 4, type: 'Expense', category: 'Rent', amount: '₹25,000', mode: 'Bank', date: '2024-05-01' }
+    ];
+
+    const expensesList = dbExpenses.length > 0 ? dbExpenses.map((item, idx) => ({
+        cat: item.category || 'General',
+        desc: item.description || 'Operational Cost',
+        date: item.date || '2026-05-08',
+        amt: `₹${parseFloat(item.amount).toLocaleString()}`
+    })) : [
+        { cat: 'Rent & Utilities', desc: 'May Office Rent', date: '2024-05-01', amt: '₹1,50,000' },
+        { cat: 'Marketing', desc: 'Google Ads Campaign', date: '2024-05-03', amt: '₹85,000' },
+        { cat: 'Staffing', desc: 'Part-time contractor', date: '2024-05-04', amt: '₹12,000' }
     ];
 
     return (
@@ -146,11 +218,7 @@ const BusinessAccounting = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {[
-                                        { cat: 'Rent & Utilities', desc: 'May Office Rent', date: '2024-05-01', amt: '₹1,50,000' },
-                                        { cat: 'Marketing', desc: 'Google Ads Campaign', date: '2024-05-03', amt: '₹85,000' },
-                                        { cat: 'Staffing', desc: 'Part-time contractor', date: '2024-05-04', amt: '₹12,000' }
-                                    ].map((exp, i) => (
+                                    {expensesList.map((exp, i) => (
                                         <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                             <td style={{ padding: '1.25rem' }}><span style={{ padding: '0.4rem 0.8rem', borderRadius: '10px', background: '#F0FDF4', color: '#1B6B3A', fontSize: '0.8rem', fontWeight: '750' }}>{exp.cat}</span></td>
                                             <td style={{ padding: '1.25rem', fontWeight: '600', color: '#475569' }}>{exp.desc}</td>
@@ -412,11 +480,11 @@ const BusinessAccounting = () => {
                             <h2 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#064E3B' }}>New Financial Entry</h2>
                             <button onClick={() => setIsEntryModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={22} /></button>
                         </div>
-                        <form style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <form onSubmit={handleSaveEntry} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Entry Type</label>
-                                    <select style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                    <select value={entryForm.entry_type} onChange={(e) => setEntryForm({ ...entryForm, entry_type: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
                                         <option value="income">Income / Sales</option>
                                         <option value="expense">Expense / Purchase</option>
                                         <option value="transfer">Bank Transfer</option>
@@ -424,44 +492,44 @@ const BusinessAccounting = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Date</label>
-                                    <input type="date" defaultValue={new Date().toISOString().split('T')[0]} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
+                                    <input type="date" value={entryForm.date} onChange={(e) => setEntryForm({ ...entryForm, date: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
                                 </div>
                             </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Amount (₹)</label>
-                                <input type="number" placeholder="0.00" style={{ width: '100%', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', fontSize: '2rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
+                                <input required type="number" placeholder="0.00" value={entryForm.amount} onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })} style={{ width: '100%', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', fontSize: '2rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Category</label>
-                                    <select style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                        <option>Sales Revenue</option>
-                                        <option>Rent & Utilities</option>
-                                        <option>Marketing</option>
-                                        <option>Inventory Purchase</option>
-                                        <option>Salary / Payroll</option>
-                                        <option>Other Income</option>
+                                    <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                        <option value="Sales Revenue">Sales Revenue</option>
+                                        <option value="Rent & Utilities">Rent & Utilities</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Inventory Purchase">Inventory Purchase</option>
+                                        <option value="Salary / Payroll">Salary / Payroll</option>
+                                        <option value="Other Income">Other Income</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Account / Mode</label>
-                                    <select style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                        <option>Cash in Hand</option>
-                                        <option>HDFC Bank Account</option>
-                                        <option>ICICI Bank Account</option>
-                                        <option>UPI / Razorpay</option>
+                                    <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                        <option value="Cash in Hand">Cash in Hand</option>
+                                        <option value="HDFC Bank Account">HDFC Bank Account</option>
+                                        <option value="ICICI Bank Account">ICICI Bank Account</option>
+                                        <option value="UPI / Razorpay">UPI / Razorpay</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Notes / Reference</label>
-                                <input placeholder="e.g. Inv #123 or Bill Reference" style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
+                                <input placeholder="e.g. Inv #123 or Bill Reference" value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
                             </div>
 
-                            <button type="submit" onClick={(e) => { e.preventDefault(); setIsEntryModalOpen(false); }} style={{ width: '100%', padding: '1.25rem', borderRadius: '24px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.15rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1.25rem', borderRadius: '24px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.15rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
                                 Save Financial Entry
                             </button>
                         </form>

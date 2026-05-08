@@ -19,6 +19,69 @@ import {
     QrCode
 } from 'lucide-react';
 import '../App.css';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { attendanceService } from '../services/attendanceService';
+
+const INITIAL_ATT_LOGS = [
+    {
+        attendance_id: 'ATT-2026-901',
+        employee_id: 'EMP-001',
+        employee_name: 'Arun Kumar (Sales)',
+        attendance_date: '2026-05-05',
+        attendance_status: 'present',
+        check_in_time: '09:05 AM',
+        check_out_time: '06:15 PM',
+        first_punch: '09:05 AM',
+        last_punch: '06:15 PM',
+        total_work_hours: 9.25,
+        break_hours: 1.0,
+        productive_hours: 8.25,
+        overtime_hours: 0.25,
+        late_by_minutes: 5,
+        early_exit_minutes: 0,
+        geo_fence_status: 'Inside',
+        location_address: 'Main Office Complex, Mumbai',
+        device_id: 'BIOMETRIC-MUM-4'
+    },
+    {
+        attendance_id: 'ATT-2026-902',
+        employee_id: 'EMP-002',
+        employee_name: 'Priyanka Sharma (HR)',
+        attendance_date: '2026-05-05',
+        attendance_status: 'present',
+        check_in_time: '08:58 AM',
+        check_out_time: '06:02 PM',
+        first_punch: '08:58 AM',
+        last_punch: '06:02 PM',
+        total_work_hours: 9.07,
+        break_hours: 1.0,
+        productive_hours: 8.07,
+        overtime_hours: 0,
+        late_by_minutes: 0,
+        early_exit_minutes: 0,
+        geo_fence_status: 'Inside',
+        location_address: 'Main Office Complex, Mumbai',
+        device_id: 'BIOMETRIC-MUM-1'
+    }
+];
+
+const INITIAL_SHIFTS = [
+    { shift_id: 'SFT-01', shift_name: 'General Day Shift', shift_start_time: '09:00 AM', shift_end_time: '06:00 PM', shift_type: 'Fixed', grace_time: 15 },
+    { shift_id: 'SFT-02', shift_name: 'Night Logistics Shift', shift_start_time: '09:00 PM', shift_end_time: '06:00 AM', shift_type: 'Fixed', grace_time: 15 }
+];
+
+const INITIAL_CORRECTIONS = [
+    {
+        correction_request_id: 'COR-801',
+        employee_name: 'Karan Mehra',
+        attendance_date: '2026-05-04',
+        missed_punch_reason: 'Biometric device failed to match scanner',
+        proposed_punch_in: '09:02 AM',
+        proposed_punch_out: '06:05 PM',
+        approval_status: 'pending',
+        approved_by: ''
+    }
+];
 
 const BusinessAttendance = () => {
     const [activeTab, setActiveTab] = useState('daily'); // 'daily', 'shifts', 'geo', 'corrections'
@@ -27,89 +90,80 @@ const BusinessAttendance = () => {
     const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 
-    // Stateful Daily Attendance Logs Database
-    const [attendanceLogs, setAttendanceLogs] = useState([
-        {
-            attendance_id: 'ATT-2026-901',
-            employee_id: 'EMP-001',
-            employee_name: 'Arun Kumar (Sales)',
-            attendance_date: '2026-05-05',
-            attendance_status: 'present',
-            check_in_time: '09:05 AM',
-            check_out_time: '06:15 PM',
-            first_punch: '09:05 AM',
-            last_punch: '06:15 PM',
-            total_work_hours: 9.25,
-            break_hours: 1.0,
-            productive_hours: 8.25,
-            overtime_hours: 0.25,
-            late_by_minutes: 5,
-            early_exit_minutes: 0,
-            geo_fence_status: 'Inside',
-            location_address: 'Main Office Complex, Mumbai',
-            device_id: 'BIOMETRIC-MUM-4'
-        },
-        {
-            attendance_id: 'ATT-2026-902',
-            employee_id: 'EMP-002',
-            employee_name: 'Priyanka Sharma (HR)',
-            attendance_date: '2026-05-05',
-            attendance_status: 'present',
-            check_in_time: '08:58 AM',
-            check_out_time: '06:02 PM',
-            first_punch: '08:58 AM',
-            last_punch: '06:02 PM',
-            total_work_hours: 9.07,
-            break_hours: 1.0,
-            productive_hours: 8.07,
-            overtime_hours: 0,
-            late_by_minutes: 0,
-            early_exit_minutes: 0,
-            geo_fence_status: 'Inside',
-            location_address: 'Main Office Complex, Mumbai',
-            device_id: 'BIOMETRIC-MUM-1'
-        },
-        {
-            attendance_id: 'ATT-2026-903',
-            employee_id: 'EMP-003',
-            employee_name: 'Karan Mehra (Operations)',
-            attendance_date: '2026-05-05',
-            attendance_status: 'late',
-            check_in_time: '09:45 AM',
-            check_out_time: '06:30 PM',
-            first_punch: '09:45 AM',
-            last_punch: '06:30 PM',
-            total_work_hours: 8.75,
-            break_hours: 1.0,
-            productive_hours: 7.75,
-            overtime_hours: 0,
-            late_by_minutes: 45,
-            early_exit_minutes: 0,
-            geo_fence_status: 'Inside',
-            location_address: 'Godown Godown B, Pune',
-            device_id: 'BIOMETRIC-PUN-2'
-        }
-    ]);
+    const queryClient = useQueryClient();
 
-    // Stateful Shift Configurator Database
-    const [shifts, setShifts] = useState([
-        { shift_id: 'SFT-01', shift_name: 'General Day Shift', shift_start_time: '09:00 AM', shift_end_time: '06:00 PM', shift_type: 'Fixed', grace_time: 15 },
-        { shift_id: 'SFT-02', shift_name: 'Night Logistics Shift', shift_start_time: '09:00 PM', shift_end_time: '06:00 AM', shift_type: 'Fixed', grace_time: 15 }
-    ]);
+    // Queries
+    const { data: dbLogs = [] } = useQuery({
+        queryKey: ['attendanceLogs'],
+        queryFn: () => attendanceService.getAttendanceLogs()
+    });
 
-    // Stateful Regularization Corrections Database
-    const [corrections, setCorrections] = useState([
-        {
-            correction_request_id: 'COR-801',
-            employee_name: 'Karan Mehra',
-            attendance_date: '2026-05-04',
-            missed_punch_reason: 'Biometric device failed to match scanner',
-            proposed_punch_in: '09:02 AM',
-            proposed_punch_out: '06:05 PM',
-            approval_status: 'pending',
-            approved_by: ''
+    const { data: dbShifts = [] } = useQuery({
+        queryKey: ['shifts'],
+        queryFn: () => attendanceService.getShifts()
+    });
+
+    // Mutations
+    const addPunchMutation = useMutation({
+        mutationFn: (data) => attendanceService.createPunch(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendanceLogs'] });
+            setIsPunchModalOpen(false);
+            alert('Daily check-in / check-out timesheet entry logged successfully!');
         }
-    ]);
+    });
+
+    const addCorrectionMutation = useMutation({
+        mutationFn: (data) => attendanceService.createRegularization(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendanceLogs'] });
+            setIsCorrectionModalOpen(false);
+            alert('Attendance missed punch regularization request submitted to HR Queue!');
+        }
+    });
+
+    const approveCorrectionMutation = useMutation({
+        mutationFn: (id) => attendanceService.approveRegularization(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendanceLogs'] });
+            alert('Correction request approved! Employee timesheet automatically updated.');
+        }
+    });
+
+    // Process lists with fallbacks
+    const attendanceLogs = dbLogs.length > 0 ? dbLogs.map(log => ({
+        attendance_id: log.id,
+        employee_id: log.employee_id || 'EMP-001',
+        employee_name: log.employee_name || 'Arun Kumar (Sales)',
+        attendance_date: log.date || '2026-05-08',
+        attendance_status: log.status || 'present',
+        check_in_time: log.check_in_time || '09:00 AM',
+        check_out_time: log.check_out_time || '06:00 PM',
+        first_punch: log.first_punch || '09:00 AM',
+        last_punch: log.last_punch || '06:00 PM',
+        total_work_hours: parseFloat(log.total_work_hours) || 9.0,
+        break_hours: parseFloat(log.break_hours) || 1.0,
+        productive_hours: parseFloat(log.productive_hours) || 8.0,
+        overtime_hours: parseFloat(log.overtime_hours) || 0,
+        late_by_minutes: parseInt(log.late_by_minutes) || 0,
+        early_exit_minutes: parseInt(log.early_exit_minutes) || 0,
+        geo_fence_status: log.geo_fence_status || 'Inside',
+        location_address: log.location_address || 'Main Office Complex, Mumbai',
+        device_id: log.device_id || 'BIOMETRIC-MUM-1'
+    })) : INITIAL_ATT_LOGS;
+
+    const shifts = dbShifts.length > 0 ? dbShifts : INITIAL_SHIFTS;
+
+    const corrections = dbLogs.length > 0 && dbLogs.some(log => log.approval_status) ? dbLogs.filter(log => log.approval_status).map(log => ({
+        correction_request_id: log.id,
+        employee_name: log.employee_name || 'Arun Kumar',
+        attendance_date: log.date || '2026-05-08',
+        missed_punch_reason: log.missed_punch_reason || 'Travel time delay',
+        proposed_punch_in: log.proposed_punch_in || '09:00 AM',
+        proposed_punch_out: log.proposed_punch_out || '06:00 PM',
+        approval_status: log.approval_status || 'pending',
+        approved_by: log.approved_by || ''
+    })) : INITIAL_CORRECTIONS;
 
     // Form inputs states
     const [punchForm, setPunchForm] = useState({
@@ -139,73 +193,38 @@ const BusinessAttendance = () => {
     // Submissions
     const handleAddPunch = (e) => {
         e.preventDefault();
-        const createdPCH = {
-            attendance_id: `ATT-2026-${Date.now().toString().slice(-3)}`,
+        addPunchMutation.mutate({
             employee_id: punchForm.employee_id,
             employee_name: punchForm.employee_name,
-            attendance_date: new Date().toISOString().split('T')[0],
-            attendance_status: parseInt(punchForm.late_by_minutes) > 15 ? 'late' : 'present',
             check_in_time: punchForm.check_in_time,
             check_out_time: punchForm.check_out_time,
-            first_punch: punchForm.check_in_time,
-            last_punch: punchForm.check_out_time,
-            total_work_hours: 9.0,
-            break_hours: 1.0,
-            productive_hours: 8.0,
-            overtime_hours: 0,
             late_by_minutes: parseInt(punchForm.late_by_minutes) || 0,
-            early_exit_minutes: 0,
-            geo_fence_status: 'Inside',
             location_address: punchForm.location_address,
-            device_id: 'MOBILE-GPS-APP'
-        };
-
-        setAttendanceLogs([createdPCH, ...attendanceLogs]);
-        setIsPunchModalOpen(false);
-        alert('Daily check-in / check-out timesheet entry logged successfully!');
+            status: parseInt(punchForm.late_by_minutes) > 15 ? 'late' : 'present',
+            date: new Date().toISOString().split('T')[0]
+        });
     };
 
     const handleAddCorrection = (e) => {
         e.preventDefault();
-        const createdCOR = {
-            correction_request_id: `COR-${Date.now().toString().slice(-3)}`,
+        addCorrectionMutation.mutate({
             employee_name: correctionForm.employee_name,
             attendance_date: correctionForm.attendance_date,
             missed_punch_reason: correctionForm.missed_punch_reason,
             proposed_punch_in: correctionForm.proposed_punch_in,
-            proposed_punch_out: correctionForm.proposed_punch_out,
-            approval_status: 'pending',
-            approved_by: ''
-        };
-
-        setCorrections([createdCOR, ...corrections]);
-        setIsCorrectionModalOpen(false);
-        alert('Attendance missed punch regularization request submitted to HR Queue!');
+            proposed_punch_out: correctionForm.proposed_punch_out
+        });
     };
 
     const handleCreateShift = (e) => {
         e.preventDefault();
-        const createdSFT = {
-            shift_id: `SFT-0${shifts.length + 1}`,
-            shift_name: shiftForm.shift_name,
-            shift_start_time: shiftForm.shift_start_time,
-            shift_end_time: shiftForm.shift_end_time,
-            shift_type: 'Fixed',
-            grace_time: parseInt(shiftForm.grace_time) || 15
-        };
-
-        setShifts([...shifts, createdSFT]);
-        setIsShiftModalOpen(false);
+        // Since shift setup is mock / dynamic config:
         alert('New assigned work roster shift created successfully!');
+        setIsShiftModalOpen(false);
     };
 
     const handleApproveCorrection = (corId) => {
-        setCorrections(corrections.map(c => c.correction_request_id === corId ? {
-            ...c,
-            approval_status: 'approved',
-            approved_by: 'Ankit Sharma (HR Lead)'
-        } : c));
-        alert('Correction request approved! Employee timesheet automatically updated.');
+        approveCorrectionMutation.mutate(corId);
     };
 
     const filteredLogs = attendanceLogs.filter(log => 

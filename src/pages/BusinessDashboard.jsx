@@ -27,7 +27,7 @@ const BusinessDashboard = () => {
     ];
 
     return (
-        <div style={{ padding: '2rem', background: '#F8FAFC', minHeight: '100vh' }}>
+        <div style={{ padding: '2rem', background: '#ffffff', minHeight: '100vh' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>

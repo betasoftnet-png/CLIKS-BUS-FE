@@ -2,10 +2,8 @@
 
 .sidebar {
     width: 180px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    background: #F0F9F4;
+    border-right: 1px solid #E2E8F0;
     display: flex;
     flex-direction: column;
     position: sticky;
@@ -762,19 +760,16 @@
 /* Topbar Styles */
 .topbar {
     height: 64px;
-    background: rgba(27, 107, 58, 0.85);
-    /* Semi-transparent Primary */
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    background: #F1F5F9;
+    border-bottom: 1px solid #E2E8F0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
     z-index: 20;
     position: relative;
-    color: white;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    color: #1E293B;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
 .topbar-left {
@@ -820,7 +815,7 @@
 .hamburger span {
     width: 100%;
     height: 3px;
-    background: white;
+    background: #1B6B3A;
     border-radius: 10px;
     transition: all 0.3s linear;
     position: relative;
@@ -916,27 +911,27 @@
 
 .topbar-profile {
     margin-left: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: #F1F5F9;
+    color: #1E293B;
     padding: 4px 12px 4px 4px;
     border-radius: 99px;
 }
 
 .topbar-profile:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: #E2E8F0;
 }
 
 .topbar input {
-    color: white;
+    color: #1E293B;
 }
 
 .topbar .icon-btn {
-    color: #F0FDF4;
+    color: #1B6B3A;
 }
 
 .topbar .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: #F1F5F9;
+    color: #064E3B;
 }
 
 /* Sidebar Adjustments for new layout */
@@ -1099,15 +1094,15 @@
 /* Update Active State to match user request */
 /* Update Active State to match user request - Soft Tint */
 .sidebar-item.active {
-    background-color: #F0FDF4;
-    color: var(--primary) !important;
+    background-color: #1B6B3A !important;
+    color: #ffffff !important;
     font-weight: 600;
-    box-shadow: inset 2px 0 0 0 var(--primary);
-    /* Left border accent */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(27, 107, 58, 0.15);
 }
 
 .sidebar-item.active svg {
-    color: var(--primary) !important;
+    color: #ffffff !important;
 }
 
 
@@ -2146,5 +2141,16 @@ th {
     @page {
         size: auto;
         margin: 20mm;
-    }
+     }
+}
+
+/* Global Switch: Change light green backgrounds of pages to white */
+div[style*="background: '#F0F9F4'"],
+div[style*="background: #F0F9F4"],
+div[style*="background: rgb(240, 249, 244)"],
+div[style*="background-color: rgb(240, 249, 244)"],
+div[style*="background-color: #F0F9F4"],
+div[style*="background-color: '#F0F9F4'"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
 }

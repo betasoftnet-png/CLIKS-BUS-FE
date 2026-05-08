@@ -21,6 +21,12 @@ export * from './productsService';
 export * from './stockService';
 export * from './warehouseService';
 export * from './bomService';
+export * from './attendanceService';
+export * from './payrollService';
+export * from './accountingService';
+export * from './gstService';
+export * from './reportsService';
+export * from './expensesService';
 
 
 

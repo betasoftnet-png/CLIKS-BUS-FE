@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../App.css';
-import logoPng from '../assets/cliks.png';
+import logoPng from '../assets/image copy.png';
 
 const Sidebar = ({ isOpen }) => {
     const location = useLocation();
@@ -62,7 +62,7 @@ const Sidebar = ({ isOpen }) => {
         if (path.includes('/business/marketing')) return 'Campaigns';
         if (path.includes('/business/investors')) return 'Investors';
         if (path.includes('/business/meetup')) return 'Meetup';
-        if (path.includes('/profile')) return 'Users & Roles';
+        if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
         if (path.includes('/faq')) return 'Backup & Sync';
         return 'Dashboard';
@@ -342,12 +342,12 @@ const Sidebar = ({ isOpen }) => {
                         {/* Settings */}
                         <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settings</div>
                         <button
-                            className={`sidebar-item ${activeItem === 'Users & Roles' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Users & Roles', '/profile')}
+                            className={`sidebar-item ${activeItem === 'Subscription' ? 'active' : ''}`}
+                            onClick={() => handleItemClick('Subscription', '/business/subscription')}
                         >
                             <div className="flex items-center gap-3">
-                                <User size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Users & Roles</span>
+                                <CreditCard size={20} style={{ color: '#1B6B3A' }} />
+                                <span className="sidebar-label">Subscription</span>
                             </div>
                         </button>
                         <button

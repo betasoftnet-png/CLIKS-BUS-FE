@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { reportsService } from '../services';
 import { 
     BarChart3, 
     TrendingUp, 
@@ -22,6 +24,11 @@ import '../App.css';
 
 const BusinessReports = () => {
     const [activeCategory, setActiveCategory] = useState('all');
+
+    const { data: summary } = useQuery({
+        queryKey: ['reportsSummary'],
+        queryFn: () => reportsService.getDashboardSummary()
+    });
 
     const reportCategories = [
         { id: 'all', label: 'All Reports', icon: BarChart3 },
