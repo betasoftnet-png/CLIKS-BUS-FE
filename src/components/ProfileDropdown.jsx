@@ -38,12 +38,12 @@ export function ProfileDropdown({
             alignItems: 'center',
             gap: '10px',
             borderRadius: '12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            backgroundColor: 'rgba(27, 107, 58, 0.05)',
+            border: '1px solid rgba(27, 107, 58, 0.15)',
             padding: '6px 14px',
             fontSize: '14px',
             fontWeight: 600,
-            color: '#ffffff',
+            color: '#1B6B3A',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             outline: 'none',
@@ -109,18 +109,18 @@ export function ProfileDropdown({
                 type="button"
                 onClick={() => setOpen(!open)}
                 style={styles.triggerButton}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(27, 107, 58, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(27, 107, 58, 0.05)'}
             >
                 <div style={{
                     width: '24px',
                     height: '24px',
                     borderRadius: '50%',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: '#1B6B3A',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#1B6B3A'
+                    color: '#ffffff'
                 }}>
                     <UserIcon size={14} />
                 </div>
