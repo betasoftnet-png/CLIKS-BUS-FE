@@ -10,7 +10,8 @@ export const expensesService = {
     createBudget: (data) => apiClient.post('/expenses/budgets', data).then(res => res.data.data || res.data),
     getClaims: () => apiClient.get('/expenses/reimbursements').then(res => res.data.data || res.data),
     lodgeClaim: (data) => apiClient.post('/expenses/reimburse', data).then(res => res.data.data || res.data),
-    approveClaim: (id) => apiClient.post(`/expenses/${id}/approve`).then(res => res.data.data || res.data)
+    approveClaim: (id) => apiClient.post(`/expenses/${id}/approve`).then(res => res.data.data || res.data),
+    getRecurrings: () => apiClient.get('/expenses/recurring').then(res => res.data.data || res.data)
 };
 
 export default expensesService;

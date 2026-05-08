@@ -89,7 +89,7 @@ const BusinessExpenses = () => {
     });
 
     // fallbacks mapping
-    const expenses = dbExpenses.length > 0 ? dbExpenses.map(item => ({
+    const expenses = dbExpenses.map(item => ({
         expense_id: item.id,
         expense_number: item.expense_number || `EXP-2026-${item.id}`,
         expense_date: item.expense_date || (item.created_at || '').split('T')[0] || '2026-05-08',
@@ -106,57 +106,16 @@ const BusinessExpenses = () => {
         payment_mode: item.payment_mode || 'UPI',
         transaction_reference: item.transaction_reference || 'TXN-908122',
         input_tax_credit: item.input_tax_credit || 'Not Applicable'
-    })) : [
-        {
-            expense_id: 'EXP-101',
-            expense_number: 'EXP-2026-801',
-            expense_date: '2026-05-01',
-            expense_status: 'paid',
-            category_name: 'Rent',
-            subcategory: 'Office Space Rental',
-            payee_name: 'Lodha Properties Ltd.',
-            payee_phone: '+91 99999 77766',
-            payee_gstin: '27AAAAA1111A1Z1',
-            expense_amount: 25000,
-            gst_percentage: 18,
-            subtotal: 21186,
-            tax_amount: 3814,
-            payment_mode: 'Bank Transfer',
-            transaction_reference: 'TXN-BANK-11029',
-            input_tax_credit: 'Eligible (ITC Claimed)'
-        },
-        {
-            expense_id: 'EXP-102',
-            expense_number: 'EXP-2026-802',
-            expense_date: '2026-05-03',
-            expense_status: 'paid',
-            category_name: 'Electricity',
-            subcategory: 'Utility Bill',
-            payee_name: 'Adani Electricity Mumbai',
-            payee_phone: '+91 98888 22211',
-            payee_gstin: '27BBBBB2222B2Z2',
-            expense_amount: 5000,
-            gst_percentage: 5,
-            subtotal: 4762,
-            tax_amount: 238,
-            payment_mode: 'UPI',
-            transaction_reference: 'UPI-ADANI-908122',
-            input_tax_credit: 'Eligible (ITC Claimed)'
-        }
-    ];
+    }));
 
-    const budgets = dbBudgets.length > 0 ? dbBudgets.map(item => ({
+    const budgets = dbBudgets.map(item => ({
         category_name: item.category_name || 'Fuel & Logistics',
         budget_limit: parseFloat(item.budget_limit) || 15000,
         spent_amount: parseFloat(item.spent_amount) || 0,
         alert_status: item.alert_status || 'Optimal'
-    })) : [
-        { category_name: 'Rent', budget_limit: 30000, spent_amount: 25000, alert_status: 'Optimal' },
-        { category_name: 'Electricity', budget_limit: 6000, spent_amount: 5000, alert_status: 'Optimal' },
-        { category_name: 'Internet & SaaS', budget_limit: 2000, spent_amount: 1500, alert_status: 'Optimal' }
-    ];
+    }));
 
-    const claims = dbClaims.length > 0 ? dbClaims.map(item => ({
+    const claims = dbClaims.map(item => ({
         claim_id: item.id,
         employee_name: item.employee_name || 'Rajesh Mishra',
         travel_expense: item.travel_expense || 'Travel Meet',
@@ -164,44 +123,44 @@ const BusinessExpenses = () => {
         reimbursement_status: item.reimbursement_status || 'Pending',
         approval_by: item.approval_by || '',
         date: item.date || '2026-05-08'
-    })) : [
-        {
-            claim_id: 'CLM-901',
-            employee_name: 'Rajesh Mishra (Sales)',
-            travel_expense: 'Interstate Client Meet Travel',
-            claim_amount: 4500,
-            reimbursement_status: 'Approved',
-            approval_by: 'Ankit Sharma (Manager)',
-            date: '2026-05-02'
-        }
-    ];
+    }));
 
-    const recurrings = [
-        { id: 'REC-01', category_name: 'Rent', recurring_type: 'monthly', next_due_date: '2026-06-01', auto_create: 'Active', recurring_status: 'active', amount: 25000 },
-        { id: 'REC-02', category_name: 'Internet & SaaS', recurring_type: 'monthly', next_due_date: '2026-06-04', auto_create: 'Active', recurring_status: 'active', amount: 1500 }
-    ];
+    const { data: dbRecurrings = [] } = useQuery({
+        queryKey: ['recurringsList'],
+        queryFn: () => expensesService.getRecurrings()
+    });
+
+    const recurrings = dbRecurrings.map(item => ({
+        id: item.id || `REC-${item.id}`,
+        category_name: item.category_name || 'General',
+        recurring_type: item.recurring_type || 'monthly',
+        next_due_date: item.next_due_date || '2026-06-01',
+        auto_create: item.auto_create || 'Active',
+        recurring_status: item.recurring_status || 'active',
+        amount: parseFloat(item.amount) || 0
+    }));
 
     // Form states
     const [newExpense, setNewExpense] = useState({
         category_name: 'Rent',
-        subcategory: 'Office Space Rental',
-        payee_name: 'Lodha Properties Ltd.',
-        expense_amount: 25000,
-        gst_percentage: 18,
-        payment_mode: 'Bank Transfer',
-        transaction_reference: 'TXN-BANK-11029'
+        subcategory: '',
+        payee_name: '',
+        expense_amount: '',
+        gst_percentage: 0,
+        payment_mode: 'UPI',
+        transaction_reference: ''
     });
 
     const [newBudget, setNewBudget] = useState({
-        category_name: 'Fuel & Logistics',
-        budget_limit: 15000,
+        category_name: '',
+        budget_limit: '',
         spent_amount: 0
     });
 
     const [newClaim, setNewClaim] = useState({
-        employee_name: 'Karan Mehra (Inventory)',
-        travel_expense: 'Client Sample Box Dispatches',
-        claim_amount: 1200
+        employee_name: '',
+        travel_expense: '',
+        claim_amount: ''
     });
 
     const handleCreateExpense = (e) => {
