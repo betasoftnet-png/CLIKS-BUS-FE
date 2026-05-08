@@ -22,68 +22,7 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollService } from '../services/payrollService';
 
-const INITIAL_PAYROLL_RECORDS = [
-    {
-        payroll_id: 'PAY-2026-701',
-        employee_id: 'EMP-001',
-        employee_name: 'Arun Kumar (Sales)',
-        payroll_month: 'May 2026',
-        payroll_status: 'paid',
-        salary_type: 'Monthly',
-        basic_salary: 30000,
-        hra_amount: 5000,
-        special_allowance: 2000,
-        bonus_amount: 5000,
-        overtime_pay: 500,
-        pf_deduction: 1800,
-        esi_deduction: 325,
-        tds_deduction: 500,
-        professional_tax: 200,
-        loan_deduction: 0,
-        payable_days: 30,
-        bank_name: 'HDFC Bank',
-        account_number: '50100223344551',
-        payslip_number: 'PSN-2026-091',
-        pan_number: 'ABCDE1234F',
-        uan_number: '100223344111',
-        esi_number: '3122334455001'
-    },
-    {
-        payroll_id: 'PAY-2026-702',
-        employee_id: 'EMP-002',
-        employee_name: 'Priyanka Sharma (HR)',
-        payroll_month: 'May 2026',
-        payroll_status: 'processed',
-        salary_type: 'Monthly',
-        basic_salary: 42000,
-        hra_amount: 8000,
-        special_allowance: 3000,
-        bonus_amount: 0,
-        overtime_pay: 0,
-        pf_deduction: 1800,
-        esi_deduction: 325,
-        tds_deduction: 1200,
-        professional_tax: 200,
-        loan_deduction: 1500,
-        payable_days: 31,
-        bank_name: 'ICICI Bank',
-        account_number: '001205566778',
-        payslip_number: 'PSN-2026-092',
-        pan_number: 'PQRTS9876M',
-        uan_number: '100223344222',
-        esi_number: '3122334455002'
-    }
-];
 
-const INITIAL_LOANS = [
-    {
-        employee_name: 'Priyanka Sharma',
-        loan_amount: 18000,
-        emi_amount: 1500,
-        remaining_balance: 13500,
-        salary_advance: 2000
-    }
-];
 
 const BusinessPayroll = () => {
     const [activeTab, setActiveTab] = useState('run'); // 'run', 'structures', 'compliance', 'loans'
@@ -151,7 +90,7 @@ const BusinessPayroll = () => {
         pan_number: rec.pan_number || 'ABCDE1234F',
         uan_number: rec.uan_number || '100223344111',
         esi_number: rec.esi_number || '3122334455001'
-    })) : INITIAL_PAYROLL_RECORDS;
+    })) : [];
 
     const loans = dbRecords.length > 0 && dbRecords.some(rec => rec.loans_data) ? dbRecords.filter(rec => rec.loans_data).map(rec => {
         const lData = JSON.parse(rec.loans_data || '{}');
@@ -162,7 +101,7 @@ const BusinessPayroll = () => {
             remaining_balance: parseFloat(lData.remaining_balance) || 12000,
             salary_advance: parseFloat(lData.salary_advance) || 0
         };
-    }) : INITIAL_LOANS;
+    }) : [];
 
     // Form states
     const [payForm, setPayForm] = useState({
