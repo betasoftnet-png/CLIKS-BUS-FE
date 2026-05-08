@@ -26,6 +26,12 @@ const BusinessDashboard = () => {
         queryFn: reportsService.getDashboardSummary
     });
 
+    // Fetch live sales chart data
+    const { data: chartSales } = useQuery({
+        queryKey: ['dashboardChartSales'],
+        queryFn: reportsService.getChartSales
+    });
+
     const stats = [
         { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? `₹${(summary.total_sales).toLocaleString()}` : '₹0', change: 'Live', icon: DollarSign, color: '#1B6B3A' },
         { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? `₹${(summary.total_purchases).toLocaleString()}` : '₹0', change: 'Live', icon: Briefcase, color: '#064E3B' },
