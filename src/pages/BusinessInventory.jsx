@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { productsService } from '../services';
 import { 
     Package, 
     Plus, 
@@ -31,6 +33,7 @@ import {
 import '../App.css';
 
 const BusinessInventory = () => {
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
@@ -41,133 +44,39 @@ const BusinessInventory = () => {
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'movement', 'reports'
     const [filterCategory, setFilterCategory] = useState('All');
 
-    // Stateful product/service database initialized with realistic Vyapar sample data
-    const [items, setItems] = useState([
-        {
-            id: 'P-101',
-            product_code: 'PRO-9011',
-            sku: 'IPH15-128',
-            barcode: '190198065432',
-            qr_code: 'QR-IPH15',
-            product_type: 'product', // product / service
-            name: 'iPhone 15 (128GB, Black)',
-            short_name: 'iPhone 15',
-            description: 'Advanced dual-camera system with 48MP main camera.',
-            category: 'Electronics',
-            brand: 'Apple',
-            purchase_price: 65000,
-            selling_price: 79900,
-            wholesale_price: 72000,
-            dealer_price: 69000,
-            mrp: 79900,
-            discount_percentage: 5,
-            gst_percentage: 18,
-            hsn_code: '8471',
-            tax_type: 'inclusive',
-            opening_stock: 25,
-            quantity: 20, // current stock
-            reserved_stock: 2,
-            damaged_stock: 1,
-            min_stock: 5,
-            reorder_level: 8,
-            batch_number: 'B-APL15',
-            manufacturing_date: '2025-10-10',
-            expiry_date: '',
-            serial_number: 'SN-908123',
-            primary_unit: 'pcs',
-            secondary_unit: 'box',
-            conversion_rate: 1,
-            warehouse: 'Main Godown',
-            rack_number: 'Rack A-2',
-            status: 'In Stock',
-            total_sold: 150,
-            total_purchased: 175,
-            last_sale_date: '2026-05-05'
-        },
-        {
-            id: 'P-102',
-            product_code: 'PRO-2045',
-            sku: 'CHR-MESH-9',
-            barcode: '890103076512',
-            qr_code: '',
-            product_type: 'product',
-            name: 'Ergonomic Mesh Office Chair',
-            short_name: 'Mesh Chair',
-            description: 'High-back office chair with lumbar support and 3D armrests.',
-            category: 'Furniture',
-            brand: 'Godrej Interio',
-            purchase_price: 3500,
-            selling_price: 6500,
-            wholesale_price: 5200,
-            dealer_price: 4800,
-            mrp: 8500,
-            discount_percentage: 10,
-            gst_percentage: 18,
-            hsn_code: '9403',
-            tax_type: 'exclusive',
-            opening_stock: 50,
-            quantity: 3, // current stock (Critical - Low Stock!)
-            reserved_stock: 0,
-            damaged_stock: 0,
-            min_stock: 10,
-            reorder_level: 15,
-            batch_number: 'B-GDJ-44',
-            manufacturing_date: '2025-01-15',
-            expiry_date: '',
-            serial_number: '',
-            primary_unit: 'pcs',
-            secondary_unit: 'box',
-            conversion_rate: 1,
-            warehouse: 'Shop Front',
-            rack_number: 'Display Section B',
-            status: 'Low Stock',
-            total_sold: 80,
-            total_purchased: 83,
-            last_sale_date: '2026-05-04'
-        },
-        {
-            id: 'S-201',
-            product_code: 'SRV-8012',
-            sku: 'SRV-DEV-REP',
-            barcode: '',
-            qr_code: '',
-            product_type: 'service',
-            name: 'Device Diagnostic & Repair Service',
-            short_name: 'Diagnostic',
-            description: 'Full hardware debugging and software reinstall.',
-            category: 'Services',
-            brand: 'Cliks Tech',
-            purchase_price: 0,
-            selling_price: 1500,
-            wholesale_price: 1200,
-            dealer_price: 1000,
-            mrp: 2000,
-            discount_percentage: 0,
-            gst_percentage: 18,
-            hsn_code: '9987',
-            tax_type: 'inclusive',
-            opening_stock: 0,
-            quantity: 0, // services do not track physical inventory quantities
-            reserved_stock: 0,
-            damaged_stock: 0,
-            min_stock: 0,
-            reorder_level: 0,
-            batch_number: '',
-            manufacturing_date: '',
-            expiry_date: '',
-            primary_unit: 'hrs',
-            secondary_unit: '',
-            conversion_rate: 1,
-            warehouse: 'On-site',
-            rack_number: '',
-            status: 'In Stock',
-            total_sold: 45,
-            total_purchased: 0,
-            last_sale_date: '2026-05-05'
-        }
-    ]);
+    // Live catalog items database from productsService
+    const { data: items = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts()
+    });
 
-    // Product Movement History log
+    const createMutation = useMutation({
+        mutationFn: (data) => productsService.createProduct(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            alert('Product created and catalog initialized successfully!');
+            setIsModalOpen(false);
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => productsService.updateProduct(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            alert('Product details updated successfully!');
+            setIsModalOpen(false);
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => productsService.deleteProduct(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            alert('Product removed from catalog.');
+        }
+    });
+
+    // Dummy movement history logs can safely exist locally
     const [movementHistory, setMovementHistory] = useState([
         { id: 'M-1', date: '2026-05-01', item_name: 'iPhone 15 (128GB, Black)', type: 'In (Purchase)', quantity: 25, ref: 'Bill #PUR-901', warehouse: 'Main Godown' },
         { id: 'M-2', date: '2026-05-03', item_name: 'iPhone 15 (128GB, Black)', type: 'Out (Sales)', quantity: 5, ref: 'Invoice #INV-201', warehouse: 'Main Godown' },
@@ -254,56 +163,73 @@ const BusinessInventory = () => {
 
     const handleEdit = (item) => {
         setEditingItem(item);
-        setFormData(item);
+        setFormData({
+            product_code: item.product_code || `PRO-${item.id}`,
+            sku: item.sku || '',
+            barcode: item.barcode || '',
+            qr_code: item.qr_code || '',
+            product_type: item.product_type || 'product',
+            name: item.name || '',
+            short_name: item.short_name || '',
+            description: item.description || '',
+            category: item.category || 'Electronics',
+            brand: item.brand || '',
+            purchase_price: item.purchase_price || 0,
+            selling_price: item.selling_price || 0,
+            wholesale_price: item.wholesale_price || 0,
+            dealer_price: item.dealer_price || 0,
+            mrp: item.mrp || 0,
+            discount_percentage: item.discount_percentage || 0,
+            gst_percentage: item.gst_percentage || 18,
+            hsn_code: item.hsn_code || '',
+            tax_type: item.tax_type || 'inclusive',
+            opening_stock: item.opening_stock || item.quantity || 0,
+            quantity: item.quantity || 0,
+            reserved_stock: item.reserved_stock || 0,
+            damaged_stock: item.damaged_stock || 0,
+            min_stock: item.min_stock || 5,
+            reorder_level: item.reorder_level || 8,
+            batch_number: item.batch_number || '',
+            manufacturing_date: item.manufacturing_date || '',
+            expiry_date: item.expiry_date || '',
+            serial_number: item.serial_number || '',
+            primary_unit: item.primary_unit || 'pcs',
+            secondary_unit: item.secondary_unit || 'box',
+            conversion_rate: item.conversion_rate || 1,
+            warehouse: item.warehouse || 'Main Godown',
+            rack_number: item.rack_number || ''
+        });
         setIsModalOpen(true);
     };
 
     const handleDelete = (id) => {
         if (window.confirm('Are you sure you want to delete this product? All historical logs and stock information will be removed.')) {
-            setItems(items.filter(i => i.id !== id));
-            alert('Product removed from catalog.');
+            deleteMutation.mutate(id);
         }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (editingItem) {
-            setItems(items.map(i => i.id === editingItem.id ? { 
-                ...formData, 
-                status: formData.product_type === 'service' ? 'In Stock' : (formData.quantity < formData.min_stock ? 'Low Stock' : 'In Stock') 
-            } : i));
-            alert('Product details updated successfully!');
-        } else {
-            const newId = formData.product_type === 'product' ? `P-${Date.now().toString().slice(-3)}` : `S-${Date.now().toString().slice(-3)}`;
-            const newItem = {
-                ...formData,
-                id: newId,
-                quantity: formData.opening_stock,
-                status: formData.product_type === 'service' ? 'In Stock' : (formData.opening_stock < formData.min_stock ? 'Low Stock' : 'In Stock'),
-                total_sold: 0,
-                total_purchased: formData.opening_stock,
-                last_sale_date: '-'
-            };
-            setItems([...items, newItem]);
+        const payload = {
+            name: formData.name,
+            sku: formData.sku,
+            category: formData.category,
+            quantity: parseFloat(formData.opening_stock) || 0,
+            purchase_price: parseFloat(formData.purchase_price) || 0,
+            selling_price: parseFloat(formData.selling_price) || 0,
+            barcode: formData.barcode,
+            serial_number: formData.serial_number,
+            batch_number: formData.batch_number,
+            expiry_date: formData.expiry_date,
+            tax_percentage: parseFloat(formData.gst_percentage) || 18,
+            warehouse_id: formData.warehouse
+        };
 
-            // Add Initial stock induction to Movement history
-            if (formData.product_type === 'product' && formData.opening_stock > 0) {
-                setMovementHistory([
-                    ...movementHistory,
-                    {
-                        id: `M-${Date.now().toString().slice(-3)}`,
-                        date: new Date().toISOString().split('T')[0],
-                        item_name: formData.name,
-                        type: 'In (Opening)',
-                        quantity: formData.opening_stock,
-                        ref: 'Initial Stock Setup',
-                        warehouse: formData.warehouse
-                    }
-                ]);
-            }
-            alert('Product created and catalog initialized successfully!');
+        if (editingItem) {
+            updateMutation.mutate({ id: editingItem.id, data: payload });
+        } else {
+            createMutation.mutate(payload);
         }
-        closeModal();
     };
 
     const handleAdjust = (item, type) => {
@@ -329,17 +255,20 @@ const BusinessInventory = () => {
             return;
         }
 
-        setItems(items.map(i => i.id === selectedItem.id ? {
-            ...i,
-            quantity: updatedQty,
-            status: updatedQty < i.min_stock ? 'Low Stock' : 'In Stock'
-        } : i));
+        updateMutation.mutate({ 
+            id: selectedItem.id, 
+            data: { 
+                ...selectedItem, 
+                quantity: updatedQty,
+                status: updatedQty < selectedItem.min_stock ? 'Low Stock' : 'In Stock'
+            } 
+        });
 
         // Append to running movement history logs
         setMovementHistory([
             ...movementHistory,
             {
-                id: `M-${Date.now().toString().slice(-3)}`,
+                id: `M-${100 + movementHistory.length + 1}`,
                 date: new Date().toISOString().split('T')[0],
                 item_name: selectedItem.name,
                 type: isStockIn ? 'In (Adjustment)' : 'Out (Adjustment)',
@@ -348,7 +277,6 @@ const BusinessInventory = () => {
                 warehouse: selectedItem.warehouse
             }
         ]);
-
         setIsAdjustModalOpen(false);
         setSelectedItem(null);
         alert('Real-time inventory levels adjusted and committed!');

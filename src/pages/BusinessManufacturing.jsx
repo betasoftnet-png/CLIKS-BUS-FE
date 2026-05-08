@@ -137,8 +137,39 @@ const INITIAL_MATERIALS = [
     { material_id: 'MAT-Castor02', material_name: 'Heavy Duty Castor Wheels', unit: 'pieces', opening_stock: 800, consumed_quantity: 125, remaining_stock: 675, cost_per_unit: 80 }
 ];
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { bomService } from '../services';
+
 const BusinessManufacturing = () => {
-    const [boms, setBoms] = useState(INITIAL_BOMS);
+    const queryClient = useQueryClient();
+
+    // Query for Live Bill of Materials (BOM)
+    const { data: dbBoms = [] } = useQuery({
+        queryKey: ['boms'],
+        queryFn: () => bomService.getBoms()
+    });
+
+    const createBomMutation = useMutation({
+        mutationFn: (data) => bomService.createBom(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['boms'] });
+            alert('Bill of Materials (BOM) created successfully!');
+            setIsBOMOpen(false);
+        }
+    });
+
+    // Mapping dbRows to UI properties safely
+    const boms = dbBoms.length > 0 ? dbBoms.map(b => ({
+        bom_id: `BOM-${b.id}`,
+        id: b.id,
+        bom_name: b.name || 'Unnamed Recipe BOM',
+        finished_product_id: b.product_id || `PRD-${b.id}`,
+        finished_product_name: b.name || 'Product',
+        required_quantity: 1,
+        unit: 'piece',
+        raw_materials: Array.isArray(b.items) ? b.items : JSON.parse(b.items || '[]')
+    })) : INITIAL_BOMS;
+
     const [workOrders, setWorkOrders] = useState(() => {
         const local = localStorage.getItem('cliks_work_orders');
         return local ? JSON.parse(local) : INITIAL_WORK_ORDERS;
@@ -193,23 +224,13 @@ const BusinessManufacturing = () => {
 
     const handleCreateBOM = (e) => {
         e.preventDefault();
-        const newBOM = {
-            ...bomForm,
-            bom_id: `BOM-${100 + boms.length + 1}`,
-            finished_product_id: `PRD-${Date.now().toString().slice(-4)}`
+        const payload = {
+            name: bomForm.bom_name,
+            description: `Yields: 1 ${bomForm.unit}`,
+            items: bomForm.raw_materials,
+            status: 'active'
         };
-        setBoms([...boms, newBOM]);
-        setIsBOMOpen(false);
-        setBomForm({
-            bom_name: '',
-            finished_product_name: '',
-            required_quantity: 1,
-            unit: 'piece',
-            raw_materials: [
-                { material_id: 'MAT-Wood01', material_name: 'Oak Wood Planks', required_quantity: 4, unit: 'sq meters', cost_per_unit: 800 }
-            ]
-        });
-        alert('Bill of Materials (BOM) created successfully!');
+        createBomMutation.mutate(payload);
     };
 
     const handleCreateWorkOrder = (e) => {
@@ -241,7 +262,7 @@ const BusinessManufacturing = () => {
             actual_start_date: '',
             actual_end_date: '',
             production_shift: woForm.production_shift,
-            operator_id: `WRK-${Math.floor(800 + Math.random() * 99)}`,
+            operator_id: `WRK-8${(woForm.bom_id || '99').slice(-2)}`,
             operator_name: woForm.operator_name,
             supervisor_id: 'SUP-01',
             supervisor_name: woForm.supervisor_name,

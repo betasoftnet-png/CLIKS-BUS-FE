@@ -19,16 +19,6 @@ const Auth = () => {
 
     const [processedCode, setProcessedCode] = useState(null);
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(location.search);
-        const code = urlParams.get('code');
-
-        if (code && code !== processedCode) {
-            setProcessedCode(code);
-            handleOAuthCallback(code);
-        }
-    }, [location, processedCode]);
-
     const handleOAuthCallback = React.useCallback(async (code) => {
         setIsLoading(true);
         setError('');
@@ -58,18 +48,24 @@ const Auth = () => {
 
             // 2. Perform SSO Login with backend
             await ssoLogin(bnxToken, 'BUSINESS');
-
-            // 3. Redirect to dashboard
-            navigate('/business/dashboard', { replace: true });
-
+            navigate('/business/dashboard');
         } catch (err) {
-            console.error('[Auth] SSO error:', err);
+            console.error('SSO Exchange error:', err);
             setError('Authentication failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
     }, [ssoLogin, navigate]);
 
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const code = urlParams.get('code');
+
+        if (code && code !== processedCode) {
+            setProcessedCode(code);
+            handleOAuthCallback(code);
+        }
+    }, [location, processedCode, handleOAuthCallback]);
     const handleLoginWithBNX = () => {
         const state = 'cliks-business-auth-state';
         window.location.href =

@@ -1,0 +1,47 @@
+import { apiClient } from '../api/client';
+
+export const bomService = {
+  getBoms: (params) => apiClient.get('/bom', { params }).then(res => res.data.data || res.data),
+  createBom: (data) => apiClient.post('/bom', data).then(res => res.data.data || res.data),
+  getBomById: (id) => apiClient.get(`/bom/${id}`).then(res => res.data.data || res.data),
+  updateBom: (id, data) => apiClient.put(`/bom/${id}`, data).then(res => res.data.data || res.data),
+  deleteBom: (id) => apiClient.delete(`/bom/${id}`).then(res => res.data.data || res.data),
+  addMaterial: (id, data) => apiClient.post(`/bom/${id}/materials`, data).then(res => res.data.data || res.data),
+  getMaterials: (id) => apiClient.get(`/bom/${id}/materials`).then(res => res.data.data || res.data),
+  updateMaterial: (id, materialId, data) => apiClient.put(`/bom/${id}/materials/${materialId}`, data).then(res => res.data.data || res.data),
+  deleteMaterial: (id, materialId) => apiClient.delete(`/bom/${id}/materials/${materialId}`).then(res => res.data.data || res.data),
+  addSubBom: (id, data) => apiClient.post(`/bom/${id}/sub-bom`, data).then(res => res.data.data || res.data),
+  getSubBoms: (id) => apiClient.get(`/bom/${id}/sub-bom`).then(res => res.data.data || res.data),
+  addProcess: (id, data) => apiClient.post(`/bom/${id}/process`, data).then(res => res.data.data || res.data),
+  getProcesses: (id) => apiClient.get(`/bom/${id}/process`).then(res => res.data.data || res.data),
+  addLabor: (id, data) => apiClient.post(`/bom/${id}/labor`, data).then(res => res.data.data || res.data),
+  getLabor: (id) => apiClient.get(`/bom/${id}/labor`).then(res => res.data.data || res.data),
+  addMachine: (id, data) => apiClient.post(`/bom/${id}/machines`, data).then(res => res.data.data || res.data),
+  getMachines: (id) => apiClient.get(`/bom/${id}/machines`).then(res => res.data.data || res.data),
+  addCosting: (id, data) => apiClient.post(`/bom/${id}/costing`, data).then(res => res.data.data || res.data),
+  getCosting: (id) => apiClient.get(`/bom/${id}/costing`).then(res => res.data.data || res.data),
+  getRawMaterials: (id) => apiClient.get(`/bom/${id}/raw-materials`).then(res => res.data.data || res.data),
+  getFinishedProduct: (id) => apiClient.get(`/bom/${id}/finished-product`).then(res => res.data.data || res.data),
+  getStockAvailability: (id) => apiClient.get(`/bom/${id}/stock-availability`).then(res => res.data.data || res.data),
+  getMaterialShortage: (id) => apiClient.get(`/bom/${id}/material-shortage`).then(res => res.data.data || res.data),
+  addVersion: (id, data) => apiClient.post(`/bom/${id}/version`, data).then(res => res.data.data || res.data),
+  getVersions: (id) => apiClient.get(`/bom/${id}/versions`).then(res => res.data.data || res.data),
+  approveBom: (id) => apiClient.post(`/bom/${id}/approve`).then(res => res.data.data || res.data),
+  rejectBom: (id) => apiClient.post(`/bom/${id}/reject`).then(res => res.data.data || res.data),
+  duplicateBom: (id) => apiClient.post(`/bom/${id}/duplicate`).then(res => res.data.data || res.data),
+  getHistory: (id) => apiClient.get(`/bom/${id}/history`).then(res => res.data.data || res.data),
+  getTimeline: (id) => apiClient.get(`/bom/${id}/timeline`).then(res => res.data.data || res.data),
+  addDocument: (id, data) => apiClient.post(`/bom/${id}/documents`, data).then(res => res.data.data || res.data),
+  getDocuments: (id) => apiClient.get(`/bom/${id}/documents`).then(res => res.data.data || res.data),
+  addNote: (id, data) => apiClient.post(`/bom/${id}/notes`, data).then(res => res.data.data || res.data),
+  getNotes: (id) => apiClient.get(`/bom/${id}/notes`).then(res => res.data.data || res.data),
+  getAnalytics: (id) => apiClient.get(`/bom/${id}/analytics`).then(res => res.data.data || res.data),
+  blockBom: (id) => apiClient.post(`/bom/${id}/block`).then(res => res.data.data || res.data),
+  unblockBom: (id) => apiClient.post(`/bom/${id}/unblock`).then(res => res.data.data || res.data),
+  getDashboardSummary: () => apiClient.get('/bom/dashboard-summary').then(res => res.data.data || res.data)
+};
+export const manufacturingService = {
+  getOrders: () => apiClient.get('/manufacturing/reports').then(res => res.data.data || res.data),
+  createOrder: (data) => apiClient.post('/manufacturing/orders', data).then(res => res.data.data || res.data),
+  completeOrder: (id) => apiClient.post('/manufacturing/complete', { order_id: id }).then(res => res.data.data || res.data)
+};

@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ordersService } from '../services/ordersService';
+import { crmService } from '../services/crmService';
 import { 
     ShoppingCart, 
     Plus, 
@@ -34,109 +36,44 @@ const BusinessSalesOrders = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list' or 'reports'
 
-    // Main Sales Orders State
-    const [orders, setOrders] = useState([
-        { 
-            id: 'SO-001', 
-            order_number: 'SO-2026-001',
-            customer: 'Kumar Traders', 
-            customer_phone: '9876543210',
-            customer_gstin: '07AAAAA1111A1Z1',
-            billing_address: 'Main Market, Road No 4, New Delhi',
-            shipping_address: 'Warehouse A, Sector 62, Noida',
-            date: '2026-05-01', 
-            delivery_date: '2026-05-10',
-            status: 'Confirmed',
-            items: [
-                { name: 'Office Chairs', sku: 'CHR-901', quantity: 50, price: 3000, hsn: '9403', discount: 10, gst: 18, total: 159300 }
-            ],
-            advance_amount: 50000,
-            shipping_charge: 1500,
-            subtotal: 150000,
-            total_discount: 15000,
-            total_tax: 24300,
-            grand_total: 160800,
-            pending_amount: 110800,
-            shipping_method: 'Delhivery',
-            tracking_number: 'TRK9081231',
-            dispatch_date: '2026-05-03'
-        },
-        { 
-            id: 'SO-002', 
-            order_number: 'SO-2026-002',
-            customer: 'Acme Corp', 
-            customer_phone: '8765432109',
-            customer_gstin: '',
-            billing_address: 'Tech Park, Whitefield, Bangalore',
-            shipping_address: 'Office Hub, MG Road, Bangalore',
-            date: '2026-05-03', 
-            delivery_date: '2026-05-05',
-            status: 'Invoiced',
-            items: [
-                { name: 'Wireless Mice', sku: 'MSE-404', quantity: 100, price: 500, hsn: '8471', discount: 5, gst: 18, total: 56050 }
-            ],
-            advance_amount: 56050,
-            shipping_charge: 0,
-            subtotal: 50000,
-            total_discount: 2500,
-            total_tax: 8550,
-            grand_total: 56050,
-            pending_amount: 0,
-            shipping_method: 'Bluedart',
-            tracking_number: 'BD-89021',
-            dispatch_date: '2026-05-04'
-        },
-        { 
-            id: 'SO-003', 
-            order_number: 'SO-2026-003',
-            customer: 'Retail Hub', 
-            customer_phone: '7654321098',
-            customer_gstin: '',
-            billing_address: 'G-12 Mall Road, Shimla',
-            shipping_address: 'G-12 Mall Road, Shimla',
-            date: '2026-05-05', 
-            delivery_date: '2026-05-15',
-            status: 'Draft',
-            items: [
-                { name: 'Gaming Keyboards', sku: 'KBD-771', quantity: 10, price: 2500, hsn: '8471', discount: 0, gst: 18, total: 29500 }
-            ],
-            advance_amount: 0,
-            shipping_charge: 300,
-            subtotal: 25000,
-            total_discount: 0,
-            total_tax: 4500,
-            grand_total: 29800,
-            pending_amount: 29800,
-            shipping_method: '',
-            tracking_number: '',
-            dispatch_date: ''
-        },
-        { 
-            id: 'SO-004', 
-            order_number: 'SO-2026-004',
-            customer: 'Tech Store', 
-            customer_phone: '6543210987',
-            customer_gstin: '',
-            billing_address: 'Preet Vihar, Delhi',
-            shipping_address: 'Preet Vihar, Delhi',
-            date: '2026-05-01', 
-            delivery_date: '2026-05-04',
-            status: 'Cancelled',
-            items: [
-                { name: 'Monitor Stand', sku: 'STN-101', quantity: 5, price: 1500, hsn: '3926', discount: 0, gst: 18, total: 8850 }
-            ],
-            advance_amount: 0,
-            shipping_charge: 100,
-            subtotal: 7500,
-            total_discount: 0,
-            total_tax: 1350,
-            grand_total: 8950,
-            pending_amount: 8950,
-            shipping_method: '',
-            tracking_number: '',
-            dispatch_date: ''
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [crmCustomers, setCrmCustomers] = useState([]);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+
+    const loadOrders = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await ordersService.getOrders({ search: searchTerm });
+            if (res && res.success) {
+                setOrders(res.data || []);
+            }
+        } catch (err) {
+            console.error('Failed to load live orders:', err);
+        } finally {
+            setLoading(false);
         }
-    ]);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        loadOrders();
+    }, [loadOrders]);
+
+    // Load CRM customers for dropdown
+    useEffect(() => {
+        const loadCustomers = async () => {
+            try {
+                const res = await crmService.getCustomers();
+                if (res && res.success) {
+                    setCrmCustomers(res.data || []);
+                }
+            } catch (err) {
+                console.error('Failed to load CRM customers:', err);
+            }
+        };
+        loadCustomers();
+    }, []);
 
     // Order Form State
     const [formData, setFormData] = useState(() => ({
@@ -227,30 +164,35 @@ const BusinessSalesOrders = () => {
         });
     }, []);
 
-    const handleSubmit = useCallback((e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const calced = calculateTotals(formData.items, formData.shipping_charge);
-        const pending = calced.grand_total - parseFloat(formData.advance_amount || 0);
+        try {
+            const calced = calculateTotals(formData.items, formData.shipping_charge);
+            const pending = calced.grand_total - parseFloat(formData.advance_amount || 0);
 
-        const newOrder = {
-            ...formData,
-            id: editingOrder ? editingOrder.id : `SO-${Date.now().toString().slice(-4)}`,
-            ...calced,
-            pending_amount: pending >= 0 ? pending : 0
-        };
+            const orderPayload = {
+                ...formData,
+                ...calced,
+                pending_amount: pending >= 0 ? pending : 0
+            };
 
-        if (editingOrder) {
-            setOrders(orders => orders.map(o => o.id === editingOrder.id ? newOrder : o));
-            alert('Sales Order updated successfully!');
-        } else {
-            setOrders(orders => [...orders, newOrder]);
-            alert('Sales Order created successfully!');
+            if (editingOrder) {
+                await ordersService.updateOrder(editingOrder.id, orderPayload);
+                alert('Sales Order updated successfully!');
+            } else {
+                await ordersService.createOrder(orderPayload);
+                alert('Sales Order created successfully!');
+            }
+
+            setIsModalOpen(false);
+            setEditingOrder(null);
+            resetForm();
+            loadOrders();
+        } catch (err) {
+            console.error('Failed to save sales order:', err);
+            alert('Failed to save sales order.');
         }
-
-        setIsModalOpen(false);
-        setEditingOrder(null);
-        resetForm();
-    }, [formData, editingOrder, calculateTotals, resetForm]);
+    };
 
     const handleEdit = (order) => {
         setEditingOrder(order);
@@ -258,16 +200,29 @@ const BusinessSalesOrders = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this sales order?')) {
-            setOrders(orders.filter(o => o.id !== id));
+            try {
+                await ordersService.deleteOrder(id);
+                alert('Sales Order deleted successfully.');
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                alert('Failed to delete sales order.');
+            }
         }
     };
 
-    const handleConvertInvoice = (order) => {
+    const handleConvertInvoice = async (order) => {
         if (window.confirm(`Convert Sales Order ${order.order_number} to a Sales Invoice?`)) {
-            setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'Invoiced', pending_amount: 0 } : o));
-            alert(`Sales Order successfully converted into Invoice! Stock deducted.`);
+            try {
+                await ordersService.convertToInvoice(order.id);
+                alert(`Sales Order successfully converted into Invoice! Stock deducted.`);
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                alert('Failed to convert sales order.');
+            }
         }
     };
 
@@ -276,17 +231,20 @@ const BusinessSalesOrders = () => {
         setIsFulfillmentOpen(true);
     };
 
-    const handleSaveFulfillment = (e) => {
+    const handleSaveFulfillment = async (e) => {
         e.preventDefault();
-        setOrders(orders.map(o => o.id === selectedOrder.id ? { 
-            ...o, 
-            status: 'Shipped',
-            shipping_method: selectedOrder.shipping_method,
-            tracking_number: selectedOrder.tracking_number,
-            dispatch_date: selectedOrder.dispatch_date
-        } : o));
-        setIsFulfillmentOpen(false);
-        alert('Fulfillment tracking details updated!');
+        try {
+            await ordersService.updateOrder(selectedOrder.id, {
+                ...selectedOrder,
+                status: 'Shipped'
+            });
+            setIsFulfillmentOpen(false);
+            alert('Fulfillment tracking details updated!');
+            loadOrders();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update tracking details.');
+        }
     };
 
     const filteredOrders = orders.filter(o => 
@@ -415,7 +373,11 @@ const BusinessSalesOrders = () => {
             </div>
 
             {/* Content Area */}
-            {activeTab === 'list' ? (
+            {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                    <p style={{ color: '#064E3B', fontSize: '1.15rem', fontWeight: '800' }}>Loading Live Sales Orders...</p>
+                </div>
+            ) : activeTab === 'list' ? (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ position: 'relative', width: '400px' }}>
@@ -668,9 +630,70 @@ const BusinessSalesOrders = () => {
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             {/* Customer Profile Section */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
-                                <div>
+                                <div style={{ position: 'relative' }}>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Name</label>
-                                    <input required type="text" value={formData.customer} onChange={(e) => setFormData({...formData, customer: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Kumar Traders" />
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={customerSearch || formData.customer} 
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setFormData({...formData, customer: e.target.value});
+                                            setShowCustomerDropdown(true);
+                                        }}
+                                        onFocus={() => setShowCustomerDropdown(true)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="Search or select customer..." 
+                                    />
+                                    {showCustomerDropdown && crmCustomers.length > 0 && (
+                                        <div style={{ 
+                                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                                            background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px',
+                                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', maxHeight: '220px', overflowY: 'auto', marginTop: '4px'
+                                        }}>
+                                            {crmCustomers
+                                                .filter(c => {
+                                                    const q = (customerSearch || '').toLowerCase();
+                                                    return !q || (c.name || '').toLowerCase().includes(q) || (c.business_name || '').toLowerCase().includes(q) || (c.phone_number || '').includes(q);
+                                                })
+                                                .map(c => (
+                                                    <div 
+                                                        key={c.id}
+                                                        onClick={() => {
+                                                            setFormData({
+                                                                ...formData,
+                                                                customer: c.name,
+                                                                customer_phone: c.phone_number || c.phone || '',
+                                                                customer_gstin: c.gstin || '',
+                                                                billing_address: c.billing_address || '',
+                                                                shipping_address: c.shipping_address || ''
+                                                            });
+                                                            setCustomerSearch(c.name);
+                                                            setShowCustomerDropdown(false);
+                                                        }}
+                                                        style={{ 
+                                                            padding: '0.75rem 1rem', cursor: 'pointer', 
+                                                            borderBottom: '1px solid #F1F5F9',
+                                                            transition: 'background 0.15s'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.background = '#F0FDF4'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                                    >
+                                                        <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem', marginBottom: '0.15rem' }}>{c.name}</p>
+                                                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                                                            {c.business_name ? `${c.business_name} | ` : ''}{c.phone_number || c.phone || ''}{c.gstin ? ` | ${c.gstin}` : ''}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            }
+                                            {crmCustomers.filter(c => {
+                                                const q = (customerSearch || '').toLowerCase();
+                                                return !q || (c.name || '').toLowerCase().includes(q) || (c.business_name || '').toLowerCase().includes(q) || (c.phone_number || '').includes(q);
+                                            }).length === 0 && (
+                                                <div style={{ padding: '1rem', color: '#94A3B8', fontSize: '0.85rem', textAlign: 'center' }}>No matching customers found</div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Phone</label>

@@ -27,6 +27,9 @@ import {
     MapPin
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import { purchasesService } from '../services/purchasesService';
 import '../App.css';
 
 const BusinessPurchases = () => {
@@ -38,142 +41,47 @@ const BusinessPurchases = () => {
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
 
-    // Stateful Purchase Database initialized with highly realistic Vyapar sample data
-    const [purchaseOrders, setPurchaseOrders] = useState([
-        {
-            purchase_id: 'PO-2026-001',
-            purchase_number: 'PO-90011',
-            purchase_type: 'GST',
-            purchase_date: '2026-05-01',
-            due_date: '2026-05-20',
-            status: 'Approved',
-            supplier_name: 'TechCorp Distributors',
-            supplier_gstin: '27AAAAA1111A1Z1',
-            billing_address: 'Warehouse Block 4, Industrial Area, Mumbai',
-            contact_number: '+91 98765 43210',
-            warehouse_id: 'Main Godown',
-            purchase_by: 'Rohit Sharma (Procurement Head)',
-            items: [
-                {
-                    product_name: 'iPhone 15 (128GB, Black)',
-                    sku: 'IPH15-128',
-                    batch_number: 'B-APL15',
-                    expiry_date: '',
-                    quantity: 50,
-                    received_quantity: 30, // For partial goods receiving
-                    free_quantity: 1,
-                    primary_unit: 'pcs',
-                    purchase_price: 65000,
-                    discount: 2, // percentage
-                    gst_percentage: 18,
-                }
-            ],
-            payment_status: 'pending',
-            payment_mode: 'UPI',
-            paid_amount: 0,
-            advance_amount: 100000,
-            transaction_reference: 'TXN-UPI-908123',
-            shipping_charge: 500,
-            round_off: -0.20,
-            place_of_supply: 'Maharashtra'
-        },
-        {
-            purchase_id: 'PO-2026-002',
-            purchase_number: 'PO-90012',
-            purchase_type: 'GST',
-            purchase_date: '2026-05-03',
-            due_date: '2026-06-03',
-            status: 'Draft',
-            supplier_name: 'Godrej Office Sol.',
-            supplier_gstin: '27BBBBB2222B2Z2',
-            billing_address: 'Vikhroli West, Mumbai, Maharashtra',
-            contact_number: '+91 98765 11223',
-            warehouse_id: 'Shop Front',
-            purchase_by: 'Ankita Deshmukh (Admin)',
-            items: [
-                {
-                    product_name: 'Ergonomic Mesh Office Chair',
-                    sku: 'CHR-MESH-9',
-                    batch_number: 'B-GDJ-44',
-                    expiry_date: '',
-                    quantity: 100,
-                    received_quantity: 0,
-                    free_quantity: 5,
-                    primary_unit: 'pcs',
-                    purchase_price: 3500,
-                    discount: 5,
-                    gst_percentage: 18,
-                }
-            ],
-            payment_status: 'paid',
-            payment_mode: 'Bank Transfer',
-            paid_amount: 366975,
-            advance_amount: 0,
-            transaction_reference: 'RTGS-HDFC-88221',
-            shipping_charge: 1500,
-            round_off: 0.00,
-            place_of_supply: 'Maharashtra'
-        }
-    ]);
+    const queryClient = useQueryClient();
 
-    const [purchaseBills, setPurchaseBills] = useState([
-        {
-            purchase_id: 'BILL-2026-001',
-            purchase_number: 'BILL-77091',
-            purchase_type: 'GST',
-            purchase_date: '2026-04-28',
-            due_date: '2026-05-28',
-            status: 'paid',
-            supplier_name: 'TechCorp Distributors',
-            supplier_gstin: '27AAAAA1111A1Z1',
-            billing_address: 'Warehouse Block 4, Industrial Area, Mumbai',
-            contact_number: '+91 98765 43210',
-            warehouse_id: 'Main Godown',
-            purchase_by: 'Rohit Sharma (Procurement Head)',
-            items: [
-                {
-                    product_name: 'iPhone 15 (128GB, Black)',
-                    sku: 'IPH15-128',
-                    batch_number: 'B-APL15',
-                    expiry_date: '',
-                    quantity: 20,
-                    received_quantity: 20,
-                    free_quantity: 0,
-                    primary_unit: 'pcs',
-                    purchase_price: 65000,
-                    discount: 0,
-                    gst_percentage: 18,
-                }
-            ],
-            payment_status: 'paid',
-            payment_mode: 'Bank Transfer',
-            paid_amount: 1534000,
-            advance_amount: 0,
-            transaction_reference: 'IMPS-AXIS-90022',
-            shipping_charge: 0,
-            round_off: 0,
-            place_of_supply: 'Maharashtra'
-        }
-    ]);
+    // Queries
+    const { data: allPurchases = [] } = useQuery({
+        queryKey: ['purchases'],
+        queryFn: purchasesService.getPurchases
+    });
 
-    const [purchaseReturns, setPurchaseReturns] = useState([
-        {
-            return_id: 'RET-2026-001',
-            purchase_number: 'BILL-77091',
-            return_date: '2026-05-02',
-            supplier_name: 'TechCorp Distributors',
-            return_reason: 'Damaged glass on arrival',
-            returned_items: [
-                {
-                    product_name: 'iPhone 15 (128GB, Black)',
-                    quantity: 2,
-                    purchase_price: 65000,
-                    refund_amount: 130000,
-                    adjustment_amount: 130000
-                }
-            ]
+    const purchaseOrders = allPurchases.filter(p => p.doc_type === 'PO');
+    const purchaseBills = allPurchases.filter(p => p.doc_type === 'BILL');
+    const purchaseReturns = allPurchases.filter(p => p.doc_type === 'RETURN');
+
+    // Mutations
+    const createMutation = useMutation({
+        mutationFn: purchasesService.createPurchase,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            setIsCreateModalOpen(false);
+            setFormItems([{
+                product_name: '',
+                sku: '',
+                batch_number: '',
+                expiry_date: '',
+                quantity: 1,
+                free_quantity: 0,
+                primary_unit: 'pcs',
+                purchase_price: 0,
+                discount: 0,
+                gst_percentage: 18
+            }]);
+            alert('Purchase document successfully registered!');
         }
-    ]);
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => purchasesService.updatePurchase(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            alert('Purchase successfully updated!');
+        }
+    });
 
     // Receive Goods Partial Modal Form state
     const [receiveQuantities, setReceiveQuantities] = useState({});
@@ -272,96 +180,36 @@ const BusinessPurchases = () => {
         e.preventDefault();
         const totals = computeDocTotals(formItems, formHeader.shipping_charge);
 
-        if (createDocType === 'PO') {
-            const advance = parseFloat(formHeader.advance_amount) || 0;
-            const newPO = {
-                purchase_id: `PO-2026-${Date.now().toString().slice(-3)}`,
-                ...formHeader,
-                items: formItems.map(i => ({ ...i, received_quantity: 0 })),
-                status: 'Approved',
-                payment_status: totals.grand_total === advance ? 'paid' : (advance > 0 ? 'partial' : 'pending'),
-                paid_amount: advance,
-                ...totals
-            };
+        const docPayload = {
+            ...formHeader,
+            doc_type: createDocType,
+            items: formItems.map(i => ({
+                ...i,
+                received_quantity: createDocType === 'BILL' ? i.quantity : 0
+            })),
+            status: createDocType === 'PO' ? 'Approved' : 'paid',
+            payment_status: createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) >= totals.grand_total ? 'paid' : (parseFloat(formHeader.paid_amount) > 0 ? 'partial' : 'pending')) : (totals.grand_total === (parseFloat(formHeader.advance_amount) || 0) ? 'paid' : ((parseFloat(formHeader.advance_amount) || 0) > 0 ? 'partial' : 'pending')),
+            paid_amount: createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) || totals.grand_total) : 0,
+            advance_amount: createDocType === 'PO' ? (parseFloat(formHeader.advance_amount) || 0) : 0,
+            ...totals
+        };
 
-            // Log Expense Transaction for Advance Payment
-            if (advance > 0) {
-                paymentsStore.addTransaction({
-                    type: 'expense',
-                    reference_type: 'purchase',
-                    reference_id: formHeader.purchase_number,
-                    bank_account_id: formHeader.bank_account_id || null,
-                    amount: advance,
-                    payment_method: formHeader.payment_mode.toLowerCase(),
-                    notes: `Advance Payment made for Procurement Order ${formHeader.purchase_number}`
-                });
-                setBankAccounts(paymentsStore.getBankAccounts()); // refresh state
-            }
-
-            setPurchaseOrders([newPO, ...purchaseOrders]);
-            alert('Purchase Order successfully created & approved!');
-        } else if (createDocType === 'BILL') {
-            const paid = parseFloat(formHeader.paid_amount) || totals.grand_total;
-            const newBill = {
-                purchase_id: `BILL-2026-${Date.now().toString().slice(-3)}`,
-                ...formHeader,
-                items: formItems.map(i => ({ ...i, received_quantity: i.quantity })),
-                status: 'paid',
-                payment_status: paid >= totals.grand_total ? 'paid' : (paid > 0 ? 'partial' : 'pending'),
-                paid_amount: paid,
-                ...totals
-            };
-
-            // Log Expense Transaction for Purchase Bill
-            if (paid > 0) {
-                paymentsStore.addTransaction({
-                    type: 'expense',
-                    reference_type: 'purchase',
-                    reference_id: formHeader.purchase_number,
-                    bank_account_id: formHeader.bank_account_id || null,
-                    amount: paid,
-                    payment_method: formHeader.payment_mode.toLowerCase(),
-                    notes: `Purchase Payment made for Bill ${formHeader.purchase_number}`
-                });
-                setBankAccounts(paymentsStore.getBankAccounts()); // refresh state
-            }
-
-            setPurchaseBills([newBill, ...purchaseBills]);
-            alert('Purchase Bill registered! Stock counts automatically increased.');
-        } else {
-            const refund = formItems.reduce((sum, i) => sum + (i.quantity * i.purchase_price), 0);
-            const newReturn = {
-                return_id: `RET-2026-${Date.now().toString().slice(-3)}`,
-                purchase_number: formHeader.purchase_number,
-                return_date: formHeader.purchase_date,
-                supplier_name: formHeader.supplier_name,
-                return_reason: formHeader.return_reason,
-                returned_items: formItems.map(i => ({
-                    product_name: i.product_name,
-                    quantity: i.quantity,
-                    purchase_price: i.purchase_price,
-                    refund_amount: i.quantity * i.purchase_price,
-                    adjustment_amount: i.quantity * i.purchase_price
-                }))
-            };
-
-            // Log Income Transaction for Refund
+        // Log Expense Transaction for Purchase Bill/Advance Payment
+        const paymentAmt = createDocType === 'BILL' ? docPayload.paid_amount : docPayload.advance_amount;
+        if (paymentAmt > 0) {
             paymentsStore.addTransaction({
-                type: 'income',
+                type: createDocType === 'RETURN' ? 'income' : 'expense',
                 reference_type: 'purchase',
-                reference_id: `RET-${Date.now().toString().slice(-3)}`,
+                reference_id: formHeader.purchase_number,
                 bank_account_id: formHeader.bank_account_id || null,
-                amount: refund,
-                payment_method: formHeader.payment_mode.toLowerCase(),
-                notes: `Refund Received for Purchase Return of ${formHeader.purchase_number}`
+                amount: paymentAmt,
+                payment_method: formHeader.payment_mode ? formHeader.payment_mode.toLowerCase() : 'cash',
+                notes: `${createDocType} Payment for procurement ${formHeader.purchase_number}`
             });
-            setBankAccounts(paymentsStore.getBankAccounts()); // refresh state
-
-            setPurchaseReturns([newReturn, ...purchaseReturns]);
-            alert('Purchase Return (Credit Note) created and logged!');
+            setBankAccounts(paymentsStore.getBankAccounts());
         }
 
-        setIsCreateModalOpen(false);
+        createMutation.mutate(docPayload);
     };
 
     const handleOpenReceiveModal = (po) => {
@@ -384,35 +232,40 @@ const BusinessPurchases = () => {
             };
         });
 
-        setPurchaseOrders(purchaseOrders.map(po => po.purchase_id === selectedDoc.purchase_id ? {
-            ...po,
+        const updatedDoc = {
+            ...selectedDoc,
             items: updatedItems,
             status: updatedItems.every(i => i.received_quantity >= i.quantity) ? 'Completed' : 'Partial Received'
-        } : po));
-
-        // Create automatic Purchase Bill if any item was received
-        const totals = computeDocTotals(updatedItems, selectedDoc.shipping_charge);
-        const autoBill = {
-            purchase_id: `BILL-AUTO-${Date.now().toString().slice(-3)}`,
-            purchase_number: `B-${selectedDoc.purchase_number.split('-')[1] || Date.now().toString().slice(-4)}`,
-            purchase_type: selectedDoc.purchase_type,
-            purchase_date: new Date().toISOString().split('T')[0],
-            due_date: selectedDoc.due_date,
-            status: 'paid',
-            supplier_name: selectedDoc.supplier_name,
-            supplier_gstin: selectedDoc.supplier_gstin,
-            billing_address: selectedDoc.billing_address,
-            contact_number: selectedDoc.contact_number,
-            warehouse_id: selectedDoc.warehouse_id,
-            purchase_by: selectedDoc.purchase_by,
-            items: updatedItems,
-            ...totals
         };
-        setPurchaseBills([autoBill, ...purchaseBills]);
 
-        setIsReceiveModalOpen(false);
-        setSelectedDoc(null);
-        alert('Goods received! Stock levels dynamically increased and Purchase Bill generated.');
+        updateMutation.mutate({ id: selectedDoc.id, data: updatedDoc }, {
+            onSuccess: () => {
+                // Auto generate Bill
+                const totals = computeDocTotals(updatedItems, selectedDoc.shipping_charge);
+                const autoBill = {
+                    purchase_number: `B-${selectedDoc.purchase_number.split('-')[1] || Date.now().toString().slice(-4)}`,
+                    purchase_type: selectedDoc.purchase_type,
+                    purchase_date: new Date().toISOString().split('T')[0],
+                    due_date: selectedDoc.due_date,
+                    doc_type: 'BILL',
+                    status: 'paid',
+                    supplier_name: selectedDoc.supplier_name,
+                    supplier_gstin: selectedDoc.supplier_gstin,
+                    billing_address: selectedDoc.billing_address,
+                    contact_number: selectedDoc.contact_number,
+                    warehouse_id: selectedDoc.warehouse_id,
+                    purchase_by: selectedDoc.purchase_by,
+                    items: updatedItems,
+                    payment_status: 'paid',
+                    paid_amount: totals.grand_total,
+                    ...totals
+                };
+                createMutation.mutate(autoBill);
+
+                setIsReceiveModalOpen(false);
+                setSelectedDoc(null);
+            }
+        });
     };
 
     const filteredPOs = purchaseOrders.filter(po => 

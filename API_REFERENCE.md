@@ -100,3 +100,127 @@ The API uses standard HTTP status codes.
   }
 }
 ```
+
+
+🚀 15. API Endpoints
+Create BOM
+POST /manufacturing/bom
+Create Production Order
+POST /manufacturing/orders
+Complete Production
+POST /manufacturing/complete
+Manufacturing Reports
+GET /manufacturing/reports
+
+🚀 15. API Endpoints
+Process Payroll
+POST /payroll/process
+Generate Payslip
+POST /payroll/payslip
+Payroll Reports
+GET /payroll/reports
+Employee Salary History
+GET /employees/:id/payroll
+
+🚀 16. API Endpoints
+Check-In
+POST /attendance/check-in
+Check-Out
+POST /attendance/check-out
+Attendance Reports
+GET /attendance/reports
+Attendance Correction
+POST /attendance/correction
+
+🚀 14. API Endpoints
+Create Employee
+POST /employees
+Upload Documents
+POST /employees/:id/documents
+Employee Directory
+GET /employees
+Employee Profile
+GET /employees/:id
+
+🚀 14. API Endpoints
+Create Staff
+POST /employees
+Assign Role
+POST /employees/:id/role
+Staff Activity Logs
+GET /employees/activity
+Performance Reports
+GET /employees/performance
+
+🚀 14. API Endpoints
+Generate GST Invoice
+POST /gst/invoice
+Generate e-Way Bill
+POST /gst/eway-bill
+GST Summary
+GET /gst/summary
+GST Return Data
+GET /gst/returns
+
+🚀 14. API Endpoints
+Create Expense
+POST /expenses
+Upload Receipt
+POST /expenses/:id/attachment
+Expense Reports
+GET /expenses/reports
+Monthly Expense Summary
+GET /expenses/monthly-summary
+
+
+🚀 13. API Endpoints
+Receive Payment
+POST /payments/receive
+Make Supplier Payment
+POST /payments/pay
+Payment Reports
+GET /payments/reports
+Outstanding Balances
+GET /payments/outstanding
+
+13. API Endpoints
+Create Warehouse
+POST /warehouses
+Transfer Stock
+POST /warehouses/transfer
+Get Warehouse Stock
+GET /warehouses/:id/stock
+Warehouse Reports
+GET /warehouses/reports
+
+🚀 14. API Endpoints
+Get Current Stock
+GET /stock
+Update Stock
+PATCH /stock/:id
+Transfer Stock
+POST /stock/transfer
+Stock Movement History
+GET /stock/movements
+
+🚀 11. API Endpoints
+Create Return
+POST /returns
+Approve Return
+PATCH /returns/:id/approve
+Process Refund
+POST /returns/:id/refund
+Return Reports
+GET /returns/reports
+
+
+🚀 10. API Endpoints
+Create Supplier
+POST /suppliers
+Get Supplier Ledger
+GET /suppliers/:id/ledger
+Record Payment
+POST /suppliers/:id/payment
+Outstanding Payables
+GET /suppliers/outstanding
+

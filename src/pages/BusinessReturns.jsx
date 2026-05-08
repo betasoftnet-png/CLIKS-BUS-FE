@@ -25,6 +25,9 @@ import {
     Wrench,
     Activity
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
+import { returnsService } from '../services/returnsService';
 import '../App.css';
 
 const BusinessReturns = () => {
@@ -43,112 +46,45 @@ const BusinessReturns = () => {
         approved_by: 'Manager (Procurement)'
     });
 
-    // Stateful Returns database initialized with highly realistic Vyapar/myBillBook sample data
-    const [salesReturns, setSalesReturns] = useState([
-        {
-            return_id: 'SRET-001',
-            return_number: 'SRN-2026-90',
-            return_type: 'sales',
-            return_date: '2026-05-02',
-            status: 'Completed',
-            invoice_id: 'INV-2026-104',
-            customer_id: 'CUST-302',
-            customer_name: 'Anjali Sharma',
-            items: [
-                {
-                    product_id: 'PROD-101',
-                    product_name: 'Dell Inspiron 15 Laptop',
-                    batch_number: 'B-DEL-99',
-                    serial_number: 'S-778912A',
-                    return_quantity: 1,
-                    replacement_quantity: 0,
-                    price: 45000,
-                    gst_percentage: 18,
-                    tax_amount: 8100,
-                    total: 53100
-                }
-            ],
-            refund_amount: 53100,
-            adjustment_amount: 53100,
-            tax_adjustment: 8100,
-            refund_mode: 'UPI',
-            refund_status: 'completed',
-            refund_date: '2026-05-02',
-            refund_reference: 'TXN-UPI-90981',
-            reason_code: 'Defective screen flickering',
-            inspection_status: 'Resaleable',
-            warehouse_id: 'Main Godown'
-        },
-        {
-            return_id: 'SRET-002',
-            return_number: 'SRN-2026-91',
-            return_type: 'sales',
-            return_date: '2026-05-04',
-            status: 'Pending',
-            invoice_id: 'INV-2026-112',
-            customer_id: 'CUST-305',
-            customer_name: 'Rajesh Verma',
-            items: [
-                {
-                    product_id: 'PROD-105',
-                    product_name: 'Boat Bassheads 100 Earphones',
-                    batch_number: 'B-BT-88',
-                    serial_number: '',
-                    return_quantity: 5,
-                    replacement_quantity: 5, // Replacement Exchange
-                    price: 399,
-                    gst_percentage: 18,
-                    tax_amount: 359,
-                    total: 2354
-                }
-            ],
-            refund_amount: 0,
-            adjustment_amount: 2354,
-            tax_adjustment: 359,
-            refund_mode: 'Store Credit',
-            refund_status: 'pending',
-            refund_date: '',
-            refund_reference: '',
-            reason_code: 'Wrong color shipped',
-            inspection_status: 'Pending Check',
-            warehouse_id: 'Shop Front'
-        }
-    ]);
+    const queryClient = useQueryClient();
 
-    const [purchaseReturns, setPurchaseReturns] = useState([
-        {
-            return_id: 'PRET-001',
-            return_number: 'PRN-2026-44',
-            return_type: 'purchase',
-            return_date: '2026-04-28',
-            status: 'Completed',
-            purchase_id: 'BILL-77091',
-            supplier_id: 'SUP-101',
-            supplier_name: 'TechCorp Distributors',
-            items: [
-                {
-                    product_id: 'PROD-111',
-                    product_name: 'iPhone 15 (128GB, Black)',
-                    batch_number: 'B-APL15',
-                    return_quantity: 2,
-                    price: 65000,
-                    gst_percentage: 18,
-                    tax_amount: 23400,
-                    total: 153400
-                }
-            ],
-            refund_amount: 153400,
-            adjustment_amount: 153400,
-            tax_adjustment: 23400,
-            refund_mode: 'Bank Transfer',
-            refund_status: 'completed',
-            refund_date: '2026-04-29',
-            refund_reference: 'RTGS-TECH-8821',
-            reason_code: 'Glass cracked during supplier transit',
-            inspection_status: 'Damaged Segregation',
-            warehouse_id: 'Main Godown'
+    // Queries
+    const { data: allReturns = [], isLoading } = useQuery({
+        queryKey: ['returns'],
+        queryFn: returnsService.getReturns
+    });
+
+    const salesReturns = allReturns.filter(r => r.return_type === 'sales');
+    const purchaseReturns = allReturns.filter(r => r.return_type === 'purchase');
+
+    // Mutations
+    const createMutation = useMutation({
+        mutationFn: returnsService.createReturn,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['returns'] });
+            setIsCreateModalOpen(false);
+            setFormItems([{
+                product_name: '',
+                batch_number: '',
+                serial_number: '',
+                return_quantity: 1,
+                replacement_quantity: 0,
+                price: 0,
+                gst_percentage: 18
+            }]);
+            alert('Return successfully logged!');
         }
-    ]);
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => returnsService.updateReturn(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['returns'] });
+            setIsInspectionModalOpen(false);
+            setSelectedReturn(null);
+            alert('Quality Check completed and updated successfully!');
+        }
+    });
 
     // Form inputs for new return
     const [formHeader, setFormHeader] = useState(() => ({
@@ -218,63 +154,37 @@ const BusinessReturns = () => {
         e.preventDefault();
         const totals = calculateTotals(formItems);
 
-        if (createReturnType === 'sales') {
-            const newSRET = {
-                return_id: `SRET-${Date.now().toString().slice(-3)}`,
-                return_number: formHeader.return_number,
-                return_type: 'sales',
-                return_date: formHeader.return_date,
-                status: 'Pending',
-                invoice_id: formHeader.invoice_id,
-                customer_name: formHeader.customer_name,
-                items: formItems.map(i => ({
-                    ...i,
-                    tax_amount: (i.return_quantity * i.price) * (i.gst_percentage / 100),
-                    total: (i.return_quantity * i.price) * (1 + i.gst_percentage / 100)
-                })),
-                refund_amount: totals.grandTotal,
-                adjustment_amount: totals.grandTotal,
-                tax_adjustment: totals.totalTax,
-                refund_mode: formHeader.refund_mode,
-                refund_status: 'pending',
-                refund_date: '',
-                refund_reference: '',
-                reason_code: formHeader.reason_code,
-                inspection_status: 'Pending Check',
-                warehouse_id: formHeader.warehouse_id
-            };
-            setSalesReturns([newSRET, ...salesReturns]);
-            alert('Sales Return created! Stock added back to pending quality check.');
-        } else {
-            const newPRET = {
-                return_id: `PRET-${Date.now().toString().slice(-3)}`,
-                return_number: formHeader.return_number,
-                return_type: 'purchase',
-                return_date: formHeader.return_date,
-                status: 'Completed',
-                purchase_id: formHeader.purchase_id,
-                supplier_name: formHeader.supplier_name,
-                items: formItems.map(i => ({
-                    ...i,
-                    tax_amount: (i.return_quantity * i.price) * (i.gst_percentage / 100),
-                    total: (i.return_quantity * i.price) * (1 + i.gst_percentage / 100)
-                })),
-                refund_amount: totals.grandTotal,
-                adjustment_amount: totals.grandTotal,
-                tax_adjustment: totals.totalTax,
-                refund_mode: formHeader.refund_mode,
-                refund_status: 'completed',
-                refund_date: formHeader.return_date,
-                refund_reference: 'RET-ADJ-44',
-                reason_code: formHeader.reason_code,
-                inspection_status: 'Damaged Segregation',
-                warehouse_id: formHeader.warehouse_id
-            };
-            setPurchaseReturns([newPRET, ...purchaseReturns]);
-            alert('Purchase Return successfully logged. Stock counts reduced.');
-        }
+        const payload = {
+            return_number: formHeader.return_number,
+            return_type: createReturnType,
+            return_date: formHeader.return_date,
+            status: createReturnType === 'sales' ? 'Pending' : 'Completed',
+            invoice_id: createReturnType === 'sales' ? formHeader.invoice_id : null,
+            purchase_id: createReturnType === 'purchase' ? formHeader.purchase_id : null,
+            customer_name: createReturnType === 'sales' ? formHeader.customer_name : null,
+            supplier_name: createReturnType === 'purchase' ? formHeader.supplier_name : null,
+            refund_amount: totals.grandTotal,
+            adjustment_amount: totals.grandTotal,
+            tax_adjustment: totals.totalTax,
+            refund_mode: formHeader.refund_mode,
+            refund_status: createReturnType === 'sales' ? 'pending' : 'completed',
+            reason_code: formHeader.reason_code,
+            inspection_status: createReturnType === 'sales' ? 'Pending Check' : 'Damaged Segregation',
+            warehouse_id: formHeader.warehouse_id,
+            items: formItems.map(i => ({
+                product_name: i.product_name,
+                batch_number: i.batch_number,
+                serial_number: i.serial_number,
+                return_quantity: i.return_quantity,
+                replacement_quantity: i.replacement_quantity,
+                price: i.price,
+                gst_percentage: i.gst_percentage,
+                tax_amount: (i.return_quantity * i.price) * (i.gst_percentage / 100),
+                total: (i.return_quantity * i.price) * (1 + i.gst_percentage / 100)
+            }))
+        };
 
-        setIsCreateModalOpen(false);
+        createMutation.mutate(payload);
     };
 
     const handleOpenInspection = (ret) => {
@@ -290,36 +200,24 @@ const BusinessReturns = () => {
 
     const handleSaveInspection = (e) => {
         e.preventDefault();
-        
-        if (selectedReturn.return_type === 'sales') {
-            setSalesReturns(salesReturns.map(sr => sr.return_id === selectedReturn.return_id ? {
-                ...sr,
-                status: 'Completed',
-                inspection_status: inspectionForm.damaged_qty > 0 ? 'Damaged Segregation' : 'Resaleable',
-                refund_status: 'completed',
-                refund_date: new Date().toISOString().split('T')[0]
-            } : sr));
-        } else {
-            setPurchaseReturns(purchaseReturns.map(pr => pr.return_id === selectedReturn.return_id ? {
-                ...pr,
-                status: 'Completed',
-                inspection_status: 'Damaged Segregation'
-            } : pr));
-        }
+        const payload = {
+            status: 'Completed',
+            inspection_status: inspectionForm.damaged_qty > 0 ? 'Damaged Segregation' : 'Resaleable',
+            refund_status: 'completed',
+            refund_date: new Date().toISOString().split('T')[0]
+        };
 
-        setIsInspectionModalOpen(false);
-        setSelectedReturn(null);
-        alert('Quality Check completed! Inventory stock and financial adjustments finalized.');
+        updateMutation.mutate({ id: selectedReturn.id, data: payload });
     };
 
     const filteredSalesReturns = salesReturns.filter(sr => 
-        sr.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sr.return_number.includes(searchTerm)
+        (sr.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (sr.return_number || '').includes(searchTerm)
     );
 
     const filteredPurchaseReturns = purchaseReturns.filter(pr => 
-        pr.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pr.return_number.includes(searchTerm)
+        (pr.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (pr.return_number || '').includes(searchTerm)
     );
 
     // Dynamic stats
@@ -417,6 +315,12 @@ const BusinessReturns = () => {
                 </button>
             </div>
 
+            {isLoading && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '3rem 0' }}>
+                    <Loader2 className="animate-spin" size={32} style={{ color: '#064E3B' }} />
+                </div>
+            )}
+
             {/* Tab 1: Sales Returns */}
             {activeTab === 'sales' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
@@ -449,7 +353,7 @@ const BusinessReturns = () => {
                             </thead>
                             <tbody>
                                 {filteredSalesReturns.map((sr) => (
-                                    <tr key={sr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                    <tr key={sr.id || sr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{sr.return_number}</p>
                                             <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {sr.return_date}</span>
@@ -536,7 +440,7 @@ const BusinessReturns = () => {
                             </thead>
                             <tbody>
                                 {filteredPurchaseReturns.map((pr) => (
-                                    <tr key={pr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                    <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{pr.return_number}</p>
                                             <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {pr.return_date}</span>

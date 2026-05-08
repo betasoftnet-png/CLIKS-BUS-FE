@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { stockService } from '../services';
 import { 
     Layers, 
     Plus, 
@@ -24,13 +26,55 @@ import {
 import '../App.css';
 
 const BusinessStock = () => {
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('registry'); // 'registry', 'movement', 'warehouse', 'batch'
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
-    // Stateful Stock Master database initialized with realistic Vyapar / myBillBook sample dataset
-    const [stocks, setStocks] = useState([
+    // Live Stocks from backend with full fallback to UI specifications
+    const { data: dbStocks = [] } = useQuery({
+        queryKey: ['stocks'],
+        queryFn: () => stockService.getStocks()
+    });
+
+    useQuery({
+        queryKey: ['stockStats'],
+        queryFn: () => stockService.getStockStats()
+    });
+
+    const adjustMutation = useMutation({
+        mutationFn: ({ id, delta }) => stockService.adjustQuantity(id, delta),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['stockStats'] });
+            alert('Stock Adjustment audited & running ledger counts revalued successfully!');
+            setIsAdjustmentModalOpen(false);
+        }
+    });
+
+    // Mapping dbRows to UI properties safely
+    const stocks = dbStocks.length > 0 ? dbStocks.map(s => ({
+        stock_id: `STK-${s.id}`,
+        id: s.id,
+        product_id: s.sku || `PROD-${s.id}`,
+        product_name: s.name || 'Unnamed Stock Item',
+        opening_stock: s.opening_stock || 10,
+        current_stock: s.quantity || 0,
+        available_stock: s.quantity || 0,
+        reserved_stock: 0,
+        damaged_stock: 0,
+        expired_stock: 0,
+        in_transit_stock: 0,
+        minimum_stock: s.low_stock_threshold || 5,
+        reorder_level: s.low_stock_threshold || 5,
+        reorder_quantity: 50,
+        purchase_cost: s.unit_price || 0,
+        average_cost: s.unit_price || 0,
+        selling_value: (s.unit_price || 0) * 1.2,
+        rack_number: s.location || 'Rack A-1',
+        warehouse_name: s.location || 'Main Godown'
+    })) : [
         {
             stock_id: 'STK-001',
             product_id: 'PROD-101',
@@ -56,7 +100,7 @@ const BusinessStock = () => {
             product_id: 'PROD-105',
             product_name: 'Boat Bassheads Earphones',
             opening_stock: 500,
-            current_stock: 15, // Trigger Low Stock Alert!
+            current_stock: 15,
             available_stock: 15,
             reserved_stock: 0,
             damaged_stock: 0,
@@ -70,31 +114,11 @@ const BusinessStock = () => {
             selling_value: 399,
             rack_number: 'Shelf B-2',
             warehouse_name: 'Shop Front'
-        },
-        {
-            stock_id: 'STK-003',
-            product_id: 'PROD-109',
-            product_name: 'Parle-G Gold Biscuits (Premium)',
-            opening_stock: 1200,
-            current_stock: 950,
-            available_stock: 940,
-            reserved_stock: 0,
-            damaged_stock: 10,
-            expired_stock: 45, // Expiry tracking
-            in_transit_stock: 0,
-            minimum_stock: 200,
-            reorder_level: 300,
-            reorder_quantity: 1000,
-            purchase_cost: 8,
-            average_cost: 8.2,
-            selling_value: 10,
-            rack_number: 'Rack C-1',
-            warehouse_name: 'Main Godown'
         }
-    ]);
+    ];
 
-    // Stateful Stock Movement log initialized with historical audit trails
-    const [movements, setMovements] = useState([
+    // Simulated Movements with safe fallback
+    const [movements] = useState([
         {
             movement_id: 'MOV-1090',
             movement_type: 'in',
@@ -104,30 +128,10 @@ const BusinessStock = () => {
             performed_by: 'Ankit Sharma (Inventory)',
             movement_date: '2026-05-01',
             product_name: 'Dell Inspiron 15 Laptop'
-        },
-        {
-            movement_id: 'MOV-1091',
-            movement_type: 'out',
-            movement_quantity: 30,
-            movement_reason: 'Sales Dispatch',
-            reference_id: 'INV-2026-104',
-            performed_by: 'Rajesh Mishra (Sales)',
-            movement_date: '2026-05-03',
-            product_name: 'Dell Inspiron 15 Laptop'
-        },
-        {
-            movement_id: 'MOV-1092',
-            movement_type: 'transfer',
-            movement_quantity: 20,
-            movement_reason: 'Warehouse Move',
-            reference_id: 'TRF-9011',
-            performed_by: 'Ankit Sharma (Inventory)',
-            movement_date: '2026-05-04',
-            product_name: 'Boat Bassheads Earphones'
         }
     ]);
 
-    // Multi-Warehouse Stocks Transfer Logs
+    // Simulated Transfers
     const [transfers, setTransfers] = useState([
         {
             transfer_id: 'TRF-9011',
@@ -141,7 +145,7 @@ const BusinessStock = () => {
         }
     ]);
 
-    // Batch & Expiry records database
+    // Simulated Batches
     const [batches] = useState([
         {
             batch_number: 'B-DEL-99',
@@ -149,13 +153,6 @@ const BusinessStock = () => {
             manufacturing_date: '2026-01-10',
             expiry_date: '2029-01-10',
             batch_quantity: 125
-        },
-        {
-            batch_number: 'B-PG-GOLD-91',
-            product_name: 'Parle-G Gold Biscuits (Premium)',
-            manufacturing_date: '2026-02-15',
-            expiry_date: '2026-08-15', // Expiry imminent
-            batch_quantity: 950
         }
     ]);
 
@@ -181,39 +178,19 @@ const BusinessStock = () => {
         e.preventDefault();
         const selectedProd = stocks.find(s => s.product_id === adjustmentForm.product_id);
         const adjustQty = parseInt(adjustmentForm.qty) || 0;
+        const delta = adjustmentForm.adjustment_type === 'add' ? adjustQty : -adjustQty;
 
-        // Perform stock master adjustment
-        const updatedStocks = stocks.map(st => {
-            if (st.product_id === adjustmentForm.product_id) {
-                const updatedQty = adjustmentForm.adjustment_type === 'add' 
-                    ? st.current_stock + adjustQty 
-                    : Math.max(0, st.current_stock - adjustQty);
-                return {
-                    ...st,
-                    current_stock: updatedQty,
-                    available_stock: updatedQty - st.reserved_stock
-                };
-            }
-            return st;
-        });
+        if (selectedProd && selectedProd.id) {
+            adjustMutation.mutate({ id: selectedProd.id, delta });
+        } else {
+            // Local fallback
+            const updatedQty = adjustmentForm.adjustment_type === 'add' 
+                ? (selectedProd?.current_stock || 0) + adjustQty 
+                : Math.max(0, (selectedProd?.current_stock || 0) - adjustQty);
 
-        setStocks(updatedStocks);
-
-        // Record stock movement inward/outward log
-        const newMove = {
-            movement_id: `MOV-${Date.now().toString().slice(-4)}`,
-            movement_type: adjustmentForm.adjustment_type === 'add' ? 'in' : 'out',
-            movement_quantity: adjustQty,
-            movement_reason: adjustmentForm.reason,
-            reference_id: `ADJ-${Date.now().toString().slice(-3)}`,
-            performed_by: 'Ankit Sharma (Admin)',
-            movement_date: new Date().toISOString().split('T')[0],
-            product_name: selectedProd?.product_name || 'Unknown Product'
-        };
-
-        setMovements([newMove, ...movements]);
-        setIsAdjustmentModalOpen(false);
-        alert('Stock Adjustment audited & running ledger counts revalued successfully!');
+            alert(`Mock stock adjusted successfully to ${updatedQty}!`);
+            setIsAdjustmentModalOpen(false);
+        }
     };
 
     const handleSaveTransfer = (e) => {
@@ -226,9 +203,8 @@ const BusinessStock = () => {
             return;
         }
 
-        // Add to transfer logs
         const newTrf = {
-            transfer_id: `TRF-${Date.now().toString().slice(-4)}`,
+            transfer_id: `TRF-${4000 + transfers.length + 1}`,
             product_name: selectedProd?.product_name || 'Product',
             qty: transQty,
             from_warehouse: transferForm.from_warehouse,
@@ -239,20 +215,6 @@ const BusinessStock = () => {
         };
 
         setTransfers([newTrf, ...transfers]);
-
-        // Record Movement outward from original warehouse and inward to target warehouse
-        const trfMove = {
-            movement_id: `MOV-${Date.now().toString().slice(-4)}`,
-            movement_type: 'transfer',
-            movement_quantity: transQty,
-            movement_reason: `Inter-warehouse transfer: ${transferForm.from_warehouse} -> ${transferForm.to_warehouse}`,
-            reference_id: newTrf.transfer_id,
-            performed_by: 'Ankit Sharma (Admin)',
-            movement_date: new Date().toISOString().split('T')[0],
-            product_name: selectedProd?.product_name || 'Product'
-        };
-
-        setMovements([trfMove, ...movements]);
         setIsTransferModalOpen(false);
         alert('Stock successfully moved between warehouse logs!');
     };

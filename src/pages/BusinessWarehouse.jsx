@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { warehouseService } from '../services';
 import { 
     Warehouse as WarehouseIcon, 
     Plus, 
@@ -24,14 +26,44 @@ import {
 import '../App.css';
 
 const BusinessWarehouse = () => {
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('profiles'); // 'profiles', 'stock', 'operations', 'transfers'
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
-    // Stateful Warehouse Profiles Database
-    const [warehouses, setWarehouses] = useState([
+    // Live Warehouses database via useQuery
+    const { data: dbWarehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses()
+    });
+
+    const createWarehouseMutation = useMutation({
+        mutationFn: (data) => warehouseService.createWarehouse(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            alert('New Physical Warehouse Profile successfully created!');
+            setIsCreateModalOpen(false);
+        }
+    });
+
+    const warehouses = dbWarehouses.length > 0 ? dbWarehouses.map(w => ({
+        warehouse_id: `WH-0${w.id}`,
+        id: w.id,
+        warehouse_code: w.code || `WH-CODE-${w.id}`,
+        warehouse_name: w.name || 'Unnamed Godown Facility',
+        warehouse_type: w.type || 'godown',
+        warehouse_status: w.status || 'active',
+        address: w.address || 'Address Not Configured',
+        city: w.city || 'HQ',
+        state: w.state || '',
+        pincode: w.pincode || '',
+        contact_person: w.contact_person || 'Facility Manager',
+        phone_number: w.phone_number || '',
+        email: w.email || '',
+        capacity_utilization: w.capacity_utilization || '0%'
+    })) : [
         {
             warehouse_id: 'WH-001',
             warehouse_code: 'WH-MUM-01',
@@ -61,23 +93,8 @@ const BusinessWarehouse = () => {
             phone_number: '+91 98222 11100',
             email: 'bandrastore@cliksbusiness.com',
             capacity_utilization: '48%'
-        },
-        {
-            warehouse_id: 'WH-003',
-            warehouse_code: 'WH-BLR-03',
-            warehouse_name: 'Bengaluru Distribution Center',
-            warehouse_type: 'DC',
-            warehouse_status: 'active',
-            address: 'Peenya Industrial Area, Phase II',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            pincode: '560058',
-            contact_person: 'Suresh Gowda (DC Manager)',
-            phone_number: '+91 91100 22334',
-            email: 'bangalorewh@cliksbusiness.com',
-            capacity_utilization: '82%'
         }
-    ]);
+    ];
 
     // Stateful Warehouse Stock Database
     const [whStocks, setWhStocks] = useState([
@@ -96,38 +113,6 @@ const BusinessWarehouse = () => {
             bin_number: 'Bin B',
             zone: 'High-Value Electronics',
             warehouse_stock_value: 3258000
-        },
-        {
-            wh_stock_id: 'WHS-102',
-            product_id: 'PROD-101',
-            product_name: 'Dell Inspiron 15 Laptop',
-            warehouse_id: 'WH-002',
-            warehouse_name: 'Shop Front (Bandra Outlet)',
-            current_stock: 35,
-            reserved_stock: 5,
-            damaged_stock: 1,
-            in_transit_stock: 0,
-            rack_number: 'Front Shelf 1',
-            shelf_number: 'Shelf 1',
-            bin_number: 'Bin A',
-            zone: 'Display Units',
-            warehouse_stock_value: 1267000
-        },
-        {
-            wh_stock_id: 'WHS-103',
-            product_id: 'PROD-105',
-            product_name: 'Boat Bassheads Earphones',
-            warehouse_id: 'WH-002',
-            warehouse_name: 'Shop Front (Bandra Outlet)',
-            current_stock: 15,
-            reserved_stock: 0,
-            damaged_stock: 0,
-            in_transit_stock: 200,
-            rack_number: 'Counter B',
-            shelf_number: 'Shelf 3',
-            bin_number: 'Bin C',
-            zone: 'Accessories',
-            warehouse_stock_value: 3900
         }
     ]);
 
@@ -144,18 +129,6 @@ const BusinessWarehouse = () => {
             received_date: '2026-05-03',
             carrier_name: 'SafeMove Logistics',
             tracking_number: 'TRK-900821'
-        },
-        {
-            transfer_id: 'TRF-0092',
-            source_warehouse: 'Bengaluru Distribution Center',
-            destination_warehouse: 'Shop Front (Bandra Outlet)',
-            product_name: 'Boat Bassheads Earphones',
-            transfer_quantity: 200,
-            transfer_status: 'Pending',
-            dispatch_date: '2026-05-05',
-            received_date: '',
-            carrier_name: 'Delhivry Express',
-            tracking_number: 'TRK-88129'
         }
     ]);
 
@@ -205,22 +178,26 @@ const BusinessWarehouse = () => {
 
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
-        const createdWH = {
-            warehouse_id: `WH-0${warehouses.length + 1}`,
-            ...newWarehouse,
-            warehouse_status: 'active',
-            capacity_utilization: '0%'
+        const payload = {
+            name: newWarehouse.warehouse_name,
+            code: newWarehouse.warehouse_code,
+            type: newWarehouse.warehouse_type,
+            address: newWarehouse.address,
+            city: newWarehouse.city,
+            state: newWarehouse.state,
+            pincode: newWarehouse.pincode,
+            contact_person: newWarehouse.contact_person,
+            phone_number: newWarehouse.phone_number,
+            email: newWarehouse.email
         };
-        setWarehouses([...warehouses, createdWH]);
-        setIsCreateModalOpen(false);
-        alert('New Physical Warehouse Profile successfully created!');
+        createWarehouseMutation.mutate(payload);
     };
 
     const handleLogInward = (e) => {
         e.preventDefault();
         const selectedWH = warehouses.find(w => w.warehouse_id === newInward.warehouse_id);
         const loggedINW = {
-            inward_id: `INW-${Date.now().toString().slice(-4)}`,
+            inward_id: `INW-${1000 + inwards.length + 1}`,
             purchase_id: newInward.purchase_id,
             product_name: newInward.product_name,
             received_quantity: parseInt(newInward.received_quantity) || 1,
@@ -239,7 +216,7 @@ const BusinessWarehouse = () => {
             } : s));
         } else {
             setWhStocks([...whStocks, {
-                wh_stock_id: `WHS-${Date.now().toString().slice(-3)}`,
+                wh_stock_id: `WHS-${2000 + whStocks.length + 1}`,
                 product_id: 'PROD-NEW',
                 product_name: newInward.product_name,
                 warehouse_id: newInward.warehouse_id,
@@ -266,7 +243,7 @@ const BusinessWarehouse = () => {
         const targetWH = warehouses.find(w => w.warehouse_id === newTransfer.destination_warehouse_id);
 
         const createdTRF = {
-            transfer_id: `TRF-${Date.now().toString().slice(-4)}`,
+            transfer_id: `TRF-${3000 + transfers.length + 1}`,
             source_warehouse: sourceWH?.warehouse_name || 'Warehouse A',
             destination_warehouse: targetWH?.warehouse_name || 'Warehouse B',
             product_name: newTransfer.product_name,

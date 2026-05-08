@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { suppliersService } from '../services';
 import { 
     Users, 
     Plus, 
@@ -32,6 +34,7 @@ import {
 import '../App.css';
 
 const BusinessSuppliers = () => {
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'ledger', 'reports'
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,124 +51,47 @@ const BusinessSuppliers = () => {
         date: new Date().toISOString().split('T')[0]
     }));
 
-    // Stateful Supplier database initialized with Vyapar realistic sample data
-    const [suppliers, setSuppliers] = useState([
-        {
-            supplier_id: 'SUP-101',
-            supplier_code: 'SUP-APL-01',
-            supplier_type: 'local', // local / import
-            supplier_status: 'active',
-            supplier_name: 'TechCorp Distributors',
-            company_name: 'TechCorp India Pvt Ltd',
-            contact_person: 'Harish Mehta',
-            phone_number: '+91 98765 43210',
-            alternate_phone: '+91 22 4567 8901',
-            email: 'procurement@techcorp.in',
-            website: 'www.techcorp.in',
-            gstin: '27AAAAA1111A1Z1',
-            pan_number: 'AAAAA1111A',
-            tax_type: 'registered',
-            place_of_supply: 'Maharashtra',
-            billing_address: 'Warehouse Block 4, Industrial Area, Mumbai',
-            shipping_address: 'Warehouse Block 4, Industrial Area, Mumbai',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            pincode: '400013',
-            country: 'India',
-            opening_balance: 50000,
-            current_balance: 120000, // money you owe (payable)
-            credit_limit: 300000,
-            payment_terms: 'Net 30',
-            total_purchases: 450000,
-            total_paid: 330000,
-            pending_amount: 120000,
-            advance_amount: 0,
-            total_purchase_orders: 12,
-            total_purchase_bills: 10,
-            last_purchase_date: '2026-05-01',
-            ledger: [
-                { id: 'L-1', date: '2026-04-10', type: 'purchase', reference_id: 'BILL-77091', debit: 150000, credit: 0, running_balance: 150000 },
-                { id: 'L-2', date: '2026-04-15', type: 'payment', reference_id: 'PAY-88011', debit: 0, credit: 100000, running_balance: 50000 },
-                { id: 'L-3', date: '2026-05-01', type: 'purchase', reference_id: 'BILL-90112', debit: 70000, credit: 0, running_balance: 120000 },
-            ]
-        },
-        {
-            supplier_id: 'SUP-102',
-            supplier_code: 'SUP-GDJ-44',
-            supplier_type: 'local',
-            supplier_status: 'active',
-            supplier_name: 'Godrej Office Sol.',
-            company_name: 'Godrej & Boyce Mfg Co',
-            contact_person: 'Amit Nair',
-            phone_number: '+91 99881 22334',
-            alternate_phone: '',
-            email: 'sales@godrejoffice.com',
-            website: 'www.godrejoffice.com',
-            gstin: '27BBBBB2222B2Z2',
-            pan_number: 'BBBBB2222B',
-            tax_type: 'registered',
-            place_of_supply: 'Maharashtra',
-            billing_address: 'Godrej Vikhroli Plant, Mumbai',
-            shipping_address: 'Godrej Vikhroli Plant, Mumbai',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            pincode: '400079',
-            country: 'India',
-            opening_balance: 0,
-            current_balance: 25000, // money you owe
-            credit_limit: 150000,
-            payment_terms: 'Net 15',
-            total_purchases: 180000,
-            total_paid: 155000,
-            pending_amount: 25000,
-            advance_amount: 0,
-            total_purchase_orders: 5,
-            total_purchase_bills: 4,
-            last_purchase_date: '2026-04-28',
-            ledger: [
-                { id: 'L-1', date: '2026-04-20', type: 'purchase', reference_id: 'BILL-4401', debit: 80000, credit: 0, running_balance: 80000 },
-                { id: 'L-2', date: '2026-04-25', type: 'payment', reference_id: 'PAY-4412', debit: 0, credit: 55000, running_balance: 25000 },
-            ]
-        },
-        {
-            supplier_id: 'SUP-103',
-            supplier_code: 'SUP-GLB-02',
-            supplier_type: 'import',
-            supplier_status: 'inactive',
-            supplier_name: 'Global Chip Tech',
-            company_name: 'Global Semiconductors Ltd',
-            contact_person: 'Chen Wei',
-            phone_number: '+86 21 6789 0123',
-            alternate_phone: '',
-            email: 'export@globalchip.cn',
-            website: 'www.globalchip.cn',
-            gstin: '',
-            pan_number: '',
-            tax_type: 'unregistered',
-            place_of_supply: 'Import (Overseas)',
-            billing_address: 'High-Tech Zone, Pudong, Shanghai',
-            shipping_address: 'High-Tech Zone, Pudong, Shanghai',
-            city: 'Shanghai',
-            state: 'Shanghai',
-            pincode: '201203',
-            country: 'China',
-            opening_balance: 0,
-            current_balance: -50000, // negative payable means you paid advance (Advance In!)
-            credit_limit: 500000,
-            payment_terms: 'Advance Paid',
-            total_purchases: 200000,
-            total_paid: 250000,
-            pending_amount: 0,
-            advance_amount: 50000,
-            total_purchase_orders: 2,
-            total_purchase_bills: 1,
-            last_purchase_date: '2026-03-15',
-            ledger: [
-                { id: 'L-1', date: '2026-03-10', type: 'payment', reference_id: 'PAY-IMPORT-01', debit: 0, credit: 250000, running_balance: -250000 },
-                { id: 'L-2', date: '2026-03-15', type: 'purchase', reference_id: 'BILL-IMPORT-99', debit: 200000, credit: 0, running_balance: -50000 },
-            ]
+    // Live supplier Master Base React Query integration
+    const { data: suppliers = [] } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => suppliersService.getSuppliers()
+    });
+
+    const createMutation = useMutation({
+        mutationFn: (data) => suppliersService.createSupplier(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            alert('Supplier registered and master profile initialized!');
+            setIsModalOpen(false);
         }
-    ]);
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => suppliersService.updateSupplier(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            alert('Supplier profile details successfully updated!');
+            setIsModalOpen(false);
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => suppliersService.deleteSupplier(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            alert('Supplier deleted successfully.');
+        }
+    });
+
+    const paymentMutation = useMutation({
+        mutationFn: ({ id, data }) => suppliersService.createPayment(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            alert('Outward Payment logged! Vendor ledger and running payables adjusted.');
+            setIsPaymentModalOpen(false);
+            setSelectedSupplier(null);
+        }
+    });
 
     const [formData, setFormData] = useState(() => ({
         supplier_code: `SUP-${Date.now().toString().slice(-4)}`,
@@ -225,57 +151,66 @@ const BusinessSuppliers = () => {
 
     const handleEdit = (supplier) => {
         setEditingSupplier(supplier);
-        setFormData(supplier);
+        setFormData({
+            supplier_code: supplier.supplier_code || 'SUP-TEMP',
+            supplier_type: supplier.supplier_type || 'local',
+            supplier_status: supplier.supplier_status || supplier.status || 'active',
+            supplier_name: supplier.supplier_name || supplier.name || '',
+            company_name: supplier.company_name || supplier.company || '',
+            contact_person: supplier.contact_person || supplier.name || '',
+            phone_number: supplier.phone_number || supplier.phone || '',
+            alternate_phone: supplier.alternate_phone || '',
+            email: supplier.email || '',
+            website: supplier.website || '',
+            gstin: supplier.gstin || '',
+            pan_number: supplier.pan_number || '',
+            tax_type: supplier.tax_type || 'registered',
+            place_of_supply: supplier.place_of_supply || supplier.city || 'Maharashtra',
+            billing_address: supplier.billing_address || '',
+            shipping_address: supplier.shipping_address || '',
+            city: supplier.city || '',
+            state: supplier.state || 'Maharashtra',
+            pincode: supplier.pincode || '',
+            country: supplier.country || 'India',
+            opening_balance: supplier.opening_balance || 0,
+            credit_limit: supplier.credit_limit || 200000,
+            payment_terms: supplier.payment_terms || 'Net 30'
+        });
         setIsModalOpen(true);
     };
 
     const handleDelete = (id) => {
         if (window.confirm('Are you sure you want to completely remove this vendor/supplier profile? All ledger records will be deleted.')) {
-            setSuppliers(suppliers.filter(s => s.supplier_id !== id));
-            alert('Supplier deleted successfully.');
+            deleteMutation.mutate(id);
         }
     };
 
     const handleSubmitSupplier = (e) => {
         e.preventDefault();
+        const payload = {
+            name: formData.supplier_name,
+            email: formData.email,
+            phone: formData.phone_number,
+            company: formData.company_name,
+            gstin: formData.gstin,
+            status: formData.supplier_status,
+            city: formData.city,
+            outstanding_balance: formData.opening_balance,
+            total_purchased: 0
+        };
+
         if (editingSupplier) {
-            setSuppliers(suppliers.map(s => s.supplier_id === editingSupplier.supplier_id ? { ...s, ...formData } : s));
-            alert('Supplier profile details successfully updated!');
+            updateMutation.mutate({ id: editingSupplier.id || editingSupplier.supplier_id, data: payload });
         } else {
-            const newSupId = `SUP-${Date.now().toString().slice(-3)}`;
-            const newSup = {
-                ...formData,
-                supplier_id: newSupId,
-                current_balance: formData.opening_balance,
-                pending_amount: formData.opening_balance > 0 ? formData.opening_balance : 0,
-                advance_amount: formData.opening_balance < 0 ? Math.abs(formData.opening_balance) : 0,
-                total_purchases: 0,
-                total_paid: 0,
-                total_purchase_orders: 0,
-                total_purchase_bills: 0,
-                last_purchase_date: '-',
-                ledger: formData.opening_balance !== 0 ? [
-                    {
-                        id: `L-${Date.now().toString().slice(-3)}`,
-                        date: new Date().toISOString().split('T')[0],
-                        type: 'purchase',
-                        reference_id: 'Opening Balance Setup',
-                        debit: formData.opening_balance > 0 ? formData.opening_balance : 0,
-                        credit: formData.opening_balance < 0 ? Math.abs(formData.opening_balance) : 0,
-                        running_balance: formData.opening_balance
-                    }
-                ] : []
-            };
-            setSuppliers([...suppliers, newSup]);
-            alert('Supplier registered and master profile initialized!');
+            createMutation.mutate(payload);
         }
-        setIsModalOpen(false);
     };
 
     const handleOpenPaymentModal = useCallback((supplier) => {
         setSelectedSupplier(supplier);
+        const bal = supplier.outstanding_balance || supplier.current_balance || 0;
         setPaymentForm({
-            amount: Math.max(0, supplier.current_balance),
+            amount: Math.max(0, bal),
             mode: 'UPI',
             reference: `TXN-PAY-${Date.now().toString().slice(-4)}`,
             date: new Date().toISOString().split('T')[0]
@@ -291,48 +226,36 @@ const BusinessSuppliers = () => {
             return;
         }
 
-        const newBal = selectedSupplier.current_balance - payAmt;
-        const newLedgerRow = {
-            id: `L-${Date.now().toString().slice(-3)}`,
-            date: paymentForm.date,
-            type: 'payment',
-            reference_id: paymentForm.reference,
-            debit: 0,
-            credit: payAmt,
-            running_balance: newBal
-        };
-
-        setSuppliers(suppliers.map(s => s.supplier_id === selectedSupplier.supplier_id ? {
-            ...s,
-            current_balance: newBal,
-            pending_amount: newBal > 0 ? newBal : 0,
-            advance_amount: newBal < 0 ? Math.abs(newBal) : 0,
-            total_paid: s.total_paid + payAmt,
-            ledger: [...s.ledger, newLedgerRow]
-        } : s));
-
-        setIsPaymentModalOpen(false);
-        setSelectedSupplier(null);
-        alert('Outward Payment logged! Vendor ledger and running payables adjusted.');
+        paymentMutation.mutate({
+            id: selectedSupplier.id || selectedSupplier.supplier_id,
+            data: {
+                amount: payAmt,
+                payment_method: paymentForm.mode,
+                reference_number: paymentForm.reference
+            }
+        });
     };
 
     const handleShareLedgerWhatsApp = (supplier) => {
-        const text = `Dear ${supplier.supplier_name}, here is your current statement summary with us: Outstanding Payable: INR ${supplier.current_balance.toLocaleString()}. Thank you!`;
-        window.open(`https://api.whatsapp.com/send?phone=${supplier.phone_number.replace(/\D/g, '')}&text=${encodeURIComponent(text)}`, '_blank');
+        const bal = supplier.outstanding_balance || supplier.current_balance || 0;
+        const text = `Dear ${supplier.name || supplier.supplier_name}, here is your current statement summary with us: Outstanding Payable: INR ${bal.toLocaleString()}. Thank you!`;
+        const phoneNo = supplier.phone || supplier.phone_number || '';
+        window.open(`https://api.whatsapp.com/send?phone=${phoneNo.replace(/\D/g, '')}&text=${encodeURIComponent(text)}`, '_blank');
     };
 
     const filteredSuppliers = suppliers.filter(s => {
-        const matchesSearch = s.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            s.company_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            s.contact_person.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = filterType === 'All' || s.supplier_type === filterType.toLowerCase();
+        const sName = s.name || s.supplier_name || '';
+        const sComp = s.company || s.company_name || '';
+        const matchesSearch = sName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            sComp.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = filterType === 'All' || (s.supplier_type || 'local') === filterType.toLowerCase();
         return matchesSearch && matchesType;
     });
 
     // Report computations
-    const totalPayablesSum = suppliers.reduce((acc, s) => acc + (s.current_balance > 0 ? s.current_balance : 0), 0);
-    const totalAdvancePaymentsSum = suppliers.reduce((acc, s) => acc + (s.current_balance < 0 ? Math.abs(s.current_balance) : 0), 0);
-    const totalOutwardPurchasesSum = suppliers.reduce((acc, s) => acc + s.total_purchases, 0);
+    const totalPayablesSum = suppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0 ? parseFloat(s.outstanding_balance || s.current_balance || 0) : 0), 0);
+    const totalAdvancePaymentsSum = suppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) < 0 ? Math.abs(parseFloat(s.outstanding_balance || s.current_balance || 0)) : 0), 0);
+    const totalOutwardPurchasesSum = suppliers.reduce((acc, s) => acc + parseFloat(s.total_purchased || s.total_purchases || 0), 0);
 
     return (
         <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
@@ -462,64 +385,79 @@ const BusinessSuppliers = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredSuppliers.map((sup) => (
-                                    <tr key={sup.supplier_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
-                                                    <User size={20} />
+                                {filteredSuppliers.map((sup) => {
+                                    const supId = sup.id || sup.supplier_id;
+                                    const supName = sup.name || sup.supplier_name || 'Unnamed Supplier';
+                                    const supCode = sup.supplier_code || `SUP-${supId}`;
+                                    const supContact = sup.contact_person || supName;
+                                    const supPhone = sup.phone || sup.phone_number || 'N/A';
+                                    const supEmail = sup.email || 'N/A';
+                                    const supGstin = sup.gstin || 'Unregistered';
+                                    const supPan = sup.pan_number || 'N/A';
+                                    const supLimit = sup.credit_limit || 0;
+                                    const supTerms = sup.payment_terms || 'Net 30';
+                                    const supBal = parseFloat(sup.outstanding_balance || sup.current_balance || 0);
+                                    const supStatus = sup.status || sup.supplier_status || 'active';
+
+                                    return (
+                                        <tr key={supId} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
+                                                        <User size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.95rem' }}>{supName}</p>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Code: {supCode} | Contact: {supContact}</span>
+                                                    </div>
                                                 </div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div>
-                                                    <p style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.95rem' }}>{sup.supplier_name}</p>
-                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Code: {sup.supplier_code} | Contact: {sup.contact_person}</span>
+                                                    <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{supPhone}</p>
+                                                    <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{supEmail}</span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{sup.phone_number}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{sup.email}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{sup.gstin || 'No GSTIN'}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>PAN: {sup.pan_number || 'N/A'}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div>
-                                                <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Limit: ₹{sup.credit_limit.toLocaleString()}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Terms: {sup.payment_terms}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '1.1rem', fontWeight: '900', color: sup.current_balance > 0 ? '#EF4444' : '#15803D' }}>
-                                                {sup.current_balance > 0 ? `₹${sup.current_balance.toLocaleString()}` : `₹${Math.abs(sup.current_balance).toLocaleString()} (Adv)`}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ 
-                                                display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
-                                                background: sup.supplier_status === 'active' ? '#F0FDF4' : '#F1F5F9',
-                                                color: sup.supplier_status === 'active' ? '#15803D' : '#475569',
-                                                fontSize: '0.75rem', fontWeight: '800'
-                                            }}>{sup.supplier_status.toUpperCase()}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                {sup.current_balance > 0 && (
-                                                    <button 
-                                                        onClick={() => handleOpenPaymentModal(sup)}
-                                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
-                                                    >Record Pay</button>
-                                                )}
-                                                <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(sup.supplier_id)} title="Delete product" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <div>
+                                                    <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{supGstin}</p>
+                                                    <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>PAN: {supPan}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <div>
+                                                    <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Limit: ₹{supLimit.toLocaleString()}</p>
+                                                    <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Terms: {supTerms}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: supBal > 0 ? '#EF4444' : '#15803D' }}>
+                                                    {supBal > 0 ? `₹${supBal.toLocaleString()}` : `₹${Math.abs(supBal).toLocaleString()} (Adv)`}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <span style={{ 
+                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
+                                                    background: supStatus === 'active' ? '#F0FDF4' : '#F1F5F9',
+                                                    color: supStatus === 'active' ? '#15803D' : '#475569',
+                                                    fontSize: '0.75rem', fontWeight: '800'
+                                                }}>{supStatus.toUpperCase()}</span>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                                    {supBal > 0 && (
+                                                        <button 
+                                                            onClick={() => handleOpenPaymentModal(sup)}
+                                                            style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                        >Record Pay</button>
+                                                    )}
+                                                    <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
+                                                    <button onClick={() => handleDelete(supId)} title="Delete product" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -533,20 +471,25 @@ const BusinessSuppliers = () => {
                     <div style={{ background: 'white', padding: '1.5rem', borderRadius: '28px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
                         <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '1rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Select Supplier</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {suppliers.map(s => (
-                                <button 
-                                    key={s.supplier_id}
-                                    onClick={() => setSelectedSupplier(s)}
-                                    style={{ 
-                                        width: '100%', padding: '1rem', borderRadius: '16px', border: selectedSupplier?.supplier_id === s.supplier_id ? '2px solid #064E3B' : '1px solid #E2E8F0',
-                                        background: selectedSupplier?.supplier_id === s.supplier_id ? '#F0F9F4' : 'white',
-                                        textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.9rem' }}>{s.supplier_name}</p>
-                                    <span style={{ fontSize: '0.8rem', color: s.current_balance > 0 ? '#EF4444' : '#15803D', fontWeight: '700' }}>Payable: ₹{s.current_balance.toLocaleString()}</span>
-                                </button>
-                            ))}
+                            {suppliers.map(s => {
+                                const sId = s.id || s.supplier_id;
+                                const sName = s.name || s.supplier_name || 'Unnamed';
+                                const sBal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+                                return (
+                                    <button 
+                                        key={sId}
+                                        onClick={() => setSelectedSupplier(s)}
+                                        style={{ 
+                                            width: '100%', padding: '1rem', borderRadius: '16px', border: (selectedSupplier?.id === s.id || selectedSupplier?.supplier_id === s.supplier_id) ? '2px solid #064E3B' : '1px solid #E2E8F0',
+                                            background: (selectedSupplier?.id === s.id || selectedSupplier?.supplier_id === s.supplier_id) ? '#F0F9F4' : 'white',
+                                            textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.9rem' }}>{sName}</p>
+                                        <span style={{ fontSize: '0.8rem', color: sBal > 0 ? '#EF4444' : '#15803D', fontWeight: '700' }}>Payable: ₹{sBal.toLocaleString()}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -556,8 +499,8 @@ const BusinessSuppliers = () => {
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
                                     <div>
-                                        <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B' }}>Statement of Account: {selectedSupplier.supplier_name}</h3>
-                                        <p style={{ color: '#64748B', fontSize: '0.85rem' }}>GSTIN: {selectedSupplier.gstin || 'N/A'} | Contact: {selectedSupplier.phone_number}</p>
+                                        <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B' }}>Statement of Account: {selectedSupplier.name || selectedSupplier.supplier_name}</h3>
+                                        <p style={{ color: '#64748B', fontSize: '0.85rem' }}>GSTIN: {selectedSupplier.gstin || 'N/A'} | Contact: {selectedSupplier.phone || selectedSupplier.phone_number}</p>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <button onClick={() => handleShareLedgerWhatsApp(selectedSupplier)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', cursor: 'pointer' }}>
@@ -580,7 +523,7 @@ const BusinessSuppliers = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {selectedSupplier.ledger.map((row, idx) => (
+                                        {(selectedSupplier.ledger || []).map((row, idx) => (
                                             <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                 <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date}</td>
                                                 <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.reference_id}</td>

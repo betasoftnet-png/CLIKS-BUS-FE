@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     UserPlus, 
     Search, 
@@ -32,6 +32,7 @@ import {
     Percent
 } from 'lucide-react';
 import '../App.css';
+import { crmService } from '../services/crmService';
 
 const BusinessCRM = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +43,8 @@ const BusinessCRM = () => {
     const [activeMenu, setActiveMenu] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'ledger', 'reports'
+    const [customers, setCustomers] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const [paymentData, setPaymentData] = useState({
         amount: 0,
@@ -80,119 +83,23 @@ const BusinessCRM = () => {
         preferred_contact: 'WhatsApp'
     }));
 
-    // Realistic Pre-populated Customer Master
-    const [customers, setCustomers] = useState([
-        {
-            id: 'C-001',
-            customer_code: 'CUST-9011',
-            name: 'Rajesh Gupta',
-            business_name: 'Gupta Groceries & Wholesale',
-            contact_person: 'Rajesh Gupta',
-            phone_number: '9876543210',
-            alternate_phone: '9876543211',
-            email: 'rajesh@guptagroceries.com',
-            website: 'www.guptagroceries.com',
-            customer_type: 'wholesale',
-            gstin: '07AAAAA1111A1Z1',
-            pan_number: 'ABCDE1234F',
-            tax_type: 'registered',
-            place_of_supply: 'Delhi',
-            status: 'active',
-            opening_balance: 10000,
-            current_balance: 45000,
-            credit_limit: 50000,
-            due_days: 15,
-            billing_address: 'G-24 Main Road, Chandni Chowk',
-            shipping_address: 'Warehouse Area 4, Narela Industrial Area',
-            city: 'Delhi',
-            state: 'Delhi',
-            pincode: '110006',
-            notes: 'High volume wholesale buyer. Prefers UPI payment.',
-            reminder_enabled: true,
-            preferred_contact: 'WhatsApp',
-            total_sales: 125000,
-            total_paid: 80000,
-            ledger: [
-                { id: 'L-101', date: '2026-04-10', type: 'Opening Balance', reference: 'Opening Set', debit: 10000, credit: 0, balance: 10000 },
-                { id: 'L-102', date: '2026-04-15', type: 'Invoice #INV-201', reference: 'Sales Bill #201', debit: 75000, credit: 0, balance: 85000 },
-                { id: 'L-103', date: '2026-04-20', type: 'Payment In', reference: 'UPI - HDFC Bank', debit: 0, credit: 50000, balance: 35000 },
-                { id: 'L-104', date: '2026-05-02', type: 'Invoice #INV-244', reference: 'Sales Bill #244', debit: 40000, credit: 0, balance: 75000 },
-                { id: 'L-105', date: '2026-05-05', type: 'Payment In', reference: 'Cash Received', debit: 0, credit: 30000, balance: 45000 }
-            ]
-        },
-        {
-            id: 'C-002',
-            customer_code: 'CUST-4022',
-            name: 'Anil Mehta',
-            business_name: 'Mehta Electronics & Mobiles',
-            contact_person: 'Anil Mehta',
-            phone_number: '8765432109',
-            alternate_phone: '',
-            email: 'info@mehtaelectronics.com',
-            website: '',
-            customer_type: 'retail',
-            gstin: '27BBBBB2222B2Z2',
-            pan_number: 'FGHIJ5678K',
-            tax_type: 'registered',
-            place_of_supply: 'Maharashtra',
-            status: 'active',
-            opening_balance: 0,
-            current_balance: 16500,
-            credit_limit: 15000, // Exceeded! (current 16500 > limit 15000)
-            due_days: 10,
-            billing_address: 'Shop No 14, Sector 17, Vashi',
-            shipping_address: 'Shop No 14, Sector 17, Vashi',
-            city: 'Navi Mumbai',
-            state: 'Maharashtra',
-            pincode: '400703',
-            notes: 'Requires frequent reminders for outstanding payments.',
-            reminder_enabled: true,
-            preferred_contact: 'SMS',
-            total_sales: 45000,
-            total_paid: 28500,
-            ledger: [
-                { id: 'L-201', date: '2026-04-25', type: 'Invoice #INV-208', reference: 'Sales Bill #208', debit: 25000, credit: 0, balance: 25000 },
-                { id: 'L-202', date: '2026-04-28', type: 'Payment In', reference: 'UPI Payment', debit: 0, credit: 25000, balance: 0 },
-                { id: 'L-203', date: '2026-05-04', type: 'Invoice #INV-290', reference: 'Sales Bill #290', debit: 20000, credit: 0, balance: 20000 },
-                { id: 'L-204', date: '2026-05-05', type: 'Payment In', reference: 'Cash Received', debit: 0, credit: 3500, balance: 16500 }
-            ]
-        },
-        {
-            id: 'C-003',
-            customer_code: 'CUST-8033',
-            name: 'Vikram Sunder',
-            business_name: 'Sunder Agency Distributors',
-            contact_person: 'Vikram Sunder',
-            phone_number: '7654321098',
-            alternate_phone: '',
-            email: 'contact@sunderagency.com',
-            website: 'www.sunderagency.com',
-            customer_type: 'wholesale',
-            gstin: '',
-            pan_number: '',
-            tax_type: 'unregistered',
-            place_of_supply: 'Punjab',
-            status: 'active',
-            opening_balance: 0,
-            current_balance: -8000, // Negative outstanding means Advance Paid!
-            credit_limit: 100000,
-            due_days: 45,
-            billing_address: 'Railway Road, Jalandhar',
-            shipping_address: 'Railway Road, Jalandhar',
-            city: 'Jalandhar',
-            state: 'Punjab',
-            pincode: '144001',
-            notes: 'Very prompt payment history. Loyal wholesale client.',
-            reminder_enabled: false,
-            preferred_contact: 'WhatsApp',
-            total_sales: 62000,
-            total_paid: 70000,
-            ledger: [
-                { id: 'L-301', date: '2026-05-01', type: 'Invoice #INV-221', reference: 'Sales Bill #221', debit: 62000, credit: 0, balance: 62000 },
-                { id: 'L-302', date: '2026-05-02', type: 'Payment In', reference: 'Bank Transfer - Advance', debit: 0, credit: 70000, balance: -8000 }
-            ]
+    const loadCustomers = async () => {
+        try {
+            setLoading(true);
+            const res = await crmService.getCustomers();
+            if (res && res.success) {
+                setCustomers(res.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to load customers:', error);
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
+
+    useEffect(() => {
+        loadCustomers();
+    }, []);
 
     const closeModal = () => {
         setIsModalOpen(false);
@@ -234,97 +141,90 @@ const BusinessCRM = () => {
         setActiveMenu(null);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this customer? All historical ledgers will be permanently removed.')) {
-            setCustomers(customers.filter(c => c.id !== id));
-            if (selectedParty && selectedParty.id === id) {
-                setSelectedParty(null);
+            try {
+                await crmService.deleteCustomer(id);
+                if (selectedParty && selectedParty.id === id) {
+                    setSelectedParty(null);
+                }
+                alert('Customer record deleted successfully.');
+                loadCustomers();
+            } catch (err) {
+                console.error(err);
+                alert('Failed to delete customer.');
             }
-            alert('Customer record deleted successfully.');
         }
     };
 
-    const handleSubmit = (e) => {
+    const viewLedger = async (party) => {
+        try {
+            const ledgerRes = await crmService.getLedger(party.id);
+            const ledgerData = (ledgerRes && ledgerRes.success) ? ledgerRes.data : [];
+            setSelectedParty({
+                ...party,
+                ledger: ledgerData
+            });
+            setActiveTab('ledger');
+            setActiveMenu(null);
+        } catch (err) {
+            console.error('Failed to fetch ledger:', err);
+            setSelectedParty({
+                ...party,
+                ledger: []
+            });
+            setActiveTab('ledger');
+            setActiveMenu(null);
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (editingCustomer) {
-            setCustomers(customers.map(c => c.id === editingCustomer.id ? { 
-                ...formData, 
-                current_balance: parseFloat(formData.current_balance) || 0 
-            } : c));
-            alert('Customer Profile updated successfully!');
-        } else {
-            const newCust = {
-                ...formData,
-                id: `C-${Date.now().toString().slice(-3)}`,
-                current_balance: parseFloat(formData.opening_balance) || 0,
-                total_sales: parseFloat(formData.opening_balance) || 0,
-                total_paid: 0,
-                ledger: [
-                    { 
-                        id: `L-${Date.now().toString().slice(-3)}`, 
-                        date: new Date().toISOString().split('T')[0], 
-                        type: 'Opening Balance', 
-                        reference: 'Initial Balance Set', 
-                        debit: parseFloat(formData.opening_balance) || 0, 
-                        credit: 0, 
-                        balance: parseFloat(formData.opening_balance) || 0 
-                    }
-                ]
-            };
-            setCustomers([...customers, newCust]);
-            alert('New Customer Registered successfully!');
+        try {
+            if (editingCustomer) {
+                await crmService.updateCustomer(editingCustomer.id, formData);
+                alert('Customer Profile updated successfully!');
+            } else {
+                await crmService.createCustomer(formData);
+                alert('New Customer Registered successfully!');
+            }
+            closeModal();
+            loadCustomers();
+        } catch (err) {
+            console.error('Failed to save customer:', err);
+            alert('Failed to save customer details.');
         }
-        closeModal();
     };
 
-    const handleRecordPayment = (e) => {
+    const handleRecordPayment = async (e) => {
         e.preventDefault();
         const amt = parseFloat(paymentData.amount);
         if (isNaN(amt) || amt <= 0) {
             alert('Please enter a valid payment amount.');
             return;
         }
-
-
-        const updatedLedger = [...(selectedParty.ledger || [])];
-        const lastBalance = updatedLedger.length > 0 ? updatedLedger[updatedLedger.length - 1].balance : 0;
-        const newBalance = lastBalance - amt;
-
-        const newEntry = {
-            id: `L-${Date.now().toString().slice(-3)}`,
-            date: paymentData.date,
-            type: paymentData.type,
-            reference: `${paymentData.mode} - ${paymentData.notes || 'No remarks'}`,
-            debit: 0,
-            credit: amt,
-            balance: newBalance
-        };
-
-        updatedLedger.push(newEntry);
-
-        const updatedCustomers = customers.map(c => {
-            if (c.id === selectedParty.id) {
-                return {
-                    ...c,
-                    current_balance: newBalance,
-                    total_paid: (c.total_paid || 0) + amt,
-                    ledger: updatedLedger
-                };
+        try {
+            await crmService.createPayment(selectedParty.id, {
+                amount: amt,
+                payment_method: paymentData.mode,
+                reference_number: paymentData.notes
+            });
+            setIsPaymentModalOpen(false);
+            setPaymentData({ amount: 0, mode: 'Cash', type: 'Payment In', date: new Date().toISOString().split('T')[0], notes: '' });
+            alert('Payment recorded and Customer balance auto-updated successfully!');
+            loadCustomers();
+            // Reload selected party ledger
+            const ledgerRes = await crmService.getLedger(selectedParty.id);
+            if (ledgerRes && ledgerRes.success) {
+                setSelectedParty({
+                    ...selectedParty,
+                    ledger: ledgerRes.data || []
+                });
             }
-            return c;
-        });
-
-        setCustomers(updatedCustomers);
-        setSelectedParty({
-            ...selectedParty,
-            current_balance: newBalance,
-            total_paid: (selectedParty.total_paid || 0) + amt,
-            ledger: updatedLedger
-        });
-
-        setIsPaymentModalOpen(false);
-        setPaymentData({ amount: 0, mode: 'Cash', type: 'Payment In', date: new Date().toISOString().split('T')[0], notes: '' });
-        alert('Payment recorded and Customer balance auto-updated successfully!');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to record payment.');
+        }
     };
 
     const handleShareLedger = (party) => {
@@ -386,8 +286,8 @@ const BusinessCRM = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 {[
                     { label: 'Active Customers', value: customers.length, icon: User, color: '#1B6B3A', bg: '#F0FDF4' },
-                    { label: 'Total Outstanding (Receivables)', value: `₹${totalOutstanding.toLocaleString()}`, icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
-                    { label: 'Advance Received', value: `₹${totalAdvance.toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
+                    { label: 'Total Outstanding (Receivables)', value: `₹${(totalOutstanding || 0).toLocaleString()}`, icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
+                    { label: 'Advance Received', value: `₹${(totalAdvance || 0).toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
                     <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
@@ -450,7 +350,11 @@ const BusinessCRM = () => {
             </div>
 
             {/* Tab 1: Customers Master List */}
-            {activeTab === 'list' && (
+            {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                    <p style={{ color: '#064E3B', fontSize: '1.15rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
+                </div>
+            ) : activeTab === 'list' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ position: 'relative', width: '400px' }}>
@@ -504,21 +408,21 @@ const BusinessCRM = () => {
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div>
                                                 <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{row.gstin || 'Unregistered'}</p>
-                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{row.customer_type.toUpperCase()}</span>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{(row.customer_type || 'individual').toUpperCase()}</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#475569' }}>₹{row.credit_limit.toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#475569' }}>₹{(row.credit_limit || 0).toLocaleString()}</span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: row.current_balance > 0 ? '#B91C1C' : (row.current_balance < 0 ? '#15803D' : '#475569') }}>
-                                                {row.current_balance > 0 ? `₹${row.current_balance.toLocaleString()}` : (row.current_balance < 0 ? `- ₹${Math.abs(row.current_balance).toLocaleString()} (Adv)` : '₹0.00')}
+                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#15803D' : '#475569') }}>
+                                                {(row.current_balance || 0) > 0 ? `₹${(row.current_balance || 0).toLocaleString()}` : ((row.current_balance || 0) < 0 ? `- ₹${Math.abs(row.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
                                             </span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            {row.current_balance > row.credit_limit ? (
+                                            {(row.current_balance || 0) > (row.credit_limit || 0) ? (
                                                 <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.75rem', fontWeight: '800' }}>LIMIT EXCEEDED</span>
-                                            ) : (row.current_balance < 0 ? (
+                                            ) : ((row.current_balance || 0) < 0 ? (
                                                 <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#F0FDF4', color: '#15803D', fontSize: '0.75rem', fontWeight: '800' }}>ADVANCE IN</span>
                                             ) : (
                                                 <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#FFFBEB', color: '#B45309', fontSize: '0.75rem', fontWeight: '800' }}>SAFE CREDIT</span>
@@ -534,7 +438,7 @@ const BusinessCRM = () => {
                                             {activeMenu === row.id && (
                                                 <div style={{ position: 'absolute', right: '2rem', top: '3.5rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '170px', overflow: 'hidden' }}>
                                                     <button 
-                                                        onClick={() => { setSelectedParty(row); setActiveTab('ledger'); setActiveMenu(null); }}
+                                                        onClick={() => { viewLedger(row); }}
                                                         style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: 'white', textAlign: 'left', fontSize: '0.8rem', fontWeight: '700', color: '#1B6B3A', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
                                                     >
                                                         <FileText size={14} /> View Ledger
@@ -586,16 +490,16 @@ const BusinessCRM = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                         <div style={{ padding: '1.5rem', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
                             <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem' }}>OPENING BALANCE</p>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#1E293B' }}>₹{selectedParty.opening_balance.toLocaleString()}</h3>
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#1E293B' }}>₹{(selectedParty.opening_balance || 0).toLocaleString()}</h3>
                         </div>
                         <div style={{ padding: '1.5rem', background: '#FEF2F2', borderRadius: '20px', border: '1px solid #FEE2E2' }}>
                             <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#B91C1C', marginBottom: '0.5rem' }}>TOTAL CREDIT GIVEN (DEBIT)</p>
                             <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#B91C1C' }}>₹{selectedParty.total_sales?.toLocaleString() || 0}</h3>
                         </div>
-                        <div style={{ padding: '1.5rem', background: selectedParty.current_balance > 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-                            <p style={{ fontSize: '0.8rem', fontWeight: '800', color: selectedParty.current_balance > 0 ? '#B91C1C' : '#15803D', marginBottom: '0.5rem' }}>NET OUTSTANDING BALANCE</p>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: selectedParty.current_balance > 0 ? '#B91C1C' : '#15803D' }}>
-                                {selectedParty.current_balance > 0 ? `₹${selectedParty.current_balance.toLocaleString()}` : (selectedParty.current_balance < 0 ? `- ₹${Math.abs(selectedParty.current_balance).toLocaleString()} (Adv)` : '₹0.00')}
+                        <div style={{ padding: '1.5rem', background: (selectedParty.current_balance || 0) > 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                            <p style={{ fontSize: '0.8rem', fontWeight: '800', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D', marginBottom: '0.5rem' }}>NET OUTSTANDING BALANCE</p>
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D' }}>
+                                {(selectedParty.current_balance || 0) > 0 ? `₹${(selectedParty.current_balance || 0).toLocaleString()}` : ((selectedParty.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedParty.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
                             </h3>
                         </div>
                     </div>
@@ -618,9 +522,9 @@ const BusinessCRM = () => {
                                         <td style={{ padding: '1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{tx.date}</td>
                                         <td style={{ padding: '1.25rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{tx.type}</td>
                                         <td style={{ padding: '1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{tx.reference}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444' }}>{tx.debit > 0 ? `₹${tx.debit.toLocaleString()}` : '-'}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '800', color: '#15803D' }}>{tx.credit > 0 ? `₹${tx.credit.toLocaleString()}` : '-'}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: tx.balance > 0 ? '#B91C1C' : '#15803D' }}>₹{tx.balance.toLocaleString()}</td>
+                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444' }}>{(tx.debit || 0) > 0 ? `₹${(tx.debit || 0).toLocaleString()}` : '-'}</td>
+                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '800', color: '#15803D' }}>{(tx.credit || 0) > 0 ? `₹${(tx.credit || 0).toLocaleString()}` : '-'}</td>
+                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#15803D' }}>₹{(tx.balance || 0).toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -643,16 +547,16 @@ const BusinessCRM = () => {
                                 <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Outstanding Receivables Ledger</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {customers.filter(c => c.current_balance > 0).map(c => (
+                                {customers.filter(c => (c.current_balance || 0) > 0).map(c => (
                                     <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #FEE2E2' }}>
                                         <div>
                                             <p style={{ fontWeight: '750', color: '#991B1B', fontSize: '0.95rem' }}>{c.name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{c.business_name} | Term: {c.due_days} Days</span>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{c.business_name || ''} | Term: {c.due_days || 30} Days</span>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '1.05rem' }}>₹{c.current_balance.toLocaleString()}</p>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: c.current_balance > c.credit_limit ? '#EF4444' : '#B45309' }}>
-                                                {c.current_balance > c.credit_limit ? 'OVER CREDIT LIMIT' : 'CREDIT ACTIVE'}
+                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '1.05rem' }}>₹{(c.current_balance || 0).toLocaleString()}</p>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: (c.current_balance || 0) > (c.credit_limit || 0) ? '#EF4444' : '#B45309' }}>
+                                                {(c.current_balance || 0) > (c.credit_limit || 0) ? 'OVER CREDIT LIMIT' : 'CREDIT ACTIVE'}
                                             </span>
                                         </div>
                                     </div>
@@ -674,7 +578,7 @@ const BusinessCRM = () => {
                                 ].map((item, i) => (
                                     <div key={i} style={{ padding: '1.25rem', background: item.bg, borderRadius: '16px', textAlign: 'center' }}>
                                         <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>{item.bucket}</p>
-                                        <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: item.color }}>₹{item.val.toLocaleString()}</h4>
+                                        <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: item.color }}>₹{(item.val || 0).toLocaleString()}</h4>
                                     </div>
                                 ))}
                             </div>
