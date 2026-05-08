@@ -186,7 +186,7 @@ const BusinessStaffing = () => {
         performance_rating: e.performance_rating || 4.5,
         target_score: e.target_score || 92,
         role_name: e.role || 'Staff Personnel'
-    })) : INITIAL_EMPLOYEES;
+    })) : [];
 
     // Form onboarding states
     const [newEmp, setNewEmp] = useState({

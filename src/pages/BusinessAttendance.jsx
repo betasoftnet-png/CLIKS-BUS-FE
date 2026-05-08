@@ -22,66 +22,7 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { attendanceService } from '../services/attendanceService';
 
-const INITIAL_ATT_LOGS = [
-    {
-        attendance_id: 'ATT-2026-901',
-        employee_id: 'EMP-001',
-        employee_name: 'Arun Kumar (Sales)',
-        attendance_date: '2026-05-05',
-        attendance_status: 'present',
-        check_in_time: '09:05 AM',
-        check_out_time: '06:15 PM',
-        first_punch: '09:05 AM',
-        last_punch: '06:15 PM',
-        total_work_hours: 9.25,
-        break_hours: 1.0,
-        productive_hours: 8.25,
-        overtime_hours: 0.25,
-        late_by_minutes: 5,
-        early_exit_minutes: 0,
-        geo_fence_status: 'Inside',
-        location_address: 'Main Office Complex, Mumbai',
-        device_id: 'BIOMETRIC-MUM-4'
-    },
-    {
-        attendance_id: 'ATT-2026-902',
-        employee_id: 'EMP-002',
-        employee_name: 'Priyanka Sharma (HR)',
-        attendance_date: '2026-05-05',
-        attendance_status: 'present',
-        check_in_time: '08:58 AM',
-        check_out_time: '06:02 PM',
-        first_punch: '08:58 AM',
-        last_punch: '06:02 PM',
-        total_work_hours: 9.07,
-        break_hours: 1.0,
-        productive_hours: 8.07,
-        overtime_hours: 0,
-        late_by_minutes: 0,
-        early_exit_minutes: 0,
-        geo_fence_status: 'Inside',
-        location_address: 'Main Office Complex, Mumbai',
-        device_id: 'BIOMETRIC-MUM-1'
-    }
-];
 
-const INITIAL_SHIFTS = [
-    { shift_id: 'SFT-01', shift_name: 'General Day Shift', shift_start_time: '09:00 AM', shift_end_time: '06:00 PM', shift_type: 'Fixed', grace_time: 15 },
-    { shift_id: 'SFT-02', shift_name: 'Night Logistics Shift', shift_start_time: '09:00 PM', shift_end_time: '06:00 AM', shift_type: 'Fixed', grace_time: 15 }
-];
-
-const INITIAL_CORRECTIONS = [
-    {
-        correction_request_id: 'COR-801',
-        employee_name: 'Karan Mehra',
-        attendance_date: '2026-05-04',
-        missed_punch_reason: 'Biometric device failed to match scanner',
-        proposed_punch_in: '09:02 AM',
-        proposed_punch_out: '06:05 PM',
-        approval_status: 'pending',
-        approved_by: ''
-    }
-];
 
 const BusinessAttendance = () => {
     const [activeTab, setActiveTab] = useState('daily'); // 'daily', 'shifts', 'geo', 'corrections'
@@ -150,9 +91,9 @@ const BusinessAttendance = () => {
         geo_fence_status: log.geo_fence_status || 'Inside',
         location_address: log.location_address || 'Main Office Complex, Mumbai',
         device_id: log.device_id || 'BIOMETRIC-MUM-1'
-    })) : INITIAL_ATT_LOGS;
+    })) : [];
 
-    const shifts = dbShifts.length > 0 ? dbShifts : INITIAL_SHIFTS;
+    const shifts = dbShifts.length > 0 ? dbShifts : [];
 
     const corrections = dbLogs.length > 0 && dbLogs.some(log => log.approval_status) ? dbLogs.filter(log => log.approval_status).map(log => ({
         correction_request_id: log.id,
@@ -163,7 +104,7 @@ const BusinessAttendance = () => {
         proposed_punch_out: log.proposed_punch_out || '06:00 PM',
         approval_status: log.approval_status || 'pending',
         approved_by: log.approved_by || ''
-    })) : INITIAL_CORRECTIONS;
+    })) : [];
 
     // Form inputs states
     const [punchForm, setPunchForm] = useState({
