@@ -150,7 +150,7 @@ const BusinessWarehouse = () => {
     });
 
     // Goods Inward (Receivings) Historical Logs mapped from DB Stocks
-    const inwards = dbStocks.map((s, idx) => {
+    const inwards = dbStocks.map((s) => {
         let warehouseName = 'Main Godown';
         if (s.location) {
             if (s.location.includes('(')) {
@@ -203,22 +203,25 @@ const BusinessWarehouse = () => {
 
     // Set default select values when database lists load
     useEffect(() => {
-        if (dbStocks.length > 0 && !newInward.stock_id) {
-            setNewInward(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
-        }
-        if (dbWarehouses.length > 0 && !newInward.warehouse_id) {
-            setNewInward(prev => ({ ...prev, warehouse_id: dbWarehouses[0].id.toString() }));
-        }
-        if (dbStocks.length > 0 && !newTransfer.stock_id) {
-            setNewTransfer(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
-        }
-        if (dbWarehouses.length > 0 && !newTransfer.source_warehouse_id) {
-            setNewTransfer(prev => ({ ...prev, source_warehouse_id: dbWarehouses[0].id.toString() }));
-        }
-        if (dbWarehouses.length > 1 && !newTransfer.destination_warehouse_id) {
-            setNewTransfer(prev => ({ ...prev, destination_warehouse_id: dbWarehouses[1].id.toString() }));
-        }
-    }, [dbStocks, dbWarehouses]);
+        const timer = setTimeout(() => {
+            if (dbStocks.length > 0 && !newInward.stock_id) {
+                setNewInward(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
+            }
+            if (dbWarehouses.length > 0 && !newInward.warehouse_id) {
+                setNewInward(prev => ({ ...prev, warehouse_id: dbWarehouses[0].id.toString() }));
+            }
+            if (dbStocks.length > 0 && !newTransfer.stock_id) {
+                setNewTransfer(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
+            }
+            if (dbWarehouses.length > 0 && !newTransfer.source_warehouse_id) {
+                setNewTransfer(prev => ({ ...prev, source_warehouse_id: dbWarehouses[0].id.toString() }));
+            }
+            if (dbWarehouses.length > 1 && !newTransfer.destination_warehouse_id) {
+                setNewTransfer(prev => ({ ...prev, destination_warehouse_id: dbWarehouses[1].id.toString() }));
+            }
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
 
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
@@ -275,7 +278,7 @@ const BusinessWarehouse = () => {
     };
 
     const handleCompleteTransfer = (trfId) => {
-        alert('Transfer marked complete! Stock landed at destination warehouse.');
+        alert(`Transfer ${trfId} marked complete! Stock landed at destination warehouse.`);
     };
 
 

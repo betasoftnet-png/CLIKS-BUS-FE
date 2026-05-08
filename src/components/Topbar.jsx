@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users } from 'lucide-react';
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';

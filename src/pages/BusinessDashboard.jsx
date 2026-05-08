@@ -16,14 +16,21 @@ import {
     Bell
 } from 'lucide-react';
 import '../App.css';
+import { useQuery } from '@tanstack/react-query';
+import { reportsService } from '../services';
 
 const BusinessDashboard = () => {
-    // Mock data for Business Dashboard
+    // Fetch live dashboard summary
+    const { data: summary } = useQuery({
+        queryKey: ['dashboardSummary'],
+        queryFn: reportsService.getDashboardSummary
+    });
+
     const stats = [
-        { label: 'Monthly Revenue', value: '₹4,52,000', change: '+12.5%', icon: DollarSign, color: '#1B6B3A' },
-        { label: 'Active Projects', value: '24', change: '+2', icon: Briefcase, color: '#064E3B' },
-        { label: 'Business Growth', value: '18%', change: '+3.1%', icon: TrendingUp, color: '#059669' },
-        { label: 'New Clients', value: '12', change: '+4', icon: Users, color: '#10B981' }
+        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? `₹${(summary.total_sales).toLocaleString()}` : '₹0', change: 'Live', icon: DollarSign, color: '#1B6B3A' },
+        { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? `₹${(summary.total_purchases).toLocaleString()}` : '₹0', change: 'Live', icon: Briefcase, color: '#064E3B' },
+        { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? `₹${(summary.total_expenses).toLocaleString()}` : '₹0', change: 'Live', icon: TrendingUp, color: '#059669' },
+        { label: 'System Health', value: summary?.status ? summary.status.toUpperCase() : 'HEALTHY', change: 'Live', icon: Users, color: '#10B981' }
     ];
 
     return (

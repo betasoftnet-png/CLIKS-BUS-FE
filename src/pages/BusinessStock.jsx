@@ -93,7 +93,10 @@ const BusinessStock = () => {
     // Set default product for history when stock loads
     useEffect(() => {
         if (!selectedHistoryProductId && stocks.length > 0) {
-            setSelectedHistoryProductId(stocks[0].id.toString());
+            const timer = setTimeout(() => {
+                setSelectedHistoryProductId(stocks[0].id.toString());
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [stocks, selectedHistoryProductId]);
 
@@ -137,7 +140,7 @@ const BusinessStock = () => {
     });
 
     // Dynamic batches based on live stocks
-    const batches = stocks.map((s, idx) => ({
+    const batches = stocks.map((s) => ({
         batch_number: s.product_id.replace('PROD-', 'BAT-'),
         product_name: s.product_name,
         manufacturing_date: '2026-01-10',
@@ -166,18 +169,24 @@ const BusinessStock = () => {
     // Initialize forms when stock items and warehouses are available
     useEffect(() => {
         if (stocks.length > 0) {
-            setAdjustmentForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
-            setTransferForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
+            const timer = setTimeout(() => {
+                setAdjustmentForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
+                setTransferForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [stocks]);
 
     useEffect(() => {
         if (dbWarehouses.length > 1) {
-            setTransferForm(prev => prev.from_warehouse_id ? prev : {
-                ...prev,
-                from_warehouse_id: dbWarehouses[0].id.toString(),
-                to_warehouse_id: dbWarehouses[1].id.toString()
-            });
+            const timer = setTimeout(() => {
+                setTransferForm(prev => prev.from_warehouse_id ? prev : {
+                    ...prev,
+                    from_warehouse_id: dbWarehouses[0].id.toString(),
+                    to_warehouse_id: dbWarehouses[1].id.toString()
+                });
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [dbWarehouses]);
 
