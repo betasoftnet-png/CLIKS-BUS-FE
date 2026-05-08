@@ -34,7 +34,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            rm -rf /var/www/cliks-FE/dist/*
+            rm -rf /var/www/cliksbusiness.com/html/*
 
       # 🚀 Upload new build
       - name: Upload new build
@@ -44,7 +44,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist/*"
-          target: "/var/www/cliks-FE/dist"
+          target: "/var/www/cliksbusiness.com/html"
           strip_components: 1
 
       # 🔁 Restart nginx
@@ -55,6 +55,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            chown -R www-data:www-data /var/www/cliks-FE/dist
-            systemctl restart nginx
+            chown -R www-data:www-data /var/www/cliksbusiness.com/html
+            systemctl reload nginx
+
 
