@@ -43,5 +43,6 @@ export const bomService = {
 export const manufacturingService = {
   getOrders: () => apiClient.get('/manufacturing/reports').then(res => res.data.data || res.data),
   createOrder: (data) => apiClient.post('/manufacturing/orders', data).then(res => res.data.data || res.data),
+  startOrder: (id) => apiClient.post('/manufacturing/start', { order_id: id }).then(res => res.data.data || res.data),
   completeOrder: (id) => apiClient.post('/manufacturing/complete', { order_id: id }).then(res => res.data.data || res.data)
 };

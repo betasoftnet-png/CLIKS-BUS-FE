@@ -139,7 +139,6 @@ const INITIAL_MATERIALS = [
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bomService, manufacturingService } from '../services';
-import { useEffect } from 'react';
 
 const BusinessManufacturing = () => {
     const queryClient = useQueryClient();
@@ -169,7 +168,7 @@ const BusinessManufacturing = () => {
         required_quantity: 1,
         unit: 'piece',
         raw_materials: Array.isArray(b.items) ? b.items : JSON.parse(b.items || '[]')
-    })) : INITIAL_BOMS;
+    })) : [];
 
     // Fetch Live Work Orders & BOM Reports from Manufacturing Service
     const { data: reportsData } = useQuery({
@@ -226,9 +225,27 @@ const BusinessManufacturing = () => {
             raw_material_stock_out: 'MAT-Wood01',
             finished_goods_stock_in: 'PRD-Desk09'
         };
-    }) : INITIAL_WORK_ORDERS;
+    }) : [];
 
-    const [materials, setMaterials] = useState(INITIAL_MATERIALS);
+    const materials = boms.reduce((acc, bom) => {
+        if (Array.isArray(bom.raw_materials)) {
+            bom.raw_materials.forEach(raw => {
+                const found = acc.find(m => m.material_id === raw.material_id);
+                if (!found) {
+                    acc.push({
+                        material_id: raw.material_id || `MAT-${raw.material_name?.replace(/\s+/g, '')}`,
+                        material_name: raw.material_name || raw.material_id || 'Raw Material',
+                        opening_stock: 500,
+                        consumed_quantity: 0,
+                        remaining_stock: 500,
+                        unit: raw.unit || 'pcs',
+                        cost_per_unit: raw.cost_per_unit || 100
+                    });
+                }
+            });
+        }
+        return acc;
+    }, []);
     const [activeTab, setActiveTab] = useState('all'); // 'all' (Orders) | 'bom' | 'materials' | 'costing' | 'qc' | 'reports'
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isBOMOpen, setIsBOMOpen] = useState(false);
@@ -271,13 +288,6 @@ const BusinessManufacturing = () => {
     const [defectReason, setDefectReason] = useState('');
     const [rejectedQty, setRejectedQty] = useState(0);
 
-    // Set default BOM recipe selection when lists are loaded
-    useEffect(() => {
-        if (boms.length > 0 && !woForm.bom_id) {
-            setWoForm(prev => ({ ...prev, bom_id: boms[0].bom_id }));
-        }
-    }, [boms]);
-
     const handleCreateBOM = (e) => {
         e.preventDefault();
         const payload = {
@@ -300,7 +310,8 @@ const BusinessManufacturing = () => {
 
     const handleCreateWorkOrder = (e) => {
         e.preventDefault();
-        const selectedBOM = boms.find(b => b.bom_id === woForm.bom_id);
+        const activeBomId = woForm.bom_id || boms[0]?.bom_id;
+        const selectedBOM = boms.find(b => b.bom_id === activeBomId);
         if (!selectedBOM) return;
 
         createOrderMutation.mutate({
@@ -323,8 +334,16 @@ const BusinessManufacturing = () => {
         completeProductionMutation.mutate(selectedOrder.production_id);
     };
 
+    const startProductionMutation = useMutation({
+        mutationFn: (orderId) => manufacturingService.startOrder(orderId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['manufacturingReports'] });
+            alert('Production order started successfully! Machine routing active.');
+        }
+    });
+
     const handleStartWork = (id) => {
-        alert('Production started. Machining routing active.');
+        startProductionMutation.mutate(id);
     };
 
     const filteredOrders = workOrders.filter(wo => {
