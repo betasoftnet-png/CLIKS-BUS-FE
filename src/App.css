@@ -2154,3 +2154,216 @@ div[style*="background-color: '#F0F9F4'"] {
     background: #ffffff !important;
     background-color: #ffffff !important;
 }
+
+/* ============================================================
+   Production Responsive Dashboard Styles
+   ============================================================ */
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
+}
+
+.dashboard-header-title h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #064E3B;
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-header-title p {
+    color: #64748B;
+}
+
+.dashboard-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.dashboard-search-wrapper {
+    position: relative;
+}
+
+.dashboard-search-input {
+    padding: 0.65rem 1rem 0.65rem 2.5rem;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    outline: none;
+    width: 260px;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.dashboard-search-input:focus {
+    border-color: #1B6B3A;
+    box-shadow: 0 0 0 3px rgba(27, 107, 58, 0.1);
+}
+
+.dashboard-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.dashboard-stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 20px;
+    border: 1px solid #F1F5F9;
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.04);
+    transition: all 0.2s ease;
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(6, 78, 59, 0.08);
+    border-color: #1B6B3A40;
+}
+
+.dashboard-main-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dashboard-chart-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 32px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.02);
+}
+
+.dashboard-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.dashboard-chart-bars-container {
+    height: 240px;
+    display: flex;
+    align-items: flex-end;
+    gap: 1.25rem;
+    padding: 0 1rem;
+    overflow-x: auto;
+}
+
+.inventory-health-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.dashboard-goal-card {
+    background: linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%);
+    padding: 2rem;
+    border-radius: 32px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(27, 107, 58, 0.2);
+    transition: all 0.3s ease;
+}
+
+.dashboard-goal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 35px -5px rgba(27, 107, 58, 0.3);
+}
+
+.dashboard-ops-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 32px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.02);
+}
+
+.breadcrumbs-container {
+    padding: 0 2rem;
+    padding-top: 1.5rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .dashboard-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .dashboard-search-wrapper {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .dashboard-search-input {
+        width: 100%;
+    }
+    
+    .inventory-health-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .dashboard-stat-card {
+        padding: 1.25rem;
+    }
+    
+    .dashboard-chart-card {
+        padding: 1.25rem;
+    }
+    
+    .dashboard-chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .dashboard-chart-bars-container {
+        gap: 0.5rem;
+        padding: 0;
+    }
+    
+    .dashboard-goal-card {
+        padding: 1.5rem;
+    }
+    
+    .dashboard-ops-card {
+        padding: 1.5rem;
+    }
+    
+    .breadcrumbs-container {
+        padding: 0 1rem;
+        padding-top: 1rem;
+    }
+}
+

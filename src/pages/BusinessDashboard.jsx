@@ -27,20 +27,20 @@ const BusinessDashboard = () => {
     ];
 
     return (
-        <div style={{ padding: '2rem', background: '#ffffff', minHeight: '100vh' }}>
+        <div className="premium-container" style={{ minHeight: '100vh' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: '#064E3B', marginBottom: '0.25rem' }}>Business Overview</h1>
-                    <p style={{ color: '#64748B' }}>Monitor your enterprise performance and operations.</p>
+            <div className="dashboard-header">
+                <div className="dashboard-header-title">
+                    <h1>Business Overview</h1>
+                    <p>Monitor your enterprise performance and operations.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ position: 'relative' }}>
+                <div className="dashboard-header-actions">
+                    <div className="dashboard-search-wrapper">
                         <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                         <input 
                             type="text" 
                             placeholder="Search analytics..." 
-                            style={{ padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', width: '260px' }}
+                            className="dashboard-search-input"
                         />
                     </div>
                     <button style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B' }}>
@@ -53,9 +53,9 @@ const BusinessDashboard = () => {
             </div>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="dashboard-stats-grid">
                 {stats.map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #F1F5F9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <div key={idx} className="dashboard-stat-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
                                 <stat.icon size={20} />
@@ -69,11 +69,11 @@ const BusinessDashboard = () => {
             </div>
 
             {/* Charts & Activity */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="content-grid">
+                <div className="dashboard-main-col">
                     {/* Revenue Chart */}
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <div className="dashboard-chart-card">
+                        <div className="dashboard-chart-header">
                             <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B' }}>Revenue Performance</h2>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#1B6B3A' }}>
@@ -84,7 +84,7 @@ const BusinessDashboard = () => {
                                 </span>
                             </div>
                         </div>
-                        <div style={{ height: '240px', display: 'flex', alignItems: 'flex-end', gap: '1.25rem', padding: '0 1rem' }}>
+                        <div className="dashboard-chart-bars-container">
                             {[45, 65, 40, 85, 55, 95, 75, 80, 60, 85, 55, 100].map((h, i) => (
                                 <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
                                     <div style={{ height: `${h}%`, width: '100%', background: 'linear-gradient(to top, #1B6B3A, #064E3B)', borderRadius: '8px 8px 4px 4px', position: 'relative' }}>
@@ -99,9 +99,9 @@ const BusinessDashboard = () => {
                     </div>
 
                     {/* Inventory Health */}
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                    <div className="dashboard-chart-card">
                         <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', marginBottom: '1.5rem' }}>Inventory Health</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                        <div className="inventory-health-grid">
                             {[
                                 { label: 'Fast Moving', count: 142, color: '#1B6B3A', pct: 65 },
                                 { label: 'Slow Moving', count: 48, color: '#F59E0B', pct: 22 },
@@ -121,7 +121,7 @@ const BusinessDashboard = () => {
 
                 {/* Side Widgets */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div style={{ background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', padding: '2rem', borderRadius: '32px', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(27, 107, 58, 0.2)' }}>
+                    <div className="dashboard-goal-card">
                         <div style={{ position: 'relative', zIndex: 1 }}>
                             <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
                                 <Target size={20} />
@@ -135,7 +135,7 @@ const BusinessDashboard = () => {
                         </div>
                     </div>
 
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                    <div className="dashboard-ops-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B' }}>Recent Ops</h3>
                             <Clock size={18} color="#94A3B8" />
