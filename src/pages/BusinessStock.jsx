@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { stockService } from '../services';
+import { stockService, warehouseService } from '../services';
+import { apiClient } from '../api/client';
 import { 
     Layers, 
     Plus, 
@@ -31,134 +32,122 @@ const BusinessStock = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [selectedHistoryProductId, setSelectedHistoryProductId] = useState('');
 
-    // Live Stocks from backend with full fallback to UI specifications
+    // Fetch Live Stocks
     const { data: dbStocks = [] } = useQuery({
         queryKey: ['stocks'],
         queryFn: () => stockService.getStocks()
     });
 
-    useQuery({
-        queryKey: ['stockStats'],
-        queryFn: () => stockService.getStockStats()
+    // Fetch Live Warehouses
+    const { data: dbWarehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses()
     });
 
-    const adjustMutation = useMutation({
-        mutationFn: ({ id, delta }) => stockService.adjustQuantity(id, delta),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['stockStats'] });
-            alert('Stock Adjustment audited & running ledger counts revalued successfully!');
-            setIsAdjustmentModalOpen(false);
+    // Fetch Warehouse Transfers Reports
+    const { data: reportsData } = useQuery({
+        queryKey: ['warehouseReports'],
+        queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data)
+    });
+
+    // Safe mapping of DB stock items to UI representation
+    const stocks = dbStocks.map(s => {
+        let warehouseName = 'Main Godown';
+        let rackNumber = 'Rack A-1';
+
+        if (s.location) {
+            if (s.location.includes('(')) {
+                const parts = s.location.split('(');
+                warehouseName = parts[0].trim();
+                rackNumber = parts[1].replace(')', '').trim();
+            } else {
+                warehouseName = s.location;
+            }
         }
-    });
 
-    // Mapping dbRows to UI properties safely
-    const stocks = dbStocks.length > 0 ? dbStocks.map(s => ({
-        stock_id: `STK-${s.id}`,
-        id: s.id,
-        product_id: s.sku || `PROD-${s.id}`,
-        product_name: s.name || 'Unnamed Stock Item',
-        opening_stock: s.opening_stock || 10,
-        current_stock: s.quantity || 0,
-        available_stock: s.quantity || 0,
-        reserved_stock: 0,
-        damaged_stock: 0,
-        expired_stock: 0,
-        in_transit_stock: 0,
-        minimum_stock: s.low_stock_threshold || 5,
-        reorder_level: s.low_stock_threshold || 5,
-        reorder_quantity: 50,
-        purchase_cost: s.unit_price || 0,
-        average_cost: s.unit_price || 0,
-        selling_value: (s.unit_price || 0) * 1.2,
-        rack_number: s.location || 'Rack A-1',
-        warehouse_name: s.location || 'Main Godown'
-    })) : [
-        {
-            stock_id: 'STK-001',
-            product_id: 'PROD-101',
-            product_name: 'Dell Inspiron 15 Laptop',
-            opening_stock: 100,
-            current_stock: 125,
-            available_stock: 110,
-            reserved_stock: 10,
-            damaged_stock: 3,
-            expired_stock: 2,
-            in_transit_stock: 10,
-            minimum_stock: 20,
-            reorder_level: 30,
-            reorder_quantity: 50,
-            purchase_cost: 35000,
-            average_cost: 36200,
-            selling_value: 45000,
-            rack_number: 'Rack A-3',
-            warehouse_name: 'Main Godown'
-        },
-        {
-            stock_id: 'STK-002',
-            product_id: 'PROD-105',
-            product_name: 'Boat Bassheads Earphones',
-            opening_stock: 500,
-            current_stock: 15,
-            available_stock: 15,
+        return {
+            stock_id: `STK-${s.id}`,
+            id: s.id,
+            product_id: s.sku || `PROD-${s.id}`,
+            product_name: s.name || 'Unnamed Stock Item',
+            opening_stock: s.opening_stock || 10,
+            current_stock: s.quantity || 0,
+            available_stock: s.quantity || 0,
             reserved_stock: 0,
             damaged_stock: 0,
             expired_stock: 0,
-            in_transit_stock: 200,
-            minimum_stock: 50,
-            reorder_level: 100,
-            reorder_quantity: 500,
-            purchase_cost: 250,
-            average_cost: 260,
-            selling_value: 399,
-            rack_number: 'Shelf B-2',
-            warehouse_name: 'Shop Front'
-        }
-    ];
+            in_transit_stock: 0,
+            minimum_stock: s.low_stock_threshold || 5,
+            reorder_level: s.low_stock_threshold || 5,
+            reorder_quantity: 50,
+            purchase_cost: s.unit_price || 0,
+            average_cost: s.unit_price || 0,
+            selling_value: (s.unit_price || 0) * 1.2,
+            rack_number: rackNumber,
+            warehouse_name: warehouseName
+        };
+    });
 
-    // Simulated Movements with safe fallback
-    const [movements] = useState([
-        {
-            movement_id: 'MOV-1090',
-            movement_type: 'in',
-            movement_quantity: 50,
-            movement_reason: 'Purchase Inward',
-            reference_id: 'BILL-77091',
-            performed_by: 'Ankit Sharma (Inventory)',
-            movement_date: '2026-05-01',
-            product_name: 'Dell Inspiron 15 Laptop'
+    // Set default product for history when stock loads
+    useEffect(() => {
+        if (!selectedHistoryProductId && stocks.length > 0) {
+            setSelectedHistoryProductId(stocks[0].id.toString());
         }
-    ]);
+    }, [stocks, selectedHistoryProductId]);
 
-    // Simulated Transfers
-    const [transfers, setTransfers] = useState([
-        {
-            transfer_id: 'TRF-9011',
-            product_name: 'Boat Bassheads Earphones',
-            qty: 20,
-            from_warehouse: 'Main Godown',
-            to_warehouse: 'Shop Front',
+    // Fetch stock transaction history for the selected product
+    const { data: dbHistory = [] } = useQuery({
+        queryKey: ['stockHistory', selectedHistoryProductId],
+        queryFn: () => stockService.getStockHistory(selectedHistoryProductId),
+        enabled: !!selectedHistoryProductId
+    });
+
+    const movements = dbHistory.map(h => {
+        const product = stocks.find(s => s.id === h.stock_id);
+        return {
+            movement_id: `MOV-${h.id}`,
+            movement_type: h.type || 'in',
+            movement_quantity: h.quantity || 0,
+            movement_reason: h.type === 'in' ? 'Stock Inward / Reconciliation' : 'Stock Outward / Dispatch',
+            reference_id: `REF-STK-${h.id}`,
+            performed_by: 'Inventory Operator',
+            movement_date: h.created_at ? h.created_at.split('T')[0] : '2026-05-08',
+            product_name: product?.product_name || 'Stock Item'
+        };
+    });
+
+    // Map DB Transfers
+    const dbTransfers = reportsData?.transfers || [];
+    const transfers = dbTransfers.map(t => {
+        const product = stocks.find(s => s.id === t.stock_id);
+        const fromWh = dbWarehouses.find(w => w.id === t.from_warehouse_id);
+        const toWh = dbWarehouses.find(w => w.id === t.to_warehouse_id);
+        return {
+            transfer_id: `TRF-${t.id}`,
+            product_name: product?.product_name || `Stock Item #${t.stock_id}`,
+            qty: t.quantity || 0,
+            from_warehouse: fromWh?.name || 'Main Godown',
+            to_warehouse: toWh?.name || 'Shop Front',
             status: 'Completed',
-            transfer_date: '2026-05-04',
-            reference: 'MIG-TRF-09'
-        }
-    ]);
+            transfer_date: t.created_at ? t.created_at.split('T')[0] : '2026-05-08',
+            reference: `REF-TRF-${t.id}`
+        };
+    });
 
-    // Simulated Batches
-    const [batches] = useState([
-        {
-            batch_number: 'B-DEL-99',
-            product_name: 'Dell Inspiron 15 Laptop',
-            manufacturing_date: '2026-01-10',
-            expiry_date: '2029-01-10',
-            batch_quantity: 125
-        }
-    ]);
+    // Dynamic batches based on live stocks
+    const batches = stocks.map((s, idx) => ({
+        batch_number: s.product_id.replace('PROD-', 'BAT-'),
+        product_name: s.product_name,
+        manufacturing_date: '2026-01-10',
+        expiry_date: '2029-01-10',
+        batch_quantity: s.current_stock
+    }));
 
     // Form inputs for Stock Adjustments
     const [adjustmentForm, setAdjustmentForm] = useState({
-        product_id: 'PROD-101',
+        product_id: '',
         adjustment_type: 'add', // 'add' or 'reduce'
         qty: 10,
         reason: 'Physical stock reconciliation audit',
@@ -167,56 +156,91 @@ const BusinessStock = () => {
 
     // Form inputs for Warehouse Transfers
     const [transferForm, setTransferForm] = useState({
-        product_id: 'PROD-101',
+        product_id: '',
         qty: 15,
-        from_warehouse: 'Main Godown',
-        to_warehouse: 'Shop Front',
+        from_warehouse_id: '',
+        to_warehouse_id: '',
         reference: 'MIG-TRF-12'
+    });
+
+    // Initialize forms when stock items and warehouses are available
+    useEffect(() => {
+        if (stocks.length > 0) {
+            setAdjustmentForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
+            setTransferForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
+        }
+    }, [stocks]);
+
+    useEffect(() => {
+        if (dbWarehouses.length > 1) {
+            setTransferForm(prev => prev.from_warehouse_id ? prev : {
+                ...prev,
+                from_warehouse_id: dbWarehouses[0].id.toString(),
+                to_warehouse_id: dbWarehouses[1].id.toString()
+            });
+        }
+    }, [dbWarehouses]);
+
+    const adjustMutation = useMutation({
+        mutationFn: ({ id, delta }) => stockService.adjustQuantity(id, delta),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['stockStats'] });
+            queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
+            alert('Stock Adjustment audited & running ledger counts revalued successfully!');
+            setIsAdjustmentModalOpen(false);
+        }
+    });
+
+    const transferMutation = useMutation({
+        mutationFn: ({ from_warehouse_id, to_warehouse_id, stock_id, qty }) => 
+            warehouseService.transferStock(from_warehouse_id, {
+                from_warehouse_id,
+                to_warehouse_id,
+                stock_id,
+                quantity: qty
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            alert('Stock successfully moved between warehouse logs!');
+            setIsTransferModalOpen(false);
+        }
     });
 
     const handleSaveAdjustment = (e) => {
         e.preventDefault();
-        const selectedProd = stocks.find(s => s.product_id === adjustmentForm.product_id);
+        const stockId = parseInt(adjustmentForm.product_id);
         const adjustQty = parseInt(adjustmentForm.qty) || 0;
         const delta = adjustmentForm.adjustment_type === 'add' ? adjustQty : -adjustQty;
 
-        if (selectedProd && selectedProd.id) {
-            adjustMutation.mutate({ id: selectedProd.id, delta });
-        } else {
-            // Local fallback
-            const updatedQty = adjustmentForm.adjustment_type === 'add' 
-                ? (selectedProd?.current_stock || 0) + adjustQty 
-                : Math.max(0, (selectedProd?.current_stock || 0) - adjustQty);
-
-            alert(`Mock stock adjusted successfully to ${updatedQty}!`);
-            setIsAdjustmentModalOpen(false);
+        if (stockId) {
+            adjustMutation.mutate({ id: stockId, delta });
         }
     };
 
     const handleSaveTransfer = (e) => {
         e.preventDefault();
-        const selectedProd = stocks.find(s => s.product_id === transferForm.product_id);
+        const stockId = parseInt(transferForm.product_id);
         const transQty = parseInt(transferForm.qty) || 0;
+        const fromWhId = parseInt(transferForm.from_warehouse_id);
+        const toWhId = parseInt(transferForm.to_warehouse_id);
+
+        const selectedProd = stocks.find(s => s.id === stockId);
 
         if (transQty > (selectedProd?.available_stock || 0)) {
             alert('Cannot transfer quantity higher than current available stock!');
             return;
         }
 
-        const newTrf = {
-            transfer_id: `TRF-${4000 + transfers.length + 1}`,
-            product_name: selectedProd?.product_name || 'Product',
-            qty: transQty,
-            from_warehouse: transferForm.from_warehouse,
-            to_warehouse: transferForm.to_warehouse,
-            status: 'Completed',
-            transfer_date: new Date().toISOString().split('T')[0],
-            reference: transferForm.reference
-        };
-
-        setTransfers([newTrf, ...transfers]);
-        setIsTransferModalOpen(false);
-        alert('Stock successfully moved between warehouse logs!');
+        if (fromWhId && toWhId && stockId) {
+            transferMutation.mutate({
+                from_warehouse_id: fromWhId,
+                to_warehouse_id: toWhId,
+                stock_id: stockId,
+                qty: transQty
+            });
+        }
     };
 
     const filteredStocks = stocks.filter(st => 
@@ -262,8 +286,8 @@ const BusinessStock = () => {
                 {[
                     { label: 'Total Inventory Valuation (Cost basis)', value: `₹${totalInventoryValue.toLocaleString()}`, icon: DollarSign, color: '#1B6B3A', bg: '#F0FDF4' },
                     { label: 'Low Stock Alerts (Reorder Level)', value: `${lowStockAlertsCount} Items`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Total Warehouses Registered', value: '2 Branches', icon: Warehouse, color: '#2563EB', bg: '#EFF6FF' },
-                    { label: 'Dynamic In-Transit Stock', value: '210 Items', icon: Activity, color: '#7C3AED', bg: '#F5F3FF' }
+                    { label: 'Total Warehouses Registered', value: `${dbWarehouses.length} Registered`, icon: Warehouse, color: '#2563EB', bg: '#EFF6FF' },
+                    { label: 'Dynamic In-Transit Stock', value: `${transfers.length} Transfers`, icon: Activity, color: '#7C3AED', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
@@ -373,7 +397,19 @@ const BusinessStock = () => {
             {/* Tab 2: Stock Movements Logs */}
             {activeTab === 'movement' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Stock Inward / Outward running ledger</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Stock Inward / Outward running ledger</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#475569' }}>Select Product:</span>
+                            <select 
+                                value={selectedHistoryProductId} 
+                                onChange={(e) => setSelectedHistoryProductId(e.target.value)} 
+                                style={{ padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#1E293B' }}
+                            >
+                                {stocks.map(s => <option key={s.id} value={s.id}>{s.product_name}</option>)}
+                            </select>
+                        </div>
+                    </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead style={{ background: '#F8FAFC' }}>
                             <tr>
@@ -499,8 +535,8 @@ const BusinessStock = () => {
                         <form onSubmit={handleSaveAdjustment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
-                                <select value={adjustmentForm.product_id} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    {stocks.map(s => <option key={s.product_id} value={s.product_id}>{s.product_name}</option>)}
+                                <select value={adjustmentForm.product_id} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                    {stocks.map(s => <option key={s.id} value={s.id}>{s.product_name} (Qty: {s.current_stock})</option>)}
                                 </select>
                             </div>
                             <div>
@@ -512,11 +548,11 @@ const BusinessStock = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Adjustment Qty</label>
-                                <input required type="number" value={adjustmentForm.qty} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, qty: parseInt(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input required type="number" value={adjustmentForm.qty} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, qty: parseInt(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reason / Comment</label>
-                                <input required type="text" value={adjustmentForm.reason} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, reason: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Physical stock audit reconciliation" />
+                                <input required type="text" value={adjustmentForm.reason} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, reason: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder="e.g. Physical stock audit reconciliation" />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
@@ -539,33 +575,31 @@ const BusinessStock = () => {
                         <form onSubmit={handleSaveTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
-                                <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    {stocks.map(s => <option key={s.product_id} value={s.product_id}>{s.product_name}</option>)}
+                                <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                    {stocks.map(s => <option key={s.id} value={s.id}>{s.product_name} (Avail: {s.available_stock} pcs)</option>)}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Warehouse</label>
-                                    <select value={transferForm.from_warehouse} onChange={(e) => setTransferForm({ ...transferForm, from_warehouse: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option>Main Godown</option>
-                                        <option>Shop Front</option>
+                                    <select value={transferForm.from_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, from_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Warehouse</label>
-                                    <select value={transferForm.to_warehouse} onChange={(e) => setTransferForm({ ...transferForm, to_warehouse: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option>Shop Front</option>
-                                        <option>Main Godown</option>
+                                    <select value={transferForm.to_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, to_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </select>
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Quantity to Move</label>
-                                <input required type="number" value={transferForm.qty} onChange={(e) => setTransferForm({ ...transferForm, qty: parseInt(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input required type="number" value={transferForm.qty} onChange={(e) => setTransferForm({ ...transferForm, qty: parseInt(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Ref / ID</label>
-                                <input required type="text" value={transferForm.reference} onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input required type="text" value={transferForm.reference} onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
