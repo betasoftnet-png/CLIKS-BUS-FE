@@ -339,12 +339,14 @@ const BusinessCRM = () => {
                     { label: 'Advance Received', value: `₹${(totalAdvance || 0).toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.75rem' }}>
-                            <stat.icon size={18} />
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
+                        </div>
                     </div>
                 ))}
             </div>
