@@ -51,14 +51,14 @@
     width: 100%;
     padding: 0.65rem 0.75rem;
     border-radius: 8px;
-    color: #1E293B !important;
-    font-weight: 500;
+    color: #1B6B3A !important;
+    font-weight: 600;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: space-between;
     text-align: left;
-    font-size: 0.9rem;
+    font-size: 0.98rem !important;
     position: relative;
     z-index: 1;
     background: transparent;
@@ -67,28 +67,31 @@
 }
 
 .sidebar-item svg {
-    color: #047857 !important;
-    transition: color 0.2s ease;
+    color: #1B6B3A !important;
+    width: 22px !important;
+    height: 22px !important;
+    transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .sidebar-item:hover {
     background-color: #DCF2E4 !important;
-    color: #135029 !important;
+    color: #064E3B !important;
 }
 
 .sidebar-item:hover svg {
-    color: #135029 !important;
+    color: #064E3B !important;
+    transform: scale(1.05);
 }
 
 .sidebar-item.active {
     background-color: #DCF2E4 !important;
-    color: #135029 !important;
-    font-weight: 700;
+    color: #064E3B !important;
+    font-weight: 800 !important;
     box-shadow: none !important;
 }
 
 .sidebar-item.active svg {
-    color: #135029 !important;
+    color: #064E3B !important;
 }
 
 /* Tree View Subgroup */
