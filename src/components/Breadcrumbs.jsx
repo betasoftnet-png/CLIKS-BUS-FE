@@ -53,7 +53,7 @@ const Breadcrumbs = ({ items }) => {
     if (!breadcrumbs) {
         const pathnames = location.pathname.split('/').filter((x) => {
             const val = x.toLowerCase();
-            return val && val !== 'business' && val !== 'dashboard' && val !== 'billing' && val !== 'books' && val !== 'home';
+            return val && val !== 'business' && val !== 'dashboard' && val !== 'billing' && val !== 'books' && val !== 'home' && val !== 'crm';
         });
         breadcrumbs = pathnames.map((value, index) => {
             let to = `/${pathnames.slice(0, index + 1).join('/')}`;
@@ -74,8 +74,12 @@ const Breadcrumbs = ({ items }) => {
     if (breadcrumbs) {
         breadcrumbs = breadcrumbs.filter(crumb => {
             const val = crumb.label.toLowerCase();
-            return val !== 'business' && val !== 'dashboard' && val !== 'billing' && val !== 'books' && val !== 'home';
+            return val !== 'business' && val !== 'dashboard' && val !== 'billing' && val !== 'books' && val !== 'home' && val !== 'crm';
         });
+    }
+
+    if (!breadcrumbs || breadcrumbs.length === 0) {
+        return null;
     }
 
     return (
