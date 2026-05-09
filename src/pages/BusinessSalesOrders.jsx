@@ -314,9 +314,9 @@ const BusinessSalesOrders = () => {
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.4rem', 
                         padding: '0.5rem 1.1rem', borderRadius: '10px', 
-                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', 
+                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
                         fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
-                        boxShadow: '0 6px 12px rgba(5, 150, 105, 0.15)',
+                        boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)',
                         transition: 'transform 0.2s'
                     }}
                 >
