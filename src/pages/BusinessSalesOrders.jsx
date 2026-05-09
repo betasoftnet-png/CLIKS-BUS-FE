@@ -328,7 +328,7 @@ const BusinessSalesOrders = () => {
             {/* Stats Summary Bento Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Active Orders', value: activeOrdersCount, icon: ShoppingCart, color: '#1B6B3A', bg: '#F0FDF4' },
+                    { label: 'Active Orders', value: activeOrdersCount, icon: ShoppingCart, color: '#7C3AED', bg: '#F3E8FF' },
                     { label: 'Pending Value', value: `₹${totalPendingValue.toLocaleString()}`, icon: Clock, color: '#B45309', bg: '#FFFBEB' },
                     { label: 'Confirmed (Ready)', value: readyToInvoiceCount, icon: Package, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Invoiced / Completed', value: `₹${invoicedThisMonth.toLocaleString()}`, icon: CheckCircle2, color: '#15803D', bg: '#F0FDF4' }
@@ -380,7 +380,7 @@ const BusinessSalesOrders = () => {
             {/* Content Area */}
             {loading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <p style={{ color: '#064E3B', fontSize: '1.15rem', fontWeight: '800' }}>Loading Live Sales Orders...</p>
+                    <p style={{ color: '#7C3AED', fontSize: '1.15rem', fontWeight: '800' }}>Loading Live Sales Orders...</p>
                 </div>
             ) : activeTab === 'list' ? (
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'visible' }}>
@@ -434,7 +434,7 @@ const BusinessSalesOrders = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#064E3B' }}>₹{row.grand_total.toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#7C3AED' }}>₹{row.grand_total.toLocaleString()}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0D9488' }}>₹{row.advance_amount.toLocaleString()}</span>
@@ -455,7 +455,7 @@ const BusinessSalesOrders = () => {
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
                                                 {row.status !== 'Invoiced' && row.status !== 'Cancelled' && (
                                                     <>
-                                                        <button onClick={() => handleConvertInvoice(row)} title="Convert to Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #DCF2E4', background: 'white', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+                                                        <button onClick={() => handleConvertInvoice(row)} title="Convert to Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E9D5FF', background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><RefreshCw size={14} /></button>
                                                         <button onClick={() => handleFulfillment(row)} title="Shipping Fulfillment" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Truck size={14} /></button>
                                                     </>
                                                 )}
@@ -493,7 +493,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>No: {o.order_number} | Due: {o.delivery_date}</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#1B6B3A', fontSize: '1.05rem' }}>₹{o.grand_total.toLocaleString()}</p>
+                                                <p style={{ fontWeight: '850', color: '#7C3AED', fontSize: '1.05rem' }}>₹{o.grand_total.toLocaleString()}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309' }}>{o.status.toUpperCase()}</span>
                                             </div>
                                         </div>
@@ -568,12 +568,12 @@ const BusinessSalesOrders = () => {
                                 {/* SVG Circular Progress */}
                                 <svg style={{ transform: 'rotate(-90deg)', width: '120px', height: '120px' }}>
                                     <circle cx="60" cy="60" r="50" fill="transparent" stroke="#E2E8F0" strokeWidth="10" />
-                                    <circle cx="60" cy="60" r="50" fill="transparent" stroke="#1B6B3A" strokeWidth="10" 
+                                    <circle cx="60" cy="60" r="50" fill="transparent" stroke="#7C3AED" strokeWidth="10" 
                                             strokeDasharray={314}
                                             strokeDashoffset={314 - (314 * fulfillmentRate) / 100}
                                             strokeLinecap="round" />
                                 </svg>
-                                <span style={{ position: 'absolute', fontSize: '1.5rem', fontWeight: '900', color: '#064E3B' }}>{fulfillmentRate}%</span>
+                                <span style={{ position: 'absolute', fontSize: '1.5rem', fontWeight: '900', color: '#7C3AED' }}>{fulfillmentRate}%</span>
                             </div>
                             <p style={{ color: '#475569', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.5rem' }}>{totalFulfilled} out of {totalProcessed} active orders shipped/delivered successfully.</p>
                         </div>
@@ -581,7 +581,7 @@ const BusinessSalesOrders = () => {
                         {/* Top Customers list */}
                         <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <UserCheck size={18} color="#1B6B3A" />
+                                <UserCheck size={18} color="#7C3AED" />
                                 <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>Top Customers Contribution</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -589,10 +589,10 @@ const BusinessSalesOrders = () => {
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
-                                            <span style={{ color: '#064E3B' }}>₹{cust.value.toLocaleString()}</span>
+                                            <span style={{ color: '#7C3AED' }}>₹{cust.value.toLocaleString()}</span>
                                         </div>
                                         <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #0D9488 100%)', width: `${Math.min(100, (cust.value / Math.max(...topCustomers.map(c => c.value))) * 100)}%` }}></div>
+                                            <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, (cust.value / Math.max(...topCustomers.map(c => c.value))) * 100)}%` }}></div>
                                         </div>
                                     </div>
                                 ))}
@@ -626,7 +626,7 @@ const BusinessSalesOrders = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>{editingOrder ? 'Edit Sales Order' : 'New Sales Order'}</h2>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#7C3AED' }}>{editingOrder ? 'Edit Sales Order' : 'New Sales Order'}</h2>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Order Number: {formData.order_number}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
@@ -741,7 +741,7 @@ const BusinessSalesOrders = () => {
 
                             {/* Itemized List Section */}
                             <div>
-                                <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#064E3B', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Items</h3>
+                                <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#7C3AED', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Items</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                     {formData.items.map((item, idx) => (
                                         <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.5fr auto', gap: '0.5rem', alignItems: 'center', background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '14px' }}>
@@ -758,7 +758,7 @@ const BusinessSalesOrders = () => {
                                                 <option value={18}>18% GST</option>
                                                 <option value={28}>28% GST</option>
                                             </select>
-                                            <span style={{ fontWeight: '750', color: '#064E3B', minWidth: '70px', textAlign: 'right', fontSize: '0.95rem' }}>₹{(item.total || 0).toLocaleString()}</span>
+                                            <span style={{ fontWeight: '750', color: '#7C3AED', minWidth: '70px', textAlign: 'right', fontSize: '0.95rem' }}>₹{(item.total || 0).toLocaleString()}</span>
                                             {formData.items.length > 1 && (
                                                 <button type="button" onClick={() => handleRemoveItem(idx)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><Trash size={16} /></button>
                                             )}
@@ -773,7 +773,7 @@ const BusinessSalesOrders = () => {
                             {/* Summary & Advance Payment Section */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', borderTop: '1px solid #F1F5F9', paddingTop: '1.5rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#064E3B', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Payment & Charges</h4>
+                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#7C3AED', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Payment & Charges</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Advance Amount Received (₹)</label>
@@ -808,13 +808,13 @@ const BusinessSalesOrders = () => {
                                         <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.shipping_charge || 0).toLocaleString()}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', borderTop: '2px solid #F1F5F9', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
-                                        <span style={{ color: '#064E3B' }}>Grand Total</span>
-                                        <span style={{ color: '#1B6B3A' }}>₹{(formData.grand_total || 0).toLocaleString()}</span>
+                                        <span style={{ color: '#7C3AED' }}>Grand Total</span>
+                                        <span style={{ color: '#7C3AED' }}>₹{(formData.grand_total || 0).toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
                                 {editingOrder ? 'Update Sales Order' : 'Create Sales Order'}
                             </button>
                         </form>
@@ -828,7 +828,7 @@ const BusinessSalesOrders = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Fulfillment & Tracking</h3>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED' }}>Fulfillment & Tracking</h3>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Order Number: {selectedOrder.order_number}</p>
                             </div>
                             <button onClick={() => setIsFulfillmentOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
@@ -848,7 +848,7 @@ const BusinessSalesOrders = () => {
                                 <input type="date" value={selectedOrder.dispatch_date || ''} onChange={(e) => setSelectedOrder({...selectedOrder, dispatch_date: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
                                 Save Fulfillment Details
                             </button>
                         </form>

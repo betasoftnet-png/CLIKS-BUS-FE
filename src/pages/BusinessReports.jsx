@@ -82,94 +82,91 @@ const BusinessReports = () => {
         : allReports.filter(r => r.category === activeCategory);
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                            <BarChart3 size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <BarChart3 size={18} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B' }}>Business Reports</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Business Reports</h1>
                     </div>
-                    <p style={{ color: '#475569', fontWeight: '500' }}>Comprehensive analytical insights into every aspect of your operations.</p>
+                    <p style={{ color: '#64748B', fontWeight: '500', fontSize: '0.85rem', margin: 0 }}>Comprehensive analytical insights into every aspect of your operations.</p>
                 </div>
             </div>
 
             {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Sales Revenue', value: summary?.total_sales ? `₹${parseFloat(summary.total_sales).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#1B6B3A' },
-                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? `₹${parseFloat(summary.total_purchases).toLocaleString()}` : '₹0', icon: Package, color: '#3B82F6' },
-                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? `₹${parseFloat(summary.total_expenses).toLocaleString()}` : '₹0', icon: FileText, color: '#EF4444' }
+                    { label: 'Total Sales Revenue', value: summary?.total_sales ? `₹${parseFloat(summary.total_sales).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#BE185D', bg: '#FCE7F3' },
+                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? `₹${parseFloat(summary.total_purchases).toLocaleString()}` : '₹0', icon: Package, color: '#1D4ED8', bg: '#EFF6FF' },
+                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? `₹${parseFloat(summary.total_expenses).toLocaleString()}` : '₹0', icon: FileText, color: '#EF4444', bg: '#FEE2E2' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '2rem', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
-                            <stat.icon size={28} />
+                    <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                            <stat.icon size={22} />
                         </div>
                         <div>
-                            <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1E293B' }}>{stat.value}</h3>
+                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.15rem', margin: 0 }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>{stat.value}</h3>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Category Switcher */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '3rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
                 {reportCategories.map(cat => (
                     <button 
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
                         style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1.5rem', 
-                            borderRadius: '16px', border: '1px solid',
-                            borderColor: activeCategory === cat.id ? '#1B6B3A' : '#E2E8F0',
-                            background: activeCategory === cat.id ? 'white' : 'transparent',
-                            color: activeCategory === cat.id ? '#064E3B' : '#64748B',
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', 
+                            borderRadius: '8px', border: 'none',
+                            background: activeCategory === cat.id ? '#F1F5F9' : 'transparent',
+                            color: activeCategory === cat.id ? '#0F172A' : '#64748B',
                             fontWeight: '750', cursor: 'pointer', transition: 'all 0.2s',
-                            whiteSpace: 'nowrap', boxShadow: activeCategory === cat.id ? '0 4px 12px rgba(27, 107, 58, 0.1)' : 'none'
+                            whiteSpace: 'nowrap', fontSize: '0.85rem'
                         }}
                     >
-                        <cat.icon size={18} />
+                        <cat.icon size={16} />
                         {cat.label}
                     </button>
                 ))}
             </div>
 
             {/* Reports Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 {filteredReports.map(report => (
                     <div 
                         key={report.id} 
                         onClick={() => setSelectedReport(report)}
                         style={{ 
-                            background: 'white', padding: '1.75rem', borderRadius: '28px', border: '1px solid #E2E8F0', 
+                            background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
                             transition: 'all 0.3s', cursor: 'pointer', position: 'relative', overflow: 'hidden'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)';
-                            e.currentTarget.style.borderColor = '#1B6B3A';
-                            e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0,0,0,0.05)';
+                            e.currentTarget.style.borderColor = '#BE185D';
+                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
                             e.currentTarget.style.borderColor = '#E2E8F0';
                             e.currentTarget.style.boxShadow = 'none';
                         }}
                     >
-                        <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A', marginBottom: '1.5rem' }}>
-                            <report.icon size={26} />
+                        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', marginBottom: '1rem' }}>
+                            <report.icon size={20} />
                         </div>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{report.title}</h3>
-                        <p style={{ fontSize: '0.9rem', color: '#64748B', lineHeight: '1.5', marginBottom: '1.5rem' }}>{report.desc}</p>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.4rem', margin: 0 }}>{report.title}</h3>
+                        <p style={{ fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', marginBottom: '1rem', margin: 0 }}>{report.desc}</p>
                         
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
-                            <button style={{ color: '#1B6B3A', background: 'transparent', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                VIEW REPORT <ChevronRight size={16} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
+                            <button style={{ color: '#BE185D', background: 'transparent', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}>
+                                VIEW REPORT <ChevronRight size={14} />
                             </button>
-                            <button style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <Download size={16} />
+                            <button style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <Download size={14} />
                             </button>
                         </div>
                     </div>
@@ -178,42 +175,42 @@ const BusinessReports = () => {
 
             {/* Dynamic Report Details Modal */}
             {selectedReport && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
-                    <div style={{ background: 'white', width: '800px', maxHeight: '80vh', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
+                    <div style={{ background: 'white', width: '720px', maxHeight: '80vh', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
-                                <h2 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.25rem' }}>{selectedReport.title}</h2>
-                                <p style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '500' }}>{selectedReport.desc}</p>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>{selectedReport.title}</h2>
+                                <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '500', margin: 0 }}>{selectedReport.desc}</p>
                             </div>
                             <button onClick={() => setSelectedReport(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>
-                                <X size={22} />
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '2rem' }}>
+                        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
                             {isReportLoading ? (
-                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#1B6B3A', fontWeight: '700' }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '160px', color: '#BE185D', fontWeight: '700' }}>
                                     Loading dynamic report data...
                                 </div>
                             ) : (
-                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden' }}>
                                     {selectedReport.id === 1 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
-                                                <tr style={{ textAlign: 'left' }}>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Order Number</th>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Grand Total</th>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Order Number</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Grand Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1E293B' }}>{row.order_number}</td>
-                                                        <td style={{ padding: '1rem', fontWeight: '600', color: '#475569' }}>{row.customer}</td>
-                                                        <td style={{ padding: '1rem', fontWeight: '600', color: '#64748B' }}>{row.date}</td>
-                                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A', textAlign: 'right' }}>₹{parseFloat(row.grand_total || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.order_number}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{row.customer}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.date}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.grand_total || 0).toLocaleString()}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -227,18 +224,18 @@ const BusinessReports = () => {
                                     {selectedReport.id === 2 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
-                                                <tr style={{ textAlign: 'left' }}>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Product Name</th>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Quantity Sold</th>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Total Sales</th>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Product Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Quantity Sold</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Total Sales</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1E293B' }}>{row.name}</td>
-                                                        <td style={{ padding: '1rem', fontWeight: '600', color: '#475569' }}>{row.total_quantity} pcs</td>
-                                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A', textAlign: 'right' }}>₹{parseFloat(row.total_sales || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{row.total_quantity} pcs</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_sales || 0).toLocaleString()}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -252,16 +249,16 @@ const BusinessReports = () => {
                                     {selectedReport.id === 3 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
-                                                <tr style={{ textAlign: 'left' }}>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
-                                                    <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Total Outstanding / Spent</th>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Total Outstanding / Spent</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1E293B' }}>{row.name}</td>
-                                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A', textAlign: 'right' }}>₹{parseFloat(row.total_sales || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_sales || 0).toLocaleString()}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -273,39 +270,39 @@ const BusinessReports = () => {
                                     )}
 
                                     {selectedReport.id === 10 && (
-                                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#F8FAFC', borderRadius: '12px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569' }}>Gross Revenue</span>
-                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>₹{(reportDetails?.gross_revenue || 0).toLocaleString()}</span>
+                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Gross Revenue</span>
+                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>₹{(reportDetails?.gross_revenue || 0).toLocaleString()}</span>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#F8FAFC', borderRadius: '12px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569' }}>Cost of Goods (COGS)</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B' }}>₹{(reportDetails?.cost_of_goods || 0).toLocaleString()}</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Cost of Goods (COGS)</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>₹{(reportDetails?.cost_of_goods || 0).toLocaleString()}</span>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#F8FAFC', borderRadius: '12px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569' }}>Overhead Expenses</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B' }}>₹{(reportDetails?.overheads || 0).toLocaleString()}</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Overhead Expenses</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>₹{(reportDetails?.overheads || 0).toLocaleString()}</span>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#DCF2E4', borderRadius: '12px', border: '1px solid #1B6B3A' }}>
-                                                <span style={{ fontWeight: '800', color: '#064E3B' }}>Net Operating Profit</span>
-                                                <span style={{ fontWeight: '900', color: '#064E3B' }}>₹{(reportDetails?.net_profit || 0).toLocaleString()}</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #DBEAFE' }}>
+                                                <span style={{ fontWeight: '800', color: '#1E3A8A', fontSize: '0.85rem' }}>Net Operating Profit</span>
+                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>₹{(reportDetails?.net_profit || 0).toLocaleString()}</span>
                                             </div>
                                         </div>
                                     )}
 
                                     {selectedReport.id === 11 && (
-                                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#F8FAFC', borderRadius: '12px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569' }}>Total Business Assets</span>
-                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>₹{(reportDetails?.assets || 0).toLocaleString()}</span>
+                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Total Business Assets</span>
+                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>₹{(reportDetails?.assets || 0).toLocaleString()}</span>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#F8FAFC', borderRadius: '12px' }}>
-                                                <span style={{ fontWeight: '600', color: '#475569' }}>Total Business Liabilities</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B' }}>₹{(reportDetails?.liabilities || 0).toLocaleString()}</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Total Business Liabilities</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>₹{(reportDetails?.liabilities || 0).toLocaleString()}</span>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#DCF2E4', borderRadius: '12px', border: '1px solid #1B6B3A' }}>
-                                                <span style={{ fontWeight: '800', color: '#064E3B' }}>{"Owner's Equity Contribution"}</span>
-                                                <span style={{ fontWeight: '900', color: '#064E3B' }}>₹{(reportDetails?.equity || 0).toLocaleString()}</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #DBEAFE' }}>
+                                                <span style={{ fontWeight: '800', color: '#1E3A8A', fontSize: '0.85rem' }}>{"Owner's Equity Contribution"}</span>
+                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>₹{(reportDetails?.equity || 0).toLocaleString()}</span>
                                             </div>
                                         </div>
                                     )}
@@ -319,11 +316,11 @@ const BusinessReports = () => {
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                            <button onClick={() => setSelectedReport(null)} style={{ padding: '0.85rem 1.5rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                            <button onClick={() => setSelectedReport(null)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Close
                             </button>
-                            <button onClick={() => { alert('Exporting report...'); }} style={{ padding: '0.85rem 1.5rem', borderRadius: '16px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer' }}>
+                            <button onClick={() => { alert('Exporting report...'); }} style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Export Statement
                             </button>
                         </div>

@@ -423,10 +423,10 @@ const BusinessCRM = () => {
             {/* Stats Summary Bento Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Active Customers', value: customers.length, icon: User, color: '#1B6B3A', bg: '#F0FDF4' },
+                    { label: 'Active Customers', value: customers.length, icon: User, color: '#7C3AED', bg: '#F3E8FF' },
                     { label: 'Total Outstanding (Receivables)', value: `₹${(totalOutstanding || 0).toLocaleString()}`, icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
                     { label: 'Advance Received', value: `₹${(totalAdvance || 0).toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
-                    { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#15803D', bg: '#F0FDF4' }
+                    { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#0891B2', bg: '#CFFAFE' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
@@ -475,7 +475,7 @@ const BusinessCRM = () => {
             {/* Tab 1: Customers Master List */}
             {loading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '200px', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                    <p style={{ color: '#064E3B', fontSize: '1rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
+                    <p style={{ color: '#7C3AED', fontSize: '1rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
                 </div>
             ) : activeTab === 'list' && (
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'visible' }}>
@@ -543,7 +543,7 @@ const BusinessCRM = () => {
                                             <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>₹{(row.credit_limit || 0).toLocaleString()}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#15803D' : '#475569') }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#0891B2' : '#475569') }}>
                                                 {(row.current_balance || 0) > 0 ? `₹${(row.current_balance || 0).toLocaleString()}` : ((row.current_balance || 0) < 0 ? `- ₹${Math.abs(row.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
                                             </span>
                                         </td>
@@ -551,7 +551,7 @@ const BusinessCRM = () => {
                                             {(row.current_balance || 0) > (row.credit_limit || 0) ? (
                                                 <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.7rem', fontWeight: '800' }}>LIMIT EXCEEDED</span>
                                             ) : ((row.current_balance || 0) < 0 ? (
-                                                <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#F0FDF4', color: '#15803D', fontSize: '0.7rem', fontWeight: '800' }}>ADVANCE IN</span>
+                                                <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#CFFAFE', color: '#0891B2', fontSize: '0.7rem', fontWeight: '800' }}>ADVANCE IN</span>
                                             ) : (
                                                 <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FFFBEB', color: '#B45309', fontSize: '0.7rem', fontWeight: '800' }}>SAFE CREDIT</span>
                                             ))}
@@ -564,7 +564,7 @@ const BusinessCRM = () => {
                                                     style={{ 
                                                         display: 'flex', alignItems: 'center', gap: '0.25rem',
                                                         padding: '0.35rem 0.75rem', borderRadius: '8px', 
-                                                        border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', 
+                                                        border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', 
                                                         fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer'
                                                     }}
                                                 >
@@ -581,7 +581,7 @@ const BusinessCRM = () => {
                                                 <div style={{ position: 'absolute', right: '1rem', top: '2.25rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, width: '170px', overflow: 'hidden' }}>
                                                     <button 
                                                         onClick={() => { viewLedger(row); }}
-                                                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: 'white', textAlign: 'left', fontSize: '0.8rem', fontWeight: '700', color: '#1B6B3A', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                                                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: 'white', textAlign: 'left', fontSize: '0.8rem', fontWeight: '700', color: '#7C3AED', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
                                                     >
                                                         <FileText size={14} /> View Ledger
                                                     </button>
@@ -655,7 +655,7 @@ const BusinessCRM = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                                 {[
-                                    { bucket: '0 – 15 Days', val: agingBuckets.bucket30, color: '#15803D', bg: '#F0FDF4' },
+                                    { bucket: '0 – 15 Days', val: agingBuckets.bucket30, color: '#0891B2', bg: '#CFFAFE' },
                                     { bucket: '16 – 30 Days Overdue', val: agingBuckets.bucket60, color: '#B45309', bg: '#FFFBEB' },
                                     { bucket: '31+ Days Critical', val: agingBuckets.bucket90, color: '#B91C1C', bg: '#FEF2F2' }
                                 ].map((item, i) => (
@@ -678,12 +678,12 @@ const BusinessCRM = () => {
                             <div style={{ position: 'relative', width: '90px', height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.5rem 0' }}>
                                 <svg style={{ transform: 'rotate(-90deg)', width: '90px', height: '90px' }}>
                                     <circle cx="45" cy="45" r="38" fill="transparent" stroke="#E2E8F0" strokeWidth="8" />
-                                    <circle cx="45" cy="45" r="38" fill="transparent" stroke="#1B6B3A" strokeWidth="8" 
+                                    <circle cx="45" cy="45" r="38" fill="transparent" stroke="#7C3AED" strokeWidth="8" 
                                             strokeDasharray={238}
                                             strokeDashoffset={238 - (238 * collectionEfficiency) / 100}
                                             strokeLinecap="round" />
                                 </svg>
-                                <span style={{ position: 'absolute', fontSize: '1.2rem', fontWeight: '900', color: '#064E3B' }}>{collectionEfficiency}%</span>
+                                <span style={{ position: 'absolute', fontSize: '1.2rem', fontWeight: '900', color: '#7C3AED' }}>{collectionEfficiency}%</span>
                             </div>
                             <p style={{ color: '#475569', fontSize: '0.78rem', fontWeight: '600', marginTop: '0.25rem', margin: 0 }}>Collection efficiency indicates recovered payments out of overall credit sales.</p>
                         </div>
@@ -691,7 +691,7 @@ const BusinessCRM = () => {
                         {/* Top customer sales trends */}
                         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
-                                <TrendingUp size={16} color="#1B6B3A" />
+                                <TrendingUp size={16} color="#7C3AED" />
                                 <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Top Customer Sales Contribution</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -699,10 +699,10 @@ const BusinessCRM = () => {
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
-                                            <span style={{ color: '#064E3B' }}>₹{(cust.total_sales || 0).toLocaleString()}</span>
+                                            <span style={{ color: '#7C3AED' }}>₹{(cust.total_sales || 0).toLocaleString()}</span>
                                         </div>
                                         <div style={{ height: '5px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #0D9488 100%)', width: `${Math.min(100, ((cust.total_sales || 0) / Math.max(...customers.map(c => c.total_sales || 1))) * 100)}%` }}></div>
+                                            <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, ((cust.total_sales || 0) / Math.max(...customers.map(c => c.total_sales || 1))) * 100)}%` }}></div>
                                         </div>
                                     </div>
                                 ))}
@@ -720,7 +720,7 @@ const BusinessCRM = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2rem 2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexShrink: 0 }}>
                             <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>{editingCustomer ? 'Edit Customer Profile' : 'New Customer Registration'}</h2>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#7C3AED', margin: 0 }}>{editingCustomer ? 'Edit Customer Profile' : 'New Customer Registration'}</h2>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Code: {formData.customer_code}</p>
                             </div>
                             <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
@@ -805,19 +805,19 @@ const BusinessCRM = () => {
                             {/* Financial Credit Controls */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Balance (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Balance (₹)</label>
                                     <input type="number" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="0" onChange={(e) => setFormData({...formData, opening_balance: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit Limit (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Credit Limit (₹)</label>
                                     <input type="number" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="50000" onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Due Days (Terms)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Due Days (Terms)</label>
                                     <input type="number" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="30" onChange={(e) => setFormData({...formData, due_days: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Preferred Reminder</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Preferred Reminder</label>
                                     <select value={formData.preferred_contact} onChange={(e) => setFormData({...formData, preferred_contact: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
                                         <option value="WhatsApp">WhatsApp</option>
                                         <option value="SMS">SMS</option>
@@ -827,7 +827,7 @@ const BusinessCRM = () => {
                             </div>
                             </div>
 
-                            <button type="submit" style={{ flexShrink: 0, width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
+                            <button type="submit" style={{ flexShrink: 0, width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
                                 {editingCustomer ? 'Update Customer' : 'Register Customer'}
                             </button>
                         </form>
@@ -841,7 +841,7 @@ const BusinessCRM = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED' }}>
                                     {paymentData.type === 'Payment In' ? 'Record Customer Payment (Credit / Money In)' : 'Record Customer Payment (Debit / Money Out)'}
                                 </h3>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Party: {selectedParty.name}</p>
@@ -867,7 +867,7 @@ const BusinessCRM = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
                                     {paymentData.type === 'Payment In' ? 'Amount Received (Credit) (₹)' : 'Amount Paid (Debit) (₹)'}
                                 </label>
-                                <input required type="number" value={paymentData.amount === 0 ? '' : paymentData.amount} placeholder="0" onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
+                                <input required type="number" value={paymentData.amount === 0 ? '' : paymentData.amount} placeholder="0" onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#7C3AED', textAlign: 'center' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Payment Mode</label>
@@ -879,9 +879,9 @@ const BusinessCRM = () => {
                                             onClick={() => setPaymentData({...paymentData, mode: m})}
                                             style={{ 
                                                 flex: 1, padding: '0.75rem', borderRadius: '12px', 
-                                                border: paymentData.mode === m ? '2px solid #1B6B3A' : '1px solid #E2E8F0',
-                                                background: paymentData.mode === m ? '#1B6B3A' : 'white',
-                                                color: paymentData.mode === m ? 'white' : '#1B6B3A',
+                                                border: paymentData.mode === m ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+                                                background: paymentData.mode === m ? '#7C3AED' : 'white',
+                                                color: paymentData.mode === m ? 'white' : '#7C3AED',
                                                 fontWeight: '800', cursor: 'pointer'
                                             }}
                                         >
@@ -895,7 +895,7 @@ const BusinessCRM = () => {
                                 <textarea value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder={paymentData.type === 'Payment In' ? "UPI reference or bank txn id..." : "Reference number or reason..."} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
                                 Record Transaction
                             </button>
                         </form>
@@ -920,13 +920,13 @@ const BusinessCRM = () => {
                                     );
                                 })()}
                                 <div>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0, lineHeight: 1.2 }}>{selectedParty.name}</h2>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#7C3AED', margin: 0, lineHeight: 1.2 }}>{selectedParty.name}</h2>
                                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>Statement of Account — {selectedParty.business_name || 'Personal'}</p>
                                 </div>
                             </div>
                             <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <button onClick={() => window.print()} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Download size={16} /> Export PDF</button>
-                                <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
+                                <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
                                 <button onClick={() => setIsLedgerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
                             </div>
                         </div>
@@ -941,9 +941,9 @@ const BusinessCRM = () => {
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B91C1C', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>TOTAL CREDIT GIVEN</p>
                                 <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#B91C1C', margin: 0 }}>₹{selectedParty.total_sales?.toLocaleString() || 0}</h3>
                             </div>
-                            <div style={{ padding: '1.25rem', background: (selectedParty.current_balance || 0) > 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>NET OUTSTANDING</p>
-                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D', margin: 0 }}>
+                            <div style={{ padding: '1.25rem', background: (selectedParty.current_balance || 0) > 0 ? '#FEF2F2' : '#CFFAFE', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#0891B2', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>NET OUTSTANDING</p>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#0891B2', margin: 0 }}>
                                     {(selectedParty.current_balance || 0) > 0 ? `₹${(selectedParty.current_balance || 0).toLocaleString()}` : ((selectedParty.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedParty.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
                                 </h3>
                             </div>
@@ -983,8 +983,8 @@ const BusinessCRM = () => {
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{tx.reference}</td>
                                                 <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444', fontSize: '0.85rem' }}>{(tx.debit || 0) > 0 ? `₹${(tx.debit || 0).toLocaleString()}` : '-'}</td>
-                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#15803D', fontSize: '0.85rem' }}>{(tx.credit || 0) > 0 ? `₹${(tx.credit || 0).toLocaleString()}` : '-'}</td>
-                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#15803D', fontSize: '0.9rem' }}>₹{(tx.balance || 0).toLocaleString()}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#0891B2', fontSize: '0.85rem' }}>{(tx.credit || 0) > 0 ? `₹${(tx.credit || 0).toLocaleString()}` : '-'}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#0891B2', fontSize: '0.9rem' }}>₹{(tx.balance || 0).toLocaleString()}</td>
                                             </tr>
                                         ))
                                     )}
@@ -1074,7 +1074,7 @@ const BusinessCRM = () => {
                                         </div>
                                         <div>
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>OUTSTANDING BALANCE</p>
-                                            <p style={{ fontSize: '1rem', color: (selectedProfileCustomer.current_balance || 0) > 0 ? '#B91C1C' : ((selectedProfileCustomer.current_balance || 0) < 0 ? '#15803D' : '#475569'), margin: '2px 0 0 0', fontWeight: '900' }}>
+                                            <p style={{ fontSize: '1rem', color: (selectedProfileCustomer.current_balance || 0) > 0 ? '#B91C1C' : ((selectedProfileCustomer.current_balance || 0) < 0 ? '#0891B2' : '#475569'), margin: '2px 0 0 0', fontWeight: '900' }}>
                                                 {(selectedProfileCustomer.current_balance || 0) > 0 ? `₹${(selectedProfileCustomer.current_balance || 0).toLocaleString()}` : ((selectedProfileCustomer.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedProfileCustomer.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
                                             </p>
                                         </div>

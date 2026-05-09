@@ -418,130 +418,129 @@ const BusinessBilling = () => {
     };
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
-                            <Receipt size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <Receipt size={18} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Billing Center</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Billing Center</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Manage client invoices and accounts receivable.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage client invoices and accounts receivable.</p>
                 </div>
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.6rem', 
-                        padding: '0.85rem 1.75rem', borderRadius: '14px', 
-                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '700', cursor: 'pointer',
-                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        padding: '0.5rem 1.25rem', borderRadius: '8px', 
+                        background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                        fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem',
                         transition: 'transform 0.2s'
                     }}
                 >
-                    <Plus size={20} />
+                    <Plus size={16} />
                     Generate Invoice
                 </button>
             </div>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Invoiced', value: `₹${totalInvoiced.toLocaleString()}`, icon: TrendingUp, color: '#1B6B3A', bg: '#F0FDF4' },
-                    { label: 'Paid Revenue', value: `₹${paidInvoiced.toLocaleString()}`, icon: CheckCircle2, color: '#0D9488', bg: '#F0FDFA' },
-                    { label: 'Outstanding Balance', value: `₹${pendingInvoiced.toLocaleString()}`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Active Clients', value: new Set(invoices.map(i => i.client_name)).size, icon: User, color: '#064E3B', bg: '#ECFDF5' }
+                    { label: 'Total Invoiced', value: `₹${totalInvoiced.toLocaleString()}`, icon: TrendingUp, color: '#BE185D', bg: '#FCE7F3' },
+                    { label: 'Paid Revenue', value: `₹${paidInvoiced.toLocaleString()}`, icon: CheckCircle2, color: '#059669', bg: '#D1FAE5' },
+                    { label: 'Outstanding Balance', value: `₹${pendingInvoiced.toLocaleString()}`, icon: AlertTriangle, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'Active Clients', value: new Set(invoices.map(i => i.client_name)).size, icon: User, color: '#1D4ED8', bg: '#EFF6FF' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.75rem' }}>
+                            <stat.icon size={18} />
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
 
             {/* Invoices List */}
-            <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                    <div style={{ position: 'relative', width: '400px' }}>
-                        <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                    <div style={{ position: 'relative', width: '320px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                         <input 
                             type="text" 
                             placeholder="Search client or invoice #..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                            style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                         />
                     </div>
-                    <button style={{ width: '44px', height: '44px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                        <Filter size={20} />
+                    <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <Filter size={16} />
                     </button>
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
                     {isLoading ? (
-                        <div style={{ padding: '6rem', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={40} color="#1B6B3A" /></div>
+                        <div style={{ padding: '4rem', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={32} color="#BE185D" /></div>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Client</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Client</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredInvoices.map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
-                                                    <FileText size={20} />
+                                        <td style={{ padding: '0.75rem 1.25rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D' }}>
+                                                    <FileText size={16} />
                                                 </div>
-                                                <span style={{ fontWeight: '750', color: '#1E293B' }}>{inv.invoice_number}</span>
+                                                <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem' }}>{inv.invoice_number}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.75rem 1.25rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.95rem', marginBottom: '0.15rem' }}>{inv.client_name}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{inv.client_email}</span>
+                                                <p style={{ fontWeight: '700', color: '#0F172A', fontSize: '0.85rem', marginBottom: '0.1rem', margin: 0 }}>{inv.client_name}</p>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{inv.client_email}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>
-                                                <Calendar size={14} />
+                                        <td style={{ padding: '0.75rem 1.25rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                                <Calendar size={12} />
                                                 {inv.due_date}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: '#064E3B' }}>₹{inv.amount.toLocaleString()}</span>
+                                        <td style={{ padding: '0.75rem 1.25rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>₹{inv.amount.toLocaleString()}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.75rem 1.25rem' }}>
                                             <div style={{ 
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.4rem 0.8rem', borderRadius: '10px',
-                                                background: inv.status === 'Paid' ? '#F0FDF4' : (inv.status === 'Unpaid' ? '#FEF2F2' : '#FFFBEB'),
-                                                color: inv.status === 'Paid' ? '#15803D' : (inv.status === 'Unpaid' ? '#B91C1C' : '#B45309'),
-                                                fontSize: '0.8rem', fontWeight: '800'
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem', 
+                                                padding: '0.25rem 0.5rem', borderRadius: '6px',
+                                                background: inv.status === 'Paid' ? '#D1FAE5' : (inv.status === 'Unpaid' ? '#FEE2E2' : '#FEF3C7'),
+                                                color: inv.status === 'Paid' ? '#065F46' : (inv.status === 'Unpaid' ? '#991B1B' : '#92400E'),
+                                                fontSize: '0.75rem', fontWeight: '800'
                                             }}>
-                                                {inv.status === 'Paid' ? <CheckCircle2 size={12} /> : (inv.status === 'Overdue' ? <AlertTriangle size={12} /> : <Clock size={12} />)}
+                                                {inv.status === 'Paid' ? <CheckCircle2 size={10} /> : (inv.status === 'Overdue' ? <AlertTriangle size={10} /> : <Clock size={10} />)}
                                                 {inv.status.toUpperCase()}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={16} /></button>
-                                                <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #DCF2E4', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={16} /></button>
-                                                <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={16} /></button>
-                                                <button onClick={() => handleEdit(inv)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(inv.id)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                        <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
+                                                <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={14} /></button>
+                                                <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={14} /></button>
+                                                <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#BE185D', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={14} /></button>
+                                                <button onClick={() => handleEdit(inv)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
+                                                <button onClick={() => handleDelete(inv.id)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -554,21 +553,21 @@ const BusinessBilling = () => {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', overflowY: 'auto', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '800px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#064E3B' }}>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</h2>
-                            <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={22} /></button>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', overflowY: 'auto', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '760px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</h2>
+                            <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}><X size={18} /></button>
                         </div>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Invoice #</label>
-                                    <input readOnly type="text" value={formData.invoice_number} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B' }} />
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
+                                    <input readOnly type="text" value={formData.invoice_number} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Type</label>
-                                    <select value={formData.invoice_type} onChange={(e) => setFormData({...formData, invoice_type: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: 'white' }}>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
+                                    <select value={formData.invoice_type} onChange={(e) => setFormData({...formData, invoice_type: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
                                         <option>GST</option>
                                         <option>Non-GST</option>
                                         <option>Proforma</option>
@@ -576,8 +575,8 @@ const BusinessBilling = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Status</label>
-                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: 'white' }}>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Status</label>
+                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
                                         <option>Draft</option>
                                         <option>Unpaid</option>
                                         <option>Paid</option>
@@ -586,16 +585,16 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Client Name</label>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
                                     <input 
                                         required 
                                         type="text" 
                                         list="customer-suggestions"
                                         value={formData.client_name} 
                                         onChange={(e) => handleClientChange(e.target.value)} 
-                                        style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0' }} 
+                                        style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
                                     />
                                     <datalist id="customer-suggestions">
                                         {customers.map(c => (
@@ -604,35 +603,35 @@ const BusinessBilling = () => {
                                     </datalist>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Client Email</label>
-                                    <input required type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0' }} />
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Email</label>
+                                    <input required type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Client GSTIN</label>
-                                    <input type="text" value={formData.client_gstin} onChange={(e) => setFormData({...formData, client_gstin: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0' }} placeholder="Optional" />
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client GSTIN</label>
+                                    <input type="text" value={formData.client_gstin} onChange={(e) => setFormData({...formData, client_gstin: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="Optional" />
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Billing Address</label>
-                                    <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', minHeight: '80px' }} />
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Billing Address</label>
+                                    <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Shipping Address</label>
-                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', minHeight: '80px' }} />
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
+                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#064E3B' }}>Invoice Items</h3>
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>Invoice Items</h3>
                                         <div style={{ position: 'relative' }}>
-                                            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                                             <input 
                                                 placeholder="Quick Scan / Barcode" 
-                                                style={{ padding: '0.5rem 1rem 0.5rem 2.5rem', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '0.85rem', width: '200px' }}
+                                                style={{ padding: '0.4rem 0.75rem 0.4rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.75rem', width: '160px' }}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
@@ -661,23 +660,23 @@ const BusinessBilling = () => {
                                             />
                                         </div>
                                     </div>
-                                    <button type="button" onClick={addItem} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#1B6B3A', background: '#F0FDF4', border: '1px solid #DCF2E4', padding: '0.5rem 1rem', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>
-                                        <Plus size={16} /> Add Item
+                                    <button type="button" onClick={addItem} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#BE185D', background: '#FCE7F3', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                        <Plus size={14} /> Add Item
                                     </button>
                                 </div>
                                 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.25rem' }}>
                                     {formData.items.map((item, idx) => (
-                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.5fr 80px 80px 80px 80px 100px 100px 40px', gap: '0.75rem', alignItems: 'end', padding: '1rem', background: '#F8FAFC', borderRadius: '16px' }}>
+                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.5fr 70px 60px 70px 70px 70px 70px 30px', gap: '0.5rem', alignItems: 'end', padding: '0.6rem 0.75rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>DESCRIPTION</label>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DESCRIPTION</label>
                                                 <input 
                                                     required 
                                                     type="text" 
                                                     list="inventory-suggestions"
                                                     value={item.description} 
                                                     onChange={(e) => handleItemChange(idx, 'description', e.target.value)} 
-                                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} 
+                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
                                                 />
                                                 <datalist id="inventory-suggestions">
                                                     {inventoryItems.map(inv => (
@@ -686,16 +685,16 @@ const BusinessBilling = () => {
                                                 </datalist>
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>HSN</label>
-                                                <input type="text" value={item.hsn_code} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>HSN</label>
+                                                <input type="text" value={item.hsn_code} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>QTY</label>
-                                                <input required type="number" value={item.quantity} onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
+                                                <input required type="number" value={item.quantity} onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>UNIT</label>
-                                                <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
+                                                <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
                                                     <option>Pcs</option>
                                                     <option>Kg</option>
                                                     <option>Mtr</option>
@@ -704,16 +703,16 @@ const BusinessBilling = () => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>PRICE (₹)</label>
-                                                <input required type="number" value={item.price} onChange={(e) => handleItemChange(idx, 'price', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE (₹)</label>
+                                                <input required type="number" value={item.price} onChange={(e) => handleItemChange(idx, 'price', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>DISC %</label>
-                                                <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>
+                                                <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem' }}>GST %</label>
-                                                <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>GST %</label>
+                                                <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value))} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
                                                     <option value={0}>0%</option>
                                                     <option value={5}>5%</option>
                                                     <option value={12}>12%</option>
@@ -721,17 +720,17 @@ const BusinessBilling = () => {
                                                     <option value={28}>28%</option>
                                                 </select>
                                             </div>
-                                            <button type="button" onClick={() => removeItem(idx)} style={{ color: '#EF4444', border: 'none', background: 'transparent', cursor: 'pointer', paddingBottom: '1rem' }}><Trash2 size={20} /></button>
+                                            <button type="button" onClick={() => removeItem(idx)} style={{ color: '#EF4444', border: 'none', background: 'transparent', cursor: 'pointer', paddingBottom: '0.4rem' }}><Trash2 size={16} /></button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1.5rem', padding: '1.5rem', background: '#F0FDF4', borderRadius: '24px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem', padding: '1rem', background: '#EFF6FF', borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Payment Mode</label>
-                                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Payment Mode</label>
+                                        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
                                             {['Cash', 'UPI', 'Bank', 'Credit'].map(mode => (
                                                 <button 
                                                     key={mode}
@@ -746,11 +745,12 @@ const BusinessBilling = () => {
                                                         });
                                                     }}
                                                     style={{ 
-                                                        flex: 1, padding: '0.75rem', borderRadius: '12px', 
-                                                        border: formData.payment_mode === mode ? '2px solid #1B6B3A' : '1px solid #DCF2E4',
-                                                        background: formData.payment_mode === mode ? '#1B6B3A' : 'white',
-                                                        color: formData.payment_mode === mode ? 'white' : '#1B6B3A',
-                                                        fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer'
+                                                        flex: 1, padding: '0.5rem', borderRadius: '6px', 
+                                                        border: 'none',
+                                                        background: formData.payment_mode === mode ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white',
+                                                        color: formData.payment_mode === mode ? 'white' : '#64748B',
+                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
+                                                        boxShadow: formData.payment_mode === mode ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none'
                                                     }}
                                                 >
                                                     {mode}
@@ -759,15 +759,14 @@ const BusinessBilling = () => {
                                         </div>
                                     </div>
 
-                                    {/* Select Bank Account Dropdown (Conditionally Rendered) */}
                                     {(formData.payment_mode === 'Bank' || formData.payment_mode === 'UPI') && (
-                                        <div style={{ marginBottom: '1rem' }}>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Select Bank Account</label>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Select Bank Account</label>
                                             <select 
                                                 required
                                                 value={formData.bank_account_id}
                                                 onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
-                                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #DCF2E4', background: 'white' }}
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
                                             >
                                                 <option value="">-- Select Bank Account --</option>
                                                 {bankAccounts.map(acc => (
@@ -777,10 +776,9 @@ const BusinessBilling = () => {
                                         </div>
                                     )}
 
-                                    {/* Paid Amount Input & Due Amount Indicator */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Paid Amount (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Paid Amount (₹)</label>
                                             <input 
                                                 type="number" 
                                                 value={formData.paid_amount || 0} 
@@ -792,50 +790,50 @@ const BusinessBilling = () => {
                                                         due_amount: formData.total_amount - paid
                                                     });
                                                 }}
-                                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #DCF2E4' }} 
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} 
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Due Amount (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Amount (₹)</label>
                                             <input 
                                                 readonly
                                                 type="number" 
                                                 value={formData.total_amount - (formData.paid_amount || 0)} 
-                                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #DCF2E4', background: '#F8FAFC', color: '#64748B' }} 
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: '#F8FAFC', color: '#64748B', fontSize: '0.8rem' }} 
                                             />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Due Date</label>
-                                        <input required type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #DCF2E4' }} />
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
+                                        <input required type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} />
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Subtotal:</span>
                                         <span>₹ {formData.amount.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Total Discount:</span>
                                         <span style={{ color: '#EF4444' }}>- ₹ {formData.discount_amount.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>GST Amount:</span>
                                         <span>₹ {formData.tax_amount.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Round Off:</span>
                                         <span>₹ {formData.round_off.toFixed(2)}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#064E3B', fontWeight: '900', fontSize: '1.5rem', marginTop: '0.5rem', borderTop: '1px dashed #1B6B3A', paddingTop: '0.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: '1.25rem', marginTop: '0.4rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem' }}>
                                         <span>Total:</span>
                                         <span>₹ {formData.total_amount.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '1.25rem', borderRadius: '24px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.25rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
+                            <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', marginTop: '0.5rem', cursor: 'pointer' }}>
                                 {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
                             </button>
                         </form>
@@ -843,148 +841,148 @@ const BusinessBilling = () => {
                 </div>
             )}
 
-            {/* Print Friendly Template (Hidden by default, shown via CSS @media print) */}
+            {/* Print Friendly Template */}
             {isPrinting && printData && (
-                <div id="invoice-print-area" className="print-only" style={{ padding: '40px', color: '#000', background: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
+                <div id="invoice-print-area" className="print-only" style={{ padding: '30px', color: '#000', background: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
                         <div>
-                            <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#1B6B3A', marginBottom: '10px' }}>CLIKS BUSINESS</h1>
-                            <p style={{ fontSize: '14px', color: '#444' }}>Tax Invoice / Bill of Supply</p>
+                            <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#BE185D', marginBottom: '5px' }}>CLIKS BUSINESS</h1>
+                            <p style={{ fontSize: '12px', color: '#444' }}>Tax Invoice / Bill of Supply</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '5px' }}>INVOICE</h2>
+                            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '3px' }}>INVOICE</h2>
                             <p style={{ fontWeight: '700' }}>#{printData.invoice_number}</p>
-                            <p style={{ fontSize: '14px', color: '#666' }}>Date: {printData.due_date}</p>
+                            <p style={{ fontSize: '12px', color: '#666' }}>Date: {printData.due_date}</p>
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
                         <div>
-                            <h3 style={{ fontSize: '12px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '10px' }}>Billed To:</h3>
-                            <p style={{ fontSize: '18px', fontWeight: '800', marginBottom: '5px' }}>{printData.client_name}</p>
-                            <p style={{ fontSize: '14px' }}>{printData.client_email}</p>
-                            {printData.client_gstin && <p style={{ fontSize: '14px', fontWeight: '700', marginTop: '5px' }}>GSTIN: {printData.client_gstin}</p>}
-                            <div style={{ marginTop: '10px' }}>
-                                <p style={{ fontSize: '12px', fontWeight: '800', color: '#888', textTransform: 'uppercase' }}>Billing Address:</p>
-                                <p style={{ fontSize: '13px', whiteSpace: 'pre-wrap' }}>{printData.billing_address || 'N/A'}</p>
+                            <h3 style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '5px' }}>Billed To:</h3>
+                            <p style={{ fontSize: '14px', fontWeight: '800', marginBottom: '3px' }}>{printData.client_name}</p>
+                            <p style={{ fontSize: '12px' }}>{printData.client_email}</p>
+                            {printData.client_gstin && <p style={{ fontSize: '12px', fontWeight: '700', marginTop: '3px' }}>GSTIN: {printData.client_gstin}</p>}
+                            <div style={{ marginTop: '8px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase' }}>Billing Address:</p>
+                                <p style={{ fontSize: '11px', whiteSpace: 'pre-wrap' }}>{printData.billing_address || 'N/A'}</p>
                             </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h3 style={{ fontSize: '12px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '10px' }}>Shipping Details:</h3>
-                            <p style={{ fontSize: '13px', whiteSpace: 'pre-wrap' }}>{printData.shipping_address || 'N/A'}</p>
-                            <div style={{ marginTop: '15px' }}>
-                                <p style={{ fontSize: '14px' }}>Mode: {printData.payment_mode}</p>
-                                <p style={{ fontSize: '14px' }}>Status: {printData.status}</p>
+                            <h3 style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '5px' }}>Shipping Details:</h3>
+                            <p style={{ fontSize: '11px', whiteSpace: 'pre-wrap' }}>{printData.shipping_address || 'N/A'}</p>
+                            <div style={{ marginTop: '10px' }}>
+                                <p style={{ fontSize: '12px' }}>Mode: {printData.payment_mode}</p>
+                                <p style={{ fontSize: '12px' }}>Status: {printData.status}</p>
                             </div>
                         </div>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
                         <thead>
-                            <tr style={{ background: '#F0FDF4', borderBottom: '2px solid #1B6B3A' }}>
-                                <th style={{ padding: '15px', textAlign: 'left', fontSize: '12px', fontWeight: '800' }}>DESCRIPTION</th>
-                                <th style={{ padding: '15px', textAlign: 'center', fontSize: '12px', fontWeight: '800' }}>HSN</th>
-                                <th style={{ padding: '15px', textAlign: 'center', fontSize: '12px', fontWeight: '800' }}>QTY</th>
-                                <th style={{ padding: '15px', textAlign: 'right', fontSize: '12px', fontWeight: '800' }}>PRICE</th>
-                                <th style={{ padding: '15px', textAlign: 'right', fontSize: '12px', fontWeight: '800' }}>DISC</th>
-                                <th style={{ padding: '15px', textAlign: 'right', fontSize: '12px', fontWeight: '800' }}>GST%</th>
-                                <th style={{ padding: '15px', textAlign: 'right', fontSize: '12px', fontWeight: '800' }}>TOTAL</th>
+                            <tr style={{ background: '#FCE7F3', borderBottom: '2px solid #BE185D' }}>
+                                <th style={{ padding: '10px', textAlign: 'left', fontSize: '10px', fontWeight: '800' }}>DESCRIPTION</th>
+                                <th style={{ padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '800' }}>HSN</th>
+                                <th style={{ padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '800' }}>QTY</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>PRICE</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>DISC</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>GST%</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
                             {(typeof printData.items === 'string' ? JSON.parse(printData.items) : printData.items).map((item, i) => (
                                 <tr key={i} style={{ borderBottom: '1px solid #EEE' }}>
-                                    <td style={{ padding: '15px', fontSize: '14px' }}>{item.description}</td>
-                                    <td style={{ padding: '15px', textAlign: 'center', fontSize: '14px' }}>{item.hsn_code || '-'}</td>
-                                    <td style={{ padding: '15px', textAlign: 'center', fontSize: '14px' }}>{item.quantity} {item.unit}</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px' }}>₹{item.price.toLocaleString()}</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px' }}>₹{(item.discount_amount || (item.quantity * item.price * (item.discount_percent / 100))).toLocaleString()}</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px' }}>{item.tax_rate}%</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>₹{item.total.toLocaleString()}</td>
+                                    <td style={{ padding: '10px', fontSize: '12px' }}>{item.description}</td>
+                                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '12px' }}>{item.hsn_code || '-'}</td>
+                                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '12px' }}>{item.quantity} {item.unit}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>₹{item.price.toLocaleString()}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>₹{(item.discount_amount || (item.quantity * item.price * (item.discount_percent / 100))).toLocaleString()}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>{item.tax_rate}%</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px', fontWeight: '700' }}>₹{item.total.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <div style={{ width: '300px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <div style={{ width: '240px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                                 <span style={{ color: '#666' }}>Subtotal</span>
                                 <span style={{ fontWeight: '700' }}>₹{printData.amount.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                                 <span style={{ color: '#666' }}>Total Discount</span>
                                 <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{printData.discount_amount.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                                 <span style={{ color: '#666' }}>Tax (GST)</span>
                                 <span style={{ fontWeight: '700' }}>₹{printData.tax_amount.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                                 <span style={{ color: '#666' }}>Round Off</span>
                                 <span style={{ fontWeight: '700' }}>₹{printData.round_off.toFixed(2)}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #000', paddingTop: '10px', marginTop: '10px' }}>
-                                <span style={{ fontSize: '18px', fontWeight: '900' }}>Grand Total</span>
-                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#1B6B3A' }}>₹{printData.total_amount.toLocaleString()}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #000', paddingTop: '8px', marginTop: '8px', fontSize: '14px' }}>
+                                <span style={{ fontWeight: '900' }}>Grand Total</span>
+                                <span style={{ fontWeight: '900', color: '#BE185D' }}>₹{printData.total_amount.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '100px', borderTop: '1px solid #EEE', paddingTop: '20px', textAlign: 'center' }}>
-                                                        <p style={{ fontSize: '12px', color: '#999' }}>This is a computer generated invoice and does not require a physical signature.</p>
-                                                        <p style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>Thank you for your business!</p>
-                                                    </div>
-                                                </div>
-                                            )}
+                    <div style={{ marginTop: '60px', borderTop: '1px solid #EEE', paddingTop: '15px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>This is a computer generated invoice and does not require a physical signature.</p>
+                        <p style={{ fontSize: '10px', color: '#999', marginTop: '3px', margin: 0 }}>Thank you for your business!</p>
+                    </div>
+                </div>
+            )}
 
-                                            {/* History Lifecycle Modal */}
-                                            {isHistoryModalOpen && selectedHistoryInvoice && (
-                                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                                                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-                                                        <div style={{ padding: '1.75rem 2rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <div>
-                                                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', fontFamily: "'Inter', sans-serif" }}>Invoice History</h3>
-                                                                <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.2rem', fontFamily: "'Inter', sans-serif" }}>Audit trail for {selectedHistoryInvoice.invoice_number}</p>
-                                                            </div>
-                                                            <button onClick={() => setIsHistoryModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
-                                                        </div>
-                                                        <div style={{ padding: '2rem', maxHeight: '400px', overflowY: 'auto' }}>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px solid #E2E8F0' }}>
-                                                                {/* Event 1 */}
-                                                                <div style={{ position: 'relative' }}>
-                                                                    <div style={{ position: 'absolute', left: '-1.95rem', top: '0.25rem', width: '14px', height: '14px', borderRadius: '50%', background: '#1B6B3A', border: '4px solid #F0FDF4' }}></div>
-                                                                    <h4 style={{ fontWeight: '750', fontSize: '0.95rem', color: '#1E293B', marginBottom: '0.25rem', fontFamily: "'Inter', sans-serif" }}>Invoice Generated</h4>
-                                                                    <p style={{ fontSize: '0.85rem', color: '#64748B', fontFamily: "'Inter', sans-serif" }}>Invoice created successfully as {selectedHistoryInvoice.invoice_type || 'GST'} with base amount ₹{selectedHistoryInvoice.amount.toLocaleString()}.</p>
-                                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '0.35rem', fontWeight: '600', fontFamily: "'Inter', sans-serif" }}>May 06, 2026 at 10:00 AM</span>
-                                                                </div>
-                                                                {/* Event 2 */}
-                                                                <div style={{ position: 'relative' }}>
-                                                                    <div style={{ position: 'absolute', left: '-1.95rem', top: '0.25rem', width: '14px', height: '14px', borderRadius: '50%', background: '#0D9488', border: '4px solid #F0FDFA' }}></div>
-                                                                    <h4 style={{ fontWeight: '750', fontSize: '0.95rem', color: '#1E293B', marginBottom: '0.25rem', fontFamily: "'Inter', sans-serif" }}>Tax & Discounts Applied</h4>
-                                                                    <p style={{ fontSize: '0.85rem', color: '#64748B', fontFamily: "'Inter', sans-serif" }}>GST of ₹{(selectedHistoryInvoice.tax_amount || 0).toLocaleString()} and Discount of ₹{(selectedHistoryInvoice.discount_amount || 0).toLocaleString()} were successfully processed.</p>
-                                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '0.35rem', fontWeight: '600', fontFamily: "'Inter', sans-serif" }}>May 06, 2026 at 10:05 AM</span>
-                                                                </div>
-                                                                {/* Event 3 */}
-                                                                <div style={{ position: 'relative' }}>
-                                                                    <div style={{ position: 'absolute', left: '-1.95rem', top: '0.25rem', width: '14px', height: '14px', borderRadius: '50%', background: selectedHistoryInvoice.status === 'Paid' ? '#1B6B3A' : '#EF4444', border: selectedHistoryInvoice.status === 'Paid' ? '4px solid #F0FDF4' : '4px solid #FEF2F2' }}></div>
-                                                                    <h4 style={{ fontWeight: '750', fontSize: '0.95rem', color: '#1E293B', marginBottom: '0.25rem', fontFamily: "'Inter', sans-serif" }}>Payment Status: {selectedHistoryInvoice.status.toUpperCase()}</h4>
-                                                                    <p style={{ fontSize: '0.85rem', color: '#64748B', fontFamily: "'Inter', sans-serif" }}>
-                                                                        {selectedHistoryInvoice.status === 'Paid' 
-                                                                            ? `Full payment of ₹${selectedHistoryInvoice.total_amount ? selectedHistoryInvoice.total_amount.toLocaleString() : selectedHistoryInvoice.amount.toLocaleString()} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
-                                                                            : `Awaiting pending payment of ₹${selectedHistoryInvoice.total_amount ? selectedHistoryInvoice.total_amount.toLocaleString() : selectedHistoryInvoice.amount.toLocaleString()} via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
-                                                                        }
-                                                                    </p>
-                                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '0.35rem', fontWeight: '600', fontFamily: "'Inter', sans-serif" }}>May 06, 2026 at 10:10 AM</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ padding: '1.5rem 2rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
-                                                            <button onClick={() => setIsHistoryModalOpen(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#064E3B', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter', sans-serif" }}>Close Trail</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+            {/* History Lifecycle Modal */}
+            {isHistoryModalOpen && selectedHistoryInvoice && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Invoice History</h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.1rem', margin: 0 }}>Audit trail for {selectedHistoryInvoice.invoice_number}</p>
+                            </div>
+                            <button onClick={() => setIsHistoryModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer' }}><X size={18} /></button>
+                        </div>
+                        <div style={{ padding: '1.5rem', maxHeight: '320px', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', paddingLeft: '1.25rem', borderLeft: '2px solid #E2E8F0' }}>
+                                {/* Event 1 */}
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: '#BE185D', border: '3px solid #FCE7F3' }}></div>
+                                    <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Invoice Generated</h4>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Invoice created successfully as {selectedHistoryInvoice.invoice_type || 'GST'} with base amount ₹{selectedHistoryInvoice.amount.toLocaleString()}.</p>
+                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>May 06, 2026 at 10:00 AM</span>
+                                </div>
+                                {/* Event 2 */}
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: '#1D4ED8', border: '3px solid #EFF6FF' }}></div>
+                                    <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Tax & Discounts Applied</h4>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>GST of ₹{(selectedHistoryInvoice.tax_amount || 0).toLocaleString()} and Discount of ₹{(selectedHistoryInvoice.discount_amount || 0).toLocaleString()} were successfully processed.</p>
+                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>May 06, 2026 at 10:05 AM</span>
+                                </div>
+                                {/* Event 3 */}
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: selectedHistoryInvoice.status === 'Paid' ? '#059669' : '#EF4444', border: selectedHistoryInvoice.status === 'Paid' ? '3px solid #D1FAE5' : '3px solid #FEE2E2' }}></div>
+                                    <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Payment Status: {selectedHistoryInvoice.status.toUpperCase()}</h4>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
+                                        {selectedHistoryInvoice.status === 'Paid' 
+                                            ? `Full payment of ₹${selectedHistoryInvoice.total_amount ? selectedHistoryInvoice.total_amount.toLocaleString() : selectedHistoryInvoice.amount.toLocaleString()} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
+                                            : `Awaiting pending payment of ₹${selectedHistoryInvoice.total_amount ? selectedHistoryInvoice.total_amount.toLocaleString() : selectedHistoryInvoice.amount.toLocaleString()} via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
+                                        }
+                                    </p>
+                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>May 06, 2026 at 10:10 AM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setIsHistoryModalOpen(false)} style={{ padding: '0.4rem 1rem', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Close Trail</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

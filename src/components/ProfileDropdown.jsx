@@ -124,7 +124,16 @@ export function ProfileDropdown({
                 }}>
                     <UserIcon size={14} />
                 </div>
-                <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>{displayName}</span>
+                <span style={{ 
+                    textTransform: 'none', 
+                    letterSpacing: '0px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    maxWidth: '100px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                }}>{displayName}</span>
                 <ChevronDown
                     size={16}
                     style={{
