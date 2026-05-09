@@ -2,8 +2,8 @@
 
 .sidebar {
     width: 180px;
-    background: #135029 !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: #f0fdf4 !important;
+    border-right: 1px solid #DCF2E4 !important;
     display: flex;
     flex-direction: column;
     position: sticky;
@@ -22,13 +22,13 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-bottom: 1px solid #DCF2E4 !important;
 }
 
 .app-title {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 1.25rem;
-    color: #FFFFFF !important;
+    color: #135029 !important;
 }
 
 .sidebar-nav {
@@ -41,7 +41,7 @@
 }
 
 .sidebar-nav div {
-    color: rgba(255, 255, 255, 0.45) !important;
+    color: #047857 !important;
     font-weight: 800 !important;
     font-size: 0.75rem !important;
 }
@@ -51,7 +51,7 @@
     width: 100%;
     padding: 0.65rem 0.75rem;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.75) !important;
+    color: #1E293B !important;
     font-weight: 500;
     transition: all 0.2s;
     display: flex;
@@ -67,28 +67,28 @@
 }
 
 .sidebar-item svg {
-    color: rgba(255, 255, 255, 0.75) !important;
+    color: #047857 !important;
     transition: color 0.2s ease;
 }
 
 .sidebar-item:hover {
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    color: #FFFFFF !important;
+    background-color: #DCF2E4 !important;
+    color: #135029 !important;
 }
 
 .sidebar-item:hover svg {
-    color: #FFFFFF !important;
+    color: #135029 !important;
 }
 
 .sidebar-item.active {
-    background-color: rgba(255, 255, 255, 0.15) !important;
-    color: #FFFFFF !important;
+    background-color: #DCF2E4 !important;
+    color: #135029 !important;
     font-weight: 700;
     box-shadow: none !important;
 }
 
 .sidebar-item.active svg {
-    color: #FFFFFF !important;
+    color: #135029 !important;
 }
 
 /* Tree View Subgroup */
@@ -782,15 +782,15 @@
 /* Topbar Styles */
 .topbar {
     height: 64px;
-    background: #F1F5F9;
-    border-bottom: 1px solid #E2E8F0;
+    background: #135029 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
     z-index: 20;
     position: relative;
-    color: #1E293B;
+    color: #FFFFFF !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
@@ -837,7 +837,7 @@
 .hamburger span {
     width: 100%;
     height: 3px;
-    background: #1B6B3A;
+    background: #FFFFFF !important;
     border-radius: 10px;
     transition: all 0.3s linear;
     position: relative;
@@ -909,7 +909,7 @@
 
 .nav-link {
     font-weight: 500;
-    color: #F0FDF4;
+    color: rgba(255, 255, 255, 0.8) !important;
     font-size: 0.95rem;
     padding: 0.5rem 1.25rem;
     border-radius: 9999px;
@@ -921,13 +921,13 @@
 }
 
 .nav-link:hover {
-    color: white;
+    color: white !important;
     background: rgba(255, 255, 255, 0.1);
 }
 
 .nav-link.active {
-    background-color: #F0FDF4;
-    color: #1B6B3A;
+    background-color: #F0FDF4 !important;
+    color: #135029 !important;
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -940,14 +940,14 @@
 
 .topbar-profile {
     margin-left: 0.5rem;
-    background: #F1F5F9;
-    color: #1E293B;
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #FFFFFF !important;
     padding: 4px 12px 4px 4px;
     border-radius: 99px;
 }
 
 .topbar-profile:hover {
-    background: #E2E8F0;
+    background: rgba(255, 255, 255, 0.18) !important;
 }
 
 .topbar input {
@@ -955,12 +955,12 @@
 }
 
 .topbar .icon-btn {
-    color: #1B6B3A;
+    color: rgba(255, 255, 255, 0.8) !important;
 }
 
 .topbar .icon-btn:hover {
-    background: #F1F5F9;
-    color: #064E3B;
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #FFFFFF !important;
 }
 
 /* Sidebar Adjustments for new layout */
