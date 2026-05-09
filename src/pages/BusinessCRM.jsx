@@ -107,7 +107,7 @@ const BusinessCRM = () => {
             if (res && res.success) {
                 const mapped = (res.data || []).map(c => ({
                     ...c,
-                    current_balance: c.current_balance !== undefined ? c.current_balance : (c.outstanding_balance || 0)
+                    current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
                 }));
                 setCustomers(mapped);
             }
