@@ -811,7 +811,7 @@ const BusinessCRM = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>
-                                    {paymentData.type === 'Payment In' ? 'Record Customer Payment' : (paymentData.type === 'Debit' ? 'Record Debit / Charge' : 'Record Payment Out')}
+                                    {paymentData.type === 'Payment In' ? 'Record Customer Payment (Credit / Money In)' : 'Record Customer Payment (Debit / Money Out)'}
                                 </h3>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Party: {selectedParty.name}</p>
                             </div>
@@ -823,9 +823,8 @@ const BusinessCRM = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Payment Type</label>
                                     <select value={paymentData.type} onChange={e => setPaymentData({...paymentData, type: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option value="Payment In">Payment In (You Got)</option>
-                                        <option value="Payment Out">Payment Out (You Gave)</option>
-                                        <option value="Debit">Debit (Invoice / Charge)</option>
+                                        <option value="Payment In">Payment In (Credit / Money In)</option>
+                                        <option value="Payment Out">Payment Out (Debit / Money Out)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -835,7 +834,7 @@ const BusinessCRM = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                                    {paymentData.type === 'Payment In' ? 'Amount Received (₹)' : (paymentData.type === 'Debit' ? 'Debit Amount (₹)' : 'Amount Paid (₹)')}
+                                    {paymentData.type === 'Payment In' ? 'Amount Received (Credit) (₹)' : 'Amount Paid (Debit) (₹)'}
                                 </label>
                                 <input required type="number" value={paymentData.amount === 0 ? '' : paymentData.amount} placeholder="0" onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
                             </div>
@@ -862,7 +861,7 @@ const BusinessCRM = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Remarks</label>
-                                <textarea value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder={paymentData.type === 'Payment In' ? "UPI reference or bank txn id..." : (paymentData.type === 'Debit' ? "Invoice number or billing reason..." : "Reference number or reason...")} />
+                                <textarea value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder={paymentData.type === 'Payment In' ? "UPI reference or bank txn id..." : "Reference number or reason..."} />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
