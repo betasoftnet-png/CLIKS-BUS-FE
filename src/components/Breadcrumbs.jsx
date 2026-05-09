@@ -3,7 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 
 const Breadcrumbs = ({ items }) => {
-    return null;
+    const location = useLocation();
 
     // Map common route segments to readable labels
     const labelMapping = {
