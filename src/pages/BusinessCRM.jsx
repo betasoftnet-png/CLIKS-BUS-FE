@@ -242,7 +242,8 @@ const BusinessCRM = () => {
             await crmService.createPayment(selectedParty.id, {
                 amount: amt,
                 payment_method: paymentData.mode,
-                reference_number: paymentData.notes
+                reference_number: paymentData.notes,
+                type: paymentData.type
             });
             setIsPaymentModalOpen(false);
             setPaymentData({ amount: 0, mode: 'Cash', type: 'Payment In', date: new Date().toISOString().split('T')[0], notes: '' });
