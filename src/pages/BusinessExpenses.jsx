@@ -196,7 +196,7 @@ const BusinessExpenses = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(236, 72, 153, 0.15)' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.15)' }}>
                             <TrendingUp size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Expenses & Operational Costs</h1>
@@ -214,7 +214,7 @@ const BusinessExpenses = () => {
                     <button 
                         onClick={() => setIsExpenseModalOpen(true)}
                         className="crm-btn"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(236, 72, 153, 0.15)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)' }}
                     >
                         <Plus size={16} /> Record Expense
                     </button>
@@ -225,7 +225,7 @@ const BusinessExpenses = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Total Operational Costs (MTD)', value: `₹${totalExpenseSpent.toLocaleString()}`, icon: TrendingUp, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'GST Input Tax Credits (ITC)', value: `₹${Math.round(totalITCClaimsAccumulated).toLocaleString()}`, icon: Percent, color: '#1B6B3A', bg: '#F0FDF4' },
+                    { label: 'GST Input Tax Credits (ITC)', value: `₹${Math.round(totalITCClaimsAccumulated).toLocaleString()}`, icon: Percent, color: '#7C3AED', bg: '#F3E8FF' },
                     { label: 'Active Monthly Recurrings', value: `${recurrings.length} Automation`, icon: Calendar, color: '#2563EB', bg: '#EFF6FF' },
                     { label: 'Pending Staff Claims', value: `${claims.filter(c => c.reimbursement_status === 'Pending').length} Claims`, icon: Clock, color: '#F59E0B', bg: '#FFFBEB' }
                 ].map((stat, idx) => (
@@ -255,11 +255,11 @@ const BusinessExpenses = () => {
                         className="crm-btn-secondary"
                         style={{ 
                             padding: '0.45rem 1rem', borderRadius: '8px', 
-                            background: activeTab === tab.id ? '#BE185D' : 'white', 
+                            background: activeTab === tab.id ? '#D97706' : 'white', 
                             color: activeTab === tab.id ? 'white' : '#475569',
                             border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '0.4rem',
-                            boxShadow: activeTab === tab.id ? '0 4px 8px rgba(190, 24, 93, 0.1)' : 'none'
+                            boxShadow: activeTab === tab.id ? '0 4px 8px rgba(255, 160, 122, 0.1)' : 'none'
                         }}
                     >
                         <tab.icon size={16} /> {tab.label}
@@ -301,7 +301,7 @@ const BusinessExpenses = () => {
                                 {filteredExpenses.map((ex) => (
                                     <tr key={ex.expense_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.85rem', margin: 0 }}>{ex.expense_number}</p>
+                                            <p style={{ fontWeight: '800', color: '#7C3AED', fontSize: '0.85rem', margin: 0 }}>{ex.expense_number}</p>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{ex.expense_date}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
@@ -313,7 +313,7 @@ const BusinessExpenses = () => {
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
                                             <span style={{ color: '#10B981', fontWeight: '700' }}>₹{Math.round(ex.tax_amount).toLocaleString()} ({ex.gst_percentage}%)</span>
                                         </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#064E3B', fontSize: '0.88rem' }}>₹{ex.expense_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>₹{ex.expense_amount.toLocaleString()}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>{ex.payment_mode}</span>
                                         </td>
@@ -351,7 +351,7 @@ const BusinessExpenses = () => {
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>{rec.auto_create.toUpperCase()}</span>
                                         </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#064E3B', fontSize: '0.88rem' }}>₹{rec.amount.toLocaleString()}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>₹{rec.amount.toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -386,7 +386,7 @@ const BusinessExpenses = () => {
                                         <tr key={bg.category_name} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#1E293B' }}>{bg.category_name}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>₹{bg.budget_limit.toLocaleString()}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: isOver ? '#EF4444' : '#1B6B3A', fontSize: '0.85rem' }}>₹{bg.spent_amount.toLocaleString()}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: isOver ? '#EF4444' : '#7C3AED', fontSize: '0.85rem' }}>₹{bg.spent_amount.toLocaleString()}</td>
                                             <td style={{ padding: '0.6rem 1rem', width: '200px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                                     <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: '#F1F5F9', overflow: 'hidden' }}>
@@ -437,7 +437,7 @@ const BusinessExpenses = () => {
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{cl.employee_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>{cl.travel_expense}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#064E3B', fontSize: '0.88rem' }}>₹{cl.claim_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>₹{cl.claim_amount.toLocaleString()}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontWeight: '700', fontSize: '0.8rem' }}>{cl.approval_by || 'N/A'}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ 
@@ -469,7 +469,7 @@ const BusinessExpenses = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Record Business Expense</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED' }}>Record Business Expense</h3>
                             <button onClick={() => setIsExpenseModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
@@ -524,7 +524,7 @@ const BusinessExpenses = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(236, 72, 153, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
                                 Settle & Post Expense
                             </button>
                         </form>
@@ -551,7 +551,7 @@ const BusinessExpenses = () => {
                                 <input required type="number" value={newBudget.budget_limit} onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(236, 72, 153, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
                                 Settle Budget Target
                             </button>
                         </form>
@@ -582,7 +582,7 @@ const BusinessExpenses = () => {
                                 <input required type="number" value={newClaim.claim_amount} onChange={(e) => setNewClaim({ ...newClaim, claim_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(236, 72, 153, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
                                 Lodge Reimbursement Claim
                             </button>
                         </form>

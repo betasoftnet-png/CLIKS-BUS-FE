@@ -423,7 +423,7 @@ const BusinessBilling = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                             <Receipt size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Billing Center</h1>
@@ -435,7 +435,7 @@ const BusinessBilling = () => {
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.5rem', 
                         padding: '0.5rem 1.25rem', borderRadius: '8px', 
-                        background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
                         fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem',
                         transition: 'transform 0.2s'
                     }}
@@ -747,7 +747,7 @@ const BusinessBilling = () => {
                                                     style={{ 
                                                         flex: 1, padding: '0.5rem', borderRadius: '6px', 
                                                         border: 'none',
-                                                        background: formData.payment_mode === mode ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white',
+                                                        background: formData.payment_mode === mode ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'white',
                                                         color: formData.payment_mode === mode ? 'white' : '#64748B',
                                                         fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
                                                         boxShadow: formData.payment_mode === mode ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none'
@@ -833,7 +833,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', marginTop: '0.5rem', cursor: 'pointer' }}>
+                            <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', marginTop: '0.5rem', cursor: 'pointer' }}>
                                 {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
                             </button>
                         </form>

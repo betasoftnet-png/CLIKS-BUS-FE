@@ -207,7 +207,7 @@ const BusinessGST = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.15)' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.15)' }}>
                             <PercentCircle size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>GST & Tax Compliance</h1>
@@ -225,7 +225,7 @@ const BusinessGST = () => {
                     <button 
                         onClick={() => setIsInvoiceModalOpen(true)}
                         className="crm-btn"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(59, 130, 246, 0.15)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)' }}
                     >
                         <Plus size={16} /> Generate e-Invoice
                     </button>
@@ -282,7 +282,7 @@ const BusinessGST = () => {
                         onClick={() => setActiveTab(tab.id)}
                         style={{ 
                             padding: '0.45rem 1rem', borderRadius: '8px', border: 'none', 
-                            background: activeTab === tab.id ? '#1D4ED8' : 'transparent', 
+                            background: activeTab === tab.id ? '#D97706' : 'transparent', 
                             color: activeTab === tab.id ? 'white' : '#64748B',
                             fontWeight: '800', cursor: 'pointer', transition: 'all 0.15s',
                             textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em',
@@ -514,7 +514,7 @@ const BusinessGST = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(59, 130, 246, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
                                 Settle e-Invoice Authentication
                             </button>
                         </form>
@@ -557,7 +557,7 @@ const BusinessGST = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(59, 130, 246, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
                                 Settle Government e-Way Bill
                             </button>
                         </form>
@@ -608,7 +608,7 @@ const BusinessGST = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(59, 130, 246, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
                                 Settle Reconciliation Status
                             </button>
                         </form>

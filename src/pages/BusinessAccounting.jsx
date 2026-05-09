@@ -96,9 +96,9 @@ const BusinessAccounting = () => {
 
     // fallback data
     const summaryStats = [
-        { label: 'Gross Revenue', value: dbPL ? `₹${parseFloat(dbPL.gross_revenue || 0).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#1B6B3A' },
+        { label: 'Gross Revenue', value: dbPL ? `₹${parseFloat(dbPL.gross_revenue || 0).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#7C3AED' },
         { label: 'Total Expenses', value: dbPL ? `₹${parseFloat(dbPL.total_expenses || 0).toLocaleString()}` : '₹0', icon: TrendingDown, color: '#EF4444' },
-        { label: 'Net Profit', value: dbPL ? `₹${parseFloat(dbPL.net_profit || 0).toLocaleString()}` : '₹0', icon: IndianRupee, color: '#064E3B' },
+        { label: 'Net Profit', value: dbPL ? `₹${parseFloat(dbPL.net_profit || 0).toLocaleString()}` : '₹0', icon: IndianRupee, color: '#0891B2' },
         { label: 'GST Payable', value: dbBalanceSheet?.liabilities?.gst_payable ? `₹${parseFloat(dbBalanceSheet.liabilities.gst_payable).toLocaleString()}` : '₹0', icon: ShieldCheck, color: '#0D9488' }
     ];
 
@@ -173,7 +173,7 @@ const BusinessAccounting = () => {
                     <button 
                         onClick={() => setIsEntryModalOpen(true)}
                         className="crm-btn"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(59, 130, 246, 0.15)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)' }}
                     >
                         <Plus size={16} /> Record Entry
                     </button>
@@ -211,7 +211,7 @@ const BusinessAccounting = () => {
                         onClick={() => setActiveTab(tab.id)}
                         style={{ 
                             padding: '0.45rem 1rem', borderRadius: '8px', border: 'none', 
-                            background: activeTab === tab.id ? '#1D4ED8' : 'transparent', 
+                            background: activeTab === tab.id ? '#D97706' : 'transparent', 
                             color: activeTab === tab.id ? 'white' : '#64748B',
                             fontWeight: '800', cursor: 'pointer', transition: 'all 0.15s',
                             textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em'
@@ -228,7 +228,7 @@ const BusinessAccounting = () => {
                     <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
                             {[
-                                { label: 'Fixed Expenses', value: '₹1,50,000', icon: Building2, color: '#1B6B3A' },
+                                { label: 'Fixed Expenses', value: '₹1,50,000', icon: Building2, color: '#7C3AED' },
                                 { label: 'Variable Expenses', value: '₹2,92,000', icon: Layers, color: '#0D9488' },
                                 { label: 'Pending Bills', value: '₹42,000', icon: Receipt, color: '#B45309' },
                                 { label: 'Total MTD', value: '₹4,42,000', icon: TrendingDown, color: '#EF4444' }
@@ -368,7 +368,7 @@ const BusinessAccounting = () => {
                                     ))}
                                 </div>
                                 <div style={{ marginTop: '1.25rem', padding: '1rem', background: '#F0F9F4', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                    <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.2rem', margin: 0 }}>TOTAL RECEIVABLES</p>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.2rem', margin: 0 }}>TOTAL RECEIVABLES</p>
                                     <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#1D4ED8', margin: 0 }}>₹{parseFloat(dbBalanceSheet?.assets?.receivables || 0).toLocaleString()}</h3>
                                 </div>
                             </div>
@@ -391,7 +391,7 @@ const BusinessAccounting = () => {
                                         </thead>
                                         <tbody>
                                             {dbBalanceSheet?.assets?.receivables > 0 ? [
-                                                { name: 'Global Solutions', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.5).toLocaleString()}`, days: '12 Days', color: '#1B6B3A' },
+                                                { name: 'Global Solutions', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.5).toLocaleString()}`, days: '12 Days', color: '#7C3AED' },
                                                 { name: 'Vertex Systems', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.3).toLocaleString()}`, days: '45 Days', color: '#F59E0B' },
                                                 { name: 'Creative Agency', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.2).toLocaleString()}`, days: '68 Days', color: '#EF4444' }
                                             ].map((party, i) => (
@@ -581,7 +581,7 @@ const BusinessAccounting = () => {
                                 <input placeholder="e.g. Inv #123 or Bill Reference" value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(59, 130, 246, 0.15)' }}>
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
                                 Save Financial Entry
                             </button>
                         </form>

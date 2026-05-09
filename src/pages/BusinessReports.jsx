@@ -87,7 +87,7 @@ const BusinessReports = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                             <BarChart3 size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Business Reports</h1>
@@ -320,7 +320,7 @@ const BusinessReports = () => {
                             <button onClick={() => setSelectedReport(null)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Close
                             </button>
-                            <button onClick={() => { alert('Exporting report...'); }} style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <button onClick={() => { alert('Exporting report...'); }} style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Export Statement
                             </button>
                         </div>
