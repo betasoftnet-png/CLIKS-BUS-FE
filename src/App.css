@@ -58,7 +58,7 @@
     align-items: center;
     justify-content: space-between;
     text-align: left;
-    font-size: 0.98rem !important;
+    font-size: 1.02rem !important;
     position: relative;
     z-index: 1;
     background: transparent;
@@ -68,8 +68,8 @@
 
 .sidebar-item svg {
     color: #1B6B3A !important;
-    width: 22px !important;
-    height: 22px !important;
+    width: 24px !important;
+    height: 24px !important;
     transition: color 0.2s ease, transform 0.2s ease;
 }
 
@@ -1126,15 +1126,15 @@
 /* Update Active State to match user request */
 /* Update Active State to match user request - Soft Tint */
 .sidebar-item.active {
-    background-color: #1B6B3A !important;
-    color: #ffffff !important;
-    font-weight: 600;
+    background-color: #DCF2E4 !important;
+    color: #064E3B !important;
+    font-weight: 800 !important;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(27, 107, 58, 0.15);
+    box-shadow: none !important;
 }
 
 .sidebar-item.active svg {
-    color: #ffffff !important;
+    color: #064E3B !important;
 }
 
 
