@@ -300,7 +300,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             </div>
                         </button>
 
-                        {/* Manufacturing */}
+                        {/* Manufacturing - commented out for future use
                         <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Manufacturing</div>
                         <button
                             className={`sidebar-item ${activeItem === 'Manufacturing' ? 'active' : ''}`}
@@ -311,6 +311,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 <span className="sidebar-label">Manufacturing</span>
                             </div>
                         </button>
+                        */}
 
                         {/* HR */}
                         <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HR</div>
