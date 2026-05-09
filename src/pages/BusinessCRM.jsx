@@ -404,7 +404,7 @@ const BusinessCRM = () => {
                         </button>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '0.5rem' }}>
+                    <div style={{ overflowX: 'auto', padding: '0.5rem', minHeight: '220px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
@@ -482,7 +482,7 @@ const BusinessCRM = () => {
                                                 </button>
                                             </div>
                                             {activeMenu === row.id && (
-                                                <div style={{ position: 'absolute', right: '2rem', top: '3.5rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '170px', overflow: 'hidden' }}>
+                                                <div style={{ position: 'absolute', right: '1rem', top: '2.25rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, width: '170px', overflow: 'hidden' }}>
                                                     <button 
                                                         onClick={() => { viewLedger(row); }}
                                                         style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: 'white', textAlign: 'left', fontSize: '0.8rem', fontWeight: '700', color: '#1B6B3A', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
