@@ -777,11 +777,11 @@ const BusinessSalesOrders = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Advance Amount Received (₹)</label>
-                                            <input type="number" value={formData.advance_amount} onChange={(e) => setFormData({...formData, advance_amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                            <input type="number" value={formData.advance_amount === 0 ? '' : formData.advance_amount} onChange={(e) => setFormData({...formData, advance_amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Shipping / Delivery Charge (₹)</label>
-                                            <input type="number" value={formData.shipping_charge} onChange={(e) => {
+                                            <input type="number" value={formData.shipping_charge === 0 ? '' : formData.shipping_charge} onChange={(e) => {
                                                 const ship = parseFloat(e.target.value) || 0;
                                                 const updated = calculateTotals(formData.items, ship);
                                                 setFormData({ ...formData, shipping_charge: ship, ...updated });
