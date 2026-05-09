@@ -3,14 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 
 const Breadcrumbs = ({ items }) => {
-    const location = useLocation();
-
-    // List of paths where breadcrumbs should be hidden
-    const hiddenPaths = ['/books/dashboard', '/finance', '/'];
-
-    if (hiddenPaths.includes(location.pathname)) {
-        return null;
-    }
+    return null;
 
     // Map common route segments to readable labels
     const labelMapping = {
