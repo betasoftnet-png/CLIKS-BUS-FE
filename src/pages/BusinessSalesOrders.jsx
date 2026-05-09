@@ -296,79 +296,84 @@ const BusinessSalesOrders = () => {
     const fulfillmentRate = totalProcessed > 0 ? Math.round((totalFulfilled / totalProcessed) * 100) : 0;
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
-                            <ShoppingCart size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' }}>
+                            <ShoppingCart size={18} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Sales Orders Center</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Sales Orders Center</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Manage customer requests, reserve stocks, track shipments, and convert to invoices.</p>
+                    <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Manage customer requests, reserve stocks, track shipments, and convert to invoices.</p>
                 </div>
                 <button 
                     onClick={() => { resetForm(); setIsModalOpen(true); }}
+                    className="crm-btn"
                     style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.6rem', 
-                        padding: '0.85rem 1.75rem', borderRadius: '14px', 
+                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                        padding: '0.5rem 1.1rem', borderRadius: '10px', 
                         background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '700', cursor: 'pointer',
-                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)',
+                        fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)',
                         transition: 'transform 0.2s'
                     }}
                 >
-                    <Plus size={20} />
+                    <Plus size={16} />
                     New Order
                 </button>
             </div>
 
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            {/* Stats Summary Bento Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Orders', value: activeOrdersCount, icon: ShoppingCart, color: '#1B6B3A', bg: '#F0FDF4' },
                     { label: 'Pending Value', value: `₹${totalPendingValue.toLocaleString()}`, icon: Clock, color: '#B45309', bg: '#FFFBEB' },
                     { label: 'Confirmed (Ready)', value: readyToInvoiceCount, icon: Package, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Invoiced / Completed', value: `₹${invoicedThisMonth.toLocaleString()}`, icon: CheckCircle2, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
+                        </div>
                     </div>
                 ))}
             </div>
 
             {/* Tab Switcher */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <button 
                     onClick={() => setActiveTab('list')}
+                    className="crm-btn-secondary"
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                        padding: '0.45rem 1rem', borderRadius: '8px', 
                         background: activeTab === 'list' ? '#064E3B' : 'white', 
                         color: activeTab === 'list' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'list' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'list' ? '0 4px 8px rgba(6, 78, 59, 0.1)' : 'none'
                     }}
                 >
-                    <ShoppingCart size={18} /> Orders List
+                    <ShoppingCart size={16} /> Orders List
                 </button>
                 <button 
                     onClick={() => setActiveTab('reports')}
+                    className="crm-btn-secondary"
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                        padding: '0.45rem 1rem', borderRadius: '8px', 
                         background: activeTab === 'reports' ? '#064E3B' : 'white', 
                         color: activeTab === 'reports' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'reports' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'reports' ? '0 4px 8px rgba(6, 78, 59, 0.1)' : 'none'
                     }}
                 >
-                    <BarChart3 size={18} /> Order Reports 📊
+                    <BarChart3 size={16} /> Order Reports 📊
                 </button>
             </div>
 
@@ -378,84 +383,84 @@ const BusinessSalesOrders = () => {
                     <p style={{ color: '#064E3B', fontSize: '1.15rem', fontWeight: '800' }}>Loading Live Sales Orders...</p>
                 </div>
             ) : activeTab === 'list' ? (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'visible' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                        <div style={{ position: 'relative', width: '280px' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
                                 placeholder="Search customers or order ID..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                             />
                         </div>
-                        <button style={{ width: '44px', height: '44px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <Filter size={20} />
+                        <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <Filter size={16} />
                         </button>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                    <div style={{ overflowX: 'visible', overflowY: 'visible', padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Order Number</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Dispatch Date</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Grand Total</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Advance</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Order Number</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Dispatch Date</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Grand Total</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Advance</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredOrders.map((row, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ fontWeight: '750', color: '#1E293B' }}>{row.order_number}</span>
+                                                <span style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.order_number}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.95rem', marginBottom: '0.15rem' }}>{row.customer}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{row.customer_phone || 'N/A'}</span>
+                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem', marginBottom: '0.1rem', margin: 0 }}>{row.customer}</p>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{row.customer_phone || 'N/A'}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>
-                                                <Calendar size={14} />
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                                <Calendar size={12} />
                                                 {row.delivery_date || 'N/A'}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: '#064E3B' }}>₹{row.grand_total.toLocaleString()}</span>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#064E3B' }}>₹{row.grand_total.toLocaleString()}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0D9488' }}>₹{row.advance_amount.toLocaleString()}</span>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0D9488' }}>₹{row.advance_amount.toLocaleString()}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ 
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.4rem 0.8rem', borderRadius: '10px',
-                                                background: row.status === 'Invoiced' ? '#F0FDF4' : (row.status === 'Cancelled' ? '#FEF2F2' : (row.status === 'Shipped' ? '#F0F9FF' : '#FFFBEB')),
-                                                color: row.status === 'Invoiced' ? '#15803D' : (row.status === 'Cancelled' ? '#B91C1C' : (row.status === 'Shipped' ? '#0369A1' : '#B45309')),
-                                                fontSize: '0.8rem', fontWeight: '800'
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.25rem', 
+                                                padding: '0.25rem 0.6rem', borderRadius: '6px',
+                                                background: row.status === 'Invoiced' ? '#E6F4EA' : (row.status === 'Cancelled' ? '#FCE8E6' : (row.status === 'Shipped' ? '#E0F2FE' : '#FEF3C7')),
+                                                color: row.status === 'Invoiced' ? '#137333' : (row.status === 'Cancelled' ? '#C5221F' : (row.status === 'Shipped' ? '#0369A1' : '#B45309')),
+                                                fontSize: '0.75rem', fontWeight: '800'
                                             }}>
-                                                {row.status === 'Invoiced' ? <CheckCircle2 size={12} /> : (row.status === 'Cancelled' ? <X size={12} /> : (row.status === 'Shipped' ? <Truck size={12} /> : <Clock size={12} />))}
+                                                {row.status === 'Invoiced' ? <CheckCircle2 size={10} /> : (row.status === 'Cancelled' ? <X size={10} /> : (row.status === 'Shipped' ? <Truck size={10} /> : <Clock size={10} />))}
                                                 {row.status.toUpperCase()}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
                                                 {row.status !== 'Invoiced' && row.status !== 'Cancelled' && (
                                                     <>
-                                                        <button onClick={() => handleConvertInvoice(row)} title="Convert to Invoice" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #DCF2E4', background: 'white', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><RefreshCw size={16} /></button>
-                                                        <button onClick={() => handleFulfillment(row)} title="Shipping Fulfillment" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Truck size={16} /></button>
+                                                        <button onClick={() => handleConvertInvoice(row)} title="Convert to Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #DCF2E4', background: 'white', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+                                                        <button onClick={() => handleFulfillment(row)} title="Shipping Fulfillment" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Truck size={14} /></button>
                                                     </>
                                                 )}
-                                                <button onClick={() => handleEdit(row)} title="Edit Order" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(row.id)} title="Delete Order" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                                <button onClick={() => handleEdit(row)} title="Edit Order" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
+                                                <button onClick={() => handleDelete(row.id)} title="Delete Order" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
                                             </div>
                                         </td>
                                     </tr>
