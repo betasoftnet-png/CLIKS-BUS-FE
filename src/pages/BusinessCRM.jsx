@@ -387,7 +387,7 @@ const BusinessCRM = () => {
                     <p style={{ color: '#064E3B', fontSize: '1rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
                 </div>
             ) : activeTab === 'list' && (
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'hidden' }}>
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'visible' }}>
                     <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ position: 'relative', width: '280px' }}>
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
@@ -404,7 +404,7 @@ const BusinessCRM = () => {
                         </button>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '0.5rem', minHeight: '220px' }}>
+                    <div style={{ overflowX: 'visible', overflowY: 'visible', padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
