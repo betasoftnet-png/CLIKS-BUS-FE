@@ -709,15 +709,15 @@ const BusinessCRM = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Balance (₹)</label>
-                                    <input type="number" value={formData.opening_balance} onChange={(e) => setFormData({...formData, opening_balance: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="number" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="0" onChange={(e) => setFormData({...formData, opening_balance: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit Limit (₹)</label>
-                                    <input type="number" value={formData.credit_limit} onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="number" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="50000" onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Due Days (Terms)</label>
-                                    <input type="number" value={formData.due_days} onChange={(e) => setFormData({...formData, due_days: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="number" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="30" onChange={(e) => setFormData({...formData, due_days: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Preferred Reminder</label>
@@ -765,7 +765,7 @@ const BusinessCRM = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount Received (₹)</label>
-                                <input required type="number" value={paymentData.amount} onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
+                                <input required type="number" value={paymentData.amount === 0 ? '' : paymentData.amount} placeholder="0" onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Payment Mode</label>
