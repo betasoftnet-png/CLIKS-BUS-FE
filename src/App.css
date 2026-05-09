@@ -2134,6 +2134,10 @@ th {
     #invoice-print-area, #invoice-print-area * {
         visibility: visible;
     }
+    #invoice-print-area .no-print, #invoice-print-area .no-print * {
+        display: none !important;
+        visibility: hidden !important;
+    }
     #invoice-print-area {
         position: absolute;
         left: 0;

@@ -904,7 +904,7 @@ const BusinessCRM = () => {
             {/* View Ledger Modal */}
             {isLedgerModalOpen && selectedParty && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(12px)', padding: '2rem' }} onClick={() => setIsLedgerModalOpen(false)}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '900px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', animation: 'fadeIn 0.2s ease-out' }} onClick={(e) => e.stopPropagation()}>
+                    <div id="invoice-print-area" style={{ background: 'white', width: '100%', maxWidth: '900px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', animation: 'fadeIn 0.2s ease-out' }} onClick={(e) => e.stopPropagation()}>
                         
                         {/* Modal Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem' }}>
@@ -922,7 +922,7 @@ const BusinessCRM = () => {
                                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>Statement of Account — {selectedParty.business_name || 'Personal'}</p>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <button onClick={() => window.print()} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Download size={16} /> Export PDF</button>
                                 <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
                                 <button onClick={() => setIsLedgerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
