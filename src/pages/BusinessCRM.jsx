@@ -39,10 +39,11 @@ const BusinessCRM = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
     const [selectedParty, setSelectedParty] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
-    const [activeTab, setActiveTab] = useState('list'); // 'list', 'ledger', 'reports'
+    const [activeTab, setActiveTab] = useState('list'); // 'list', 'reports'
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -165,7 +166,7 @@ const BusinessCRM = () => {
                 ...party,
                 ledger: ledgerData
             });
-            setActiveTab('ledger');
+            setIsLedgerModalOpen(true);
             setActiveMenu(null);
         } catch (err) {
             console.error('Failed to fetch ledger:', err);
@@ -173,7 +174,7 @@ const BusinessCRM = () => {
                 ...party,
                 ledger: []
             });
-            setActiveTab('ledger');
+            setIsLedgerModalOpen(true);
             setActiveMenu(null);
         }
     };
@@ -255,6 +256,53 @@ const BusinessCRM = () => {
 
     return (
         <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }} onClick={() => setActiveMenu(null)}>
+            <style>{`
+                .crm-table-row:hover {
+                    background-color: #F8FAFC !important;
+                }
+                .crm-btn {
+                    transition: all 0.2s ease-in-out !important;
+                }
+                .crm-btn:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 12px 24px rgba(27, 107, 58, 0.3) !important;
+                    opacity: 0.95;
+                }
+                .crm-btn-secondary {
+                    transition: all 0.2s ease-in-out !important;
+                }
+                .crm-btn-secondary:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05) !important;
+                    opacity: 0.95;
+                }
+                .stat-card {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                }
+                .stat-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.01) !important;
+                    border-color: #CBD5E1 !important;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar-track {
+                    background: #F1F5F9;
+                    border-radius: 10px;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar-thumb {
+                    background: #CBD5E1;
+                    border-radius: 10px;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94A3B8;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `}</style>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
                 <div>
@@ -268,6 +316,7 @@ const BusinessCRM = () => {
                 </div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); closeModal(); setIsModalOpen(true); }}
+                    className="crm-btn"
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.6rem', 
                         padding: '0.85rem 1.75rem', borderRadius: '14px', 
@@ -290,7 +339,7 @@ const BusinessCRM = () => {
                     { label: 'Advance Received', value: `₹${(totalAdvance || 0).toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                    <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', cursor: 'default' }}>
                         <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
                             <stat.icon size={24} />
                         </div>
@@ -304,6 +353,7 @@ const BusinessCRM = () => {
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
                 <button 
                     onClick={() => setActiveTab('list')}
+                    className="crm-btn-secondary"
                     style={{ 
                         padding: '0.75rem 1.5rem', borderRadius: '12px', 
                         background: activeTab === 'list' ? '#064E3B' : 'white', 
@@ -316,26 +366,8 @@ const BusinessCRM = () => {
                     <User size={18} /> Customers List
                 </button>
                 <button 
-                    onClick={() => {
-                        if (!selectedParty) {
-                            alert('Please view ledger for a specific customer from the Actions list first.');
-                            return;
-                        }
-                        setActiveTab('ledger');
-                    }}
-                    style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'ledger' ? '#064E3B' : 'white', 
-                        color: activeTab === 'ledger' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'ledger' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
-                    }}
-                >
-                    <FileText size={18} /> Running Ledger
-                </button>
-                <button 
                     onClick={() => setActiveTab('reports')}
+                    className="crm-btn-secondary"
                     style={{ 
                         padding: '0.75rem 1.5rem', borderRadius: '12px', 
                         background: activeTab === 'reports' ? '#064E3B' : 'white', 
@@ -387,7 +419,7 @@ const BusinessCRM = () => {
                             </thead>
                             <tbody>
                                 {filteredCustomers.map((row) => (
-                                    <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
+                                    <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800' }}>
@@ -429,12 +461,26 @@ const BusinessCRM = () => {
                                             ))}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right', position: 'relative' }}>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === row.id ? null : row.id); }}
-                                                style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            >
-                                                <MoreHorizontal size={18} />
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); viewLedger(row); }}
+                                                    className="crm-btn-secondary"
+                                                    style={{ 
+                                                        display: 'flex', alignItems: 'center', gap: '0.35rem',
+                                                        padding: '0.5rem 1rem', borderRadius: '10px', 
+                                                        border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', 
+                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <FileText size={14} /> View Ledger
+                                                </button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === row.id ? null : row.id); }}
+                                                    style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                >
+                                                    <MoreHorizontal size={18} />
+                                                </button>
+                                            </div>
                                             {activeMenu === row.id && (
                                                 <div style={{ position: 'absolute', right: '2rem', top: '3.5rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, width: '170px', overflow: 'hidden' }}>
                                                     <button 
@@ -472,66 +518,7 @@ const BusinessCRM = () => {
                 </div>
             )}
 
-            {/* Tab 2: Running Ledger */}
-            {activeTab === 'ledger' && selectedParty && (
-                <div style={{ background: 'white', borderRadius: '32px', padding: '2.5rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>{selectedParty.name}</h2>
-                            <p style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '600' }}>Statement of Account — {selectedParty.business_name || 'Personal'}</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', cursor: 'pointer' }}><Download size={18} /> Export PDF</button>
-                            <button onClick={() => handleShareLedger(selectedParty)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', borderRadius: '12px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '700', cursor: 'pointer' }}><Share2 size={18} /> Share WhatsApp</button>
-                        </div>
-                    </div>
 
-                    {/* Ledger summary boxes */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                        <div style={{ padding: '1.5rem', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-                            <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem' }}>OPENING BALANCE</p>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#1E293B' }}>₹{(selectedParty.opening_balance || 0).toLocaleString()}</h3>
-                        </div>
-                        <div style={{ padding: '1.5rem', background: '#FEF2F2', borderRadius: '20px', border: '1px solid #FEE2E2' }}>
-                            <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#B91C1C', marginBottom: '0.5rem' }}>TOTAL CREDIT GIVEN (DEBIT)</p>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#B91C1C' }}>₹{selectedParty.total_sales?.toLocaleString() || 0}</h3>
-                        </div>
-                        <div style={{ padding: '1.5rem', background: (selectedParty.current_balance || 0) > 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-                            <p style={{ fontSize: '0.8rem', fontWeight: '800', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D', marginBottom: '0.5rem' }}>NET OUTSTANDING BALANCE</p>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D' }}>
-                                {(selectedParty.current_balance || 0) > 0 ? `₹${(selectedParty.current_balance || 0).toLocaleString()}` : ((selectedParty.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedParty.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
-                            </h3>
-                        </div>
-                    </div>
-
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ background: '#F8FAFC' }}>
-                                <tr>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Transaction Type</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Details / Reference</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Debit (Invoice/Out)</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Credit (Payment/In)</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Running Balance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(selectedParty.ledger || []).map((tx, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{tx.date}</td>
-                                        <td style={{ padding: '1.25rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{tx.type}</td>
-                                        <td style={{ padding: '1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{tx.reference}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444' }}>{(tx.debit || 0) > 0 ? `₹${(tx.debit || 0).toLocaleString()}` : '-'}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '800', color: '#15803D' }}>{(tx.credit || 0) > 0 ? `₹${(tx.credit || 0).toLocaleString()}` : '-'}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#15803D' }}>₹{(tx.balance || 0).toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
 
             {/* Tab 3: Outstanding Aging & Collection Reports */}
             {activeTab === 'reports' && (
@@ -810,6 +797,93 @@ const BusinessCRM = () => {
                                 Record Transaction
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Ledger Modal */}
+            {isLedgerModalOpen && selectedParty && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(12px)', padding: '2rem' }} onClick={() => setIsLedgerModalOpen(false)}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '900px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', animation: 'fadeIn 0.2s ease-out' }} onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '1.25rem', boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' }}>
+                                    {selectedParty.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0, lineHeight: 1.2 }}>{selectedParty.name}</h2>
+                                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>Statement of Account — {selectedParty.business_name || 'Personal'}</p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <button onClick={() => window.print()} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Download size={16} /> Export PDF</button>
+                                <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
+                                <button onClick={() => setIsLedgerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
+                            </div>
+                        </div>
+
+                        {/* Ledger Summary Bento Box */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+                            <div style={{ padding: '1.25rem', background: '#F8FAFC', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>OPENING BALANCE</p>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>₹{(selectedParty.opening_balance || 0).toLocaleString()}</h3>
+                            </div>
+                            <div style={{ padding: '1.25rem', background: '#FEF2F2', borderRadius: '18px', border: '1px solid #FEE2E2' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B91C1C', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>TOTAL CREDIT GIVEN</p>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#B91C1C', margin: 0 }}>₹{selectedParty.total_sales?.toLocaleString() || 0}</h3>
+                            </div>
+                            <div style={{ padding: '1.25rem', background: (selectedParty.current_balance || 0) > 0 ? '#FEF2F2' : '#F0FDF4', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>NET OUTSTANDING</p>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#15803D', margin: 0 }}>
+                                    {(selectedParty.current_balance || 0) > 0 ? `₹${(selectedParty.current_balance || 0).toLocaleString()}` : ((selectedParty.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedParty.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
+                                </h3>
+                            </div>
+                        </div>
+
+                        {/* Ledger Transactions Table Container */}
+                        <div className="ledger-modal-scrollbar" style={{ border: '1px solid #E2E8F0', borderRadius: '20px', overflowY: 'auto', maxHeight: '380px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
+                                    <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date</th>
+                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Transaction Type</th>
+                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Details / Reference</th>
+                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Debit (Invoice)</th>
+                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Credit (Payment)</th>
+                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Running Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(selectedParty.ledger || []).length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>No transactions recorded for this customer yet.</td>
+                                        </tr>
+                                    ) : (
+                                        (selectedParty.ledger || []).map((tx, idx) => (
+                                            <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>{tx.date}</td>
+                                                <td style={{ padding: '1rem 1.25rem' }}>
+                                                    <span style={{ 
+                                                        display: 'inline-flex', padding: '0.25rem 0.6rem', borderRadius: '6px', 
+                                                        background: tx.type.toLowerCase().includes('payment') ? '#E6F4EA' : '#FCE8E6', 
+                                                        color: tx.type.toLowerCase().includes('payment') ? '#137333' : '#C5221F', 
+                                                        fontSize: '0.75rem', fontWeight: '800'
+                                                    }}>
+                                                        {tx.type}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{tx.reference}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444', fontSize: '0.85rem' }}>{(tx.debit || 0) > 0 ? `₹${(tx.debit || 0).toLocaleString()}` : '-'}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#15803D', fontSize: '0.85rem' }}>{(tx.credit || 0) > 0 ? `₹${(tx.credit || 0).toLocaleString()}` : '-'}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#15803D', fontSize: '0.9rem' }}>₹{(tx.balance || 0).toLocaleString()}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
