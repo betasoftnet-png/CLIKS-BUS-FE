@@ -255,7 +255,7 @@ const BusinessCRM = () => {
     };
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }} onClick={() => setActiveMenu(null)}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }} onClick={() => setActiveMenu(null)}>
             <style>{`
                 .crm-table-row:hover {
                     background-color: #F8FAFC !important;
@@ -304,181 +304,181 @@ const BusinessCRM = () => {
                 }
             `}</style>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
-                            <UserPlus size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' }}>
+                            <UserPlus size={18} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Customers & Udhaar Ledger</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Customers & Udhaar Ledger</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Manage customer profiles, credit limits, record payments, and export transaction statements.</p>
+                    <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Manage customer profiles, credit limits, record payments, and export transaction statements.</p>
                 </div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); closeModal(); setIsModalOpen(true); }}
                     className="crm-btn"
                     style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.6rem', 
-                        padding: '0.85rem 1.75rem', borderRadius: '14px', 
+                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                        padding: '0.5rem 1.1rem', borderRadius: '10px', 
                         background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '700', cursor: 'pointer',
-                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)',
+                        fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)',
                         transition: 'transform 0.2s'
                     }}
                 >
-                    <Plus size={20} />
+                    <Plus size={16} />
                     Add Customer
                 </button>
             </div>
 
             {/* Stats Summary Bento Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Customers', value: customers.length, icon: User, color: '#1B6B3A', bg: '#F0FDF4' },
                     { label: 'Total Outstanding (Receivables)', value: `₹${(totalOutstanding || 0).toLocaleString()}`, icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
                     { label: 'Advance Received', value: `₹${(totalAdvance || 0).toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', cursor: 'default' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} className="stat-card" style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.75rem' }}>
+                            <stat.icon size={18} />
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
 
             {/* Tab Switcher */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <button 
                     onClick={() => setActiveTab('list')}
                     className="crm-btn-secondary"
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                        padding: '0.45rem 1rem', borderRadius: '8px', 
                         background: activeTab === 'list' ? '#064E3B' : 'white', 
                         color: activeTab === 'list' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'list' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'list' ? '0 4px 8px rgba(6, 78, 59, 0.1)' : 'none'
                     }}
                 >
-                    <User size={18} /> Customers List
+                    <User size={16} /> Customers List
                 </button>
                 <button 
                     onClick={() => setActiveTab('reports')}
                     className="crm-btn-secondary"
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                        padding: '0.45rem 1rem', borderRadius: '8px', 
                         background: activeTab === 'reports' ? '#064E3B' : 'white', 
                         color: activeTab === 'reports' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'reports' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'reports' ? '0 4px 8px rgba(6, 78, 59, 0.1)' : 'none'
                     }}
                 >
-                    <BarChart3 size={18} /> Aging & Collection Reports 📊
+                    <BarChart3 size={16} /> Aging & Collection Reports 📊
                 </button>
             </div>
 
             {/* Tab 1: Customers Master List */}
             {loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '300px', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <p style={{ color: '#064E3B', fontSize: '1.15rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '200px', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                    <p style={{ color: '#064E3B', fontSize: '1rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
                 </div>
             ) : activeTab === 'list' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'hidden' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                        <div style={{ position: 'relative', width: '280px' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
                                 placeholder="Search by name, business or phone..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                             />
                         </div>
-                        <button style={{ width: '44px', height: '44px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <Filter size={20} />
+                        <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <Filter size={16} />
                         </button>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                    <div style={{ overflowX: 'auto', padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Business / Contact</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Type</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limit</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outstanding Balance</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Business / Contact</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Type</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limit</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outstanding Balance</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredCustomers.map((row) => (
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '0.9rem' }}>
                                                     {row.name.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem' }}>{row.name}</p>
-                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Code: {row.customer_code}</span>
+                                                    <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0 }}>{row.name}</p>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Code: {row.customer_code}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{row.business_name || 'Personal'}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{row.phone_number}</span>
+                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.82rem', margin: 0 }}>{row.business_name || 'Personal'}</p>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{row.phone_number}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{row.gstin || 'Unregistered'}</p>
-                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{(row.customer_type || 'individual').toUpperCase()}</span>
+                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.8rem', margin: 0 }}>{row.gstin || 'Unregistered'}</p>
+                                                <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{(row.customer_type || 'individual').toUpperCase()}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#475569' }}>₹{(row.credit_limit || 0).toLocaleString()}</span>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>₹{(row.credit_limit || 0).toLocaleString()}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#15803D' : '#475569') }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#15803D' : '#475569') }}>
                                                 {(row.current_balance || 0) > 0 ? `₹${(row.current_balance || 0).toLocaleString()}` : ((row.current_balance || 0) < 0 ? `- ₹${Math.abs(row.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
                                             {(row.current_balance || 0) > (row.credit_limit || 0) ? (
-                                                <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.75rem', fontWeight: '800' }}>LIMIT EXCEEDED</span>
+                                                <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.7rem', fontWeight: '800' }}>LIMIT EXCEEDED</span>
                                             ) : ((row.current_balance || 0) < 0 ? (
-                                                <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#F0FDF4', color: '#15803D', fontSize: '0.75rem', fontWeight: '800' }}>ADVANCE IN</span>
+                                                <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#F0FDF4', color: '#15803D', fontSize: '0.7rem', fontWeight: '800' }}>ADVANCE IN</span>
                                             ) : (
-                                                <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#FFFBEB', color: '#B45309', fontSize: '0.75rem', fontWeight: '800' }}>SAFE CREDIT</span>
+                                                <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FFFBEB', color: '#B45309', fontSize: '0.7rem', fontWeight: '800' }}>SAFE CREDIT</span>
                                             ))}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right', position: 'relative' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', position: 'relative' }}>
+                                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); viewLedger(row); }}
                                                     className="crm-btn-secondary"
                                                     style={{ 
-                                                        display: 'flex', alignItems: 'center', gap: '0.35rem',
-                                                        padding: '0.5rem 1rem', borderRadius: '10px', 
+                                                        display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                                        padding: '0.35rem 0.75rem', borderRadius: '8px', 
                                                         border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#1B6B3A', 
-                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer'
+                                                        fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer'
                                                     }}
                                                 >
-                                                    <FileText size={14} /> View Ledger
+                                                    <FileText size={12} /> View Ledger
                                                 </button>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === row.id ? null : row.id); }}
-                                                    style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                                                 >
-                                                    <MoreHorizontal size={18} />
+                                                    <MoreHorizontal size={14} />
                                                 </button>
                                             </div>
                                             {activeMenu === row.id && (
@@ -522,27 +522,27 @@ const BusinessCRM = () => {
 
             {/* Tab 3: Outstanding Aging & Collection Reports */}
             {activeTab === 'reports' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
                     
                     {/* Left Column - Outstanding & Aging Analysis */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         
                         {/* Outstanding Receivables list */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <AlertTriangle size={20} color="#B91C1C" />
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Outstanding Receivables Ledger</h3>
+                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                <AlertTriangle size={16} color="#B91C1C" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Receivables Ledger</h3>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                 {customers.filter(c => (c.current_balance || 0) > 0).map(c => (
-                                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #FEE2E2' }}>
+                                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', padding: '0.6rem 0.85rem', borderRadius: '10px', border: '1px solid #FEE2E2' }}>
                                         <div>
-                                            <p style={{ fontWeight: '750', color: '#991B1B', fontSize: '0.95rem' }}>{c.name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{c.business_name || ''} | Term: {c.due_days || 30} Days</span>
+                                            <p style={{ fontWeight: '750', color: '#991B1B', fontSize: '0.85rem', margin: 0 }}>{c.name}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{c.business_name || ''} | Term: {c.due_days || 30} Days</span>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '1.05rem' }}>₹{(c.current_balance || 0).toLocaleString()}</p>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: (c.current_balance || 0) > (c.credit_limit || 0) ? '#EF4444' : '#B45309' }}>
+                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '0.9rem', margin: 0 }}>₹{(c.current_balance || 0).toLocaleString()}</p>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: (c.current_balance || 0) > (c.credit_limit || 0) ? '#EF4444' : '#B45309' }}>
                                                 {(c.current_balance || 0) > (c.credit_limit || 0) ? 'OVER CREDIT LIMIT' : 'CREDIT ACTIVE'}
                                             </span>
                                         </div>
@@ -552,20 +552,20 @@ const BusinessCRM = () => {
                         </div>
 
                         {/* Aging Analysis Report */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <Clock size={20} color="#0D9488" />
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Outstanding Aging Reports</h3>
+                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                <Clock size={16} color="#0D9488" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Aging Reports</h3>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                                 {[
-                                    { bucket: '0 – 30 Days Outstanding', val: agingBuckets.bucket30, color: '#15803D', bg: '#F0FDF4' },
-                                    { bucket: '31 – 60 Days Overdue', val: agingBuckets.bucket60, color: '#B45309', bg: '#FFFBEB' },
-                                    { bucket: '61 – 90+ Days Critical', val: agingBuckets.bucket90, color: '#B91C1C', bg: '#FEF2F2' }
+                                    { bucket: '0 – 15 Days', val: agingBuckets.bucket30, color: '#15803D', bg: '#F0FDF4' },
+                                    { bucket: '16 – 30 Days Overdue', val: agingBuckets.bucket60, color: '#B45309', bg: '#FFFBEB' },
+                                    { bucket: '31+ Days Critical', val: agingBuckets.bucket90, color: '#B91C1C', bg: '#FEF2F2' }
                                 ].map((item, i) => (
-                                    <div key={i} style={{ padding: '1.25rem', background: item.bg, borderRadius: '16px', textAlign: 'center' }}>
-                                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>{item.bucket}</p>
-                                        <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: item.color }}>₹{(item.val || 0).toLocaleString()}</h4>
+                                    <div key={i} style={{ padding: '0.75rem', background: item.bg, borderRadius: '10px', textAlign: 'center' }}>
+                                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{item.bucket}</p>
+                                        <h4 style={{ fontSize: '1.1rem', fontWeight: '900', color: item.color, margin: 0 }}>₹{(item.val || 0).toLocaleString()}</h4>
                                     </div>
                                 ))}
                             </div>
@@ -574,38 +574,38 @@ const BusinessCRM = () => {
                     </div>
 
                     {/* Right Column - Top Customers & Collection Efficiency */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         
                         {/* Collection Efficiency */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                            <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B', marginBottom: '1.5rem', width: '100%', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>Collection Efficiency Rate</h3>
-                            <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1rem 0' }}>
-                                <svg style={{ transform: 'rotate(-90deg)', width: '120px', height: '120px' }}>
-                                    <circle cx="60" cy="60" r="50" fill="transparent" stroke="#E2E8F0" strokeWidth="10" />
-                                    <circle cx="60" cy="60" r="50" fill="transparent" stroke="#1B6B3A" strokeWidth="10" 
-                                            strokeDasharray={314}
-                                            strokeDashoffset={314 - (314 * collectionEfficiency) / 100}
+                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                            <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.75rem', width: '100%', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem', margin: 0 }}>Collection Efficiency Rate</h3>
+                            <div style={{ position: 'relative', width: '90px', height: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.5rem 0' }}>
+                                <svg style={{ transform: 'rotate(-90deg)', width: '90px', height: '90px' }}>
+                                    <circle cx="45" cy="45" r="38" fill="transparent" stroke="#E2E8F0" strokeWidth="8" />
+                                    <circle cx="45" cy="45" r="38" fill="transparent" stroke="#1B6B3A" strokeWidth="8" 
+                                            strokeDasharray={238}
+                                            strokeDashoffset={238 - (238 * collectionEfficiency) / 100}
                                             strokeLinecap="round" />
                                 </svg>
-                                <span style={{ position: 'absolute', fontSize: '1.5rem', fontWeight: '900', color: '#064E3B' }}>{collectionEfficiency}%</span>
+                                <span style={{ position: 'absolute', fontSize: '1.2rem', fontWeight: '900', color: '#064E3B' }}>{collectionEfficiency}%</span>
                             </div>
-                            <p style={{ color: '#475569', fontSize: '0.85rem', fontWeight: '600', marginTop: '0.5rem' }}>Collection efficiency indicates recovered payments out of overall credit sales.</p>
+                            <p style={{ color: '#475569', fontSize: '0.78rem', fontWeight: '600', marginTop: '0.25rem', margin: 0 }}>Collection efficiency indicates recovered payments out of overall credit sales.</p>
                         </div>
 
                         {/* Top customer sales trends */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <TrendingUp size={18} color="#1B6B3A" />
-                                <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>Top Customer Sales Contribution</h3>
+                        <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
+                                <TrendingUp size={16} color="#1B6B3A" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Top Customer Sales Contribution</h3>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {customers.map((cust, i) => (
                                     <div key={i}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
                                             <span style={{ color: '#064E3B' }}>₹{(cust.total_sales || 0).toLocaleString()}</span>
                                         </div>
-                                        <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
+                                        <div style={{ height: '5px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #0D9488 100%)', width: `${Math.min(100, ((cust.total_sales || 0) / Math.max(...customers.map(c => c.total_sales || 1))) * 100)}%` }}></div>
                                         </div>
                                     </div>
