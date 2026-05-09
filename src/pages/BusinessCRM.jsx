@@ -56,6 +56,8 @@ const BusinessCRM = () => {
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [selectedProfileCustomer, setSelectedProfileCustomer] = useState(null);
     const [selectedParty, setSelectedParty] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
@@ -510,7 +512,7 @@ const BusinessCRM = () => {
                                 {filteredCustomers.map((row) => (
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => { setSelectedProfileCustomer(row); setIsProfileModalOpen(true); }} title="View Customer Profile">
                                                 {(() => {
                                                     const col = getAvatarColors(row.name);
                                                     return (
@@ -988,6 +990,141 @@ const BusinessCRM = () => {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Customer Profile Details Modal */}
+            {isProfileModalOpen && selectedProfileCustomer && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(12px)', padding: '2rem' }} onClick={() => setIsProfileModalOpen(false)}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '750px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', animation: 'fadeIn 0.2s ease-out', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                {(() => {
+                                    const col = getAvatarColors(selectedProfileCustomer.name);
+                                    return (
+                                        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: col.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: col.text, fontWeight: '800', fontSize: '1.5rem', border: `1px solid ${col.text}1F`, boxShadow: `0 4px 10px ${col.text}15` }}>
+                                            {selectedProfileCustomer.name.charAt(0)}
+                                        </div>
+                                    );
+                                })()}
+                                <div>
+                                    <h2 style={{ fontSize: '1.6rem', fontWeight: '850', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{selectedProfileCustomer.name}</h2>
+                                    <span style={{ display: 'inline-flex', padding: '0.2rem 0.5rem', borderRadius: '6px', background: selectedProfileCustomer.status === 'inactive' ? '#F1F5F9' : '#E6F4EA', color: selectedProfileCustomer.status === 'inactive' ? '#64748B' : '#137333', fontSize: '0.75rem', fontWeight: '800', marginTop: '4px', textTransform: 'uppercase' }}>
+                                        {selectedProfileCustomer.status || 'ACTIVE'}
+                                    </span>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsProfileModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s' }}><X size={18} /></button>
+                        </div>
+
+                        {/* Profile Details Content Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            
+                            {/* Left Side: General & Business Info */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ background: '#F8FAFC', borderRadius: '20px', padding: '1.25rem', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', margin: '0 0 1rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Business Information</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>BUSINESS NAME</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.business_name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CUSTOMER CODE</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.customer_code || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CUSTOMER TYPE</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800', textTransform: 'capitalize' }}>{selectedProfileCustomer.customer_type || 'Retail'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#F8FAFC', borderRadius: '20px', padding: '1.25rem', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', margin: '0 0 1rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Information</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>PHONE NUMBER</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.phone_number || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>EMAIL ADDRESS</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.email || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>PREFERRED CONTACT</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.preferred_contact || 'WhatsApp'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Side: Financial & Tax Info */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ background: '#F8FAFC', borderRadius: '20px', padding: '1.25rem', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', margin: '0 0 1rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Financial Details</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CREDIT LIMIT</p>
+                                            <p style={{ fontSize: '0.95rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>₹{(selectedProfileCustomer.credit_limit || 0).toLocaleString()}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>OUTSTANDING BALANCE</p>
+                                            <p style={{ fontSize: '1rem', color: (selectedProfileCustomer.current_balance || 0) > 0 ? '#B91C1C' : ((selectedProfileCustomer.current_balance || 0) < 0 ? '#15803D' : '#475569'), margin: '2px 0 0 0', fontWeight: '900' }}>
+                                                {(selectedProfileCustomer.current_balance || 0) > 0 ? `₹${(selectedProfileCustomer.current_balance || 0).toLocaleString()}` : ((selectedProfileCustomer.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedProfileCustomer.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>DUE DAYS</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.due_days || 30} Days</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#F8FAFC', borderRadius: '20px', padding: '1.25rem', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', margin: '0 0 1rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tax Details</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>GSTIN / TAX ID</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.gstin || 'Unregistered'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>PAN NUMBER</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.pan_number || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>PLACE OF SUPPLY</p>
+                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.place_of_supply || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Addresses & Notes full width section */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
+                            {selectedProfileCustomer.billing_address && (
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '800', textTransform: 'uppercase' }}>BILLING ADDRESS</p>
+                                    <p style={{ fontSize: '0.88rem', color: '#334155', margin: '4px 0 0 0', fontWeight: '600', lineHeight: 1.4 }}>{selectedProfileCustomer.billing_address}</p>
+                                </div>
+                            )}
+                            {selectedProfileCustomer.shipping_address && (
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '800', textTransform: 'uppercase' }}>SHIPPING ADDRESS</p>
+                                    <p style={{ fontSize: '0.88rem', color: '#334155', margin: '4px 0 0 0', fontWeight: '600', lineHeight: 1.4 }}>{selectedProfileCustomer.shipping_address}</p>
+                                </div>
+                            )}
+                            {selectedProfileCustomer.notes && (
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '800', textTransform: 'uppercase' }}>REMARKS / NOTES</p>
+                                    <p style={{ fontSize: '0.88rem', color: '#475569', margin: '4px 0 0 0', fontWeight: '500', fontStyle: 'italic', lineHeight: 1.4, background: '#FFFBEB', padding: '0.75rem 1rem', borderRadius: '12px', borderLeft: '4px solid #F59E0B' }}>{selectedProfileCustomer.notes}</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
