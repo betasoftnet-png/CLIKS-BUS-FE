@@ -86,48 +86,48 @@ const BusinessReports = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
                             <BarChart3 size={18} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Business Reports</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Business Reports</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontWeight: '500', fontSize: '0.85rem', margin: 0 }}>Comprehensive analytical insights into every aspect of your operations.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Comprehensive analytical insights into every aspect of your operations.</p>
                 </div>
             </div>
 
             {/* Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Sales Revenue', value: summary?.total_sales ? `₹${parseFloat(summary.total_sales).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#BE185D', bg: '#FCE7F3' },
-                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? `₹${parseFloat(summary.total_purchases).toLocaleString()}` : '₹0', icon: Package, color: '#1D4ED8', bg: '#EFF6FF' },
-                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? `₹${parseFloat(summary.total_expenses).toLocaleString()}` : '₹0', icon: FileText, color: '#EF4444', bg: '#FEE2E2' }
+                    { label: 'Total Sales Revenue', value: summary?.total_sales ? `₹${parseFloat(summary.total_sales).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? `₹${parseFloat(summary.total_purchases).toLocaleString()}` : '₹0', icon: Package, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? `₹${parseFloat(summary.total_expenses).toLocaleString()}` : '₹0', icon: FileText, color: '#EF4444', bg: '#FEF2F2' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
-                            <stat.icon size={22} />
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <div>
-                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.15rem', margin: 0 }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>{stat.value}</h3>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Category Switcher */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 {reportCategories.map(cat => (
                     <button 
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
                         style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', 
-                            borderRadius: '8px', border: 'none',
-                            background: activeCategory === cat.id ? '#F1F5F9' : 'transparent',
-                            color: activeCategory === cat.id ? '#0F172A' : '#64748B',
-                            fontWeight: '750', cursor: 'pointer', transition: 'all 0.2s',
-                            whiteSpace: 'nowrap', fontSize: '0.85rem'
+                            padding: '0.5rem 1rem', borderRadius: '8px', 
+                            background: activeCategory === cat.id ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white', 
+                            color: activeCategory === cat.id ? 'white' : '#64748B',
+                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            boxShadow: activeCategory === cat.id ? '0 4px 10px rgba(236, 72, 153, 0.15)' : 'none'
                         }}
                     >
                         <cat.icon size={16} />

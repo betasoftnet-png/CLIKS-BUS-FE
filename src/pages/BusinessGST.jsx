@@ -202,32 +202,32 @@ const BusinessGST = () => {
     );
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.15)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
                             <PercentCircle size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>GST & Tax Compliance</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Prepare returns, authenticate IRN e-Invoices, dispatch e-Way Bills, and reconcile purchase ITC.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Prepare returns, authenticate IRN e-Invoices, dispatch e-Way Bills, and reconcile purchase ITC.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
                         onClick={() => setIsEwayModalOpen(true)}
                         className="crm-btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'white', color: '#1D4ED8', border: '1px solid #DBEAFE', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 8px rgba(0,0,0,0.02)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Truck size={16} /> Generate e-Way Bill
+                        <Truck size={15} /> Generate e-Way Bill
                     </button>
                     <button 
                         onClick={() => setIsInvoiceModalOpen(true)}
                         className="crm-btn"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
                     >
-                        <Plus size={16} /> Generate e-Invoice
+                        <Plus size={15} /> Generate e-Invoice
                     </button>
                 </div>
             </div>
@@ -252,17 +252,17 @@ const BusinessGST = () => {
             {/* Quick Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Output GST Collected', value: `₹${totalOutputGSTCollected.toLocaleString()}`, icon: ArrowUpRight, color: '#1D4ED8', bg: '#EFF6FF' },
+                    { label: 'Total Output GST Collected', value: `₹${totalOutputGSTCollected.toLocaleString()}`, icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Eligible ITC (Claimed GSTR-2B)', value: `₹${totalITCClaimable.toLocaleString()}`, icon: ArrowDownRight, color: '#10B981', bg: '#ECFDF5' },
                     { label: 'Net GST Payable Liability', value: `₹${netTaxPayable.toLocaleString()}`, icon: PercentCircle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Cumulative Taxable Sales', value: `₹${totalTaxableSales.toLocaleString()}`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
+                    { label: 'Cumulative Taxable Sales', value: `₹${totalTaxableSales.toLocaleString()}`, icon: FileText, color: '#3B82F6', bg: '#EFF6FF' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                             <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
                             <stat.icon size={20} />
                         </div>
                     </div>
@@ -270,23 +270,23 @@ const BusinessGST = () => {
             </div>
 
             {/* Tab Swappers */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', padding: '0.25rem', background: '#F1F5F9', borderRadius: '10px', width: 'fit-content' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 {[
-                    { id: 'returns', label: 'Returns Outward (GSTR-1)', icon: FileText },
-                    { id: 'itc', label: 'Input Tax Reconciliation', icon: RefreshCw },
-                    { id: 'einvoice', label: 'e-Invoicing IRN QR', icon: QrCode },
-                    { id: 'eway', label: 'e-Way Bills Logistics', icon: Truck }
+                    { id: 'returns', label: 'Returns Outward (GSTR-1)', icon: FileText, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
+                    { id: 'itc', label: 'Input Tax Reconciliation', icon: RefreshCw, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
+                    { id: 'einvoice', label: 'e-Invoicing IRN QR', icon: QrCode, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
+                    { id: 'eway', label: 'e-Way Bills Logistics', icon: Truck, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
                 ].map(tab => (
                     <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         style={{ 
-                            padding: '0.45rem 1rem', borderRadius: '8px', border: 'none', 
-                            background: activeTab === tab.id ? '#D97706' : 'transparent', 
+                            padding: '0.5rem 1rem', borderRadius: '8px', 
+                            background: activeTab === tab.id ? tab.gradient : 'white', 
                             color: activeTab === tab.id ? 'white' : '#64748B',
-                            fontWeight: '800', cursor: 'pointer', transition: 'all 0.15s',
-                            textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em',
-                            display: 'flex', alignItems: 'center', gap: '0.4rem'
+                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            boxShadow: activeTab === tab.id ? `0 4px 10px ${tab.shadowColor}` : 'none'
                         }}
                     >
                         <tab.icon size={16} /> {tab.label}

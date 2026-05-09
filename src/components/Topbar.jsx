@@ -3,7 +3,7 @@ import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users } from 'lucide-
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
-import logoPng from '../assets/cliks3.png'; // Final branding
+import logoPng from '../assets/cliks4.png'; // Final branding
 
 import { ProfileDropdown } from './ProfileDropdown';
 
