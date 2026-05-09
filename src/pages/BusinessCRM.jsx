@@ -89,7 +89,11 @@ const BusinessCRM = () => {
             setLoading(true);
             const res = await crmService.getCustomers();
             if (res && res.success) {
-                setCustomers(res.data || []);
+                const mapped = (res.data || []).map(c => ({
+                    ...c,
+                    current_balance: c.current_balance !== undefined ? c.current_balance : (c.outstanding_balance || 0)
+                }));
+                setCustomers(mapped);
             }
         } catch (error) {
             console.error('Failed to load customers:', error);
@@ -162,9 +166,38 @@ const BusinessCRM = () => {
         try {
             const ledgerRes = await crmService.getLedger(party.id);
             const ledgerData = (ledgerRes && ledgerRes.success) ? ledgerRes.data : [];
+            
+            // Process ledger data to compute running balance and map fields
+            const sorted = [...ledgerData].reverse(); // Oldest first
+            let running = parseFloat(party.opening_balance) || 0;
+            const processed = sorted.map(tx => {
+                const type = tx.type || 'credit';
+                const amt = parseFloat(tx.amount) || 0;
+                const debit = type.toLowerCase() === 'debit' ? amt : 0;
+                const credit = type.toLowerCase() === 'credit' ? amt : 0;
+                running = running + debit - credit;
+                
+                let dStr = tx.date || '';
+                if (!dStr && tx.created_at) {
+                    dStr = tx.created_at.includes('T') ? tx.created_at.split('T')[0] : tx.created_at;
+                }
+                
+                return {
+                    ...tx,
+                    date: dStr,
+                    type: type.toUpperCase(),
+                    reference: tx.description || tx.reference || 'N/A',
+                    debit: debit,
+                    credit: credit,
+                    balance: running
+                };
+            });
+            const finalLedger = processed.reverse(); // Newest first
+
             setSelectedParty({
                 ...party,
-                ledger: ledgerData
+                current_balance: party.current_balance !== undefined ? party.current_balance : (party.outstanding_balance || 0),
+                ledger: finalLedger
             });
             setIsLedgerModalOpen(true);
             setActiveMenu(null);
@@ -172,6 +205,7 @@ const BusinessCRM = () => {
             console.error('Failed to fetch ledger:', err);
             setSelectedParty({
                 ...party,
+                current_balance: party.current_balance !== undefined ? party.current_balance : (party.outstanding_balance || 0),
                 ledger: []
             });
             setIsLedgerModalOpen(true);
@@ -217,9 +251,37 @@ const BusinessCRM = () => {
             // Reload selected party ledger
             const ledgerRes = await crmService.getLedger(selectedParty.id);
             if (ledgerRes && ledgerRes.success) {
+                const ledgerData = ledgerRes.data || [];
+                const sorted = [...ledgerData].reverse();
+                let running = parseFloat(selectedParty.opening_balance) || 0;
+                const processed = sorted.map(tx => {
+                    const type = tx.type || 'credit';
+                    const amtVal = parseFloat(tx.amount) || 0;
+                    const debit = type.toLowerCase() === 'debit' ? amtVal : 0;
+                    const credit = type.toLowerCase() === 'credit' ? amtVal : 0;
+                    running = running + debit - credit;
+                    
+                    let dStr = tx.date || '';
+                    if (!dStr && tx.created_at) {
+                        dStr = tx.created_at.includes('T') ? tx.created_at.split('T')[0] : tx.created_at;
+                    }
+                    
+                    return {
+                        ...tx,
+                        date: dStr,
+                        type: type.toUpperCase(),
+                        reference: tx.description || tx.reference || 'N/A',
+                        debit: debit,
+                        credit: credit,
+                        balance: running
+                    };
+                });
+                const finalLedger = processed.reverse();
+
                 setSelectedParty({
                     ...selectedParty,
-                    ledger: ledgerRes.data || []
+                    current_balance: selectedParty.current_balance !== undefined ? selectedParty.current_balance : (selectedParty.outstanding_balance || 0),
+                    ledger: finalLedger
                 });
             }
         } catch (err) {
