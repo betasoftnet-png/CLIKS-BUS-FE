@@ -2145,6 +2145,15 @@ th {
         width: 100%;
         margin: 0;
         padding: 0;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+    .ledger-modal-scrollbar {
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        overflow-y: visible !important;
     }
     .print-only {
         display: block !important;
