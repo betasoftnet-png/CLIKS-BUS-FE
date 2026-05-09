@@ -34,6 +34,22 @@ import {
 import '../App.css';
 import { crmService } from '../services/crmService';
 
+const AVATAR_COLORS = [
+    { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue
+    { bg: '#FCE8E6', text: '#C5221F' }, // Rose / Red
+    { bg: '#FEF3C7', text: '#B45309' }, // Amber / Yellow
+    { bg: '#F3E8FF', text: '#6B21A8' }, // Purple
+    { bg: '#E6F4EA', text: '#137333' }, // Emerald / Green
+    { bg: '#ECE9FC', text: '#4F46E5' }, // Indigo
+    { bg: '#E0F2F1', text: '#00695C' }, // Teal
+];
+
+const getAvatarColors = (name) => {
+    const charCode = (name || 'C').charCodeAt(0);
+    const index = charCode % AVATAR_COLORS.length;
+    return AVATAR_COLORS[index];
+};
+
 const BusinessCRM = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -194,9 +210,13 @@ const BusinessCRM = () => {
             });
             const finalLedger = processed.reverse(); // Newest first
 
+            const totalCreditGiven = finalLedger.reduce((sum, tx) => sum + (tx.debit || 0), 0);
+            const netOutstanding = finalLedger.length > 0 ? finalLedger[0].balance : (parseFloat(party.opening_balance) || 0);
+
             setSelectedParty({
                 ...party,
-                current_balance: party.current_balance !== undefined ? party.current_balance : (party.outstanding_balance || 0),
+                total_sales: totalCreditGiven,
+                current_balance: netOutstanding,
                 ledger: finalLedger
             });
             setIsLedgerModalOpen(true);
@@ -279,9 +299,13 @@ const BusinessCRM = () => {
                 });
                 const finalLedger = processed.reverse();
 
+                const totalCreditGiven = finalLedger.reduce((sum, tx) => sum + (tx.debit || 0), 0);
+                const netOutstanding = finalLedger.length > 0 ? finalLedger[0].balance : (parseFloat(selectedParty.opening_balance) || 0);
+
                 setSelectedParty({
                     ...selectedParty,
-                    current_balance: selectedParty.current_balance !== undefined ? selectedParty.current_balance : (selectedParty.outstanding_balance || 0),
+                    total_sales: totalCreditGiven,
+                    current_balance: netOutstanding,
                     ledger: finalLedger
                 });
             }
@@ -373,7 +397,7 @@ const BusinessCRM = () => {
                         <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' }}>
                             <UserPlus size={18} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Customers & Udhaar Ledger</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Customers & Udhaar Ledger</h1>
                     </div>
                     <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Manage customer profiles, credit limits, record payments, and export transaction statements.</p>
                 </div>
@@ -487,9 +511,14 @@ const BusinessCRM = () => {
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '0.9rem' }}>
-                                                    {row.name.charAt(0)}
-                                                </div>
+                                                {(() => {
+                                                    const col = getAvatarColors(row.name);
+                                                    return (
+                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: col.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: col.text, fontWeight: '800', fontSize: '0.9rem', border: `1px solid ${col.text}1F` }}>
+                                                            {row.name.charAt(0)}
+                                                        </div>
+                                                    );
+                                                })()}
                                                 <div>
                                                     <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0 }}>{row.name}</p>
                                                     <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Code: {row.customer_code}</span>
@@ -880,9 +909,14 @@ const BusinessCRM = () => {
                         {/* Modal Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '1.25rem', boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' }}>
-                                    {selectedParty.name.charAt(0)}
-                                </div>
+                                {(() => {
+                                    const col = getAvatarColors(selectedParty.name);
+                                    return (
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: col.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: col.text, fontWeight: '800', fontSize: '1.25rem', border: `1px solid ${col.text}1F`, boxShadow: `0 4px 10px ${col.text}15` }}>
+                                            {selectedParty.name.charAt(0)}
+                                        </div>
+                                    );
+                                })()}
                                 <div>
                                     <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0, lineHeight: 1.2 }}>{selectedParty.name}</h2>
                                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>Statement of Account — {selectedParty.business_name || 'Personal'}</p>
@@ -938,8 +972,8 @@ const BusinessCRM = () => {
                                                 <td style={{ padding: '1rem 1.25rem' }}>
                                                     <span style={{ 
                                                         display: 'inline-flex', padding: '0.25rem 0.6rem', borderRadius: '6px', 
-                                                        background: tx.type.toLowerCase().includes('payment') ? '#E6F4EA' : '#FCE8E6', 
-                                                        color: tx.type.toLowerCase().includes('payment') ? '#137333' : '#C5221F', 
+                                                        background: tx.type.toLowerCase() === 'credit' ? '#E6F4EA' : '#FCE8E6', 
+                                                        color: tx.type.toLowerCase() === 'credit' ? '#137333' : '#C5221F', 
                                                         fontSize: '0.75rem', fontWeight: '800'
                                                     }}>
                                                         {tx.type}
