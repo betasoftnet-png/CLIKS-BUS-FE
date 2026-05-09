@@ -262,73 +262,73 @@ const BusinessStock = () => {
     const lowStockAlertsCount = stocks.filter(s => s.current_stock <= s.reorder_level).length;
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)' }}>
-                            <Layers size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                            <Layers size={20} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Stock & Inventory Valuation</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Stock & Inventory Valuation</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Real-time inventory engine, multi-warehouse branch transfers, batch expiries, FIFO valuation, and reorder levels.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Real-time inventory engine, multi-warehouse branch transfers, batch expiries, FIFO valuation, and reorder levels.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
                         onClick={() => setIsAdjustmentModalOpen(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Sliders size={16} /> Adjust Stock Counts
+                        <Sliders size={15} /> Adjust Stock Counts
                     </button>
                     <button 
                         onClick={() => setIsTransferModalOpen(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <ArrowRightLeft size={16} /> Warehouse Transfer
+                        <ArrowRightLeft size={15} /> Warehouse Transfer
                     </button>
                 </div>
             </div>
 
             {/* Live Metrics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Inventory Valuation (Cost basis)', value: `₹${totalInventoryValue.toLocaleString()}`, icon: DollarSign, color: '#1B6B3A', bg: '#F0FDF4' },
+                    { label: 'Total Inventory Valuation (Cost basis)', value: `₹${totalInventoryValue.toLocaleString()}`, icon: DollarSign, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Low Stock Alerts (Reorder Level)', value: `${lowStockAlertsCount} Items`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Total Warehouses Registered', value: `${dbWarehouses.length} Registered`, icon: Warehouse, color: '#2563EB', bg: '#EFF6FF' },
-                    { label: 'Dynamic In-Transit Stock', value: `${transfers.length} Transfers`, icon: Activity, color: '#7C3AED', bg: '#F5F3FF' }
+                    { label: 'Total Warehouses Registered', value: `${dbWarehouses.length} Registered`, icon: Warehouse, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Dynamic In-Transit Stock', value: `${transfers.length} Transfers`, icon: Activity, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.5rem' }}>
+                            <stat.icon size={20} />
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
 
             {/* Tab Swappers */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 {[
-                    { id: 'registry', label: 'Stock Registry & Valuation', icon: Layers },
-                    { id: 'movement', label: 'Inward & Outward Logs', icon: Activity },
-                    { id: 'warehouse', label: 'Warehouse Transfers', icon: Warehouse },
-                    { id: 'batch', label: 'Batches & Expiries', icon: Calendar }
+                    { id: 'registry', label: 'Stock Registry & Valuation', icon: Layers, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
+                    { id: 'movement', label: 'Inward & Outward Logs', icon: Activity, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
+                    { id: 'warehouse', label: 'Warehouse Transfers', icon: Warehouse, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
+                    { id: 'batch', label: 'Batches & Expiries', icon: Calendar, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
                 ].map(tab => (
                     <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         style={{ 
-                            padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                            background: activeTab === tab.id ? '#064E3B' : 'white', 
-                            color: activeTab === tab.id ? 'white' : '#475569',
-                            border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                            padding: '0.5rem 1rem', borderRadius: '8px', 
+                            background: activeTab === tab.id ? tab.gradient : 'white', 
+                            color: activeTab === tab.id ? 'white' : '#64748B',
+                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            boxShadow: activeTab === tab.id ? `0 4px 10px ${tab.shadowColor}` : 'none'
                         }}
                     >
-                        <tab.icon size={18} /> {tab.label}
+                        <tab.icon size={16} /> {tab.label}
                     </button>
                 ))}
             </div>

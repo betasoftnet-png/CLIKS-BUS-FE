@@ -266,74 +266,74 @@ const BusinessStaffing = () => {
     }
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)' }}>
-                            <Users size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                            <Users size={20} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>HR Staff & Employees Database</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>HR Staff & Employees Database</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Manage whole workforce life cycle: Central Profiles database, Employment designations, Payroll PF/ESI bank accounts, Leaves, Shifts, and Performance ratings.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage whole workforce life cycle: Central Profiles database, Employment designations, Payroll PF/ESI bank accounts, Leaves, Shifts, and Performance ratings.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
                         onClick={() => setIsPerformanceModalOpen(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Award size={16} /> File Appraisal Review
+                        <Award size={15} /> File Appraisal Review
                     </button>
                     <button 
                         onClick={() => setIsOnboardModalOpen(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
                     >
-                        <UserPlus size={16} /> Onboard Staff Employee
+                        <UserPlus size={15} /> Onboard Staff Employee
                     </button>
                 </div>
             </div>
 
             {/* Workforce Performance Metrics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Active Headcount', value: `${totalHeadcount} Employees`, icon: Users, color: '#1B6B3A', bg: '#F0FDF4' },
-                    { label: 'Monthly Basic Payroll', value: `₹${totalMonthlyPayroll.toLocaleString()}`, icon: CreditCard, color: '#2563EB', bg: '#EFF6FF' },
-                    { label: 'Workforce Satisfaction/Perf Index', value: `${averageRating} / 5.0 Rating`, icon: Award, color: '#F59E0B', bg: '#FFFBEB' },
+                    { label: 'Total Active Headcount', value: `${totalHeadcount} Employees`, icon: Users, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Monthly Basic Payroll', value: `₹${totalMonthlyPayroll.toLocaleString()}`, icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Workforce Satisfaction/Perf Index', value: `${averageRating} / 5.0 Rating`, icon: Award, color: '#8B5CF6', bg: '#F5F3FF' },
                     { label: 'Assigned Shifts & Rosters', className: 'rosters', value: 'General (9AM - 6PM)', icon: Clock, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.5rem' }}>
+                            <stat.icon size={20} />
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
 
             {/* Tab Swappers */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 {[
-                    { id: 'profiles', label: 'Employee Profiles', icon: User },
-                    { id: 'employment', label: 'Hierarchy & Employment', icon: Building2 },
-                    { id: 'payroll', label: 'Payroll & Bank Details', icon: CreditCard },
-                    { id: 'leaves', label: 'Leaves & Shifts Rosters', icon: Calendar },
-                    { id: 'performance', label: 'Performance Appraisals', icon: Award }
+                    { id: 'profiles', label: 'Employee Profiles', icon: User, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
+                    { id: 'employment', label: 'Hierarchy & Employment', icon: Building2, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
+                    { id: 'payroll', label: 'Payroll & Bank Details', icon: CreditCard, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
+                    { id: 'leaves', label: 'Leaves & Shifts Rosters', icon: Calendar, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
+                    { id: 'performance', label: 'Performance Appraisals', icon: Award, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' }
                 ].map(tab => (
                     <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         style={{ 
-                            padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                            background: activeTab === tab.id ? '#064E3B' : 'white', 
-                            color: activeTab === tab.id ? 'white' : '#475569',
-                            border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                            padding: '0.5rem 1rem', borderRadius: '8px', 
+                            background: activeTab === tab.id ? tab.gradient : 'white', 
+                            color: activeTab === tab.id ? 'white' : '#64748B',
+                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            boxShadow: activeTab === tab.id ? `0 4px 10px ${tab.shadowColor}` : 'none'
                         }}
                     >
-                        <tab.icon size={18} /> {tab.label}
+                        <tab.icon size={16} /> {tab.label}
                     </button>
                 ))}
             </div>

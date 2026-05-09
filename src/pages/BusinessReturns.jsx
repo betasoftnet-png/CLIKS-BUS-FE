@@ -226,92 +226,92 @@ const BusinessReturns = () => {
     const pendingInspectionsCount = salesReturns.filter(sr => sr.inspection_status === 'Pending Check').length;
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
-                            <ArrowDownRight size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                            <ArrowDownRight size={20} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Returns, Refunds & Exchanges</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Returns & Debit Notes</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Manage customer sales returns, defective supplier returns, replacements, credit notes, and damage segregation.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage customer sales returns, defective supplier returns, replacements, credit notes, and damage segregation.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
                         onClick={() => { setCreateReturnType('sales'); setFormHeader({ ...formHeader, return_number: `SRN-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Plus size={16} /> New Customer Return
+                        <Plus size={15} /> New Customer Return
                     </button>
                     <button 
                         onClick={() => { setCreateReturnType('purchase'); setFormHeader({ ...formHeader, return_number: `PRN-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#B91C1C', border: '1px solid #FEE2E2', fontWeight: '700', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Plus size={16} /> New Supplier Return
+                        <Plus size={15} /> New Supplier Return
                     </button>
                 </div>
             </div>
 
             {/* Stats Dashboard */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Customer Refunds (Sales Returns)', value: `₹${totalSalesReturnedAmt.toLocaleString()}`, icon: ArrowDownRight, color: '#1B6B3A', bg: '#F0FDF4' },
-                    { label: 'Recovered from Suppliers', value: `₹${totalPurchaseReturnedAmt.toLocaleString()}`, icon: RefreshCw, color: '#B45309', bg: '#FFFBEB' },
-                    { label: 'Pending Inspections', value: pendingInspectionsCount, icon: ShieldAlert, color: '#BE123C', bg: '#FFF1F2' },
-                    { label: 'Stock Recalculations', value: 'Active', icon: Activity, color: '#0D9488', bg: '#F0FDFA' }
+                    { label: 'Customer Refunds (Sales)', value: `₹${totalSalesReturnedAmt.toLocaleString()}`, icon: ArrowDownRight, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Recovered from Suppliers', value: `₹${totalPurchaseReturnedAmt.toLocaleString()}`, icon: RefreshCw, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Pending Inspections', value: pendingInspectionsCount, icon: ShieldAlert, color: '#F59E0B', bg: '#FEF3C7' },
+                    { label: 'Stock Recalculations', value: 'Active', icon: Activity, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.5rem' }}>
+                            <stat.icon size={20} />
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
 
             {/* Navigation Switchers */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <button 
                     onClick={() => setActiveTab('sales')}
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'sales' ? '#064E3B' : 'white', 
-                        color: activeTab === 'sales' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'sales' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'sales' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white', 
+                        color: activeTab === 'sales' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'sales' ? '0 4px 10px rgba(236, 72, 153, 0.15)' : 'none'
                     }}
                 >
-                    <Package size={18} /> Sales Returns (Customers)
+                    <Package size={16} /> Sales Returns (Customers)
                 </button>
                 <button 
                     onClick={() => setActiveTab('purchase')}
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'purchase' ? '#064E3B' : 'white', 
-                        color: activeTab === 'purchase' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'purchase' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'purchase' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : 'white', 
+                        color: activeTab === 'purchase' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'purchase' ? '0 4px 10px rgba(59, 130, 246, 0.15)' : 'none'
                     }}
                 >
-                    <ShoppingCart size={18} /> Purchase Returns (Suppliers)
+                    <ShoppingCart size={16} /> Purchase Returns (Suppliers)
                 </button>
                 <button 
                     onClick={() => setActiveTab('warranty')}
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'warranty' ? '#064E3B' : 'white', 
-                        color: activeTab === 'warranty' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'warranty' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'warranty' ? 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)' : 'white', 
+                        color: activeTab === 'warranty' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'warranty' ? '0 4px 10px rgba(139, 92, 246, 0.15)' : 'none'
                     }}
                 >
-                    <Wrench size={18} /> Warranty & Replacement Claims
+                    <Wrench size={16} /> Warranty & Replacement Claims
                 </button>
             </div>
 

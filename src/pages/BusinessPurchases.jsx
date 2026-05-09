@@ -285,98 +285,98 @@ const BusinessPurchases = () => {
     const totalReturnedRefundsSum = purchaseReturns.reduce((acc, r) => acc + r.returned_items.reduce((sum, item) => sum + item.refund_amount, 0), 0);
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
-                            <ShoppingCart size={22} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                            <ShoppingCart size={20} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Purchases Hub</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Purchases Hub</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Manage vendor procurement cycles, GST input tax credits, multi-warehouse receiving, and purchase returns.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage vendor procurement cycles, GST input tax credits, multi-warehouse receiving, and purchase returns.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
                         onClick={() => { setCreateDocType('PO'); setFormHeader({ ...formHeader, purchase_number: `PO-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Plus size={16} /> New PO
+                        <Plus size={15} /> New PO
                     </button>
                     <button 
                         onClick={() => { setCreateDocType('BILL'); setFormHeader({ ...formHeader, purchase_number: `BILL-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#064E3B', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Plus size={16} /> New Purchase Bill
+                        <Plus size={15} /> New Purchase Bill
                     </button>
                     <button 
                         onClick={() => { setCreateDocType('RETURN'); setFormHeader({ ...formHeader, purchase_number: `RET-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#B91C1C', border: '1px solid #FEE2E2', fontWeight: '700', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#8B5CF6', border: '1px solid #EDE9FE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
-                        <Plus size={16} /> Purchase Return
+                        <Plus size={15} /> Purchase Return
                     </button>
                 </div>
             </div>
 
             {/* Vyapar ERP Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Outward Procurement (At Cost)', value: `₹${totalOutwardPayments.toLocaleString()}`, icon: TrendingUp, color: '#1B6B3A', bg: '#F0FDF4' },
-                    { label: 'Active PO Cycles', value: activePurchaseOrdersCount, icon: ShoppingCart, color: '#B45309', bg: '#FFFBEB' },
-                    { label: 'Claimable Input Tax Credit (ITC)', value: `₹${inputGstCreditSum.toLocaleString()}`, icon: PercentCircle, color: '#0369A1', bg: '#F0F9FF' },
-                    { label: 'Refund Adjustments', value: `₹${totalReturnedRefundsSum.toLocaleString()}`, icon: RefreshCw, color: '#B91C1C', bg: '#FEF2F2' }
+                    { label: 'Outward Procurement (At Cost)', value: `₹${totalOutwardPayments.toLocaleString()}`, icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Active PO Cycles', value: activePurchaseOrdersCount, icon: ShoppingCart, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Claimable Input Tax Credit (ITC)', value: `₹${inputGstCreditSum.toLocaleString()}`, icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
+                    { label: 'Refund Adjustments', value: `₹${totalReturnedRefundsSum.toLocaleString()}`, icon: RefreshCw, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.5rem' }}>
+                            <stat.icon size={20} />
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <button 
                     onClick={() => setActiveTab('purchase-orders')}
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'purchase-orders' ? '#064E3B' : 'white', 
-                        color: activeTab === 'purchase-orders' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'purchase-orders' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'purchase-orders' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white', 
+                        color: activeTab === 'purchase-orders' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'purchase-orders' ? '0 4px 10px rgba(236, 72, 153, 0.15)' : 'none'
                     }}
                 >
-                    <ShoppingCart size={18} /> Purchase Orders (PO)
+                    <ShoppingCart size={16} /> Purchase Orders (PO)
                 </button>
                 <button 
                     onClick={() => setActiveTab('purchase-bills')}
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'purchase-bills' ? '#064E3B' : 'white', 
-                        color: activeTab === 'purchase-bills' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'purchase-bills' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'purchase-bills' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : 'white', 
+                        color: activeTab === 'purchase-bills' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'purchase-bills' ? '0 4px 10px rgba(59, 130, 246, 0.15)' : 'none'
                     }}
                 >
-                    <FileText size={18} /> Purchase Bills & Invoices
+                    <FileText size={16} /> Purchase Bills & Invoices
                 </button>
                 <button 
                     onClick={() => setActiveTab('purchase-returns')}
                     style={{ 
-                        padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                        background: activeTab === 'purchase-returns' ? '#064E3B' : 'white', 
-                        color: activeTab === 'purchase-returns' ? 'white' : '#475569',
-                        border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        boxShadow: activeTab === 'purchase-returns' ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'purchase-returns' ? 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)' : 'white', 
+                        color: activeTab === 'purchase-returns' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'purchase-returns' ? '0 4px 10px rgba(139, 92, 246, 0.15)' : 'none'
                     }}
                 >
-                    <ArrowDownRight size={18} /> Returns (Debit Notes)
+                    <ArrowDownRight size={16} /> Returns (Debit Notes)
                 </button>
             </div>
 
