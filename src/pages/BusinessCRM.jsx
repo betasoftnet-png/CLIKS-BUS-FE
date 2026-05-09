@@ -396,7 +396,7 @@ const BusinessCRM = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(37, 99, 235, 0.15)' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.15)' }}>
                             <UserPlus size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Customers & Udhaar Ledger</h1>
@@ -409,9 +409,9 @@ const BusinessCRM = () => {
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.4rem', 
                         padding: '0.5rem 1.1rem', borderRadius: '10px', 
-                        background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', color: 'white', border: 'none', 
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', 
                         fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
-                        boxShadow: '0 6px 12px rgba(37, 99, 235, 0.15)',
+                        boxShadow: '0 6px 12px rgba(5, 150, 105, 0.15)',
                         transition: 'transform 0.2s'
                     }}
                 >
@@ -447,11 +447,11 @@ const BusinessCRM = () => {
                     className="crm-btn-secondary"
                     style={{ 
                         padding: '0.45rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'list' ? '#1D4ED8' : 'white', 
+                        background: activeTab === 'list' ? '#D97706' : 'white', 
                         color: activeTab === 'list' ? 'white' : '#475569',
                         border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'list' ? '0 4px 8px rgba(29, 78, 216, 0.1)' : 'none'
+                        boxShadow: activeTab === 'list' ? '0 4px 8px rgba(217, 119, 6, 0.1)' : 'none'
                     }}
                 >
                     <User size={16} /> Customers List
@@ -461,11 +461,11 @@ const BusinessCRM = () => {
                     className="crm-btn-secondary"
                     style={{ 
                         padding: '0.45rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'reports' ? '#1D4ED8' : 'white', 
+                        background: activeTab === 'reports' ? '#0891B2' : 'white', 
                         color: activeTab === 'reports' ? 'white' : '#475569',
                         border: '1px solid #E2E8F0', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'reports' ? '0 4px 8px rgba(29, 78, 216, 0.1)' : 'none'
+                        boxShadow: activeTab === 'reports' ? '0 4px 8px rgba(8, 145, 178, 0.1)' : 'none'
                     }}
                 >
                     <BarChart3 size={16} /> Aging & Collection Reports 📊
