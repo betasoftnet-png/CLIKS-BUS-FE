@@ -1031,7 +1031,7 @@ const BusinessBilling = () => {
                             </button>
                         </div>
                         
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', maxHeight: '75vh', overflow: 'hidden' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', height: '75vh', overflow: 'hidden' }}>
                             {/* Left: Selector Grid */}
                             <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', overflowY: 'auto', background: '#F1F5F9', borderRight: '1px solid #E2E8F0' }}>
                                 {[
@@ -1124,7 +1124,16 @@ const BusinessBilling = () => {
                             </div>
 
                             {/* Right: Visual Real-Time Rendering Pipeline */}
-                            <div style={{ padding: '1.5rem', background: '#F8FAFC', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ 
+                                padding: '1.5rem', 
+                                background: '#F8FAFC', 
+                                overflowY: 'scroll', // FORCE native scrolling availability
+                                height: '100%', 
+                                maxHeight: '100%',
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                alignItems: 'center' 
+                            }}>
                                 <div style={{ alignSelf: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', width: '100%', paddingBottom: '0.5rem' }}>
                                     <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '800', color: '#94A3B8', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px', margin: 0 }}>
                                         <Eye size={12} /> Live Instant Preview
