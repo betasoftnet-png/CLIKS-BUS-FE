@@ -29,6 +29,7 @@ import {
 import { billingService } from '../services/billingService';
 import { inventoryService } from '../services/inventoryService';
 import { crmService } from '../services/crmService';
+import { profileService } from '../services/profileService';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
 import '../App.css';
@@ -45,6 +46,13 @@ const BusinessBilling = () => {
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
     const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+
+    // Fetch actual business profile for production-grade invoices
+    const { data: businessProfile } = useQuery({
+        queryKey: ['businessProfile'],
+        queryFn: profileService.getProfile,
+        refetchOnWindowFocus: false
+    });
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -961,7 +969,11 @@ const BusinessBilling = () => {
                         DYNAMIC 10+ TEMPLATE SYSTEM
                         Modular architecture powered by InvoiceTemplates Component Library
                     */}
-                    <InvoiceTemplates.Renderer type={activeTemplate} data={printData} />
+                    <InvoiceTemplates.Renderer 
+                        type={activeTemplate} 
+                        data={printData} 
+                        business={businessProfile?.data || businessProfile || {}} 
+                    />
 
                     {/* Global Bottom Legal (Appended outside template specifically if needed, already in some templates) */}
                     {['standard', 'modern'].includes(activeTemplate) && (
@@ -992,16 +1004,16 @@ const BusinessBilling = () => {
                         
                         <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', maxHeight: '60vh', overflowY: 'auto', background: '#F1F5F9' }}>
                             {[
-                                { id: 'standard', name: 'Standard', desc: 'Pink Branded', color: '#BE185D', bg: '#FCE7F3' },
-                                { id: 'modern', name: 'Premium Style', desc: 'Corporate Navy', color: '#1E3A8A', bg: '#DBEAFE' },
-                                { id: 'minimal', name: 'Master Grid', desc: 'Hard Box Matrix', color: '#000000', bg: '#F1F5F9' },
-                                { id: 'elegant_dark', name: 'Lux Elegant', desc: 'Gold & Dark', color: '#F59E0B', bg: '#FEF3C7' },
-                                { id: 'compact_retail', name: 'Thermal Express', desc: 'Compact POS', color: '#4B5563', bg: '#E5E7EB' },
-                                { id: 'retro_mono', name: 'Classic Retro', desc: 'ASCII Terminal', color: '#059669', bg: '#D1FAE5' },
-                                { id: 'creative_blue', name: 'Creative Blue', desc: 'Modern Gradient', color: '#6366F1', bg: '#E0E7FF' },
-                                { id: 'executive', name: 'Executive', desc: 'Classic Serif', color: '#111827', bg: '#F3F4F6' },
-                                { id: 'clean_stripe', name: 'Green Stripe', desc: 'Sidebar Variant', color: '#059669', bg: '#D1FAE5' },
-                                { id: 'service_pro', name: 'Service Pro', desc: 'Simplified Blocks', color: '#2563EB', bg: '#DBEAFE' }
+                                { id: 'standard', name: 'Executive Standard', desc: 'Clean Compliance', color: '#BE185D', bg: '#FCE7F3' },
+                                { id: 'modern', name: 'Premium Corporate', desc: 'Sleek Sans-Serif', color: '#1E3A8A', bg: '#DBEAFE' },
+                                { id: 'minimal', name: 'Master Box Grid', desc: 'Heavy Accounting', color: '#000000', bg: '#F1F5F9' },
+                                { id: 'elegant_dark', name: 'Pro Accent Top', desc: 'Luxury Color Block', color: '#F59E0B', bg: '#FEF3C7' },
+                                { id: 'compact_retail', name: 'Compact Utility', desc: 'High Density Layout', color: '#4B5563', bg: '#E5E7EB' },
+                                { id: 'retro_mono', name: 'Global Classic', desc: 'Standard B2B Statement', color: '#059669', bg: '#D1FAE5' },
+                                { id: 'creative_blue', name: 'Service Detailed', desc: 'Description Heavy', color: '#6366F1', bg: '#E0E7FF' },
+                                { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
+                                { id: 'clean_stripe', name: 'Modern Sidebar', desc: 'Integrated Branding', color: '#059669', bg: '#D1FAE5' },
+                                { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' }
                             ].map((tmpl) => (
                                 <div 
                                     key={tmpl.id}
