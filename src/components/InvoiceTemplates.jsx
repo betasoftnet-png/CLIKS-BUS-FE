@@ -382,48 +382,75 @@ export const InvoiceTemplates = {
     compact_retail: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ padding: '15px', border: '1px solid #999', fontSize: '12px', fontFamily: 'sans-serif' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <div>
-                        <b style={{fontSize: '14px'}}>{business?.business_name || 'BUSINESS NAME'}</b><br/>
-                        {business?.address}<br/>
-                        <b>GSTIN:</b> {business?.gstin}
+            <div style={{ 
+                width: '80mm', // Standard 3-inch Thermal Receipt Width
+                margin: '0 auto', 
+                padding: '5px', 
+                background: 'white',
+                fontFamily: 'monospace, "Courier New", Courier', 
+                fontSize: '11px', 
+                color: '#000',
+                lineHeight: '1.2'
+            }}>
+                {/* Thermal Header */}
+                <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px dashed #000', paddingBottom: '5px' }}>
+                    <b style={{ fontSize: '16px', display: 'block', textTransform: 'uppercase' }}>{business?.business_name || 'BUSINESS'}</b>
+                    <p style={{ margin: '2px 0', fontSize: '10px' }}>{business?.address}</p>
+                    <p style={{ margin: '2px 0' }}>Ph: {business?.phone || 'N/A'}</p>
+                    {business?.gstin && <b style={{ fontSize: '11px' }}>GSTIN: {business.gstin}</b>}
+                </div>
+
+                <div style={{ borderBottom: '1px dashed #000', paddingBottom: '5px', marginBottom: '5px', fontSize: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Inv: <b>#{data.invoice_number}</b></span><span>Dt: {data.due_date}</span></div>
+                    <div style={{ marginTop: '3px' }}>Cashier: System | Mode: {data.payment_mode}</div>
+                </div>
+
+                {/* Customer Box (If provided) */}
+                {data.client_name && (
+                    <div style={{ borderBottom: '1px dashed #000', paddingBottom: '5px', marginBottom: '5px', fontSize: '10px' }}>
+                        Billed To: <b>{data.client_name}</b>
+                        {data.client_gstin && <div>Cust GST: {data.client_gstin}</div>}
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <b>RETAIL INVOICE</b><br/>
-                        #{data.invoice_number}<br/>
-                        Dt: {data.due_date}
+                )}
+
+                {/* Item Table - Thermal Style */}
+                <div style={{ borderBottom: '1px dashed #000', marginBottom: '5px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 60px 60px', fontWeight: 'bold', marginBottom: '3px', fontSize: '10px' }}>
+                        <span>Item</span>
+                        <span style={{ textAlign: 'right' }}>Qty</span>
+                        <span style={{ textAlign: 'right' }}>Rate</span>
+                        <span style={{ textAlign: 'right' }}>Total</span>
+                    </div>
+                    <div style={{ borderBottom: '1px solid #000', marginBottom: '3px' }}></div>
+                    {items.map((it, i) => (
+                        <div key={i} style={{ marginBottom: '5px' }}>
+                            <div style={{ fontWeight: 'bold' }}>{it.description}</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 40px 60px 60px', fontSize: '10px' }}>
+                                <span>{it.hsn_code ? `HSN:${it.hsn_code}` : ''}</span>
+                                <span style={{ textAlign: 'right' }}>{it.quantity}</span>
+                                <span style={{ textAlign: 'right' }}>{parseFloat(it.price).toFixed(2)}</span>
+                                <span style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(it.total).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Summary Box */}
+                <div style={{ textAlign: 'right', paddingRight: '2px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sub Total:</span><span>{parseFloat(data.amount).toFixed(2)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total GST:</span><span>{parseFloat(data.tax_amount).toFixed(2)}</span></div>
+                    {parseFloat(data.discount_amount) > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Discount:</span><span>-{parseFloat(data.discount_amount).toFixed(2)}</span></div>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #000', marginTop: '3px', paddingTop: '3px', fontSize: '14px', fontWeight: 'bold' }}>
+                        <span>GRAND TOTAL</span>
+                        <span>₹{parseFloat(data.total_amount).toFixed(2)}</span>
                     </div>
                 </div>
-                <div style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', padding: '5px 0', marginBottom: '10px' }}>
-                    <b>Bill To:</b> {data.client_name} | {data.billing_address}
+
+                <div style={{ marginTop: '10px', textAlign: 'center', fontSize: '9px', borderTop: '1px dashed #000', paddingTop: '10px' }}>
+                    <span>Total Items: {items.length} | Items Qty: {items.reduce((sum, it) => sum + parseFloat(it.quantity || 0), 0)}</span>
+                    <div style={{ marginTop: '10px', fontWeight: 'bold', fontSize: '11px' }}>*** THANK YOU ***</div>
+                    <div>E.& O.E.</div>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead style={{ borderBottom: '1px solid #000' }}>
-                        <tr style={{ fontWeight: 'bold' }}>
-                            <th style={{ textAlign: 'left' }}>Item</th>
-                            <th style={{ textAlign: 'right' }}>Qty</th>
-                            <th style={{ textAlign: 'right' }}>Rate</th>
-                            <th style={{ textAlign: 'right' }}>Amt</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((it, i) => (
-                            <tr key={i} style={{ borderBottom: '1px dashed #ccc' }}>
-                                <td style={{ padding: '5px 0' }}>{it.description}</td>
-                                <td style={{ textAlign: 'right' }}>{it.quantity}</td>
-                                <td style={{ textAlign: 'right' }}>{parseFloat(it.price).toFixed(2)}</td>
-                                <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(it.total).toFixed(2)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div style={{ marginTop: '10px', textAlign: 'right' }}>
-                    <div>Subtotal: {data.amount.toFixed(2)}</div>
-                    <div>Tax: {data.tax_amount.toFixed(2)}</div>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '5px' }}>NET PAYABLE: ₹{data.total_amount.toFixed(2)}</div>
-                </div>
-                <div style={{ marginTop: '15px', fontSize: '10px' }}>E.&O.E. | Printed by Cliks</div>
             </div>
         );
     },

@@ -1008,7 +1008,7 @@ const BusinessBilling = () => {
                                 { id: 'modern', name: 'Premium Corporate', desc: 'Sleek Sans-Serif', color: '#1E3A8A', bg: '#DBEAFE' },
                                 { id: 'minimal', name: 'Master Box Grid', desc: 'Heavy Accounting', color: '#000000', bg: '#F1F5F9' },
                                 { id: 'elegant_dark', name: 'Pro Accent Top', desc: 'Luxury Color Block', color: '#F59E0B', bg: '#FEF3C7' },
-                                { id: 'compact_retail', name: 'Compact Utility', desc: 'High Density Layout', color: '#4B5563', bg: '#E5E7EB' },
+                                { id: 'compact_retail', name: 'Thermal Receipt (POS)', desc: '80mm Small Roll Printing', color: '#4B5563', bg: '#E5E7EB' },
                                 { id: 'retro_mono', name: 'Global Classic', desc: 'Standard B2B Statement', color: '#059669', bg: '#D1FAE5' },
                                 { id: 'creative_blue', name: 'Service Detailed', desc: 'Description Heavy', color: '#6366F1', bg: '#E0E7FF' },
                                 { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
