@@ -284,7 +284,25 @@ const Sidebar = ({ isOpen, onClose }) => {
                 flexShrink: 0,
                 background: '#FFFFFF'
             }}>
-                {/* Subscription Banner (Matches example visual) */}
+                {/* Trial Countdown Indicator (New TL Request) */}
+                <div style={{
+                    background: '#FFFBEB',
+                    border: '1px solid #FEF3C7',
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B45309', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>20 days Trial Left</span>
+                    </div>
+                    <div style={{ width: '100%', height: '4px', background: '#FEF3C7', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div style={{ width: '66%', height: '100%', background: '#F59E0B', borderRadius: '10px' }}></div>
+                    </div>
+                </div>
+
+                {/* Subscription Banner */}
                 <button
                     onClick={() => handleItemClick('Subscription', '/business/subscription')}
                     style={{
@@ -293,7 +311,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                        background: '#1d4ed8', /* Fixed Solid Blue requested by TL */
                         color: '#FFFFFF',
                         borderRadius: '10px',
                         border: 'none',
@@ -301,16 +319,16 @@ const Sidebar = ({ isOpen, onClose }) => {
                         fontWeight: '700',
                         fontSize: '0.85rem',
                         letterSpacing: '0.02em',
-                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                        boxShadow: '0 4px 12px rgba(29, 78, 216, 0.2)',
+                        transition: 'all 0.2s ease'
                     }}
                     onMouseOver={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 99, 235, 0.35)';
+                        e.currentTarget.style.background = '#1e40af'; /* Slight darken on hover for interactivity */
+                        e.currentTarget.style.transform = 'translateY(-1px)';
                     }}
                     onMouseOut={(e) => {
+                        e.currentTarget.style.background = '#1d4ed8';
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.25)';
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
