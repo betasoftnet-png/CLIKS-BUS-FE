@@ -115,9 +115,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 icon: Package,
                 children: [
                     { label: 'Products', icon: Package, path: '/business/inventory' },
-                    { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' },
                     { label: 'Stock', icon: Layers, path: '/business/stock' },
-                    { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' }
+                    { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' },
+                    { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
                 ]
             },
             {
