@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileService } from '../services';
+import { config } from '../lib/config';
 
 import {
     User,
@@ -12,7 +13,8 @@ import {
     TrendingDown,
     ArrowLeft,
     Download,
-    Upload
+    Upload,
+    Camera
 } from 'lucide-react';
 import '../App.css';
 
@@ -42,6 +44,7 @@ const Profile = () => {
     const BasicInfoView = () => {
         const [isEditing, setIsEditing] = useState(false);
         const [localUser, setLocalUser] = useState(user);
+        const fileInputRef = useRef(null);
 
         const mutation = useMutation({
             mutationFn: profileService.updateProfile,
@@ -58,6 +61,25 @@ const Profile = () => {
                 setIsEditing(true);
             }
         };
+
+        const handleImageUpload = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64 = event.target.result;
+                mutation.mutate({
+                    avatar_data: base64,
+                    avatar_name: file.name
+                });
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // Construct absolute URL for rendering the backend served uploads file
+        const apiRoot = config.api.baseUrl ? config.api.baseUrl.replace(/\/api\/v1\/?$/, '') : '';
+        const avatarFullUrl = user.avatar_url ? `${apiRoot}${user.avatar_url}` : null;
 
         return (
             <div className="dashboard-tile" style={{ maxWidth: '100%', height: '100%' }}>
@@ -89,13 +111,46 @@ const Profile = () => {
                 </div>
                 <div className="tile-content" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{
-                                width: '100px', height: '100px', borderRadius: '50%', background: '#E2E8F0',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                            }}>
-                                <User size={48} color="#64748B" />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+                            
+                            {/* Interactive Avatar Group */}
+                            <div 
+                                style={{
+                                    position: 'relative',
+                                    width: '120px', height: '120px', borderRadius: '50%', background: '#F1F5F9',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                    border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                    overflow: 'hidden', cursor: 'pointer', group: 'true'
+                                }}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="avatar-hover-container"
+                            >
+                                {avatarFullUrl ? (
+                                    <img src={avatarFullUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <User size={56} color="#94A3B8" />
+                                )}
+                                
+                                {/* Overlay that appears on top */}
+                                <div style={{
+                                    position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
+                                    background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'white', fontSize: '0.65rem', fontWeight: 600, transition: '0.2s'
+                                }}>
+                                    <Camera size={14} style={{ marginRight: '4px' }} />
+                                    {mutation.isLoading ? 'Wait..' : 'EDIT'}
+                                </div>
                             </div>
+
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleImageUpload} 
+                                style={{ display: 'none' }} 
+                                accept="image/*" 
+                            />
+
+                            <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 500 }}>Click photo to edit</span>
                         </div>
 
                         <div style={{ flex: 1 }}>
@@ -104,7 +159,7 @@ const Profile = () => {
                                     <tr>
                                         <td className="border border-gray-300 dark:border-gray-700" style={{ padding: '8px', fontSize: '0.9rem', color: '#64748B' }}>Full Name</td>
                                         <td className="border border-gray-300 dark:border-gray-700" style={{ padding: '8px', fontWeight: 600, color: '#0F172A', fontSize: '0.95rem' }}>
-                                            {isEditing ? <input value={localUser.name} onChange={e => setLocalUser({...localUser, name: e.target.value})} /> : user.name}
+                                            {isEditing ? <input value={localUser.name} onChange={e => setLocalUser({...localUser, name: e.target.value})} style={{ padding: '2px 6px', width: '100%', border: '1px solid #CBD5E1', borderRadius: '4px' }} /> : user.name}
                                         </td>
                                     </tr>
                                     <tr>
