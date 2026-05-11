@@ -26,9 +26,12 @@ import {
     RefreshCw,
     Split,
     Gift,
-    Building
+    Building,
+    ChevronDown,
+    ChevronRight
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
 
@@ -72,10 +75,89 @@ const Sidebar = ({ isOpen, onClose }) => {
     const isFinanceMode = location.pathname.includes('/business/payments') || location.pathname.includes('/business/segregation') || location.pathname.includes('/business/referral') || location.pathname.includes('/business/bank-accounts');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
+    const [openMenus, setOpenMenus] = useState({});
 
+    const navigationConfig = {
+        standard: [
+            { label: 'Dashboard', icon: LayoutDashboard, path: '/business/dashboard' },
+            {
+                label: 'Finance',
+                icon: Banknote,
+                children: [
+                    { label: 'Accounting', icon: Calculator, path: '/business/accounting' },
+                    { label: 'Expenses', icon: TrendingUp, path: '/business/expenses' },
+                    { label: 'GST', icon: PercentCircle, path: '/business/gst' },
+                    { label: 'Reports', icon: BarChart3, path: '/business/reports' }
+                ]
+            },
+            {
+                label: 'Sales',
+                icon: ShoppingCart,
+                children: [
+                    { label: 'Billing', icon: Banknote, path: '/business/billing' },
+                    { label: 'Orders', icon: ShoppingCart, path: '/business/orders' },
+                    { label: 'Customers', icon: Users, path: '/business/crm' },
+                    { label: 'Returns', icon: ArrowDownRight, path: '/business/returns' }
+                ]
+            },
+            {
+                label: 'Purchases',
+                icon: ShoppingCart,
+                children: [
+                    { label: 'Purchases', icon: ShoppingCart, path: '/business/purchases' },
+                    { label: 'Suppliers', icon: UsersRound, path: '/business/suppliers' }
+                ]
+            },
+            {
+                label: 'Inventory',
+                icon: Package,
+                children: [
+                    { label: 'Products', icon: Package, path: '/business/inventory' },
+                    { label: 'Stock', icon: Layers, path: '/business/stock' },
+                    { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' }
+                ]
+            },
+            {
+                label: 'HR',
+                icon: UsersRound,
+                children: [
+                    { label: 'Staff', icon: UsersRound, path: '/business/staffing' },
+                    { label: 'Attendance', icon: Calendar, path: '/business/attendance' },
+                    { label: 'Payroll', icon: FileCheck, path: '/business/payroll' }
+                ]
+            },
+            {
+                label: 'Settings',
+                icon: SettingsIcon,
+                children: [
+                    { label: 'Subscription', icon: CreditCard, path: '/business/subscription' },
+                    { label: 'Business Settings', icon: SettingsIcon, path: '/settings' },
+                    { label: 'Backup & Sync', icon: RefreshCw, path: '/faq' }
+                ]
+            }
+        ],
+        social: [
+            { label: 'Investors', icon: UsersRound, path: '/business/investors' },
+            { label: 'Meetup', icon: Calendar, path: '/business/meetup' }
+        ],
+        financeMode: [
+            { label: 'Transaction', icon: CreditCard, path: '/business/payments' },
+            { label: 'Bank Accounts', icon: Building, path: '/business/bank-accounts' },
+            { label: 'Split & Collect', icon: Split, path: '/business/segregation' },
+            { label: 'Refer & Earn', icon: Gift, path: '/business/referral' }
+        ]
+    };
+
+    // Smart Expansion Detection
     React.useEffect(() => {
         const newItem = getActiveItemFromPath(location.pathname);
         setActiveItem(newItem);
+        
+        navigationConfig.standard.forEach(item => {
+            if (item.children && item.children.some(child => location.pathname.includes(child.path))) {
+                setOpenMenus(prev => ({ ...prev, [item.label]: true }));
+            }
+        });
     }, [location.pathname]);
 
     const handleItemClick = (label, path) => {
@@ -84,6 +166,87 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) {
             onClose();
         }
+    };
+
+    const toggleMenu = (label) => {
+        setOpenMenus(prev => ({
+            ...prev,
+            [label]: !prev[label]
+        }));
+    };
+
+    const MenuItem = ({ item, isChild = false }) => {
+        const IconComp = item.icon;
+        const isActive = activeItem === item.label;
+        const hasChildren = !!item.children && item.children.length > 0;
+        const isOpen = !!openMenus[item.label];
+
+        if (hasChildren) {
+            return (
+                <div style={{ marginBottom: '2px' }}>
+                    <button
+                        className={`sidebar-item`}
+                        onClick={() => toggleMenu(item.label)}
+                        style={{ 
+                            justifyContent: 'space-between', 
+                            width: '100%',
+                            background: isOpen ? '#DCF2E4' : 'transparent',
+                            transition: 'background 0.2s ease'
+                        }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <IconComp size={20} style={{ color: '#1B6B3A' }} />
+                            <span className="sidebar-label" style={{ fontWeight: '750', color: '#135029' }}>{item.label}</span>
+                        </div>
+                        <motion.div
+                            animate={{ rotate: isOpen ? 90 : 0 }}
+                            transition={{ duration: 0.2 }}
+                            style={{ display: 'flex', alignItems: 'center', color: '#1B6B3A', opacity: 0.7 }}
+                        >
+                            <ChevronRight size={16} />
+                        </motion.div>
+                    </button>
+                    
+                    <AnimatePresence initial={false}>
+                        {isOpen && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                style={{ overflow: 'hidden' }}
+                            >
+                                <div style={{ borderLeft: '2px solid #DCF2E4', marginLeft: '1.5rem', marginTop: '2px', marginBottom: '4px', paddingLeft: '2px' }}>
+                                    {item.children.map((child) => (
+                                        <MenuItem key={child.label} item={child} isChild={true} />
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        }
+
+        return (
+            <button
+                className={`sidebar-item ${isActive ? 'active' : ''}`}
+                onClick={() => handleItemClick(item.label, item.path)}
+                style={{ 
+                    marginBottom: '2px',
+                    paddingLeft: isChild ? '1.2rem' : '0.75rem',
+                    fontSize: isChild ? '0.85rem' : '0.92rem',
+                    background: isActive ? '#1B6B3A' : 'transparent',
+                    color: isActive ? '#ffffff' : '#111827',
+                    borderLeft: isChild && isActive ? '3px solid #135029' : 'none'
+                }}
+            >
+                <div className="flex items-center gap-3">
+                    <IconComp size={isChild ? 18 : 20} style={{ color: isActive ? '#ffffff' : '#1B6B3A' }} />
+                    <span className="sidebar-label">{item.label}</span>
+                </div>
+            </button>
+        );
     };
 
     return (
@@ -95,283 +258,22 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <h2 className="app-title">CLIKS BUS</h2>
             </div>
 
-            <nav className="sidebar-nav">
+            <nav className="sidebar-nav" style={{ overflowY: 'auto', padding: '0.75rem' }}>
                 {isSocialMode ? (
                     <>
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Investors' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Investors', '/business/investors')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <UsersRound size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Investors</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Meetup' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Meetup', '/business/meetup')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Calendar size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Meetup</span>
-                            </div>
-                        </button>
+                        <div style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
+                        {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} />)}
                     </>
                 ) : isFinanceMode ? (
                     <>
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Transaction' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Transaction', '/business/payments')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <CreditCard size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Transaction</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Bank Accounts' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Bank Accounts', '/business/bank-accounts')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Building size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Bank Accounts</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Split & Collect' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Split & Collect', '/business/segregation')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Split size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Split & Collect</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Refer & Earn' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Refer & Earn', '/business/referral')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Gift size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Refer & Earn</span>
-                            </div>
-                        </button>
+                        <div style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
+                        {navigationConfig.financeMode.map(item => <MenuItem key={item.label} item={item} />)}
                     </>
                 ) : (
                     <>
-                        {/* Dashboard */}
-                        <button
-                            className={`sidebar-item ${activeItem === 'Dashboard' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Dashboard', '/business/dashboard')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <LayoutDashboard size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Dashboard</span>
-                            </div>
-                        </button>
-
-                        {/* Finance */}
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Accounting' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Accounting', '/business/accounting')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Calculator size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Accounting</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Expenses' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Expenses', '/business/expenses')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <TrendingUp size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Expenses</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'GST' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('GST', '/business/gst')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <PercentCircle size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">GST</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Reports' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Reports', '/business/reports')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <BarChart3 size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Reports</span>
-                            </div>
-                        </button>
-
-                        {/* Sales */}
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sales</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Billing' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Billing', '/business/billing')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Banknote size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Billing</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Orders' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Orders', '/business/orders')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <ShoppingCart size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Orders</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Customers' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Customers', '/business/crm')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Users size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Customers</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Returns' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Returns', '/business/returns')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <ArrowDownRight size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Returns</span>
-                            </div>
-                        </button>
-
-                        {/* Purchases */}
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Purchases</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Purchases' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Purchases', '/business/purchases')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <ShoppingCart size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Purchases</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Suppliers' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Suppliers', '/business/suppliers')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <UsersRound size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Suppliers</span>
-                            </div>
-                        </button>
-
-                        {/* Inventory */}
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inventory</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Products' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Products', '/business/inventory')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Package size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Products</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Stock' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Stock', '/business/stock')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Layers size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Stock</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Warehouse' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Warehouse', '/business/warehouse')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <MapPin size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Warehouse</span>
-                            </div>
-                        </button>
-
-                        {/* Manufacturing - commented out for future use
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Manufacturing</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Manufacturing' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Manufacturing', '/business/manufacturing')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Cpu size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Manufacturing</span>
-                            </div>
-                        </button>
-                        */}
-
-                        {/* HR */}
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HR</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Staff' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Staff', '/business/staffing')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <UsersRound size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Staff</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Attendance' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Attendance', '/business/attendance')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Calendar size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Attendance</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Payroll' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Payroll', '/business/payroll')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <FileCheck size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Payroll</span>
-                            </div>
-                        </button>
-
-                        {/* Settings */}
-                        <div style={{ padding: '1.25rem 1.5rem 0.5rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settings</div>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Subscription' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Subscription', '/business/subscription')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <CreditCard size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Subscription</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Business Settings' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Business Settings', '/settings')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <SettingsIcon size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Business Settings</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`sidebar-item ${activeItem === 'Backup & Sync' ? 'active' : ''}`}
-                            onClick={() => handleItemClick('Backup & Sync', '/faq')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <RefreshCw size={20} style={{ color: '#1B6B3A' }} />
-                                <span className="sidebar-label">Backup & Sync</span>
-                            </div>
-                        </button>
+                        {navigationConfig.standard.map(item => (
+                            <MenuItem key={item.label} item={item} />
+                        ))}
                     </>
                 )}
             </nav>
