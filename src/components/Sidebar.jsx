@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../App.css';
-import logoPng from '../assets/image copy.png';
+import logoPng from '../assets/cliks5.png';
 
 const Sidebar = ({ isOpen, onClose }) => {
     const location = useLocation();
