@@ -1031,9 +1031,19 @@ const BusinessBilling = () => {
                             </button>
                         </div>
                         
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', height: '75vh', overflow: 'hidden' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', height: '65vh', overflow: 'hidden' }}>
                             {/* Left: Selector Grid */}
-                            <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', overflowY: 'auto', background: '#F1F5F9', borderRight: '1px solid #E2E8F0' }}>
+                            <div style={{ 
+                                padding: '1.5rem', 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(2, 1fr)', 
+                                gap: '1.25rem', 
+                                overflowY: 'scroll', 
+                                height: '100%',
+                                maxHeight: '100%',
+                                background: '#F1F5F9', 
+                                borderRight: '1px solid #E2E8F0' 
+                            }}>
                                 {[
                                     { id: 'standard', name: 'Executive Standard', desc: 'Clean Compliance', color: '#BE185D', bg: '#FCE7F3' },
                                     { id: 'modern', name: 'Premium Corporate', desc: 'Sleek Sans-Serif', color: '#1E3A8A', bg: '#DBEAFE' },
