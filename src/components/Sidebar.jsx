@@ -284,61 +284,62 @@ const Sidebar = ({ isOpen, onClose }) => {
                 flexShrink: 0,
                 background: '#FFFFFF'
             }}>
-                {/* Trial Countdown Indicator (New TL Request) */}
+                {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
                 <div style={{
-                    background: '#FFFBEB',
-                    border: '1px solid #FEF3C7',
-                    padding: '0.6rem 0.85rem',
-                    borderRadius: '8px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px'
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    border: '1px solid #FEF3C7'
                 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B45309', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>20 days Trial Left</span>
-                    </div>
-                    <div style={{ width: '100%', height: '4px', background: '#FEF3C7', borderRadius: '10px', overflow: 'hidden' }}>
-                        <div style={{ width: '66%', height: '100%', background: '#F59E0B', borderRadius: '10px' }}></div>
-                    </div>
-                </div>
-
-                {/* Subscription Banner */}
-                <button
-                    onClick={() => handleItemClick('Subscription', '/business/subscription')}
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
+                    {/* Top Part: Trial Gauge */}
+                    <div style={{
+                        background: '#FFFBEB',
                         padding: '0.75rem 1rem',
-                        background: '#1d4ed8', /* Fixed Solid Blue requested by TL */
-                        color: '#FFFFFF',
-                        borderRadius: '10px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '0.85rem',
-                        letterSpacing: '0.02em',
-                        boxShadow: '0 4px 12px rgba(29, 78, 216, 0.2)',
-                        transition: 'all 0.2s ease'
-                    }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = '#1e40af'; /* Slight darken on hover for interactivity */
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = '#1d4ed8';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
-                            <CreditCard size={16} strokeWidth={2.5} />
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                    }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B45309' }}>
+                            20 days Trial Left
                         </div>
-                        <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
+                        <div style={{ width: '100%', height: '4px', background: '#FEF3C7', borderRadius: '10px', overflow: 'hidden' }}>
+                            <div style={{ width: '66%', height: '100%', background: '#F59E0B', borderRadius: '10px' }}></div>
+                        </div>
                     </div>
-                    <ChevronRight size={14} strokeWidth={3} />
-                </button>
+
+                    {/* Bottom Part: Action Trigger */}
+                    <button
+                        onClick={() => handleItemClick('Subscription', '/business/subscription')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.85rem 1rem',
+                            background: '#1d4ed8',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: '700',
+                            fontSize: '0.85rem',
+                            letterSpacing: '0.02em',
+                            transition: 'background 0.2s ease',
+                            borderRadius: '0' /* Reset to merge perfectly with top */
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#1e40af'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#1d4ed8'}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
+                                <CreditCard size={16} strokeWidth={2.5} />
+                            </div>
+                            <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
+                        </div>
+                        <ChevronRight size={14} strokeWidth={3} />
+                    </button>
+                </div>
 
                 {/* Bottom Settings Block (Replaced 'My Company' from example) */}
                 <button
