@@ -46,7 +46,19 @@ const BusinessBilling = () => {
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
     const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
-    const [customColor, setCustomColor] = useState('#BE185D'); // User dynamic custom color for 'custom' template
+    
+    // Sophisticated Custom Template Builder Configuration
+    const [isCustomizerModalOpen, setIsCustomizerModalOpen] = useState(false);
+    const [customConfig, setCustomConfig] = useState({
+        accentColor: '#BE185D',
+        layout: 'table', // 'table' | 'list'
+        alignment: 'left', // 'left' | 'center' | 'right'
+        fontFamily: 'sans-serif',
+        showBank: true,
+        showTerms: true,
+        showSignature: true,
+        showHeaderStrip: true
+    });
 
     // Fetch actual business profile for production-grade invoices
     const { data: businessProfile } = useQuery({
@@ -974,7 +986,7 @@ const BusinessBilling = () => {
                         type={activeTemplate} 
                         data={printData} 
                         business={businessProfile?.data || businessProfile || {}} 
-                        accentColor={customColor}
+                        config={customConfig}
                     />
 
                     {/* Global Bottom Legal (Appended outside template specifically if needed, already in some templates) */}
@@ -1016,11 +1028,16 @@ const BusinessBilling = () => {
                                 { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
                                 { id: 'clean_stripe', name: 'Modern Sidebar', desc: 'Integrated Branding', color: '#059669', bg: '#D1FAE5' },
                                 { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' },
-                                { id: 'custom', name: 'Custom Branding', desc: 'Choose Your Accent', color: customColor, bg: '#FDF2F8' }
+                                { id: 'custom', name: 'Build Your Own', desc: 'Launch Builder Modal', color: customConfig.accentColor, bg: '#FDF2F8' }
                             ].map((tmpl) => (
                                 <div 
                                     key={tmpl.id}
-                                    onClick={() => setActiveTemplate(tmpl.id)}
+                                    onClick={() => {
+                                        setActiveTemplate(tmpl.id);
+                                        if (tmpl.id === 'custom') {
+                                            setIsCustomizerModalOpen(true);
+                                        }
+                                    }}
                                     style={{ 
                                         cursor: 'pointer', 
                                         border: activeTemplate === tmpl.id ? `2px solid ${tmpl.color}` : '1px solid #E2E8F0', 
@@ -1069,10 +1086,10 @@ const BusinessBilling = () => {
                                                 <div><div style={{height: '25px', background: '#EFF6FF', borderRadius: '4px', marginBottom: '5px'}}></div><div style={{height: '50px', border: '1px solid #E5E7EB', borderRadius: '4px'}}></div></div>
                                             )}
                                             {tmpl.id === 'custom' && (
-                                                <div>
-                                                    <div style={{height: '10px', width: '100%', borderBottom: `3px solid ${tmpl.color}`, marginBottom: '10px'}}></div>
-                                                    <div style={{height: '20px', width: '100%', background: `${tmpl.color}30`, borderRadius: '4px', marginBottom: '5px'}}></div>
-                                                    <div style={{height: '40px', border: `1px solid ${tmpl.color}40`, borderRadius: '4px'}}></div>
+                                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: `2px dashed ${tmpl.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tmpl.color }}>
+                                                        <Plus size={20} />
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -1089,18 +1106,90 @@ const BusinessBilling = () => {
                             ))}
                         </div>
                         
-                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ visibility: activeTemplate === 'custom' ? 'visible' : 'hidden', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>Pick Accent Color:</label>
-                                <input 
-                                    type="color" 
-                                    value={customColor} 
-                                    onChange={(e) => setCustomColor(e.target.value)} 
-                                    style={{ cursor: 'pointer', width: '40px', height: '28px', padding: '0', border: '1px solid #cbd5e1', borderRadius: '4px' }} 
-                                />
-                            </div>
+                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {activeTemplate === 'custom' && (
+                                <button onClick={() => setIsCustomizerModalOpen(true)} style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem', borderRadius: '6px', background: 'white', color: customConfig.accentColor, border: `1px solid ${customConfig.accentColor}`, fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                    <Plus size={14} /> Configure Settings
+                                </button>
+                            )}
                             <button onClick={() => setIsTemplatesModalOpen(false)} style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Set as Active Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Advanced Custom Design Template Builder Modal */}
+            {isCustomizerModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(10px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0', animation: 'slideUp 0.3s ease-out' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', background: customConfig.accentColor, color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Settings size={20} /> Design Customizer</h3>
+                                <p style={{ fontSize: '0.75rem', opacity: 0.85, margin: '2px 0 0 0' }}>Configure your exact layout logic</p>
+                            </div>
+                            <button onClick={() => setIsCustomizerModalOpen(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
+                        </div>
+                        
+                        <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            
+                            {/* 1. BRAND COLOR */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Primary Accent Color</label>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <input type="color" value={customConfig.accentColor} onChange={(e) => setCustomConfig({...customConfig, accentColor: e.target.value})} style={{ width: '45px', height: '36px', padding: 0, border: '1px solid #E2E8F0', borderRadius: '6px', cursor: 'pointer' }} />
+                                    <input type="text" value={customConfig.accentColor.toUpperCase()} onChange={(e) => setCustomConfig({...customConfig, accentColor: e.target.value})} style={{ flex: 1, padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'monospace' }} />
+                                </div>
+                            </div>
+
+                            {/* 2. ALIGNMENT */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Header Layout Alignment</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                                    {['left', 'center', 'right'].map(a => (
+                                        <button key={a} onClick={() => setCustomConfig({...customConfig, alignment: a})} style={{ padding: '8px', borderRadius: '6px', border: customConfig.alignment === a ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', background: customConfig.alignment === a ? `${customConfig.accentColor}10` : 'white', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', color: customConfig.alignment === a ? customConfig.accentColor : '#64748B', textTransform: 'capitalize' }}>{a}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 3. ITEM TABLE STYLE */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '8px' }}>Items Display Pattern</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <button onClick={() => setCustomConfig({...customConfig, layout: 'table'})} style={{ padding: '10px', textAlign: 'left', borderRadius: '8px', border: customConfig.layout === 'table' ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', background: 'white', cursor: 'pointer' }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#0F172A' }}>Classic Table Grid</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Strict structured rows & cols</div>
+                                    </button>
+                                    <button onClick={() => setCustomConfig({...customConfig, layout: 'list'})} style={{ padding: '10px', textAlign: 'left', borderRadius: '8px', border: customConfig.layout === 'list' ? `2px solid ${customConfig.accentColor}` : '1px solid #E2E8F0', background: 'white', cursor: 'pointer' }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#0F172A' }}>Modern Stack Cards</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Clean floating list layout</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* 4. VISIBILITY TOGGLES */}
+                            <div>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'block', marginBottom: '10px' }}>Include Sections</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {[
+                                        { key: 'showHeaderStrip', label: 'Enable Accent Top Border Bar' },
+                                        { key: 'showBank', label: 'Display Banking Details Box' },
+                                        { key: 'showTerms', label: 'Include Legal T&C Declaration' },
+                                        { key: 'showSignature', label: 'Authorized Signatory Anchor' }
+                                    ].map(t => (
+                                        <label key={t.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: '#F8FAFC', borderRadius: '8px', cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={customConfig[t.key]} onChange={(e) => setCustomConfig({...customConfig, [t.key]: e.target.checked})} style={{ accentColor: customConfig.accentColor, width: '16px', height: '16px' }} />
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#334155' }}>{t.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setIsCustomizerModalOpen(false)} style={{ background: customConfig.accentColor, color: 'white', border: 'none', padding: '10px 25px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', boxShadow: `0 4px 10px ${customConfig.accentColor}40` }}>
+                                Apply Design Style
                             </button>
                         </div>
                     </div>
