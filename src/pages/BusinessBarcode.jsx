@@ -27,7 +27,6 @@ const BusinessBarcode = () => {
         lineColor: '#000000',
         displayValue: true
     });
-    const [copied, setCopied] = useState(false);
     const [labelDetails, setLabelDetails] = useState({
         title: 'Premium Cotton Shirt',
         subtitle: 'Size: L | Color: Navy',

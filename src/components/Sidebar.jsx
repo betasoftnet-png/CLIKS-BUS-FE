@@ -32,6 +32,7 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
@@ -130,10 +131,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                 ]
             },
             {
+                label: 'Subscription',
+                icon: CreditCard,
+                path: '/business/subscription'
+            },
+            {
                 label: 'Settings',
                 icon: SettingsIcon,
                 children: [
-                    { label: 'Subscription', icon: CreditCard, path: '/business/subscription' },
                     { label: 'Business Settings', icon: SettingsIcon, path: '/settings' },
                     { label: 'Backup & Sync', icon: RefreshCw, path: '/faq' }
                 ]
@@ -161,6 +166,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 setOpenMenus(prev => ({ ...prev, [item.label]: true }));
             }
         });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname]);
 
     const handleItemClick = (label, path) => {

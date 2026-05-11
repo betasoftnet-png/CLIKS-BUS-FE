@@ -436,7 +436,7 @@ const BusinessBilling = () => {
 
         // Extract payload and EXCLUDE loyalty points fields which don't exist on backend table schema
         // This prevents the 500 Internal Server error caused by extra unexpected columns
-        const { redeemed_points, earned_points, ...filteredFormData } = formData;
+        const { redeemed_points: _redeemed_points, earned_points: _earned_points, ...filteredFormData } = formData;
 
         const payload = {
             ...filteredFormData,

@@ -1,10 +1,11 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react';
 
 // UTILS FOR PROFESSIONAL INVOICES
 const getParsedItems = (items) => {
     try {
         return typeof items === 'string' ? JSON.parse(items) : (items || []);
-    } catch (e) { return []; }
+    } catch { return []; }
 };
 
 const formatCurrency = (num) => {
@@ -42,7 +43,7 @@ const BankDetails = ({ data, style }) => (
     </div>
 );
 
-const TermsFooter = ({ company }) => (
+const TermsFooter = () => (
     <div style={{ flex: 1, paddingRight: '20px' }}>
         <p style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', margin: '0 0 5px 0' }}>Terms & Conditions:</p>
         <ol style={{ fontSize: '10px', color: '#555', paddingLeft: '15px', margin: 0, lineHeight: '1.5' }}>
