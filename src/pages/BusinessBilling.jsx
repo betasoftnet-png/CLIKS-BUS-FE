@@ -47,6 +47,7 @@ const BusinessBilling = () => {
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
     const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+    const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
     
     // Sophisticated Custom Template Builder Configuration
     const [isCustomizerModalOpen, setIsCustomizerModalOpen] = useState(false);
@@ -278,7 +279,7 @@ const BusinessBilling = () => {
 
     const createMutation = useMutation({
         mutationFn: billingService.createInvoice,
-        onSuccess: () => {
+        onSuccess: (newInvoice) => {
             // Deduct stock for each item if it's a Sales Invoice
             if (formData.invoice_type === 'GST' || formData.invoice_type === 'Non-GST') {
                 formData.items.forEach(item => {
@@ -304,7 +305,19 @@ const BusinessBilling = () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['business-customers'] });
+            
+            // Construct complete invoice object for visual preview combining server response & client data
+            const invoiceForView = {
+                ...formData,
+                ...(newInvoice || {}), // Merge system generated IDs/timestamps if available
+                items: typeof formData.items === 'string' ? JSON.parse(formData.items) : formData.items // Ensure it is array for template
+            };
+
+            // Close creation workspace
             closeModal();
+            
+            // Render visual modal instantly on screen
+            setViewingInvoice(invoiceForView);
         }
     });
 
@@ -1240,6 +1253,85 @@ const BusinessBilling = () => {
                         </div>
                         <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
                             <button onClick={() => setIsHistoryModalOpen(false)} style={{ padding: '0.4rem 1rem', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>Close Trail</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Visual Invoice Preview Stage (Post Generation) */}
+            {viewingInvoice && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, backdropFilter: 'blur(10px)', padding: '1rem' }}>
+                    <div style={{ 
+                        background: 'white', 
+                        width: '100%', 
+                        maxWidth: '920px', 
+                        height: '88vh', 
+                        borderRadius: '20px', 
+                        boxShadow: '0 35px 60px -15px rgba(0,0,0,0.3)', 
+                        overflow: 'hidden', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}>
+                        <div style={{ padding: '1.25rem 1.75rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                    <div style={{ width: '10px', height: '10px', background: '#10B981', borderRadius: '50%' }}></div>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>Invoice Created Successfully</h3>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, fontWeight: '500' }}>Document Ref: <span style={{ fontWeight: '800', color: '#334155' }}>{viewingInvoice.invoice_number}</span></p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button 
+                                    onClick={() => handlePrint(viewingInvoice)} 
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '6px', 
+                                        padding: '0.6rem 1.25rem', borderRadius: '10px', 
+                                        background: '#EC4899', color: 'white', border: 'none', 
+                                        fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                        boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)'
+                                    }}
+                                >
+                                    <Printer size={16} /> Print / Save PDF
+                                </button>
+                                <button 
+                                    onClick={() => setViewingInvoice(null)} 
+                                    style={{ 
+                                        padding: '0.6rem 1.25rem', borderRadius: '10px', 
+                                        background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0', 
+                                        fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem'
+                                    }}
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ 
+                                background: 'white', 
+                                width: '100%', 
+                                maxWidth: '794px', // approx A4
+                                minHeight: '1123px', // approx A4
+                                padding: '0px', 
+                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', 
+                                borderRadius: '2px',
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{ padding: '40px', color: '#000', background: '#fff' }}>
+                                    <InvoiceTemplates.Renderer 
+                                        type={activeTemplate} 
+                                        data={viewingInvoice} 
+                                        business={businessProfile?.data || businessProfile || {}} 
+                                        config={customConfig}
+                                    />
+                                    
+                                    {['standard', 'modern'].includes(activeTemplate) && (
+                                        <div style={{ marginTop: '60px', borderTop: '1px solid #E2E8F0', paddingTop: '20px', textAlign: 'center' }}>
+                                            <p style={{ fontSize: '12px', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>Thank you for your business!</p>
+                                            <p style={{ fontSize: '11px', color: '#64748B' }}>Digitally verified invoice generated on {new Date().toLocaleDateString()}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
