@@ -1132,15 +1132,14 @@ const BusinessBilling = () => {
                                 </div>
                                 <div style={{ 
                                     width: '100%', 
-                                    maxWidth: '500px', 
+                                    maxWidth: '650px', 
                                     background: 'white', 
-                                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', 
-                                    transform: 'scale(0.9)', 
-                                    transformOrigin: 'top center',
-                                    borderRadius: '4px',
-                                    minHeight: '600px',
-                                    padding: '20px',
-                                    overflow: 'hidden'
+                                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', 
+                                    borderRadius: '6px',
+                                    padding: '30px',
+                                    height: 'auto',
+                                    flexShrink: 0,
+                                    marginBottom: '3rem' 
                                 }}>
                                     <InvoiceTemplates.Renderer 
                                         type={activeTemplate} 
