@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '../services';
-import Breadcrumbs from '../components/Breadcrumbs';
+
 import { Toggle } from '../components/ui/toggle';
 import { Bell, Shield, Globe, Save } from 'lucide-react';
 
@@ -52,7 +52,6 @@ const Settings = () => {
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem 2rem' }}>
             <div style={{ marginBottom: '2rem' }}>
-                <Breadcrumbs />
                 <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.5rem' }}>Settings</h1>
                 <p style={{ color: '#64748B' }}>Manage your application preferences and system configurations.</p>
             </div>

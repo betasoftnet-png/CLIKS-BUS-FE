@@ -43,11 +43,11 @@
 .sidebar-nav > div {
     color: #64748B !important;
     font-weight: 800 !important;
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    margin: 1rem 0.5rem 0.25rem 0.5rem;
-    padding-left: 0.5rem;
+    margin: 0.5rem 0 0.1rem 0 !important;
+    padding: 0.3rem 0.75rem !important;
 }
 
 /* Sidebar Item Base */
