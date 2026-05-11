@@ -10,7 +10,9 @@ import {
     Type, 
     Scan,
     Layers,
-    Share2
+    Share2,
+    Plus,
+    Trash2
 } from 'lucide-react';
 
 const BusinessBarcode = () => {
@@ -31,6 +33,9 @@ const BusinessBarcode = () => {
         subtitle: 'Size: L | Color: Navy',
         price: '₹ 999.00'
     });
+    const [customFields, setCustomFields] = useState([
+        { id: 1, key: 'Exp Date', value: '12/2026' }
+    ]);
 
     const barcodeRef = useRef(null);
 
@@ -109,6 +114,18 @@ const BusinessBarcode = () => {
 
     const updateLabelDetails = (key, val) => {
         setLabelDetails(prev => ({ ...prev, [key]: val }));
+    };
+
+    const addCustomField = () => {
+        setCustomFields([...customFields, { id: Date.now(), key: '', value: '' }]);
+    };
+
+    const removeCustomField = (id) => {
+        setCustomFields(customFields.filter(f => f.id !== id));
+    };
+
+    const updateCustomField = (id, prop, val) => {
+        setCustomFields(customFields.map(f => f.id === id ? { ...f, [prop]: val } : f));
     };
 
     return (
@@ -221,6 +238,51 @@ const BusinessBarcode = () => {
                                         style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', boxSizing: 'border-box' }}
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Dynamic Custom Fields Area */}
+                        <div style={{ borderTop: '1px dashed #e2e8f0', marginTop: '1.5rem', paddingTop: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Custom Fields</label>
+                                <button 
+                                    onClick={addCustomField}
+                                    style={{ background: '#f0fdf4', border: '1px solid #dcf2e4', color: '#1B6B3A', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', borderRadius: '6px' }}
+                                >
+                                    <Plus size={14} /> Add Field
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                {customFields.map((field) => (
+                                    <div key={field.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Key (e.g. Weight)" 
+                                            value={field.key} 
+                                            onChange={(e) => updateCustomField(field.id, 'key', e.target.value)}
+                                            style={{ flex: '1', padding: '0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }}
+                                        />
+                                        <input 
+                                            type="text" 
+                                            placeholder="Value" 
+                                            value={field.value} 
+                                            onChange={(e) => updateCustomField(field.id, 'value', e.target.value)}
+                                            style={{ flex: '1.5', padding: '0.6rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }}
+                                        />
+                                        <button 
+                                            onClick={() => removeCustomField(field.id)}
+                                            style={{ background: '#fef2f2', border: 'none', padding: '0.6rem', borderRadius: '6px', cursor: 'pointer', color: '#ef4444' }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {customFields.length === 0 && (
+                                    <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
+                                        No custom fields added yet. Click 'Add Field' above.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -346,8 +408,20 @@ const BusinessBarcode = () => {
                                     </div>
                                 )}
                                 {labelDetails.subtitle && (
-                                    <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '1rem', fontWeight: '600' }}>
+                                    <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.75rem', fontWeight: '600' }}>
                                         {labelDetails.subtitle}
+                                    </div>
+                                )}
+
+                                {/* Dynamic Content Rendering */}
+                                {customFields.some(f => f.key || f.value) && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '0.75rem', width: '100%', alignItems: 'center', fontSize: '0.75rem' }}>
+                                        {customFields.map((field) => (field.key || field.value) ? (
+                                            <div key={field.id} style={{ display: 'flex', gap: '4px' }}>
+                                                {field.key && <span style={{ fontWeight: '700' }}>{field.key}:</span>}
+                                                {field.value && <span>{field.value}</span>}
+                                            </div>
+                                        ) : null)}
                                     </div>
                                 )}
                                 
