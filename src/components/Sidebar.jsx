@@ -27,6 +27,7 @@ import {
     Split,
     Gift,
     Building,
+    Barcode,
     ChevronDown,
     ChevronRight
 } from 'lucide-react';
@@ -47,6 +48,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/business/crm')) return 'Customers';
         if (path.includes('/business/returns')) return 'Returns';
         if (path.includes('/business/inventory')) return 'Products';
+        if (path.includes('/business/barcode')) return 'Barcode Gen';
         if (path.includes('/business/stock')) return 'Stock';
         if (path.includes('/business/purchases')) return 'Purchases';
         if (path.includes('/business/suppliers')) return 'Suppliers';
@@ -113,6 +115,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 icon: Package,
                 children: [
                     { label: 'Products', icon: Package, path: '/business/inventory' },
+                    { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' },
                     { label: 'Stock', icon: Layers, path: '/business/stock' },
                     { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' }
                 ]

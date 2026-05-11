@@ -39,6 +39,7 @@ import BusinessPayroll from './pages/BusinessPayroll';
 import BusinessDelivery from './pages/BusinessDelivery';
 import BusinessManufacturing from './pages/BusinessManufacturing';
 import BusinessSubscription from './pages/BusinessSubscription';
+import BusinessBarcode from './pages/BusinessBarcode';
 
 import './App.css';
 
@@ -77,6 +78,7 @@ function AppContent() {
                     {/* Business Section */}
                     <Route path="/business/dashboard" element={<BusinessDashboard />} />
                     <Route path="/business/inventory" element={<BusinessInventory />} />
+                    <Route path="/business/barcode" element={<BusinessBarcode />} />
                     <Route path="/business/billing" element={<BusinessBilling />} />
                     <Route path="/business/orders" element={<BusinessSalesOrders />} />
                     <Route path="/business/purchases" element={<BusinessPurchases />} />
