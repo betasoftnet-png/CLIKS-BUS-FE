@@ -293,26 +293,33 @@ const Sidebar = ({ isOpen, onClose }) => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: 'linear-gradient(135deg, #1B6B3A, #2D864C)',
+                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                         color: '#FFFFFF',
                         borderRadius: '10px',
                         border: 'none',
                         cursor: 'pointer',
-                        fontWeight: '600',
+                        fontWeight: '700',
                         fontSize: '0.85rem',
-                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)',
-                        transition: 'all 0.2s ease'
+                        letterSpacing: '0.02em',
+                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 99, 235, 0.35)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.25)';
+                    }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex' }}>
-                            <CreditCard size={16} />
+                        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
+                            <CreditCard size={16} strokeWidth={2.5} />
                         </div>
-                        <span>Get Subscription</span>
+                        <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
                     </div>
-                    <ChevronRight size={14} />
+                    <ChevronRight size={14} strokeWidth={3} />
                 </button>
 
                 {/* Bottom Settings Block (Replaced 'My Company' from example) */}
