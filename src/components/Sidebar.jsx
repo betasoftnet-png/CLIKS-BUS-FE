@@ -129,19 +129,6 @@ const Sidebar = ({ isOpen, onClose }) => {
                     { label: 'Attendance', icon: Calendar, path: '/business/attendance' },
                     { label: 'Payroll', icon: FileCheck, path: '/business/payroll' }
                 ]
-            },
-            {
-                label: 'Subscription',
-                icon: CreditCard,
-                path: '/business/subscription'
-            },
-            {
-                label: 'Settings',
-                icon: SettingsIcon,
-                children: [
-                    { label: 'Business Settings', icon: SettingsIcon, path: '/settings' },
-                    { label: 'Backup & Sync', icon: RefreshCw, path: '/faq' }
-                ]
             }
         ],
         social: [
@@ -286,6 +273,77 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </>
                 )}
             </nav>
+
+            {/* Fixed Sidebar Footer - Relocated based on User Specification */}
+            <div style={{ 
+                padding: '1rem', 
+                borderTop: '1px solid #F1F5F9', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '0.6rem',
+                flexShrink: 0,
+                background: '#FFFFFF'
+            }}>
+                {/* Subscription Banner (Matches example visual) */}
+                <button
+                    onClick={() => handleItemClick('Subscription', '/business/subscription')}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        background: 'linear-gradient(135deg, #1B6B3A, #2D864C)',
+                        color: '#FFFFFF',
+                        borderRadius: '10px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '0.85rem',
+                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex' }}>
+                            <CreditCard size={16} />
+                        </div>
+                        <span>Get Subscription</span>
+                    </div>
+                    <ChevronRight size={14} />
+                </button>
+
+                {/* Bottom Settings Block (Replaced 'My Company' from example) */}
+                <button
+                    onClick={() => handleItemClick('Settings', '/settings')}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        background: location.pathname.includes('/settings') ? '#F0FDF4' : '#F8FAFC',
+                        color: location.pathname.includes('/settings') ? '#1B6B3A' : '#334155',
+                        borderRadius: '10px',
+                        border: '1px solid',
+                        borderColor: location.pathname.includes('/settings') ? '#BBF7D0' : '#E2E8F0',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? '#F0FDF4' : '#F1F5F9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? '#F0FDF4' : '#F8FAFC'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <SettingsIcon size={18} style={{ opacity: 0.8 }} />
+                        <span>Settings</span>
+                    </div>
+                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                </button>
+            </div>
         </aside>
     );
 };
