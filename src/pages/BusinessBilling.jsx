@@ -24,6 +24,7 @@ import {
     History,
     Tag,
     LayoutTemplate,
+    Settings,
     Check
 } from 'lucide-react';
 import { billingService } from '../services/billingService';
