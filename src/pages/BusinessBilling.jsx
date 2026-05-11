@@ -49,6 +49,7 @@ const BusinessBilling = () => {
     const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
+    const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
     
     // Sophisticated Custom Template Builder Configuration
     const [isCustomizerModalOpen, setIsCustomizerModalOpen] = useState(false);
@@ -340,6 +341,7 @@ const BusinessBilling = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingInvoice(null);
+        setShowLivePreview(false); // Reset live preview mode
         setSelectedCustomerObject(null);
         setFormData({
             invoice_number: `INV-${Date.now().toString().slice(-6)}`,
@@ -649,12 +651,51 @@ const BusinessBilling = () => {
             {/* Create/Edit Modal */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', overflowY: 'auto', padding: '1rem' }}>
-                    <div style={{ background: 'white', width: '760px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <div style={{ 
+                        background: 'white', 
+                        width: showLivePreview ? '1250px' : '760px', 
+                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
+                        borderRadius: '20px', 
+                        padding: 0, 
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', 
+                        maxHeight: '90vh', 
+                        overflow: 'hidden', 
+                        display: 'flex', 
+                        flexDirection: 'column' 
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9' }}>
                             <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</h2>
-                            <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}><X size={18} /></button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowLivePreview(!showLivePreview)} 
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '6px', 
+                                        padding: '0.5rem 0.9rem', borderRadius: '8px', 
+                                        background: showLivePreview ? '#FCE7F3' : '#F1F5F9', 
+                                        color: showLivePreview ? '#BE185D' : '#64748B', 
+                                        border: showLivePreview ? '1px solid #FBCFE8' : '1px solid transparent',
+                                        fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    <Eye size={15} /> {showLivePreview ? 'Hide Real-time Preview' : 'Live Preview Mode'}
+                                </button>
+                                <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex' }}><X size={18} /></button>
+                            </div>
                         </div>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        
+                        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                            {/* Left: Dynamic Interaction Pane */}
+                            <div style={{ 
+                                flex: showLivePreview ? '1 1 55%' : '1 1 100%', 
+                                overflowY: 'scroll', 
+                                padding: '1.5rem 2rem 2rem', 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                transition: 'all 0.3s ease'
+                            }}>
+                                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
@@ -985,7 +1026,55 @@ const BusinessBilling = () => {
                             <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', marginTop: '0.5rem', cursor: 'pointer' }}>
                                 {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
                             </button>
-                        </form>
+                                </form>
+                            </div>
+
+                            {/* Right: The Live In-Situ Renderer Instance */}
+                            {showLivePreview && (
+                                <div style={{ 
+                                    flex: '1 1 45%', 
+                                    background: '#F8FAFC', 
+                                    borderLeft: '1px solid #E2E8F0', 
+                                    overflowY: 'scroll', 
+                                    padding: '2rem', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    alignItems: 'center',
+                                    animation: 'fadeIn 0.3s ease' 
+                                }}>
+                                    <div style={{ 
+                                        alignSelf: 'flex-start', 
+                                        marginBottom: '1.5rem', 
+                                        borderBottom: '1px solid #E2E8F0', 
+                                        width: '100%', 
+                                        paddingBottom: '0.5rem' 
+                                    }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Real-Time Generation Display</span>
+                                    </div>
+                                    
+                                    <div style={{ 
+                                        width: '100%', 
+                                        background: 'white', 
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.05)', 
+                                        borderRadius: '4px', 
+                                        minHeight: '600px', 
+                                        padding: '30px', 
+                                        marginBottom: '3rem',
+                                        flexShrink: 0
+                                    }}>
+                                        <InvoiceTemplates.Renderer 
+                                            type={activeTemplate} 
+                                            data={{
+                                                ...formData,
+                                                items: typeof formData.items === 'string' ? JSON.parse(formData.items) : (formData.items || [])
+                                            }} 
+                                            business={businessProfile?.data || businessProfile || {}} 
+                                            config={customConfig}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
