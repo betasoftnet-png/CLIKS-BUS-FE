@@ -25,7 +25,8 @@ import {
     Tag,
     LayoutTemplate,
     Settings,
-    Check
+    Check,
+    Eye
 } from 'lucide-react';
 import { billingService } from '../services/billingService';
 import { inventoryService } from '../services/inventoryService';
@@ -1016,7 +1017,7 @@ const BusinessBilling = () => {
             {/* Template Selector Gallery Modal */}
             {isTemplatesModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '1100px', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
                         <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1030,94 +1031,145 @@ const BusinessBilling = () => {
                             </button>
                         </div>
                         
-                        <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', maxHeight: '60vh', overflowY: 'auto', background: '#F1F5F9' }}>
-                            {[
-                                { id: 'standard', name: 'Executive Standard', desc: 'Clean Compliance', color: '#BE185D', bg: '#FCE7F3' },
-                                { id: 'modern', name: 'Premium Corporate', desc: 'Sleek Sans-Serif', color: '#1E3A8A', bg: '#DBEAFE' },
-                                { id: 'minimal', name: 'Master Box Grid', desc: 'Heavy Accounting', color: '#000000', bg: '#F1F5F9' },
-                                { id: 'elegant_dark', name: 'Pro Accent Top', desc: 'Luxury Color Block', color: '#F59E0B', bg: '#FEF3C7' },
-                                { id: 'compact_retail', name: 'Thermal Receipt (POS)', desc: '80mm Small Roll Printing', color: '#4B5563', bg: '#E5E7EB' },
-                                { id: 'retro_mono', name: 'Global Classic', desc: 'Standard B2B Statement', color: '#059669', bg: '#D1FAE5' },
-                                { id: 'creative_blue', name: 'Service Detailed', desc: 'Description Heavy', color: '#6366F1', bg: '#E0E7FF' },
-                                { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
-                                { id: 'clean_stripe', name: 'Modern Sidebar', desc: 'Integrated Branding', color: '#059669', bg: '#D1FAE5' },
-                                { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' },
-                                { id: 'custom', name: 'Build Your Own', desc: 'Launch Builder Modal', color: customConfig.accentColor, bg: '#FDF2F8' }
-                            ].map((tmpl) => (
-                                <div 
-                                    key={tmpl.id}
-                                    onClick={() => {
-                                        setActiveTemplate(tmpl.id);
-                                        if (tmpl.id === 'custom') {
-                                            setIsCustomizerModalOpen(true);
-                                        }
-                                    }}
-                                    style={{ 
-                                        cursor: 'pointer', 
-                                        border: activeTemplate === tmpl.id ? `2px solid ${tmpl.color}` : '1px solid #E2E8F0', 
-                                        borderRadius: '12px', padding: '0.5rem', 
-                                        background: 'white',
-                                        transform: activeTemplate === tmpl.id ? 'scale(1.02)' : 'scale(1)',
-                                        boxShadow: activeTemplate === tmpl.id ? '0 10px 15px -3px rgba(0,0,0,0.1)' : 'none',
-                                        transition: 'all 0.2s ease'
-                                    }}
-                                >
-                                    <div style={{ 
-                                        height: '120px', background: 'white', borderRadius: '8px', 
-                                        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)', overflow: 'hidden', 
-                                        position: 'relative', padding: '8px', border: activeTemplate === tmpl.id ? `1px solid ${tmpl.color}20` : '1px solid #F1F5F9'
-                                    }}>
-                                        {/* Render mini abstract SVG / Div representation placeholders */}
-                                        <div style={{ width: '100%', height: '100%', opacity: 0.7, position: 'relative' }}>
-                                            {tmpl.id === 'standard' && (
-                                                <div><div style={{height: '6px', width: '40%', background: tmpl.color, marginBottom: '5px'}}></div><div style={{display:'flex', gap: '2px'}}><div style={{height:'20px', flex:1, background:tmpl.bg}}></div><div style={{height:'20px', flex:1, background:tmpl.bg}}></div></div><div style={{height:'30px', width: '100%', background: '#f1f1f1', marginTop: '5px'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'modern' && (
-                                                <div><div style={{height: '4px', width: '100%', background: tmpl.color}}></div><div style={{height: '25px', width: '40%', background: '#eee', margin: '10px 0'}}></div><div style={{height:'35px', width: '100%', borderTop: `2px solid ${tmpl.color}`, background: '#fafafa'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'minimal' && (
-                                                <div style={{border: '1px solid #000', height: '90px'}}><div style={{height: '15px', borderBottom: '1px solid #000'}}></div><div style={{height: '15px', borderBottom: '1px solid #000', display:'flex'}}><div style={{flex:1, borderRight: '1px solid #000'}}></div><div style={{flex:1}}></div></div><div style={{height: '40px'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'elegant_dark' && (
-                                                <div style={{background: '#fff'}}><div style={{height: '30px', background: '#0F172A', width: '100%'}}></div><div style={{height: '3px', background: tmpl.color, width: '100%'}}></div><div style={{margin: '10px 0', height: '30px', borderLeft: `3px solid ${tmpl.color}`, background: '#fafafa'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'compact_retail' && (
-                                                <div style={{border: '1px dashed #ccc', height: '95px', padding: '4px'}}><div style={{borderBottom: '1px dashed #000', height: '20px', textAlign: 'center', fontSize: '8px'}}>***</div><div style={{height: '40px', borderBottom: '1px dashed #000'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'retro_mono' && (
-                                                <div style={{border: '2px double #000', height: '90px'}}><div style={{height: '15px', borderBottom: '1px solid #000', background: '#fafafa'}}></div><div style={{height: '50px', fontSize: '5px', fontFamily: 'monospace', padding: '4px'}}>+------+<br/>| DATA |</div></div>
-                                            )}
-                                            {tmpl.id === 'creative_blue' && (
-                                                <div style={{background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', height: '90px', borderRadius: '4px'}}><div style={{padding: '5px'}}><div style={{height: '8px', width: '50%', background: 'rgba(255,255,255,0.4)'}}></div></div></div>
-                                            )}
-                                            {tmpl.id === 'executive' && (
-                                                <div><div style={{height: '20px', textAlign: 'center', borderBottom: '2px double #111'}}></div><div style={{marginTop: '10px', height: '40px', borderTop: '1px solid #111', borderBottom: '1px solid #111'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'clean_stripe' && (
-                                                <div style={{display: 'flex', height: '90px'}}><div style={{width: '25%', background: '#059669'}}></div><div style={{flex: 1, padding: '5px'}}><div style={{height: '10px', borderBottom: '2px solid #ECFDF5'}}></div></div></div>
-                                            )}
-                                            {tmpl.id === 'service_pro' && (
-                                                <div><div style={{height: '25px', background: '#EFF6FF', borderRadius: '4px', marginBottom: '5px'}}></div><div style={{height: '50px', border: '1px solid #E5E7EB', borderRadius: '4px'}}></div></div>
-                                            )}
-                                            {tmpl.id === 'custom' && (
-                                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: `2px dashed ${tmpl.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tmpl.color }}>
-                                                        <Plus size={20} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', maxHeight: '75vh', overflow: 'hidden' }}>
+                            {/* Left: Selector Grid */}
+                            <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', overflowY: 'auto', background: '#F1F5F9', borderRight: '1px solid #E2E8F0' }}>
+                                {[
+                                    { id: 'standard', name: 'Executive Standard', desc: 'Clean Compliance', color: '#BE185D', bg: '#FCE7F3' },
+                                    { id: 'modern', name: 'Premium Corporate', desc: 'Sleek Sans-Serif', color: '#1E3A8A', bg: '#DBEAFE' },
+                                    { id: 'minimal', name: 'Master Box Grid', desc: 'Heavy Accounting', color: '#000000', bg: '#F1F5F9' },
+                                    { id: 'elegant_dark', name: 'Pro Accent Top', desc: 'Luxury Color Block', color: '#F59E0B', bg: '#FEF3C7' },
+                                    { id: 'compact_retail', name: 'Thermal Receipt (POS)', desc: '80mm Small Roll Printing', color: '#4B5563', bg: '#E5E7EB' },
+                                    { id: 'retro_mono', name: 'Global Classic', desc: 'Standard B2B Statement', color: '#059669', bg: '#D1FAE5' },
+                                    { id: 'creative_blue', name: 'Service Detailed', desc: 'Description Heavy', color: '#6366F1', bg: '#E0E7FF' },
+                                    { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
+                                    { id: 'clean_stripe', name: 'Modern Sidebar', desc: 'Integrated Branding', color: '#059669', bg: '#D1FAE5' },
+                                    { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' },
+                                    { id: 'custom', name: 'Build Your Own', desc: 'Launch Builder Modal', color: customConfig.accentColor, bg: '#FDF2F8' }
+                                ].map((tmpl) => (
+                                    <div 
+                                        key={tmpl.id}
+                                        onClick={() => {
+                                            setActiveTemplate(tmpl.id);
+                                            if (tmpl.id === 'custom') {
+                                                setIsCustomizerModalOpen(true);
+                                            }
+                                        }}
+                                        style={{ 
+                                            cursor: 'pointer', 
+                                            border: activeTemplate === tmpl.id ? `2px solid ${tmpl.color}` : '1px solid #E2E8F0', 
+                                            borderRadius: '12px', padding: '0.5rem', 
+                                            background: 'white',
+                                            transform: activeTemplate === tmpl.id ? 'scale(1.02)' : 'scale(1)',
+                                            boxShadow: activeTemplate === tmpl.id ? '0 10px 15px -3px rgba(0,0,0,0.1)' : 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <div style={{ 
+                                            height: '100px', background: 'white', borderRadius: '8px', 
+                                            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)', overflow: 'hidden', 
+                                            position: 'relative', padding: '8px', border: activeTemplate === tmpl.id ? `1px solid ${tmpl.color}20` : '1px solid #F1F5F9'
+                                        }}>
+                                            {/* Render mini abstract SVG / Div representation placeholders */}
+                                            <div style={{ width: '100%', height: '100%', opacity: 0.7, position: 'relative' }}>
+                                                {tmpl.id === 'standard' && (
+                                                    <div><div style={{height: '6px', width: '40%', background: tmpl.color, marginBottom: '5px'}}></div><div style={{display:'flex', gap: '2px'}}><div style={{height:'20px', flex:1, background:tmpl.bg}}></div><div style={{height:'20px', flex:1, background:tmpl.bg}}></div></div><div style={{height:'30px', width: '100%', background: '#f1f1f1', marginTop: '5px'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'modern' && (
+                                                    <div><div style={{height: '4px', width: '100%', background: tmpl.color}}></div><div style={{height: '25px', width: '40%', background: '#eee', margin: '10px 0'}}></div><div style={{height:'35px', width: '100%', borderTop: `2px solid ${tmpl.color}`, background: '#fafafa'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'minimal' && (
+                                                    <div style={{border: '1px solid #000', height: '90px'}}><div style={{height: '15px', borderBottom: '1px solid #000'}}></div><div style={{height: '15px', borderBottom: '1px solid #000', display:'flex'}}><div style={{flex:1, borderRight: '1px solid #000'}}></div><div style={{flex:1}}></div></div><div style={{height: '40px'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'elegant_dark' && (
+                                                    <div style={{background: '#fff'}}><div style={{height: '30px', background: '#0F172A', width: '100%'}}></div><div style={{height: '3px', background: tmpl.color, width: '100%'}}></div><div style={{margin: '10px 0', height: '30px', borderLeft: `3px solid ${tmpl.color}`, background: '#fafafa'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'compact_retail' && (
+                                                    <div style={{border: '1px dashed #ccc', height: '95px', padding: '4px'}}><div style={{borderBottom: '1px dashed #000', height: '20px', textAlign: 'center', fontSize: '8px'}}>***</div><div style={{height: '40px', borderBottom: '1px dashed #000'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'retro_mono' && (
+                                                    <div style={{border: '2px double #000', height: '90px'}}><div style={{height: '15px', borderBottom: '1px solid #000', background: '#fafafa'}}></div><div style={{height: '50px', fontSize: '5px', fontFamily: 'monospace', padding: '4px'}}>+------+<br/>| DATA |</div></div>
+                                                )}
+                                                {tmpl.id === 'creative_blue' && (
+                                                    <div style={{background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)', height: '90px', borderRadius: '4px'}}><div style={{padding: '5px'}}><div style={{height: '8px', width: '50%', background: 'rgba(255,255,255,0.4)'}}></div></div></div>
+                                                )}
+                                                {tmpl.id === 'executive' && (
+                                                    <div><div style={{height: '20px', textAlign: 'center', borderBottom: '2px double #111'}}></div><div style={{marginTop: '10px', height: '40px', borderTop: '1px solid #111', borderBottom: '1px solid #111'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'clean_stripe' && (
+                                                    <div style={{display: 'flex', height: '90px'}}><div style={{width: '25%', background: '#059669'}}></div><div style={{flex: 1, padding: '5px'}}><div style={{height: '10px', borderBottom: '2px solid #ECFDF5'}}></div></div></div>
+                                                )}
+                                                {tmpl.id === 'service_pro' && (
+                                                    <div><div style={{height: '25px', background: '#EFF6FF', borderRadius: '4px', marginBottom: '5px'}}></div><div style={{height: '50px', border: '1px solid #E5E7EB', borderRadius: '4px'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'custom' && (
+                                                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                                                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: `2px dashed ${tmpl.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tmpl.color }}>
+                                                            <Plus size={20} />
+                                                        </div>
                                                     </div>
+                                                )}
+                                            </div>
+                                            
+                                            {activeTemplate === tmpl.id && (
+                                                <div style={{ position: 'absolute', top: '5px', right: '5px', width: '18px', height: '18px', borderRadius: '50%', background: tmpl.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                                                    <Check size={12} strokeWidth={3} />
                                                 </div>
                                             )}
                                         </div>
-                                        
-                                        {activeTemplate === tmpl.id && (
-                                            <div style={{ position: 'absolute', top: '5px', right: '5px', width: '18px', height: '18px', borderRadius: '50%', background: tmpl.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-                                                <Check size={12} strokeWidth={3} />
-                                            </div>
-                                        )}
+                                        <p style={{ textAlign: 'center', fontWeight: '800', fontSize: '0.8rem', margin: '6px 0 1px 0', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tmpl.name}</p>
+                                        <p style={{ textAlign: 'center', fontSize: '0.65rem', color: '#64748B', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tmpl.desc}</p>
                                     </div>
-                                    <p style={{ textAlign: 'center', fontWeight: '800', fontSize: '0.85rem', margin: '8px 0 2px 0', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tmpl.name}</p>
-                                    <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tmpl.desc}</p>
+                                ))}
+                            </div>
+
+                            {/* Right: Visual Real-Time Rendering Pipeline */}
+                            <div style={{ padding: '1.5rem', background: '#F8FAFC', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{ alignSelf: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', width: '100%', paddingBottom: '0.5rem' }}>
+                                    <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '800', color: '#94A3B8', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px', margin: 0 }}>
+                                        <Eye size={12} /> Live Instant Preview
+                                    </p>
                                 </div>
-                            ))}
+                                <div style={{ 
+                                    width: '100%', 
+                                    maxWidth: '500px', 
+                                    background: 'white', 
+                                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', 
+                                    transform: 'scale(0.9)', 
+                                    transformOrigin: 'top center',
+                                    borderRadius: '4px',
+                                    minHeight: '600px',
+                                    padding: '20px',
+                                    overflow: 'hidden'
+                                }}>
+                                    <InvoiceTemplates.Renderer 
+                                        type={activeTemplate} 
+                                        data={{
+                                            invoice_number: 'INV-SAMPLE-001',
+                                            invoice_type: 'GST',
+                                            due_date: new Date().toLocaleDateString(),
+                                            payment_mode: 'UPI / Credit Card',
+                                            client_name: 'Johnathan Doe Ltd.',
+                                            client_email: 'billing@samplecorp.com',
+                                            billing_address: '742 Evergreen Terrace, Springfield, US',
+                                            amount: 15000,
+                                            tax_amount: 2700,
+                                            discount_amount: 500,
+                                            total_amount: 17200,
+                                            items: [
+                                                { description: 'Enterprise Solutions License (Annual)', quantity: 1, price: 10000, tax_rate: 18, total: 11800, unit: 'Nos', hsn_code: '998311' },
+                                                { description: 'Professional Cloud Implementation Consultation', quantity: 1, price: 5000, tax_rate: 18, total: 5900, unit: 'Hrs', hsn_code: '998711' }
+                                            ]
+                                        }} 
+                                        business={businessProfile?.data || businessProfile || {
+                                            business_name: 'Your Brand Corp',
+                                            email: 'contact@yourbrand.com',
+                                            phone: '+1 800 123 456'
+                                        }} 
+                                        config={customConfig}
+                                    />
+                                </div>
+                            </div>
                         </div>
                         
                         <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
