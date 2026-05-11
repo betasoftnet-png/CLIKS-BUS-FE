@@ -26,6 +26,11 @@ const BusinessBarcode = () => {
         displayValue: true
     });
     const [copied, setCopied] = useState(false);
+    const [labelDetails, setLabelDetails] = useState({
+        title: 'Premium Cotton Shirt',
+        subtitle: 'Size: L | Color: Navy',
+        price: '₹ 999.00'
+    });
 
     const barcodeRef = useRef(null);
 
@@ -66,22 +71,32 @@ const BusinessBarcode = () => {
 
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
-        const element = barcodeRef.current.innerHTML;
+        const elementHTML = barcodeRef.current.outerHTML;
         printWindow.document.write(`
             <html>
                 <head>
                     <title>Print Label: ${codeValue}</title>
                     <style>
-                        body { display: flex; justify-content: center; align-items: center; height: 90vh; font-family: sans-serif; }
-                        .print-container { text-align: center; padding: 20px; border: 1px solid #eee; }
+                        body { 
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            height: 100vh; 
+                            margin: 0;
+                            font-family: sans-serif; 
+                        }
+                        /* Force preserve inline background printing */
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                     </style>
                 </head>
                 <body>
-                    <div class="print-container">
-                        <h2>Product Label</h2>
-                        ${element}
-                    </div>
-                    <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
+                    ${elementHTML}
+                    <script>
+                        setTimeout(() => { 
+                            window.print(); 
+                            window.close(); 
+                        }, 500);
+                    </script>
                 </body>
             </html>
         `);
@@ -90,6 +105,10 @@ const BusinessBarcode = () => {
 
     const updateFormat = (key, val) => {
         setFormat(prev => ({ ...prev, [key]: val }));
+    };
+
+    const updateLabelDetails = (key, val) => {
+        setLabelDetails(prev => ({ ...prev, [key]: val }));
     };
 
     return (
@@ -157,6 +176,51 @@ const BusinessBarcode = () => {
                                     placeholder="Enter ID..."
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', boxSizing: 'border-box' }}
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Step 1.5: Label Overlays (Requested Extension) */}
+                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                            <div style={{ width: '32px', height: '32px', background: '#ecfdf5', color: '#10b981', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Type size={18} />
+                            </div>
+                            <h3 style={{ fontWeight: '700', color: '#1e293b' }}>Label Print Data</h3>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginBottom: '0.5rem' }}>Product Title / Name</label>
+                                <input 
+                                    type="text" 
+                                    value={labelDetails.title}
+                                    onChange={(e) => updateLabelDetails('title', e.target.value)}
+                                    placeholder="Product Title"
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginBottom: '0.5rem' }}>Description / Variation</label>
+                                    <input 
+                                        type="text" 
+                                        value={labelDetails.subtitle}
+                                        onChange={(e) => updateLabelDetails('subtitle', e.target.value)}
+                                        placeholder="e.g., Color / Batch"
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginBottom: '0.5rem' }}>Price Tag</label>
+                                    <input 
+                                        type="text" 
+                                        value={labelDetails.price}
+                                        onChange={(e) => updateLabelDetails('price', e.target.value)}
+                                        placeholder="e.g., $19.99"
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', boxSizing: 'border-box' }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -265,41 +329,63 @@ const BusinessBarcode = () => {
                                 ref={barcodeRef} 
                                 style={{ 
                                     padding: '2rem', 
-                                    background: 'white', 
+                                    background: format.background, 
                                     borderRadius: '8px', 
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                                     display: 'flex',
+                                    flexDirection: 'column',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    color: format.lineColor,
+                                    minWidth: '280px'
                                 }}
                             >
-                                {codeType === 'QR' ? (
-                                    <div style={{ background: format.background, padding: `${format.margin}px` }}>
-                                        <QRCodeCanvas 
-                                            value={codeValue || ' '} 
-                                            size={format.height + 50} 
-                                            bgColor={format.background}
-                                            fgColor={format.lineColor}
-                                            level={"H"}
-                                        />
-                                        {format.displayValue && (
-                                            <div style={{ textAlign: 'center', marginTop: '8px', color: format.lineColor, fontSize: `${format.fontSize}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                {codeValue}
-                                            </div>
-                                        )}
+                                {labelDetails.title && (
+                                    <div style={{ fontSize: '1.1rem', fontWeight: '800', marginBottom: '0.2rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                                        {labelDetails.title}
                                     </div>
-                                ) : (
-                                    <Barcode 
-                                        value={codeValue || ' '}
-                                        format={codeType}
-                                        width={format.width}
-                                        height={format.height}
-                                        displayValue={format.displayValue}
-                                        fontSize={format.fontSize}
-                                        background={format.background}
-                                        lineColor={format.lineColor}
-                                        margin={format.margin}
-                                    />
+                                )}
+                                {labelDetails.subtitle && (
+                                    <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '1rem', fontWeight: '600' }}>
+                                        {labelDetails.subtitle}
+                                    </div>
+                                )}
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {codeType === 'QR' ? (
+                                        <div style={{ padding: `${format.margin}px` }}>
+                                            <QRCodeCanvas 
+                                                value={codeValue || ' '} 
+                                                size={format.height + 50} 
+                                                bgColor={format.background}
+                                                fgColor={format.lineColor}
+                                                level={"H"}
+                                            />
+                                            {format.displayValue && (
+                                                <div style={{ textAlign: 'center', marginTop: '8px', color: format.lineColor, fontSize: `${format.fontSize}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                                    {codeValue}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Barcode 
+                                            value={codeValue || ' '}
+                                            format={codeType}
+                                            width={format.width}
+                                            height={format.height}
+                                            displayValue={format.displayValue}
+                                            fontSize={format.fontSize}
+                                            background={format.background}
+                                            lineColor={format.lineColor}
+                                            margin={format.margin}
+                                        />
+                                    )}
+                                </div>
+
+                                {labelDetails.price && (
+                                    <div style={{ marginTop: '1rem', fontSize: '1.25rem', fontWeight: '900', borderTop: `1px solid ${format.lineColor}`, paddingTop: '0.5rem', width: '100%', textAlign: 'center' }}>
+                                        {labelDetails.price}
+                                    </div>
                                 )}
                             </div>
                             
