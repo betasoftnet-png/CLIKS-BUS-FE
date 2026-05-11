@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { Calculator, X, RotateCcw, Delete } from "lucide-react";
 
@@ -57,7 +58,7 @@ export function CalculatorPopover() {
             const result = Function('"use strict";return (' + sanitized + ')')();
             setEquation(fullExp + " =");
             setDisplay(String(result));
-        } catch (e) {
+        } catch {
             setDisplay("Error");
         }
     };
