@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileService } from '../services';
-import Topbar from '../components/Topbar';
+
 import {
     User,
     Wallet,
@@ -15,17 +15,15 @@ import {
     Upload
 } from 'lucide-react';
 import '../App.css';
-import Breadcrumbs from '../components/Breadcrumbs';
+
 
 const Profile = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+
     const [activeSection, setActiveSection] = useState('Basic Info');
 
-    const toggleSidebar = () => {
-        setSidebarOpen(!sidebarOpen);
-    };
+
 
     const sidebarItems = [
         { label: 'Basic Info', icon: User },
@@ -172,87 +170,75 @@ const Profile = () => {
     }
 
     return (
-        <div className={`app-root select-none ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`} style={{ height: '100vh', overflow: 'hidden' }}>
-            <Topbar onToggleSidebar={toggleSidebar} />
-            <div className="app-body" style={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
-                <div className="main-content-area" style={{ background: '#F8FAFC', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: '0' }}>
-                    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem 2rem 0 2rem', width: '100%', flexShrink: 0 }}>
-                        <Breadcrumbs />
-                    </div>
-
-                    <div className="content-scrollable" style={{ overflowY: 'auto' }}>
-                        <div className="content-wrapper" style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem 2rem', height: '100%' }}>
-                            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1E293B', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>Account Settings</h1>
-                                    <p style={{ color: '#64748B', fontSize: '0.9rem' }}>Manage your data and personal information.</p>
-                                </div>
-                                <button
-                                    onClick={() => navigate(-1)}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        color: '#64748B',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        background: 'transparent',
-                                        border: '1px solid #E2E8F0',
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '8px',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <ArrowLeft size={18} />
-                                    <span>Back</span>
-                                </button>
-                            </div>
-
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '2rem',
-                                borderBottom: '1px solid #E2E8F0',
-                                marginBottom: '1.5rem',
-                                paddingBottom: '1px'
-                            }}>
-                                {sidebarItems.map((item) => (
-                                    <button
-                                        key={item.label}
-                                        onClick={() => setActiveSection(item.label)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            padding: '0.75rem 0',
-                                            borderBottom: activeSection === item.label ? '2px solid #1B6B3A' : '2px solid transparent',
-                                            background: 'transparent',
-                                            color: activeSection === item.label ? '#1B6B3A' : '#64748B',
-                                            fontSize: '0.95rem',
-                                            fontWeight: activeSection === item.label ? 600 : 500,
-                                            cursor: 'pointer',
-                                            whiteSpace: 'nowrap',
-                                            border: 'none',
-                                            transition: 'all 0.2s',
-                                            marginBottom: '-1px'
-                                        }}
-                                    >
-                                        <item.icon size={18} strokeWidth={activeSection === item.label ? 2.5 : 2} />
-                                        <span>{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
-                                {activeSection === 'Basic Info' && <BasicInfoView />}
-
-                                {activeSection === 'Data & Backup' && <DataBackupView />}
-                            </div>
-                        </div>
-                    </div>
+        <div className="content-wrapper" style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem 2rem', height: '100%' }}>
+            <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1E293B', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>Account Settings</h1>
+                    <p style={{ color: '#64748B', fontSize: '0.9rem' }}>Manage your data and personal information.</p>
                 </div>
+                <button
+                    onClick={() => navigate(-1)}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: '#64748B',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: 'transparent',
+                        border: '1px solid #E2E8F0',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <ArrowLeft size={18} />
+                    <span>Back</span>
+                </button>
             </div>
+
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2rem',
+                borderBottom: '1px solid #E2E8F0',
+                marginBottom: '1.5rem',
+                paddingBottom: '1px'
+            }}>
+                {sidebarItems.map((item) => (
+                    <button
+                        key={item.label}
+                        onClick={() => setActiveSection(item.label)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem 0',
+                            borderBottom: activeSection === item.label ? '2px solid #1B6B3A' : '2px solid transparent',
+                            background: 'transparent',
+                            color: activeSection === item.label ? '#1B6B3A' : '#64748B',
+                            fontSize: '0.95rem',
+                            fontWeight: activeSection === item.label ? 600 : 500,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: 'none',
+                            transition: 'all 0.2s',
+                            marginBottom: '-1px'
+                        }}
+                    >
+                        <item.icon size={18} strokeWidth={activeSection === item.label ? 2.5 : 2} />
+                        <span>{item.label}</span>
+                    </button>
+                ))}
+            </div>
+
+            <div style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
+                {activeSection === 'Basic Info' && <BasicInfoView />}
+
+                {activeSection === 'Data & Backup' && <DataBackupView />}
+            </div>
+
             <style>
                 {`
                     @keyframes fadeIn {
