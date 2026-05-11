@@ -96,10 +96,10 @@ const BusinessAccounting = () => {
 
     // fallback data
     const summaryStats = [
-        { label: 'Gross Revenue', value: dbPL ? `₹${parseFloat(dbPL.gross_revenue || 0).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#7C3AED' },
-        { label: 'Total Expenses', value: dbPL ? `₹${parseFloat(dbPL.total_expenses || 0).toLocaleString()}` : '₹0', icon: TrendingDown, color: '#EF4444' },
-        { label: 'Net Profit', value: dbPL ? `₹${parseFloat(dbPL.net_profit || 0).toLocaleString()}` : '₹0', icon: IndianRupee, color: '#0891B2' },
-        { label: 'GST Payable', value: dbBalanceSheet?.liabilities?.gst_payable ? `₹${parseFloat(dbBalanceSheet.liabilities.gst_payable).toLocaleString()}` : '₹0', icon: ShieldCheck, color: '#0D9488' }
+        { label: 'Gross Revenue', value: dbPL ? `₹${parseFloat(dbPL.gross_revenue || 0).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#7C3AED', bg: '#F3E8FF' },
+        { label: 'Total Expenses', value: dbPL ? `₹${parseFloat(dbPL.total_expenses || 0).toLocaleString()}` : '₹0', icon: TrendingDown, color: '#EF4444', bg: '#FEF2F2' },
+        { label: 'Net Profit', value: dbPL ? `₹${parseFloat(dbPL.net_profit || 0).toLocaleString()}` : '₹0', icon: IndianRupee, color: '#0891B2', bg: '#E0F2FE' },
+        { label: 'GST Payable', value: dbBalanceSheet?.liabilities?.gst_payable ? `₹${parseFloat(dbBalanceSheet.liabilities.gst_payable).toLocaleString()}` : '₹0', icon: ShieldCheck, color: '#0D9488', bg: '#DCFCE7' }
     ];
 
     const gstReports = [
@@ -151,7 +151,50 @@ const BusinessAccounting = () => {
                              (dbBalanceSheet?.liabilities?.equity || 0);
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#FAF5FF', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+            <style>{`
+                .crm-table-row:hover {
+                    background-color: #FDF4FF !important;
+                }
+                .crm-btn {
+                    transition: all 0.2s ease-in-out !important;
+                }
+                .crm-btn:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 12px 24px rgba(190, 24, 93, 0.25) !important;
+                    opacity: 0.95;
+                }
+                .crm-btn-secondary {
+                    transition: all 0.2s ease-in-out !important;
+                }
+                .crm-btn-secondary:hover {
+                    transform: translateY(-1px) !important;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05) !important;
+                    opacity: 0.95;
+                }
+                .stat-card {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                }
+                .stat-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.01) !important;
+                    border-color: #D8B4FE !important;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar-track {
+                    background: #F1F5F9;
+                    border-radius: 10px;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar-thumb {
+                    background: #CBD5E1;
+                    border-radius: 10px;
+                }
+                .ledger-modal-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94A3B8;
+                }
+            `}</style>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -188,7 +231,7 @@ const BusinessAccounting = () => {
                             <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
                             <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
                             <stat.icon size={20} />
                         </div>
                     </div>
@@ -239,7 +282,7 @@ const BusinessAccounting = () => {
                                         <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', margin: 0, textTransform: 'uppercase' }}>{stat.label}</p>
                                         <h4 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>{stat.value}</h4>
                                     </div>
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${stat.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
                                         <stat.icon size={18} />
                                     </div>
                                 </div>
@@ -257,11 +300,11 @@ const BusinessAccounting = () => {
                                 </thead>
                                 <tbody>
                                     {expensesList.map((exp, i) => (
-                                        <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td style={{ padding: '0.6rem 1rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontSize: '0.75rem', fontWeight: '750' }}>{exp.cat}</span></td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{exp.desc}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#94A3B8' }}>{exp.date}</td>
-                                            <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '850', color: '#EF4444', fontSize: '0.85rem' }}>{exp.amt}</td>
+                                        <tr key={i} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
+                                            <td style={{ padding: '0.6rem 1rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#E0E7FF', color: '#4338CA', fontSize: '0.75rem', fontWeight: '800' }}>{exp.cat}</span></td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{exp.desc}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>{exp.date}</td>
+                                            <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '850', color: '#B91C1C', fontSize: '0.85rem' }}>{exp.amt}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -396,12 +439,12 @@ const BusinessAccounting = () => {
                                                 { name: 'Vertex Systems', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.3).toLocaleString()}`, days: '45 Days', color: '#F59E0B' },
                                                 { name: 'Creative Agency', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.2).toLocaleString()}`, days: '68 Days', color: '#EF4444' }
                                             ].map((party, i) => (
-                                                <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{party.name}</td>
-                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: party.color, fontSize: '0.85rem' }}>{party.amount}</td>
+                                                <tr key={i} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
+                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{party.name}</td>
+                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: party.color, fontSize: '0.85rem' }}>{party.amount}</td>
                                                     <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{party.days}</td>
                                                     <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                                        <button style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', color: '#1D4ED8', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Remind</button>
+                                                        <button className="crm-btn-secondary" style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: 'none', background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}>Remind</button>
                                                     </td>
                                                 </tr>
                                             )) : (
@@ -506,17 +549,17 @@ const BusinessAccounting = () => {
                             </thead>
                             <tbody>
                                 {dayBook.map(entry => (
-                                    <tr key={entry.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{entry.date}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{entry.category}</td>
-                                        <td style={{ padding: '0.6rem 1rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#F1F5F9', fontSize: '0.75rem', fontWeight: '700' }}>{entry.mode}</span></td>
+                                    <tr key={entry.id} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{entry.date}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{entry.category}</td>
+                                        <td style={{ padding: '0.6rem 1rem' }}><span style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', background: '#F3F4F6', color: '#4B5563', fontSize: '0.75rem', fontWeight: '800' }}>{entry.mode}</span></td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ color: entry.type === 'Income' ? '#137333' : '#EF4444', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem' }}>
-                                                {entry.type === 'Income' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                                {entry.type}
+                                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', background: entry.type === 'Income' ? '#DCFCE7' : '#FEE2E2', color: entry.type === 'Income' ? '#166534' : '#991B1B', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem' }}>
+                                                {entry.type === 'Income' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                                {entry.type.toUpperCase()}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '850', color: '#1E293B', fontSize: '0.85rem' }}>{entry.amount}</td>
+                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '900', color: entry.type === 'Income' ? '#047857' : '#B91C1C', fontSize: '0.88rem' }}>{entry.amount}</td>
                                     </tr>
                                 ))}
                             </tbody>
