@@ -32,42 +32,43 @@
 }
 
 .sidebar-nav {
-    padding: 1.5rem 1rem;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 1px;
     overflow-y: auto;
     flex: 1;
 }
 
-.sidebar-nav div {
+.sidebar-nav > div {
     color: #64748B !important;
     font-weight: 800 !important;
-    font-size: 0.8rem !important;
+    font-size: 0.75rem !important;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    margin-top: 0.75rem;
+    margin: 1rem 0.5rem 0.25rem 0.5rem;
+    padding-left: 0.5rem;
 }
 
 /* Sidebar Item Base */
 .sidebar-item {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
     color: #134E4A !important;
-    font-weight: 700;
+    font-weight: 600;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: space-between;
     text-align: left;
-    font-size: 1.1rem !important;
+    font-size: 0.95rem !important;
     position: relative;
     z-index: 1;
     background: transparent;
     border: none;
     cursor: pointer;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .sidebar-item svg {
