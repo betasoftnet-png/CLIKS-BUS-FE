@@ -193,13 +193,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                         style={{ justifyContent: 'space-between', width: '100%' }}
                     >
                         <div className="flex items-center gap-3">
-                            <IconComp size={20} style={{ color: '#1B6B3A' }} />
+                            <IconComp size={20} />
                             <span className="sidebar-label" style={{ fontWeight: '650' }}>{item.label}</span>
                         </div>
                         <motion.div
                             animate={{ rotate: isOpen ? 90 : 0 }}
                             transition={{ duration: 0.2 }}
-                            style={{ display: 'flex', alignItems: 'center', opacity: 0.6 }}
+                            style={{ display: 'flex', alignItems: 'center', opacity: 0.8, color: '#34D399' }}
                         >
                             <ChevronRight size={16} />
                         </motion.div>
@@ -212,9 +212,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.25, ease: 'easeInOut' }}
-                                style={{ overflow: 'hidden', paddingLeft: '1rem' }}
+                                style={{ overflow: 'hidden' }}
                             >
-                                <div style={{ borderLeft: '1px solid #E2E8F0', marginLeft: '1rem', marginTop: '2px', marginBottom: '4px' }}>
+                                <div style={{ borderLeft: '2px solid rgba(52, 211, 153, 0.15)', marginLeft: '1.5rem', marginTop: '2px', marginBottom: '8px', paddingLeft: '4px' }}>
                                     {item.children.map((child) => (
                                         <MenuItem key={child.label} item={child} isChild={true} />
                                     ))}
@@ -231,16 +231,15 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className={`sidebar-item ${isActive ? 'active' : ''} ${isChild ? 'sidebar-child' : ''}`}
                 onClick={() => handleItemClick(item.label, item.path)}
                 style={{ 
-                    marginBottom: isChild ? '2px' : '4px',
-                    paddingLeft: isChild ? '1.5rem' : '1rem',
-                    background: isChild && isActive ? '#F0FDF4' : undefined,
-                    borderLeft: isChild && isActive ? '2px solid #10B981' : 'none',
-                    marginLeft: isChild ? '-1px' : '0'
+                    marginBottom: '2px',
+                    paddingLeft: isChild ? '1.2rem' : '0.85rem',
+                    opacity: isChild && !isActive ? 0.8 : 1,
+                    fontSize: isChild ? '0.85rem' : '0.9rem'
                 }}
             >
                 <div className="flex items-center gap-3">
-                    <IconComp size={isChild ? 18 : 20} style={{ color: '#1B6B3A', opacity: isChild ? 0.8 : 1 }} />
-                    <span className="sidebar-label" style={{ fontSize: isChild ? '0.8rem' : '0.85rem' }}>{item.label}</span>
+                    <IconComp size={isChild ? 18 : 20} />
+                    <span className="sidebar-label">{item.label}</span>
                 </div>
             </button>
         );
@@ -248,7 +247,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
-            <div className="sidebar-header" style={{ borderBottom: '1px solid #F1F5F9', marginBottom: '0.5rem' }}>
+            <div className="sidebar-header">
                 <div className="brand-logo" style={{ background: 'transparent' }}>
                     <img src={logoPng} alt="CLIKS Logo" style={{ width: '24px', height: '24px' }} />
                 </div>
