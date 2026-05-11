@@ -21,7 +21,6 @@ import {
     TrendingUp,
     Printer,
     Share2,
-    Share2,
     History,
     Tag
 } from 'lucide-react';
