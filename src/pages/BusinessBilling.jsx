@@ -21,7 +21,9 @@ import {
     TrendingUp,
     Printer,
     Share2,
-    History
+    Share2,
+    History,
+    Tag
 } from 'lucide-react';
 import { billingService } from '../services/billingService';
 import { inventoryService } from '../services/inventoryService';
@@ -38,6 +40,7 @@ const BusinessBilling = () => {
     const [printData, setPrintData] = useState(null);
     const [selectedHistoryInvoice, setSelectedHistoryInvoice] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -74,6 +77,8 @@ const BusinessBilling = () => {
         payment_mode: 'Cash',
         invoice_type: 'GST', // GST, Non-GST, Proforma, Quotation, Return, CreditNote, DebitNote, Purchase
         tax_type: 'Exclusive', // Inclusive, Exclusive
+        redeemed_points: 0,
+        earned_points: 0,
         items: [{ 
             description: '', 
             quantity: 1, 
@@ -88,64 +93,77 @@ const BusinessBilling = () => {
     }));
 
     // Calculate totals when items change
-    const calculateTotals = (items, taxType) => {
+    const calculateTotals = (items, taxType, currentFormData = {}) => {
         let subtotal = 0;
         let totalTax = 0;
         let totalDiscount = 0;
         
         items.forEach(item => {
-            const basePrice = item.quantity * item.price;
+            const qty = parseFloat(item.quantity) || 0;
+            const prc = parseFloat(item.price) || 0;
+            const discPct = parseFloat(item.discount_percent) || 0;
+            const discAmt = parseFloat(item.discount_amount) || 0;
+            const txRate = parseFloat(item.tax_rate) || 0;
+
+            const basePrice = qty * prc;
             
             // Calculate Item Discount
-            const itemDiscount = (basePrice * (item.discount_percent / 100)) + (item.discount_amount || 0);
-            const priceAfterDiscount = basePrice - itemDiscount;
+            const itemDiscount = (basePrice * (discPct / 100)) + discAmt;
+            const priceAfterDiscount = Math.max(0, basePrice - itemDiscount);
             
             let itemTax = 0;
             let itemFinalTotal = 0;
 
             if (taxType === 'Inclusive') {
-                // Price = FinalPrice / (1 + TaxRate/100)
-                const taxableValue = priceAfterDiscount / (1 + item.tax_rate / 100);
+                const taxableValue = priceAfterDiscount / (1 + txRate / 100);
                 itemTax = priceAfterDiscount - taxableValue;
                 itemFinalTotal = priceAfterDiscount;
-                subtotal += taxableValue;
+                subtotal += parseFloat(taxableValue) || 0;
             } else {
-                itemTax = priceAfterDiscount * (item.tax_rate / 100);
+                itemTax = priceAfterDiscount * (txRate / 100);
                 itemFinalTotal = priceAfterDiscount + itemTax;
                 subtotal += priceAfterDiscount;
             }
 
-            totalTax += itemTax;
-            totalDiscount += itemDiscount;
-            item.total = itemFinalTotal;
+            totalTax += parseFloat(itemTax) || 0;
+            totalDiscount += parseFloat(itemDiscount) || 0;
+            item.total = parseFloat(itemFinalTotal) || 0;
         });
 
-        const rawTotal = subtotal + totalTax;
-        const roundedTotal = Math.round(rawTotal);
-        const roundOff = roundedTotal - rawTotal;
+        const rawTotal = (parseFloat(subtotal) || 0) + (parseFloat(totalTax) || 0);
+        const redeemedAmt = parseFloat(currentFormData.redeemed_points) || 0; // 1 pt = 1 Re
+        const adjustedTotal = rawTotal - redeemedAmt;
+        const roundedTotal = Math.max(0, Math.round(adjustedTotal));
+        const roundOff = roundedTotal - adjustedTotal;
+        
+        // Rule: Earn 1 point per 100₹ of final bill
+        const earnedPts = Math.max(0, Math.floor(roundedTotal / 100));
 
         return {
-            amount: subtotal,
-            tax_amount: totalTax,
-            discount_amount: totalDiscount,
-            total_amount: roundedTotal,
-            round_off: roundOff
+            amount: parseFloat(subtotal) || 0,
+            tax_amount: parseFloat(totalTax) || 0,
+            discount_amount: parseFloat(totalDiscount) || 0,
+            total_amount: parseFloat(roundedTotal) || 0,
+            round_off: parseFloat(roundOff) || 0,
+            earned_points: parseInt(earnedPts) || 0
         };
     };
 
     const handleClientChange = (value) => {
         const selectedCustomer = customers.find(c => c.name === value);
         if (selectedCustomer) {
+            setSelectedCustomerObject(selectedCustomer);
             setFormData({
                 ...formData,
                 client_name: selectedCustomer.name,
                 client_email: selectedCustomer.email || '',
                 client_gstin: selectedCustomer.gstin || '',
-                billing_address: selectedCustomer.company || '', // Fallback or if there's an address field
-                shipping_address: selectedCustomer.company || ''
+                billing_address: selectedCustomer.company || selectedCustomer.billing_address || '', 
+                shipping_address: selectedCustomer.company || selectedCustomer.shipping_address || ''
             });
         } else {
-            setFormData({ ...formData, client_name: value });
+            setSelectedCustomerObject(null);
+            setFormData({ ...formData, client_name: value, redeemed_points: 0 });
         }
     };
 
@@ -174,7 +192,7 @@ const BusinessBilling = () => {
             newItems[index][field] = value;
         }
         
-        const totals = calculateTotals(newItems, formData.tax_type);
+        const totals = calculateTotals(newItems, formData.tax_type, formData);
         const paid = formData.payment_mode === 'Credit' ? 0 : totals.total_amount;
         setFormData({ 
             ...formData, 
@@ -204,7 +222,7 @@ const BusinessBilling = () => {
 
     const removeItem = (index) => {
         const newItems = formData.items.filter((_, i) => i !== index);
-        const totals = calculateTotals(newItems, formData.tax_type);
+        const totals = calculateTotals(newItems, formData.tax_type, formData);
         setFormData({ ...formData, items: newItems, ...totals });
     };
 
@@ -259,6 +277,7 @@ const BusinessBilling = () => {
 
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['business-customers'] });
             closeModal();
         }
     });
@@ -281,6 +300,7 @@ const BusinessBilling = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingInvoice(null);
+        setSelectedCustomerObject(null);
         setFormData({
             invoice_number: `INV-${Date.now().toString().slice(-6)}`,
             client_name: '',
@@ -301,6 +321,8 @@ const BusinessBilling = () => {
             payment_mode: 'Cash',
             invoice_type: 'GST',
             tax_type: 'Exclusive',
+            redeemed_points: 0,
+            earned_points: 0,
             items: [{ 
                 description: '', 
                 quantity: 1, 
@@ -370,8 +392,12 @@ const BusinessBilling = () => {
             calculatedStatus = 'Paid';
         }
 
+        // Extract payload and EXCLUDE loyalty points fields which don't exist on backend table schema
+        // This prevents the 500 Internal Server error caused by extra unexpected columns
+        const { redeemed_points, earned_points, ...filteredFormData } = formData;
+
         const payload = {
-            ...formData,
+            ...filteredFormData,
             status: calculatedStatus,
             due_amount: due,
             items: JSON.stringify(formData.items)
@@ -392,6 +418,18 @@ const BusinessBilling = () => {
                     notes: `Sales Payment received for Invoice ${formData.invoice_number}`
                 });
             }
+            // Update Customer Loyalty Points
+            if (selectedCustomerObject) {
+                const currentPts = selectedCustomerObject.loyalty_points || 0;
+                const newPts = currentPts - (formData.redeemed_points || 0) + (formData.earned_points || 0);
+                
+                // Fire and forget update to CRM, success is handle seamlessly on invalidate query
+                crmService.updateCustomer(selectedCustomerObject.id, {
+                    ...selectedCustomerObject,
+                    loyalty_points: newPts
+                }).catch(e => console.error('Failed automatic loyalty increment:', e));
+            }
+
             createMutation.mutate(payload);
         }
     };
@@ -653,7 +691,7 @@ const BusinessBilling = () => {
                                                                 total: item.price || 0
                                                             };
                                                             const newItems = [...formData.items, newItem].filter(it => it.description !== '');
-                                                            const totals = calculateTotals(newItems, formData.tax_type);
+                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
                                                             setFormData({ ...formData, items: newItems, ...totals });
                                                             e.target.value = '';
                                                         }
@@ -806,12 +844,55 @@ const BusinessBilling = () => {
                                         </div>
                                     </div>
 
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
+                                                <Tag size={12} /> Loyalty Points
+                                            </label>
+                                            {selectedCustomerObject && (
+                                                <span style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '700' }}>Available: {selectedCustomerObject.loyalty_points || 0}</span>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <input 
+                                                type="number" 
+                                                disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
+                                                placeholder="Points to redeem"
+                                                value={formData.redeemed_points || ''}
+                                                onChange={(e) => {
+                                                    let val = parseInt(e.target.value) || 0;
+                                                    const maxAvail = selectedCustomerObject ? (selectedCustomerObject.loyalty_points || 0) : 0;
+                                                    if (val > maxAvail) val = maxAvail;
+                                                    if (val < 0) val = 0;
+                                                    
+                                                    // Create temporary updated state to calc totals accurately
+                                                    const tmp = { ...formData, redeemed_points: val };
+                                                    const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
+                                                    setFormData({ ...tmp, ...newTotals });
+                                                }}
+                                                style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem' }} 
+                                            />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    if (!selectedCustomerObject) return;
+                                                    const maxAvail = selectedCustomerObject.loyalty_points || 0;
+                                                    const tmp = { ...formData, redeemed_points: maxAvail };
+                                                    const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
+                                                    setFormData({ ...tmp, ...newTotals });
+                                                }}
+                                                disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
+                                                style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0) ? 0.5 : 1 }}
+                                            >Use Max</button>
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
                                         <input required type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} />
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Subtotal:</span>
                                         <span>₹ {formData.amount.toLocaleString()}</span>
@@ -824,13 +905,24 @@ const BusinessBilling = () => {
                                         <span>GST Amount:</span>
                                         <span>₹ {formData.tax_amount.toLocaleString()}</span>
                                     </div>
+                                    {formData.redeemed_points > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Points Redeemed:</span>
+                                            <span>- ₹ {formData.redeemed_points.toLocaleString()}</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Round Off:</span>
                                         <span>₹ {formData.round_off.toFixed(2)}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: '1.25rem', marginTop: '0.4rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem' }}>
                                         <span>Total:</span>
                                         <span>₹ {formData.total_amount.toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            🎉 Points to earn this bill: {formData.earned_points || 0} pts
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -916,10 +1008,16 @@ const BusinessBilling = () => {
                                 <span style={{ color: '#666' }}>Total Discount</span>
                                 <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{printData.discount_amount.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                                 <span style={{ color: '#666' }}>Tax (GST)</span>
                                 <span style={{ fontWeight: '700' }}>₹{printData.tax_amount.toLocaleString()}</span>
                             </div>
+                            {(printData.redeemed_points > 0) && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                    <span style={{ color: '#16A34A', fontWeight: '700' }}>Points Redeemed</span>
+                                    <span style={{ fontWeight: '700', color: '#16A34A' }}>- ₹{printData.redeemed_points.toLocaleString()}</span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                                 <span style={{ color: '#666' }}>Round Off</span>
                                 <span style={{ fontWeight: '700' }}>₹{printData.round_off.toFixed(2)}</span>
