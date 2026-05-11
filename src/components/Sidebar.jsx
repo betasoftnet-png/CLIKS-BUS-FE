@@ -318,7 +318,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '0.85rem 1rem',
-                            background: '#1d4ed8',
+                            background: '#1E3A8A', /* Shifted to Dark Blue as requested */
                             color: '#FFFFFF',
                             border: 'none',
                             cursor: 'pointer',
@@ -328,8 +328,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                             transition: 'background 0.2s ease',
                             borderRadius: '0' /* Reset to merge perfectly with top */
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#1e40af'}
-                        onMouseOut={(e) => e.currentTarget.style.background = '#1d4ed8'}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#172554'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#1E3A8A'}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                             <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
