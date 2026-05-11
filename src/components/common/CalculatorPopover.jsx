@@ -53,19 +53,35 @@ export function CalculatorPopover() {
         if (!equation) return;
         try {
             const fullExp = equation + display;
-            // Basic safe eval for simple arithmetic expressions
-            // Replacing generic symbols if any.
-            // Using string split parsing since mathjs might not be here and eval is frowned upon but okay for basic calculations.
-            // Let's do a more standard reducer or dynamic function just for arithmetic.
             const sanitized = fullExp.replace(/[^-()\d/*+. ]/g, '');
-            // eslint-disable-next-line no-new-func
             const result = Function('"use strict";return (' + sanitized + ')')();
-            
             setEquation(fullExp + " =");
             setDisplay(String(result));
         } catch (e) {
             setDisplay("Error");
         }
+    };
+
+    const handleGST = (rate, mode) => {
+        const current = parseFloat(display);
+        if (isNaN(current) || current === 0) return;
+        let result;
+        if (mode === 'add') {
+            result = current * (1 + rate / 100);
+            setEquation(`${current} + ${rate}% GST`);
+        } else {
+            result = current / (1 + rate / 100);
+            setEquation(`${current} w/o ${rate}% GST`);
+        }
+        setDisplay(String(Number(result.toFixed(2))));
+    };
+
+    const handleDiscount = (rate) => {
+        const current = parseFloat(display);
+        if (isNaN(current) || current === 0) return;
+        const result = current * (1 - rate / 100);
+        setEquation(`${current} - ${rate}% Disc`);
+        setDisplay(String(Number(result.toFixed(2))));
     };
 
     const styles = {
@@ -92,7 +108,7 @@ export function CalculatorPopover() {
             right: 0,
             top: 'calc(100% + 10px)',
             zIndex: 1000,
-            width: '280px',
+            width: '320px',
             borderRadius: '16px',
             backgroundColor: '#ffffff',
             boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.25)',
@@ -105,7 +121,7 @@ export function CalculatorPopover() {
             borderRadius: '12px',
             padding: '12px',
             textAlign: 'right',
-            marginBottom: '16px',
+            marginBottom: '12px',
             border: '1px solid #e2e8f0',
         },
         eqText: {
@@ -121,6 +137,41 @@ export function CalculatorPopover() {
             color: '#0f172a',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+        },
+        bizSection: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            marginBottom: '14px',
+            padding: '10px',
+            background: '#f8fafc',
+            borderRadius: '10px',
+            border: '1px dashed #cbd5e1',
+        },
+        bizRow: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+        },
+        bizLabel: {
+            fontSize: '10px',
+            fontWeight: '800',
+            color: '#475569',
+            textTransform: 'uppercase',
+            width: '35px',
+            letterSpacing: '0.02em',
+        },
+        bizBtn: {
+            flex: 1,
+            padding: '4px 0',
+            borderRadius: '6px',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            fontSize: '11px',
+            fontWeight: '700',
+            color: '#1e293b',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
         },
         grid: {
             display: 'grid',
@@ -211,6 +262,34 @@ export function CalculatorPopover() {
                         <div style={styles.displayArea}>
                             <div style={styles.eqText}>{equation}</div>
                             <div style={styles.resultText}>{display}</div>
+                        </div>
+
+                        {/* Business Calc Extensions */}
+                        <div style={styles.bizSection}>
+                            <div style={styles.bizRow}>
+                                <div style={styles.bizLabel}>+ GST</div>
+                                {[5, 12, 18, 28].map(rate => (
+                                    <button key={rate} onClick={() => handleGST(rate, 'add')} style={styles.bizBtn} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+                                        +{rate}%
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={styles.bizRow}>
+                                <div style={styles.bizLabel}>- GST</div>
+                                {[5, 12, 18, 28].map(rate => (
+                                    <button key={rate} onClick={() => handleGST(rate, 'remove')} style={styles.bizBtn} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+                                        -{rate}%
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={styles.bizRow}>
+                                <div style={styles.bizLabel}>Disc</div>
+                                {[5, 10, 15, 20].map(pct => (
+                                    <button key={pct} onClick={() => handleDiscount(pct)} style={{...styles.bizBtn, color: '#dc2626', borderColor: '#fee2e2'}} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+                                        -{pct}%
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div style={styles.grid}>
