@@ -687,9 +687,81 @@ export const InvoiceTemplates = {
         );
     },
 
+    // =====================================================
+    // 11. CUSTOM BRANDING (DYNAMIC THEME COLORS)
+    // =====================================================
+    custom: ({ data, business, accentColor = '#BE185D' }) => {
+        const items = getParsedItems(data.items);
+        return (
+            <div style={{ padding: '30px', background: '#FFF' }}>
+                <div style={{ display: 'flex', borderBottom: `4px solid ${accentColor}`, paddingBottom: '20px', marginBottom: '30px', justifyContent: 'space-between' }}>
+                    <div>
+                        <h1 style={{ fontSize: '28px', fontWeight: '900', margin: 0, color: accentColor }}>{business?.business_name || 'BUSINESS'}</h1>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '5px 0' }}>{business?.address}</p>
+                        {business?.gstin && <div style={{ fontSize: '12px', fontWeight: '700', color: accentColor }}>GST: {business.gstin}</div>}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <h2 style={{ fontSize: '32px', fontWeight: '300', margin: 0, letterSpacing: '3px', color: '#CCC' }}>INVOICE</h2>
+                        <div style={{ fontWeight: 'bold' }}>#{data.invoice_number}</div>
+                    </div>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
+                    <div style={{ background: `${accentColor}08`, padding: '15px', borderLeft: `4px solid ${accentColor}`, borderRadius: '4px' }}>
+                        <span style={{ fontSize: '11px', color: accentColor, fontWeight: 'bold', textTransform: 'uppercase' }}>Billed Recipient</span>
+                        <div style={{ fontSize: '16px', fontWeight: '800', marginTop: '5px' }}>{data.client_name}</div>
+                        <div style={{ fontSize: '12px', color: '#444', marginTop: '3px' }}>{data.billing_address}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', marginBottom: '5px' }}><b>Date:</b> {data.due_date}</div>
+                        <div style={{ fontSize: '13px' }}><b>Mode:</b> {data.payment_mode}</div>
+                    </div>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ background: accentColor, color: 'white' }}>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '12px' }}>Product Details</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '12px' }}>Qty</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '12px' }}>Rate</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '12px' }}>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((it, i) => (
+                            <tr key={i} style={{ borderBottom: `1px solid ${accentColor}20` }}>
+                                <td style={{ padding: '15px' }}>
+                                    <div style={{ fontWeight: '700' }}>{it.description}</div>
+                                    <span style={{ fontSize: '11px', color: '#666' }}>HSN: {it.hsn_code || '—'}</span>
+                                </td>
+                                <td style={{ padding: '15px', textAlign: 'center' }}>{it.quantity}</td>
+                                <td style={{ padding: '15px', textAlign: 'right' }}>{parseFloat(it.price).toFixed(2)}</td>
+                                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(it.total).toFixed(2)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
+                    <div style={{ width: '280px', background: '#F8FAFC', padding: '15px', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B', marginBottom: '8px' }}>
+                            <span>Sub Total</span><span>{formatCurrency(data.amount)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748B', marginBottom: '12px', borderBottom: '1px solid #E2E8F0', paddingBottom: '8px' }}>
+                            <span>Total Tax</span><span>{formatCurrency(data.tax_amount)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: '900', color: accentColor }}>
+                            <span>TOTAL</span><span>{formatCurrency(data.total_amount)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    },
+
     // The master switch renderer that takes template ID, data, and business context
-    Renderer: ({ type, data, business }) => {
+    Renderer: ({ type, data, business, accentColor }) => {
         const TemplateComponent = InvoiceTemplates[type] || InvoiceTemplates.standard;
-        return <TemplateComponent data={data} business={business} />;
+        return <TemplateComponent data={data} business={business} accentColor={accentColor} />;
     }
 };

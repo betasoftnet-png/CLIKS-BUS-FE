@@ -46,6 +46,7 @@ const BusinessBilling = () => {
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
     const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+    const [customColor, setCustomColor] = useState('#BE185D'); // User dynamic custom color for 'custom' template
 
     // Fetch actual business profile for production-grade invoices
     const { data: businessProfile } = useQuery({
@@ -973,6 +974,7 @@ const BusinessBilling = () => {
                         type={activeTemplate} 
                         data={printData} 
                         business={businessProfile?.data || businessProfile || {}} 
+                        accentColor={customColor}
                     />
 
                     {/* Global Bottom Legal (Appended outside template specifically if needed, already in some templates) */}
@@ -1013,7 +1015,8 @@ const BusinessBilling = () => {
                                 { id: 'creative_blue', name: 'Service Detailed', desc: 'Description Heavy', color: '#6366F1', bg: '#E0E7FF' },
                                 { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
                                 { id: 'clean_stripe', name: 'Modern Sidebar', desc: 'Integrated Branding', color: '#059669', bg: '#D1FAE5' },
-                                { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' }
+                                { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' },
+                                { id: 'custom', name: 'Custom Branding', desc: 'Choose Your Accent', color: customColor, bg: '#FDF2F8' }
                             ].map((tmpl) => (
                                 <div 
                                     key={tmpl.id}
@@ -1065,6 +1068,13 @@ const BusinessBilling = () => {
                                             {tmpl.id === 'service_pro' && (
                                                 <div><div style={{height: '25px', background: '#EFF6FF', borderRadius: '4px', marginBottom: '5px'}}></div><div style={{height: '50px', border: '1px solid #E5E7EB', borderRadius: '4px'}}></div></div>
                                             )}
+                                            {tmpl.id === 'custom' && (
+                                                <div>
+                                                    <div style={{height: '10px', width: '100%', borderBottom: `3px solid ${tmpl.color}`, marginBottom: '10px'}}></div>
+                                                    <div style={{height: '20px', width: '100%', background: `${tmpl.color}30`, borderRadius: '4px', marginBottom: '5px'}}></div>
+                                                    <div style={{height: '40px', border: `1px solid ${tmpl.color}40`, borderRadius: '4px'}}></div>
+                                                </div>
+                                            )}
                                         </div>
                                         
                                         {activeTemplate === tmpl.id && (
@@ -1079,7 +1089,16 @@ const BusinessBilling = () => {
                             ))}
                         </div>
                         
-                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ visibility: activeTemplate === 'custom' ? 'visible' : 'hidden', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>Pick Accent Color:</label>
+                                <input 
+                                    type="color" 
+                                    value={customColor} 
+                                    onChange={(e) => setCustomColor(e.target.value)} 
+                                    style={{ cursor: 'pointer', width: '40px', height: '28px', padding: '0', border: '1px solid #cbd5e1', borderRadius: '4px' }} 
+                                />
+                            </div>
                             <button onClick={() => setIsTemplatesModalOpen(false)} style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Set as Active Template
                             </button>
