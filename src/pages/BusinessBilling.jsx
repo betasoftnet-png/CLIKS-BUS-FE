@@ -40,7 +40,6 @@ const BusinessBilling = () => {
     const [selectedHistoryInvoice, setSelectedHistoryInvoice] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
-    const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -927,200 +926,111 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F1F5F9', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', flex: 1 }}>
-                                    <FileText size={16} color="#64748B" />
-                                    <div style={{ flex: 1 }}>
-                                        <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Print Template</label>
-                                        <select 
-                                            value={activeTemplate} 
-                                            onChange={(e) => setActiveTemplate(e.target.value)}
-                                            style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontWeight: '700', color: '#0F172A', fontSize: '0.8rem', padding: 0, cursor: 'pointer' }}
-                                        >
-                                            <option value="standard">Standard (Pink)</option>
-                                            <option value="modern">Modern Navy</option>
-                                            <option value="minimal">Minimal Mono</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ flex: 2, padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
-                                </button>
-                            </div>
+                            <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', marginTop: '0.5rem', cursor: 'pointer' }}>
+                                {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
+                            </button>
                         </form>
                     </div>
                 </div>
             )}
 
             {/* Print Friendly Template */}
-            {/* Print Friendly Template Rendering Station */}
             {isPrinting && printData && (
-                <div id="invoice-print-area" className="print-only" style={{ padding: '40px', color: '#000', background: '#fff', minHeight: '100vh', boxSizing: 'border-box' }}>
-                    
-                    {/* Shared Sub-Component: Header Logic */}
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        marginBottom: '30px',
-                        paddingBottom: activeTemplate === 'modern' ? '20px' : '0',
-                        borderBottom: activeTemplate === 'modern' ? '4px solid #1E3A8A' : 'none'
-                    }}>
+                <div id="invoice-print-area" className="print-only" style={{ padding: '30px', color: '#000', background: '#fff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
                         <div>
-                            <h1 style={{ 
-                                fontSize: '28px', 
-                                fontWeight: '900', 
-                                color: activeTemplate === 'modern' ? '#1E3A8A' : (activeTemplate === 'minimal' ? '#000' : '#BE185D'), 
-                                marginBottom: '5px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px'
-                            }}>
-                                CLIKS BUSINESS
-                            </h1>
-                            <p style={{ fontSize: '13px', color: '#444', fontWeight: '600' }}>Tax Invoice / Bill of Supply</p>
+                            <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#BE185D', marginBottom: '5px' }}>CLIKS BUSINESS</h1>
+                            <p style={{ fontSize: '12px', color: '#444' }}>Tax Invoice / Bill of Supply</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h2 style={{ 
-                                fontSize: '24px', 
-                                fontWeight: '900', 
-                                marginBottom: '4px', 
-                                color: activeTemplate === 'minimal' ? '#000' : '#334155' 
-                            }}>INVOICE</h2>
-                            <p style={{ fontWeight: '800', fontSize: '14px' }}>#{printData.invoice_number}</p>
-                            <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>Date: {printData.due_date}</p>
+                            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '3px' }}>INVOICE</h2>
+                            <p style={{ fontWeight: '700' }}>#{printData.invoice_number}</p>
+                            <p style={{ fontSize: '12px', color: '#666' }}>Date: {printData.due_date}</p>
                         </div>
                     </div>
 
-                    {/* Address Info Block */}
-                    <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: '1fr 1fr', 
-                        gap: '40px', 
-                        marginBottom: '30px',
-                        background: activeTemplate === 'modern' ? '#F8FAFC' : 'transparent',
-                        padding: activeTemplate === 'modern' ? '20px' : '0',
-                        borderRadius: activeTemplate === 'modern' ? '8px' : '0'
-                    }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
                         <div>
-                            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Billed To:</h3>
-                            <p style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', marginBottom: '4px' }}>{printData.client_name}</p>
-                            <p style={{ fontSize: '13px', color: '#475569' }}>{printData.client_email}</p>
-                            {printData.client_gstin && <p style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A', marginTop: '4px' }}>GSTIN: {printData.client_gstin}</p>}
-                            <div style={{ marginTop: '12px' }}>
-                                <p style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Billing Address:</p>
-                                <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{printData.billing_address || 'N/A'}</p>
+                            <h3 style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '5px' }}>Billed To:</h3>
+                            <p style={{ fontSize: '14px', fontWeight: '800', marginBottom: '3px' }}>{printData.client_name}</p>
+                            <p style={{ fontSize: '12px' }}>{printData.client_email}</p>
+                            {printData.client_gstin && <p style={{ fontSize: '12px', fontWeight: '700', marginTop: '3px' }}>GSTIN: {printData.client_gstin}</p>}
+                            <div style={{ marginTop: '8px' }}>
+                                <p style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase' }}>Billing Address:</p>
+                                <p style={{ fontSize: '11px', whiteSpace: 'pre-wrap' }}>{printData.billing_address || 'N/A'}</p>
                             </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Shipping Details:</h3>
-                            <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{printData.shipping_address || 'N/A'}</p>
-                            <div style={{ marginTop: '15px', display: 'inline-grid', gap: '4px', textAlign: 'right' }}>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', fontSize: '13px' }}>
-                                    <span style={{ color: '#64748B' }}>Mode:</span>
-                                    <span style={{ fontWeight: '700' }}>{printData.payment_mode}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', fontSize: '13px' }}>
-                                    <span style={{ color: '#64748B' }}>Status:</span>
-                                    <span style={{ 
-                                        fontWeight: '800', 
-                                        color: printData.status === 'Paid' ? '#15803D' : '#B91C1C',
-                                        textTransform: 'uppercase'
-                                    }}>{printData.status}</span>
-                                </div>
+                            <h3 style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '5px' }}>Shipping Details:</h3>
+                            <p style={{ fontSize: '11px', whiteSpace: 'pre-wrap' }}>{printData.shipping_address || 'N/A'}</p>
+                            <div style={{ marginTop: '10px' }}>
+                                <p style={{ fontSize: '12px' }}>Mode: {printData.payment_mode}</p>
+                                <p style={{ fontSize: '12px' }}>Status: {printData.status}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Items Table */}
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '35px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
                         <thead>
-                            <tr style={{ 
-                                background: activeTemplate === 'modern' ? '#1E3A8A' : (activeTemplate === 'minimal' ? '#F8FAFC' : '#FCE7F3'), 
-                                color: activeTemplate === 'modern' ? '#FFF' : '#000',
-                                borderBottom: activeTemplate === 'minimal' ? '2px solid #000' : 'none'
-                            }}>
-                                <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Item Description</th>
-                                <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>HSN</th>
-                                <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Qty</th>
-                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Unit Price</th>
-                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Discount</th>
-                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>GST %</th>
-                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Amount</th>
+                            <tr style={{ background: '#FCE7F3', borderBottom: '2px solid #BE185D' }}>
+                                <th style={{ padding: '10px', textAlign: 'left', fontSize: '10px', fontWeight: '800' }}>DESCRIPTION</th>
+                                <th style={{ padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '800' }}>HSN</th>
+                                <th style={{ padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '800' }}>QTY</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>PRICE</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>DISC</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>GST%</th>
+                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
                             {(typeof printData.items === 'string' ? JSON.parse(printData.items) : printData.items).map((item, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                                    <td style={{ padding: '12px', fontSize: '13px', fontWeight: '600', color: '#0F172A' }}>{item.description}</td>
-                                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>{item.hsn_code || '-'}</td>
-                                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', fontWeight: '700' }}>{item.quantity} <span style={{fontSize:'11px', fontWeight:'normal'}}>{item.unit}</span></td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px' }}>₹{item.price.toLocaleString()}</td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: item.discount_percent > 0 ? '#B91C1C' : '#475569' }}>
-                                        {item.discount_percent > 0 ? `${item.discount_percent}%` : '—'}
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px' }}>{item.tax_rate}%</td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>₹{item.total.toLocaleString()}</td>
+                                <tr key={i} style={{ borderBottom: '1px solid #EEE' }}>
+                                    <td style={{ padding: '10px', fontSize: '12px' }}>{item.description}</td>
+                                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '12px' }}>{item.hsn_code || '-'}</td>
+                                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '12px' }}>{item.quantity} {item.unit}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>₹{item.price.toLocaleString()}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>₹{(item.discount_amount || (item.quantity * item.price * (item.discount_percent / 100))).toLocaleString()}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>{item.tax_rate}%</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px', fontWeight: '700' }}>₹{item.total.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
 
-                    {/* Footer/Summary Section */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <div style={{ 
-                            width: '300px', 
-                            background: activeTemplate === 'minimal' ? 'transparent' : '#F8FAFC', 
-                            padding: '20px', 
-                            borderRadius: '8px',
-                            border: activeTemplate === 'minimal' ? '1px solid #E2E8F0' : 'none'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
-                                <span style={{ color: '#64748B', fontWeight: '600' }}>Subtotal</span>
-                                <span style={{ fontWeight: '800' }}>₹{printData.amount.toLocaleString()}</span>
+                        <div style={{ width: '240px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#666' }}>Subtotal</span>
+                                <span style={{ fontWeight: '700' }}>₹{printData.amount.toLocaleString()}</span>
                             </div>
-                            {printData.discount_amount > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
-                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Total Discount</span>
-                                    <span style={{ fontWeight: '800', color: '#B91C1C' }}>- ₹{printData.discount_amount.toLocaleString()}</span>
-                                </div>
-                            )}
-                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
-                                <span style={{ color: '#64748B', fontWeight: '600' }}>Tax Amount (GST)</span>
-                                <span style={{ fontWeight: '800' }}>₹{printData.tax_amount.toLocaleString()}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#666' }}>Total Discount</span>
+                                <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{printData.discount_amount.toLocaleString()}</span>
+                            </div>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#666' }}>Tax (GST)</span>
+                                <span style={{ fontWeight: '700' }}>₹{printData.tax_amount.toLocaleString()}</span>
                             </div>
                             {(printData.redeemed_points > 0) && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
-                                    <span style={{ color: '#16A34A', fontWeight: '800' }}>Points Redeemed</span>
-                                    <span style={{ fontWeight: '800', color: '#16A34A' }}>- ₹{printData.redeemed_points.toLocaleString()}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                    <span style={{ color: '#16A34A', fontWeight: '700' }}>Points Redeemed</span>
+                                    <span style={{ fontWeight: '700', color: '#16A34A' }}>- ₹{printData.redeemed_points.toLocaleString()}</span>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
-                                <span style={{ color: '#64748B', fontWeight: '600' }}>Round Off</span>
-                                <span style={{ fontWeight: '800' }}>₹{(parseFloat(printData.round_off) || 0).toFixed(2)}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#666' }}>Round Off</span>
+                                <span style={{ fontWeight: '700' }}>₹{printData.round_off.toFixed(2)}</span>
                             </div>
-                            
-                            <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                borderTop: `2px solid ${activeTemplate === 'modern' ? '#1E3A8A' : '#000'}`, 
-                                paddingTop: '12px', 
-                                marginTop: '12px', 
-                                fontSize: '18px' 
-                            }}>
-                                <span style={{ fontWeight: '900', textTransform: 'uppercase' }}>Total</span>
-                                <span style={{ 
-                                    fontWeight: '900', 
-                                    color: activeTemplate === 'modern' ? '#1E3A8A' : (activeTemplate === 'minimal' ? '#000' : '#BE185D')
-                                }}>
-                                    ₹{printData.total_amount.toLocaleString()}
-                                </span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #000', paddingTop: '8px', marginTop: '8px', fontSize: '14px' }}>
+                                <span style={{ fontWeight: '900' }}>Grand Total</span>
+                                <span style={{ fontWeight: '900', color: '#BE185D' }}>₹{printData.total_amount.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Legal Disclaimer */}
-                    <div style={{ marginTop: '80px', borderTop: '1px solid #E2E8F0', paddingTop: '20px', textAlign: 'center' }}>
-                        <p style={{ fontSize: '12px', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>Thank you for your business!</p>
-                        <p style={{ fontSize: '11px', color: '#64748B' }}>This is a digitally generated invoice and does not require an authorized signature.</p>
+                    <div style={{ marginTop: '60px', borderTop: '1px solid #EEE', paddingTop: '15px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>This is a computer generated invoice and does not require a physical signature.</p>
+                        <p style={{ fontSize: '10px', color: '#999', marginTop: '3px', margin: 0 }}>Thank you for your business!</p>
                     </div>
                 </div>
             )}
