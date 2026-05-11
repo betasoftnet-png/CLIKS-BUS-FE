@@ -22,7 +22,9 @@ import {
     Printer,
     Share2,
     History,
-    Tag
+    Tag,
+    LayoutTemplate,
+    Check
 } from 'lucide-react';
 import { billingService } from '../services/billingService';
 import { inventoryService } from '../services/inventoryService';
@@ -40,6 +42,8 @@ const BusinessBilling = () => {
     const [selectedHistoryInvoice, setSelectedHistoryInvoice] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
+    const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
+    const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -467,19 +471,34 @@ const BusinessBilling = () => {
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage client invoices and accounts receivable.</p>
                 </div>
-                <button 
-                    onClick={() => setIsModalOpen(true)}
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        padding: '0.65rem 1rem', borderRadius: '10px', 
-                        background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
-                        fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                        boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
-                    }}
-                >
-                    <Plus size={15} />
-                    Generate Invoice
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button 
+                        onClick={() => setIsTemplatesModalOpen(true)}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            padding: '0.65rem 1rem', borderRadius: '10px', 
+                            background: '#FFF', color: '#0F172A', border: '1px solid #E2E8F0', 
+                            fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.03)', transition: 'all 0.2s'
+                        }}
+                    >
+                        <LayoutTemplate size={15} />
+                        Templates
+                    </button>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            padding: '0.65rem 1rem', borderRadius: '10px', 
+                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                            fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                            boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
+                        }}
+                    >
+                        <Plus size={15} />
+                        Generate Invoice
+                    </button>
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -936,101 +955,280 @@ const BusinessBilling = () => {
 
             {/* Print Friendly Template */}
             {isPrinting && printData && (
-                <div id="invoice-print-area" className="print-only" style={{ padding: '30px', color: '#000', background: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
+                <div id="invoice-print-area" className="print-only" style={{ padding: '40px', color: '#000', background: '#fff', minHeight: '100vh', boxSizing: 'border-box' }}>
+                    
+                    {/* Header Logic based on activeTemplate */}
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        marginBottom: '30px',
+                        paddingBottom: activeTemplate === 'modern' ? '20px' : '0',
+                        borderBottom: activeTemplate === 'modern' ? '4px solid #1E3A8A' : 'none'
+                    }}>
                         <div>
-                            <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#BE185D', marginBottom: '5px' }}>CLIKS BUSINESS</h1>
-                            <p style={{ fontSize: '12px', color: '#444' }}>Tax Invoice / Bill of Supply</p>
+                            <h1 style={{ 
+                                fontSize: '28px', 
+                                fontWeight: '900', 
+                                color: activeTemplate === 'modern' ? '#1E3A8A' : (activeTemplate === 'minimal' ? '#000' : '#BE185D'), 
+                                marginBottom: '5px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px'
+                            }}>
+                                CLIKS BUSINESS
+                            </h1>
+                            <p style={{ fontSize: '13px', color: '#444', fontWeight: '600' }}>Tax Invoice / Bill of Supply</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '3px' }}>INVOICE</h2>
-                            <p style={{ fontWeight: '700' }}>#{printData.invoice_number}</p>
-                            <p style={{ fontSize: '12px', color: '#666' }}>Date: {printData.due_date}</p>
+                            <h2 style={{ 
+                                fontSize: '24px', 
+                                fontWeight: '900', 
+                                marginBottom: '4px', 
+                                color: activeTemplate === 'minimal' ? '#000' : '#334155' 
+                            }}>INVOICE</h2>
+                            <p style={{ fontWeight: '800', fontSize: '14px' }}>#{printData.invoice_number}</p>
+                            <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>Date: {printData.due_date}</p>
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+                    {/* Address Details Block */}
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '40px', 
+                        marginBottom: '30px',
+                        background: activeTemplate === 'modern' ? '#F8FAFC' : 'transparent',
+                        padding: activeTemplate === 'modern' ? '20px' : '0',
+                        borderRadius: activeTemplate === 'modern' ? '8px' : '0'
+                    }}>
                         <div>
-                            <h3 style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '5px' }}>Billed To:</h3>
-                            <p style={{ fontSize: '14px', fontWeight: '800', marginBottom: '3px' }}>{printData.client_name}</p>
-                            <p style={{ fontSize: '12px' }}>{printData.client_email}</p>
-                            {printData.client_gstin && <p style={{ fontSize: '12px', fontWeight: '700', marginTop: '3px' }}>GSTIN: {printData.client_gstin}</p>}
-                            <div style={{ marginTop: '8px' }}>
-                                <p style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase' }}>Billing Address:</p>
-                                <p style={{ fontSize: '11px', whiteSpace: 'pre-wrap' }}>{printData.billing_address || 'N/A'}</p>
+                            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Billed To:</h3>
+                            <p style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', marginBottom: '4px' }}>{printData.client_name}</p>
+                            <p style={{ fontSize: '13px', color: '#475569' }}>{printData.client_email}</p>
+                            {printData.client_gstin && <p style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A', marginTop: '4px' }}>GSTIN: {printData.client_gstin}</p>}
+                            <div style={{ marginTop: '12px' }}>
+                                <p style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Billing Address:</p>
+                                <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{printData.billing_address || 'N/A'}</p>
                             </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                            <h3 style={{ fontSize: '10px', fontWeight: '800', color: '#888', textTransform: 'uppercase', marginBottom: '5px' }}>Shipping Details:</h3>
-                            <p style={{ fontSize: '11px', whiteSpace: 'pre-wrap' }}>{printData.shipping_address || 'N/A'}</p>
-                            <div style={{ marginTop: '10px' }}>
-                                <p style={{ fontSize: '12px' }}>Mode: {printData.payment_mode}</p>
-                                <p style={{ fontSize: '12px' }}>Status: {printData.status}</p>
+                            <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Shipping Details:</h3>
+                            <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{printData.shipping_address || 'N/A'}</p>
+                            <div style={{ marginTop: '15px', display: 'inline-grid', gap: '4px', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', fontSize: '13px' }}>
+                                    <span style={{ color: '#64748B' }}>Mode:</span>
+                                    <span style={{ fontWeight: '700' }}>{printData.payment_mode}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', fontSize: '13px' }}>
+                                    <span style={{ color: '#64748B' }}>Status:</span>
+                                    <span style={{ 
+                                        fontWeight: '800', 
+                                        color: printData.status === 'Paid' ? '#15803D' : '#B91C1C',
+                                        textTransform: 'uppercase'
+                                    }}>{printData.status}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                    {/* Items Grid */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '35px' }}>
                         <thead>
-                            <tr style={{ background: '#FCE7F3', borderBottom: '2px solid #BE185D' }}>
-                                <th style={{ padding: '10px', textAlign: 'left', fontSize: '10px', fontWeight: '800' }}>DESCRIPTION</th>
-                                <th style={{ padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '800' }}>HSN</th>
-                                <th style={{ padding: '10px', textAlign: 'center', fontSize: '10px', fontWeight: '800' }}>QTY</th>
-                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>PRICE</th>
-                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>DISC</th>
-                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>GST%</th>
-                                <th style={{ padding: '10px', textAlign: 'right', fontSize: '10px', fontWeight: '800' }}>TOTAL</th>
+                            <tr style={{ 
+                                background: activeTemplate === 'modern' ? '#1E3A8A' : (activeTemplate === 'minimal' ? '#F8FAFC' : '#FCE7F3'), 
+                                color: activeTemplate === 'modern' ? '#FFF' : '#000',
+                                borderBottom: activeTemplate === 'minimal' ? '2px solid #000' : 'none'
+                            }}>
+                                <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Item Description</th>
+                                <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>HSN</th>
+                                <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Qty</th>
+                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Unit Price</th>
+                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Discount</th>
+                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>GST %</th>
+                                <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             {(typeof printData.items === 'string' ? JSON.parse(printData.items) : printData.items).map((item, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #EEE' }}>
-                                    <td style={{ padding: '10px', fontSize: '12px' }}>{item.description}</td>
-                                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '12px' }}>{item.hsn_code || '-'}</td>
-                                    <td style={{ padding: '10px', textAlign: 'center', fontSize: '12px' }}>{item.quantity} {item.unit}</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>₹{item.price.toLocaleString()}</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>₹{(item.discount_amount || (item.quantity * item.price * (item.discount_percent / 100))).toLocaleString()}</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px' }}>{item.tax_rate}%</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', fontSize: '12px', fontWeight: '700' }}>₹{item.total.toLocaleString()}</td>
+                                <tr key={i} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                    <td style={{ padding: '12px', fontSize: '13px', fontWeight: '600', color: '#0F172A' }}>{item.description}</td>
+                                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>{item.hsn_code || '-'}</td>
+                                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', fontWeight: '700' }}>{item.quantity} <span style={{fontSize:'11px', fontWeight:'normal'}}>{item.unit}</span></td>
+                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px' }}>₹{item.price.toLocaleString()}</td>
+                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: item.discount_percent > 0 ? '#B91C1C' : '#475569' }}>
+                                        {item.discount_percent > 0 ? `${item.discount_percent}%` : '—'}
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px' }}>{item.tax_rate}%</td>
+                                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>₹{item.total.toLocaleString()}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
 
+                    {/* Totals Area */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <div style={{ width: '240px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                                <span style={{ color: '#666' }}>Subtotal</span>
-                                <span style={{ fontWeight: '700' }}>₹{printData.amount.toLocaleString()}</span>
+                        <div style={{ 
+                            width: '300px', 
+                            background: activeTemplate === 'minimal' ? 'transparent' : '#F8FAFC', 
+                            padding: '20px', 
+                            borderRadius: '8px',
+                            border: activeTemplate === 'minimal' ? '1px solid #E2E8F0' : 'none'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
+                                <span style={{ color: '#64748B', fontWeight: '600' }}>Subtotal</span>
+                                <span style={{ fontWeight: '800' }}>₹{printData.amount.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                                <span style={{ color: '#666' }}>Total Discount</span>
-                                <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{printData.discount_amount.toLocaleString()}</span>
-                            </div>
-                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                                <span style={{ color: '#666' }}>Tax (GST)</span>
-                                <span style={{ fontWeight: '700' }}>₹{printData.tax_amount.toLocaleString()}</span>
-                            </div>
-                            {(printData.redeemed_points > 0) && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                                    <span style={{ color: '#16A34A', fontWeight: '700' }}>Points Redeemed</span>
-                                    <span style={{ fontWeight: '700', color: '#16A34A' }}>- ₹{printData.redeemed_points.toLocaleString()}</span>
+                            {printData.discount_amount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
+                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Total Discount</span>
+                                    <span style={{ fontWeight: '800', color: '#B91C1C' }}>- ₹{printData.discount_amount.toLocaleString()}</span>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                                <span style={{ color: '#666' }}>Round Off</span>
-                                <span style={{ fontWeight: '700' }}>₹{printData.round_off.toFixed(2)}</span>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
+                                <span style={{ color: '#64748B', fontWeight: '600' }}>Tax Amount (GST)</span>
+                                <span style={{ fontWeight: '800' }}>₹{printData.tax_amount.toLocaleString()}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #000', paddingTop: '8px', marginTop: '8px', fontSize: '14px' }}>
-                                <span style={{ fontWeight: '900' }}>Grand Total</span>
-                                <span style={{ fontWeight: '900', color: '#BE185D' }}>₹{printData.total_amount.toLocaleString()}</span>
+                            {(printData.redeemed_points > 0) && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px' }}>
+                                    <span style={{ color: '#16A34A', fontWeight: '800' }}>Points Redeemed</span>
+                                    <span style={{ fontWeight: '800', color: '#16A34A' }}>- ₹{printData.redeemed_points.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
+                                <span style={{ color: '#64748B', fontWeight: '600' }}>Round Off</span>
+                                <span style={{ fontWeight: '800' }}>₹{(parseFloat(printData.round_off) || 0).toFixed(2)}</span>
+                            </div>
+                            
+                            <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                borderTop: `2px solid ${activeTemplate === 'modern' ? '#1E3A8A' : '#000'}`, 
+                                paddingTop: '12px', 
+                                marginTop: '12px', 
+                                fontSize: '18px' 
+                            }}>
+                                <span style={{ fontWeight: '900', textTransform: 'uppercase' }}>Grand Total</span>
+                                <span style={{ 
+                                    fontWeight: '900', 
+                                    color: activeTemplate === 'modern' ? '#1E3A8A' : (activeTemplate === 'minimal' ? '#000' : '#BE185D')
+                                }}>
+                                    ₹{printData.total_amount.toLocaleString()}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '60px', borderTop: '1px solid #EEE', paddingTop: '15px', textAlign: 'center' }}>
-                        <p style={{ fontSize: '10px', color: '#999', margin: 0 }}>This is a computer generated invoice and does not require a physical signature.</p>
-                        <p style={{ fontSize: '10px', color: '#999', marginTop: '3px', margin: 0 }}>Thank you for your business!</p>
+                    {/* Bottom Declaration */}
+                    <div style={{ marginTop: '80px', borderTop: '1px solid #E2E8F0', paddingTop: '20px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '12px', fontWeight: '700', color: '#0F172A', marginBottom: '4px' }}>Thank you for your business!</p>
+                        <p style={{ fontSize: '11px', color: '#64748B' }}>This is a digitally generated invoice and does not require an authorized signature.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Template Selector Gallery Modal */}
+            {isTemplatesModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '650px', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <LayoutTemplate size={20} color="#BE185D" />
+                                    Choose Invoice Template
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.1rem', margin: 0 }}>Select the visual design for generated PDF and physical prints.</p>
+                            </div>
+                            <button onClick={() => setIsTemplatesModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                            {/* Standard Template Card */}
+                            <div 
+                                onClick={() => setActiveTemplate('standard')}
+                                style={{ 
+                                    cursor: 'pointer', border: activeTemplate === 'standard' ? '2px solid #BE185D' : '1px solid #E2E8F0', 
+                                    borderRadius: '12px', padding: '0.5rem', background: activeTemplate === 'standard' ? '#FCE7F3' : 'white',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <div style={{ height: '140px', background: 'white', borderRadius: '8px', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)', overflow: 'hidden', position: 'relative', padding: '10px' }}>
+                                    <div style={{ height: '4px', background: '#BE185D', width: '30%', borderRadius: '2px', marginBottom: '4px' }}></div>
+                                    <div style={{ height: '2px', background: '#F1F5F9', width: '100%', marginBottom: '8px' }}></div>
+                                    <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                                        <div style={{ flex: 1, height: '30px', background: '#FDF2F8', borderRadius: '4px' }}></div>
+                                        <div style={{ flex: 1, height: '30px', background: '#FDF2F8', borderRadius: '4px' }}></div>
+                                    </div>
+                                    <div style={{ height: '8px', background: '#FCE7F3', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '6px', background: '#F8FAFC', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '6px', background: '#F8FAFC', width: '100%', marginBottom: '2px' }}></div>
+                                    {activeTemplate === 'standard' && (
+                                        <div style={{ position: 'absolute', top: '5px', right: '5px', width: '18px', height: '18px', borderRadius: '50%', background: '#BE185D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Check size={12} strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </div>
+                                <p style={{ textAlign: 'center', fontWeight: '800', fontSize: '0.85rem', margin: '8px 0 2px 0', color: '#0F172A' }}>Standard</p>
+                                <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B', margin: 0 }}>Brand Pink Theme</p>
+                            </div>
+
+                            {/* Modern Template Card */}
+                            <div 
+                                onClick={() => setActiveTemplate('modern')}
+                                style={{ 
+                                    cursor: 'pointer', border: activeTemplate === 'modern' ? '2px solid #1E3A8A' : '1px solid #E2E8F0', 
+                                    borderRadius: '12px', padding: '0.5rem', background: activeTemplate === 'modern' ? '#DBEAFE' : 'white',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <div style={{ height: '140px', background: 'white', borderRadius: '8px', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)', overflow: 'hidden', position: 'relative', padding: '10px' }}>
+                                    <div style={{ height: '12px', borderBottom: '3px solid #1E3A8A', width: '100%', marginBottom: '8px' }}></div>
+                                    <div style={{ height: '30px', background: '#F1F5F9', width: '100%', marginBottom: '8px', borderRadius: '4px' }}></div>
+                                    <div style={{ height: '10px', background: '#1E3A8A', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '6px', background: '#F8FAFC', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '6px', background: '#F8FAFC', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '12px', background: '#EFF6FF', width: '50%', alignSelf: 'flex-end', marginTop: '10px', marginLeft: 'auto', borderRadius: '2px' }}></div>
+                                    {activeTemplate === 'modern' && (
+                                        <div style={{ position: 'absolute', top: '5px', right: '5px', width: '18px', height: '18px', borderRadius: '50%', background: '#1E3A8A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Check size={12} strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </div>
+                                <p style={{ textAlign: 'center', fontWeight: '800', fontSize: '0.85rem', margin: '8px 0 2px 0', color: '#0F172A' }}>Modern Navy</p>
+                                <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B', margin: 0 }}>Corporate & Formal</p>
+                            </div>
+
+                            {/* Minimal Template Card */}
+                            <div 
+                                onClick={() => setActiveTemplate('minimal')}
+                                style={{ 
+                                    cursor: 'pointer', border: activeTemplate === 'minimal' ? '2px solid #000' : '1px solid #E2E8F0', 
+                                    borderRadius: '12px', padding: '0.5rem', background: activeTemplate === 'minimal' ? '#F1F5F9' : 'white',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <div style={{ height: '140px', background: 'white', borderRadius: '8px', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)', overflow: 'hidden', position: 'relative', padding: '10px' }}>
+                                    <div style={{ height: '10px', borderBottom: '1px solid #000', width: '100%', marginBottom: '8px' }}></div>
+                                    <div style={{ height: '8px', background: '#F8FAFC', width: '60%', marginBottom: '4px' }}></div>
+                                    <div style={{ height: '8px', background: '#F8FAFC', width: '40%', marginBottom: '12px' }}></div>
+                                    <div style={{ height: '2px', background: '#000', width: '100%', marginBottom: '4px' }}></div>
+                                    <div style={{ height: '6px', background: '#F8FAFC', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '6px', background: '#F8FAFC', width: '100%', marginBottom: '2px' }}></div>
+                                    <div style={{ height: '2px', background: '#000', width: '100%', marginTop: '8px' }}></div>
+                                    {activeTemplate === 'minimal' && (
+                                        <div style={{ position: 'absolute', top: '5px', right: '5px', width: '18px', height: '18px', borderRadius: '50%', background: '#000', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Check size={12} strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </div>
+                                <p style={{ textAlign: 'center', fontWeight: '800', fontSize: '0.85rem', margin: '8px 0 2px 0', color: '#0F172A' }}>Minimal Mono</p>
+                                <p style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B', margin: 0 }}>Clean & Ink-Efficient</p>
+                            </div>
+                        </div>
+                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setIsTemplatesModalOpen(false)} style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                Set as Active Template
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
