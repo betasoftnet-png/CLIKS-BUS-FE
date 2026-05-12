@@ -263,12 +263,12 @@ const Sidebar = ({ isOpen, onClose }) => {
             <nav className="sidebar-nav" style={{ overflowY: 'auto', padding: '0.75rem' }}>
                 {isSocialMode ? (
                     <>
-                        <div style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
+                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
                         {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} />)}
                     </>
                 ) : isFinanceMode ? (
                     <>
-                        <div style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
+                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
                         {navigationConfig.financeMode.map(item => <MenuItem key={item.label} item={item} />)}
                     </>
                 ) : (
