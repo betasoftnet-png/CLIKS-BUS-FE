@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '../services';
 
 import { Toggle } from '../components/ui/toggle';
-import { Bell, Shield, Globe, Save } from 'lucide-react';
+import { Bell, Shield, Globe, Save, Sliders } from 'lucide-react';
+import SettingsCustomizer from '../components/SettingsCustomizer';
 
 const Settings = () => {
     const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ const Settings = () => {
         twoFactor: true,
         dataSharing: false
     });
+    const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
     const { data: _serverSettings, isLoading } = useQuery({
         queryKey: ['settings'],
@@ -51,9 +53,25 @@ const Settings = () => {
 
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1.5rem 2rem' }}>
-            <div style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.5rem' }}>Settings</h1>
-                <p style={{ color: '#64748B' }}>Manage your application preferences and system configurations.</p>
+            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.5rem' }}>Settings</h1>
+                    <p style={{ color: '#64748B' }}>Manage your application preferences and system configurations.</p>
+                </div>
+                <button 
+                    onClick={() => setIsCustomizerOpen(true)}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        background: 'white', border: '1px solid #e2e8f0',
+                        padding: '0.6rem 1rem', borderRadius: '8px', 
+                        color: '#1E293B', fontWeight: '700', fontSize: '0.85rem',
+                        cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <Sliders size={16} style={{ color: 'var(--primary)' }} />
+                    Customization
+                </button>
             </div>
 
             <SettingSection title="Preferences" icon={Globe}>
@@ -133,6 +151,9 @@ const Settings = () => {
                     {mutation.isLoading ? 'Saving...' : 'Save Changes'}
                 </button>
             </div>
+
+            {/* Full Scale Customization Modal */}
+            <SettingsCustomizer isOpen={isCustomizerOpen} onClose={() => setIsCustomizerOpen(false)} />
         </div>
     );
 };
