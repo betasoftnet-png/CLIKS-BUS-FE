@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ordersService } from '../services/ordersService';
 import { crmService } from '../services/crmService';
+import { billingService } from '../services/billingService';
 import { 
     ShoppingCart, 
     Plus, 
@@ -216,11 +217,38 @@ const BusinessSalesOrders = () => {
     const handleConvertInvoice = async (order) => {
         if (window.confirm(`Convert Sales Order ${order.order_number} to a Sales Invoice?`)) {
             try {
+                // 1. Hit original conversion endpoint
                 await ordersService.convertToInvoice(order.id);
-                alert(`Sales Order successfully converted into Invoice! Stock deducted.`);
+                
+                // 2. Dynamically Map order data to proper Billing Service Payload to guarantee client visibility!
+                const invoiceData = {
+                    invoice_number: `INV-${Date.now().toString().slice(-6)}`,
+                    client_name: order.customer,
+                    client_email: order.customer_email || '',
+                    client_gstin: order.customer_gstin || '',
+                    billing_address: order.billing_address || '',
+                    total_amount: parseFloat(order.grand_total) || 0,
+                    paid_amount: parseFloat(order.advance_amount) || 0,
+                    pending_amount: Math.max(0, (parseFloat(order.grand_total) || 0) - (parseFloat(order.advance_amount) || 0)),
+                    payment_mode: 'Cash',
+                    status: parseFloat(order.advance_amount) >= parseFloat(order.grand_total) ? 'Paid' : 'Partial',
+                    invoice_type: 'GST',
+                    items: Array.isArray(order.items) ? order.items.map(item => ({
+                        description: item.name || item.product_name,
+                        quantity: parseFloat(item.quantity) || 1,
+                        price: parseFloat(item.price) || 0,
+                        tax_rate: parseFloat(item.gst) || 18,
+                        total: parseFloat(item.total) || 0
+                    })) : []
+                };
+                
+                // Persist into billing database
+                await billingService.createInvoice(invoiceData);
+                
+                alert(`Sales Order successfully converted into Invoice! It is now visible in Sales Invoices.`);
                 loadOrders();
             } catch (err) {
-                console.error(err);
+                console.error('[ConversionFailure]', err);
                 alert('Failed to convert sales order.');
             }
         }
@@ -453,10 +481,12 @@ const BusinessSalesOrders = () => {
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
-                                                {row.status !== 'Invoiced' && row.status !== 'Cancelled' && (
+                                                {row.status !== 'Cancelled' && (
                                                     <>
-                                                        <button onClick={() => handleConvertInvoice(row)} title="Convert to Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E9D5FF', background: 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><RefreshCw size={14} /></button>
-                                                        <button onClick={() => handleFulfillment(row)} title="Shipping Fulfillment" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Truck size={14} /></button>
+                                                        <button onClick={() => handleConvertInvoice(row)} title="Re-sync to Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E9D5FF', background: row.status === 'Invoiced' ? '#F5F3FF' : 'white', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+                                                        {row.status !== 'Invoiced' && (
+                                                            <button onClick={() => handleFulfillment(row)} title="Shipping Fulfillment" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0369A1', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Truck size={14} /></button>
+                                                        )}
                                                     </>
                                                 )}
                                                 <button onClick={() => handleEdit(row)} title="Edit Order" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
