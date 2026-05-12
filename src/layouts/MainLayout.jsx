@@ -30,9 +30,6 @@ const MainLayout = ({ children }) => {
                 )}
                 <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 <div className="main-content-area">
-                    <div style={{ padding: '0 2rem', paddingTop: '1.5rem', flexShrink: 0 }}>
-                        <Breadcrumbs />
-                    </div>
                     <div className="content-scrollable">
                         {children}
                     </div>
