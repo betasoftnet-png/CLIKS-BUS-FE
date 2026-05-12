@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { 
     FileText, 
     Plus, 
@@ -70,6 +71,14 @@ const BusinessBilling = () => {
         queryFn: profileService.getProfile,
         refetchOnWindowFocus: false
     });
+    // Auto-trigger invoice creation workflow via query param instruction
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);

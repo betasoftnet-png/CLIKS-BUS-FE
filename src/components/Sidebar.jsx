@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tooltip } from './common';
 import {
     LayoutDashboard,
+    Plus,
     Banknote,
     ShoppingCart,
     Users,
@@ -85,7 +86,6 @@ const Sidebar = ({ isOpen, onClose }) => {
     const navigationConfig = {
         standard: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/business/dashboard' },
-            { label: 'Sales Invoice', icon: Receipt, path: '/business/billing' },
             {
                 label: 'Finance',
                 icon: Banknote,
@@ -278,8 +278,24 @@ const Sidebar = ({ isOpen, onClose }) => {
                         {navigationConfig.standard.map(item => (
                             <React.Fragment key={item.label}>
                                 <MenuItem item={item} />
-                                {item.label === 'Sales Invoice' && (
-                                    <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
+                                {item.label === 'Dashboard' && (
+                                    <>
+                                        <button 
+                                            onClick={() => handleItemClick('Generate Invoice', '/business/billing?create=true')}
+                                            style={{ 
+                                                width: '100%', padding: '0.75rem', borderRadius: '10px', 
+                                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)', 
+                                                color: 'white', border: 'none', cursor: 'pointer', 
+                                                fontWeight: '800', fontSize: '0.85rem', display: 'flex', 
+                                                alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
+                                                marginBottom: '8px',
+                                                marginTop: '2px'
+                                            }}>
+                                            <Plus size={16} strokeWidth={3} /> Generate Invoice
+                                        </button>
+                                        <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
+                                    </>
                                 )}
                             </React.Fragment>
                         ))}
