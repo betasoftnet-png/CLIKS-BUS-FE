@@ -80,11 +80,11 @@ const BusinessGST = () => {
 
     // Business GST registration metadata
     const gstProfile = {
-        gstin: dbSettings.gstin || '27ABCDE1234F1Z5',
-        legal_name: dbSettings.legal_name || 'CLIKS Digital Services Pvt. Ltd.',
-        business_type: dbSettings.business_type || 'Regular Taxpayer',
-        place_of_business: dbSettings.place_of_business || 'Mumbai HQ, Maharashtra',
-        state_code: dbSettings.state_code || '27'
+        gstin: dbSettings.gstin || 'GSTIN NOT CONFIGURED',
+        legal_name: dbSettings.legal_name || 'Business Registration Pending',
+        business_type: dbSettings.business_type || 'Pending',
+        place_of_business: dbSettings.place_of_business || 'Location Unspecified',
+        state_code: dbSettings.state_code || '--'
     };
 
     // fallbacks mapping

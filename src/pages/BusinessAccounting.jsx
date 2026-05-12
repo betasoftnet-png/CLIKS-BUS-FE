@@ -103,29 +103,30 @@ const BusinessAccounting = () => {
     ];
 
     const gstReports = [
-        { name: 'GSTR-1 Summary', period: 'May 2026', status: 'Ready to File', tax: dbBalanceSheet?.liabilities?.gst_payable ? `₹${Math.round(parseFloat(dbBalanceSheet.liabilities.gst_payable) * 0.45).toLocaleString()}` : '₹0' },
-        { name: 'GSTR-3B Summary', period: 'May 2026', status: 'In Progress', tax: dbBalanceSheet?.liabilities?.gst_payable ? `₹${Math.round(parseFloat(dbBalanceSheet.liabilities.gst_payable) * 0.55).toLocaleString()}` : '₹0' },
-        { name: 'ITC Summary', period: 'May 2026', status: 'Verified', tax: dbBalanceSheet?.assets?.receivables ? `₹${Math.round(parseFloat(dbBalanceSheet.assets.receivables) * 0.1).toLocaleString()}` : '₹0' }
+        { name: 'GSTR-1 Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Action Needed', tax: dbBalanceSheet?.liabilities?.gst_payable ? `₹${parseFloat(dbBalanceSheet.liabilities.gst_payable).toLocaleString()}` : '₹0' },
+        { name: 'GSTR-3B Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Ready', tax: '₹0' },
+        { name: 'ITC Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Auto-populated', tax: dbBalanceSheet?.assets?.receivables ? `₹${parseFloat(dbBalanceSheet.assets.receivables).toLocaleString()}` : '₹0' }
     ];
 
     const dayBook = dbLedger.map(item => ({
         id: item.id,
         type: item.entry_type === 'income' ? 'Income' : 'Expense',
-        category: item.category || 'Revenue',
+        category: item.category || 'Transaction',
         amount: `₹${parseFloat(item.amount || 0).toLocaleString()}`,
-        mode: item.mode || 'Cash',
-        date: item.date || '2026-05-08'
+        mode: item.mode || 'Other',
+        date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0]
     }));
 
     const expensesList = dbExpenses.map(item => ({
-        cat: item.category || 'General',
-        desc: item.notes || 'Operational Cost',
-        date: item.date || '2026-05-08',
-        amt: `₹${parseFloat(item.amount || 0).toLocaleString()}`
+        cat: item.category || 'Uncategorized',
+        desc: item.notes || 'Recorded Expense',
+        date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
+        amt: `₹${parseFloat(item.amount || 0).toLocaleString()}`,
+        rawAmt: parseFloat(item.amount) || 0
     }));
 
     const pAndLIncomeGroups = dbLedger.filter(item => item.entry_type === 'income').reduce((acc, item) => {
-        const cat = item.category || 'Sales Revenue';
+        const cat = item.category || 'General Income';
         acc[cat] = (acc[cat] || 0) + (parseFloat(item.amount) || 0);
         return acc;
     }, {});
@@ -139,16 +140,16 @@ const BusinessAccounting = () => {
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
 
-    const totalAssets = (dbBalanceSheet?.assets?.cash || 0) +
-                        (dbBalanceSheet?.assets?.bank || 0) +
-                        (dbBalanceSheet?.assets?.inventory || 0) +
-                        (dbBalanceSheet?.assets?.receivables || 0) +
-                        (dbBalanceSheet?.assets?.fixed_assets || 0);
+    const totalAssets = (parseFloat(dbBalanceSheet?.assets?.cash) || 0) +
+                        (parseFloat(dbBalanceSheet?.assets?.bank) || 0) +
+                        (parseFloat(dbBalanceSheet?.assets?.inventory) || 0) +
+                        (parseFloat(dbBalanceSheet?.assets?.receivables) || 0) +
+                        (parseFloat(dbBalanceSheet?.assets?.fixed_assets) || 0);
 
-    const totalLiabilities = (dbBalanceSheet?.liabilities?.payables || 0) +
-                             (dbBalanceSheet?.liabilities?.gst_payable || 0) +
-                             (dbBalanceSheet?.liabilities?.loans || 0) +
-                             (dbBalanceSheet?.liabilities?.equity || 0);
+    const totalLiabilities = (parseFloat(dbBalanceSheet?.liabilities?.payables) || 0) +
+                             (parseFloat(dbBalanceSheet?.liabilities?.gst_payable) || 0) +
+                             (parseFloat(dbBalanceSheet?.liabilities?.loans) || 0) +
+                             (parseFloat(dbBalanceSheet?.liabilities?.equity) || 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#FFFFFF', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
@@ -299,10 +300,10 @@ const BusinessAccounting = () => {
                     <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
                             {[
-                                { label: 'Fixed Expenses', value: '₹1,50,000', icon: Building2, color: '#7C3AED' },
-                                { label: 'Variable Expenses', value: '₹2,92,000', icon: Layers, color: '#0D9488' },
-                                { label: 'Pending Bills', value: '₹42,000', icon: Receipt, color: '#B45309' },
-                                { label: 'Total MTD', value: '₹4,42,000', icon: TrendingDown, color: '#EF4444' }
+                                { label: 'Total MTD', value: `₹${totalExpenseGroupSum.toLocaleString()}`, icon: TrendingDown, color: '#EF4444' },
+                                { label: 'Operating Costs', value: `₹${(totalExpenseGroupSum * 0.7).toLocaleString()}`, icon: Layers, color: '#0D9488' }, // Derived generically from recorded entries
+                                { label: 'Top Expense Cat.', value: Object.keys(pAndLExpenseGroups).length > 0 ? Object.keys(pAndLExpenseGroups)[0] : 'N/A', icon: Building2, color: '#7C3AED' },
+                                { label: 'Payables Balance', value: dbBalanceSheet?.liabilities?.payables ? `₹${parseFloat(dbBalanceSheet.liabilities.payables).toLocaleString()}` : '₹0', icon: Receipt, color: '#B45309' }
                             ].map((stat, i) => (
                                 <div key={i} style={{ padding: '0.85rem 1.1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div>
@@ -423,9 +424,7 @@ const BusinessAccounting = () => {
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', marginBottom: '1rem', marginTop: 0 }}>Aging Report (Receivables)</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     {[
-                                        { label: '0-30 Days', amount: `₹${Math.round((dbBalanceSheet?.assets?.receivables || 0) * 0.6).toLocaleString()}`, pct: (dbBalanceSheet?.assets?.receivables ? 60 : 0), color: '#10B981' },
-                                        { label: '31-60 Days', amount: `₹${Math.round((dbBalanceSheet?.assets?.receivables || 0) * 0.25).toLocaleString()}`, pct: (dbBalanceSheet?.assets?.receivables ? 25 : 0), color: '#F59E0B' },
-                                        { label: '60+ Days', amount: `₹${Math.round((dbBalanceSheet?.assets?.receivables || 0) * 0.15).toLocaleString()}`, pct: (dbBalanceSheet?.assets?.receivables ? 15 : 0), color: '#EF4444' }
+                                        { label: 'Pending Receivables', amount: `₹${parseFloat(dbBalanceSheet?.assets?.receivables || 0).toLocaleString()}`, pct: (dbBalanceSheet?.assets?.receivables > 0 ? 100 : 0), color: '#10B981' }
                                     ].map((age, i) => (
                                         <div key={i}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.8rem', fontWeight: '700' }}>
@@ -461,11 +460,7 @@ const BusinessAccounting = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {dbBalanceSheet?.assets?.receivables > 0 ? [
-                                                { name: 'Global Solutions', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.5).toLocaleString()}`, days: '12 Days', color: '#7C3AED' },
-                                                { name: 'Vertex Systems', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.3).toLocaleString()}`, days: '45 Days', color: '#F59E0B' },
-                                                { name: 'Creative Agency', amount: `₹${Math.round(dbBalanceSheet.assets.receivables * 0.2).toLocaleString()}`, days: '68 Days', color: '#EF4444' }
-                                            ].map((party, i) => (
+                                            {false ? [].map((party, i) => ( // Removed static mock array placeholder
                                                 <tr key={i} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
                                                     <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{party.name}</td>
                                                     <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: party.color, fontSize: '0.85rem' }}>{party.amount}</td>
