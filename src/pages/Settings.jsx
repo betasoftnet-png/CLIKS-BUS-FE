@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '../services';
 
 import { Toggle } from '../components/ui/toggle';
 import { Bell, Shield, Globe, Save, Sliders } from 'lucide-react';
-import SettingsCustomizer from '../components/SettingsCustomizer';
 
 const Settings = () => {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [localSettings, setLocalSettings] = useState({
         notifications: true,
         emailDigest: false,
         darkMode: false,
-        publicProfile: true,
         twoFactor: true,
         dataSharing: false
     });
-    const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
     const { data: _serverSettings, isLoading } = useQuery({
         queryKey: ['settings'],
@@ -59,7 +58,7 @@ const Settings = () => {
                     <p style={{ color: '#64748B' }}>Manage your application preferences and system configurations.</p>
                 </div>
                 <button 
-                    onClick={() => setIsCustomizerOpen(true)}
+                    onClick={() => navigate('/business/customization')}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '0.5rem',
                         background: 'white', border: '1px solid #e2e8f0',
@@ -151,9 +150,6 @@ const Settings = () => {
                     {mutation.isLoading ? 'Saving...' : 'Save Changes'}
                 </button>
             </div>
-
-            {/* Full Scale Customization Modal */}
-            <SettingsCustomizer isOpen={isCustomizerOpen} onClose={() => setIsCustomizerOpen(false)} />
         </div>
     );
 };
