@@ -314,61 +314,52 @@ const Sidebar = ({ isOpen, onClose }) => {
             }}>
                 {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
                 {!isSocialMode && !isFinanceMode && (
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                        border: '1px solid #FEF3C7'
-                    }}>
-                        {/* Top Part: Trial Gauge */}
-                        <div style={{
-                            background: '#FFFBEB',
-                            padding: '0.75rem 1rem',
+                    <button
+                        onClick={() => handleItemClick('Subscription', '/business/subscription')}
+                        style={{
+                            width: '100%',
                             display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px'
-                        }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B45309' }}>
-                                20 days Trial Left
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.5rem 0.6rem 0.5rem 0.85rem',
+                            background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: '750',
+                            fontSize: '0.85rem',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
+                            transition: 'all 0.2s ease',
+                            minHeight: '52px'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                <CreditCard size={18} strokeWidth={2.5} />
                             </div>
-                            <div style={{ width: '100%', height: '4px', background: '#FEF3C7', borderRadius: '10px', overflow: 'hidden' }}>
-                                <div style={{ width: '66%', height: '100%', background: '#F59E0B', borderRadius: '10px' }}></div>
-                            </div>
+                            <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
                         </div>
-
-                        {/* Bottom Part: Action Trigger */}
-                        <button
-                            onClick={() => handleItemClick('Subscription', '/business/subscription')}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.85rem 1rem',
-                                background: '#1E3A8A', /* Shifted to Dark Blue as requested */
-                                color: '#FFFFFF',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontWeight: '700',
-                                fontSize: '0.85rem',
-                                letterSpacing: '0.02em',
-                                transition: 'background 0.2s ease',
-                                borderRadius: '0' /* Reset to merge perfectly with top */
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#172554'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#1E3A8A'}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
-                                    <CreditCard size={16} strokeWidth={2.5} />
-                                </div>
-                                <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
-                            </div>
-                            <ChevronRight size={14} strokeWidth={3} />
-                        </button>
-                    </div>
+                        
+                        {/* Integrated Count Circle requested by user */}
+                        <div style={{ 
+                            width: '38px', 
+                            height: '38px', 
+                            background: '#FFFFFF', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                            flexShrink: 0
+                        }}>
+                            <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '850', lineHeight: 1 }}>20</span>
+                            <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+                        </div>
+                    </button>
                 )}
 
                 {/* Bottom Settings Block (Replaced 'My Company' from example) */}
