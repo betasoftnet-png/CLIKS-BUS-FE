@@ -225,6 +225,22 @@ const BusinessReturns = () => {
     const totalPurchaseReturnedAmt = purchaseReturns.reduce((acc, pr) => acc + pr.refund_amount, 0);
     const pendingInspectionsCount = salesReturns.filter(sr => sr.inspection_status === 'Pending Check').length;
 
+    // Derive active warranty / replacement claims across all loaded returns
+    const warrantyClaims = [];
+    allReturns.forEach(ret => {
+        (ret.items || []).forEach(item => {
+            if (item.replacement_quantity > 0) {
+                warrantyClaims.push({
+                    id: `WARR-${ret.id}-${item.id}`,
+                    customer: ret.customer_name || ret.supplier_name || 'N/A',
+                    product: item.product_name,
+                    qty: item.replacement_quantity,
+                    status: ret.status
+                });
+            }
+        });
+    });
+
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
@@ -499,13 +515,25 @@ const BusinessReturns = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td style={{ padding: '1rem', fontWeight: '750' }}>WARR-9011</td>
-                                <td style={{ padding: '1rem', fontWeight: '600' }}>Rajesh Verma</td>
-                                <td style={{ padding: '1rem' }}>Boat Bassheads 100 Earphones</td>
-                                <td style={{ padding: '1rem', fontWeight: '800', color: '#B45309' }}>5 Pieces</td>
-                                <td style={{ padding: '1rem' }}><span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#FEF3C7', color: '#B45309', fontWeight: '800', fontSize: '0.75rem' }}>REPLACEMENT PENDING</span></td>
-                            </tr>
+                            {warrantyClaims.length > 0 ? (
+                                warrantyClaims.map((claim, idx) => (
+                                    <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '750' }}>{claim.id}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '600' }}>{claim.customer}</td>
+                                        <td style={{ padding: '1rem' }}>{claim.product}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#B45309' }}>{claim.qty} Units</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: claim.status === 'Completed' ? '#F0FDF4' : '#FEF3C7', color: claim.status === 'Completed' ? '#15803D' : '#B45309', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                {claim.status === 'Completed' ? 'REPLACEMENT ISSUED' : 'REPLACEMENT PENDING'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No active replacement claims found in system database.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
