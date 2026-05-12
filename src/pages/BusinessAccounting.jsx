@@ -151,7 +151,7 @@ const BusinessAccounting = () => {
                              (dbBalanceSheet?.liabilities?.equity || 0);
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#FAF5FF', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#FFFFFF', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             <style>{`
                 .crm-table-row:hover {
                     background-color: #FDF4FF !important;
@@ -216,7 +216,7 @@ const BusinessAccounting = () => {
                     <button 
                         onClick={() => setIsEntryModalOpen(true)}
                         className="crm-btn"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)' }}
                     >
                         <Plus size={15} /> Record Entry
                     </button>
@@ -241,7 +241,7 @@ const BusinessAccounting = () => {
             {/* Tabs Selector */}
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 {[
-                    { id: 'p&l', label: 'P & L', gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
+                    { id: 'p&l', label: 'P & L', gradient: 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)', shadowColor: 'rgba(99, 102, 241, 0.15)' },
                     { id: 'balance-sheet', label: 'Balance Sheet', gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
                     { id: 'receivables', label: 'Receivables & Payables', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
                     { id: 'expenses', label: 'Expenses', gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', shadowColor: 'rgba(239, 68, 68, 0.15)' },
