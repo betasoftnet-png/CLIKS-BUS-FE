@@ -460,22 +460,11 @@ const BusinessAccounting = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {false ? [].map((party, i) => ( // Removed static mock array placeholder
-                                                <tr key={i} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
-                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{party.name}</td>
-                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: party.color, fontSize: '0.85rem' }}>{party.amount}</td>
-                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{party.days}</td>
-                                                    <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                                        <button className="crm-btn-secondary" style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: 'none', background: '#EEF2FF', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}>Remind</button>
-                                                    </td>
-                                                </tr>
-                                            )) : (
-                                                <tr>
-                                                    <td colSpan={4} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748B', fontWeight: '600', fontSize: '0.85rem' }}>
-                                                        No outstanding payments pending.
-                                                    </td>
-                                                </tr>
-                                            )}
+                                            <tr>
+                                                <td colSpan={4} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748B', fontWeight: '600', fontSize: '0.85rem' }}>
+                                                    No outstanding payments pending.
+                                                </td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>

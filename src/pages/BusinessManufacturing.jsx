@@ -355,8 +355,6 @@ const BusinessManufacturing = () => {
     });
 
     // Stats calculations
-    const totalOrdersCount = workOrders.length;
-    const completedCount = workOrders.filter(w => w.production_status === 'Completed').length;
     const runningCount = workOrders.filter(w => w.production_status === 'Running').length;
 
     return (

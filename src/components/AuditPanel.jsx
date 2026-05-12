@@ -132,13 +132,9 @@ const AuditPanel = ({ isOpen, onClose }) => {
 
                             <h3 className="sub-title">Critical Issues</h3>
                             <div className="issues-stack">
-                                {[].length > 0 ? [].map((issue, i) => (
-                                    <div></div>
-                                )) : (
-                                    <div style={{ padding: '1rem', background: '#F0FDF4', color: '#166534', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <CheckCircle2 size={16} /> Perfect scan state: Zero compliance gaps detected.
-                                    </div>
-                                )}
+                                <div style={{ padding: '1rem', background: '#F0FDF4', color: '#166534', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CheckCircle2 size={16} /> Perfect scan state: Zero compliance gaps detected.
+                                </div>
                             </div>
                         </div>
                     )}
