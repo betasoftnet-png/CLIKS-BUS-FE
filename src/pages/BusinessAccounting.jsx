@@ -224,15 +224,42 @@ const BusinessAccounting = () => {
             </div>
 
             {/* Main Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Specialized Accounting Prime Stats Layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {summaryStats.map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                    <div 
+                        key={idx} 
+                        className="stat-card" 
+                        style={{ 
+                            position: 'relative',
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            justifyContent: 'space-between', 
+                            background: 'white', 
+                            padding: '1.5rem 1.75rem', 
+                            borderRadius: '20px', 
+                            border: '1px solid #E2E8F0', 
+                            borderTop: `4px solid ${stat.color}`,
+                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02), 0 4px 6px -2px rgba(0,0,0,0.01)', 
+                            cursor: 'default',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                            <div>
+                                <p style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</p>
+                            </div>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0, boxShadow: `0 4px 12px ${stat.color}15` }}>
+                                <stat.icon size={18} />
+                            </div>
                         </div>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={20} />
+                        
+                        <div>
+                            <h3 style={{ fontSize: '1.85rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.4rem 0', lineHeight: 1 }}>{stat.value}</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: stat.color }} />
+                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Live Position</span>
+                            </div>
                         </div>
                     </div>
                 ))}
