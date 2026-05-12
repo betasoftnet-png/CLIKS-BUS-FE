@@ -122,10 +122,6 @@ const Sidebar = ({ isOpen, onClose }) => {
                     { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' }
                 ]
             },
-            { label: 'Marketing', icon: Megaphone, path: '/business/marketing' },
-            { label: 'Reports', icon: BarChart3, path: '/business/reports' },
-            { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
-            /* 
             {
                 label: 'HR',
                 icon: UsersRound,
@@ -134,8 +130,11 @@ const Sidebar = ({ isOpen, onClose }) => {
                     { label: 'Attendance', icon: Calendar, path: '/business/attendance' },
                     { label: 'Payroll', icon: FileCheck, path: '/business/payroll' }
                 ]
-            }
-            */
+            },
+            { label: 'Marketing', icon: Megaphone, path: '/business/marketing' },
+            { label: 'Reports', icon: BarChart3, path: '/business/reports' },
+            { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
+
         ],
         social: [
             { label: 'Investors', icon: UsersRound, path: '/business/investors' },
