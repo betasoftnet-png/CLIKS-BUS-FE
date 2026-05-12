@@ -76,15 +76,15 @@ const BusinessWarehouse = () => {
     const warehouses = dbWarehouses.map(w => ({
         warehouse_id: `WH-0${w.id}`,
         id: w.id,
-        warehouse_code: w.code || `WH-CODE-${w.id}`,
-        warehouse_name: w.name || 'Unnamed Godown Facility',
+        warehouse_code: w.code || `WH-${w.id}`,
+        warehouse_name: w.name || 'Warehouse Profile',
         warehouse_type: w.type || 'godown',
         warehouse_status: w.status || 'active',
-        address: w.address || 'Address Not Configured',
-        city: w.city || 'HQ',
+        address: w.address || 'Unspecified',
+        city: w.city || 'N/A',
         state: w.state || '',
         pincode: w.pincode || '',
-        contact_person: w.contact_person || 'Facility Manager',
+        contact_person: w.contact_person || 'Not Assigned',
         phone_number: w.phone_number || '',
         email: w.email || '',
         capacity_utilization: w.capacity_utilization || '0%'
@@ -92,9 +92,9 @@ const BusinessWarehouse = () => {
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
     const whStocks = dbStocks.map(s => {
-        let warehouseName = 'Main Godown';
-        let rackNumber = 'Rack A-1';
-        let zoneName = 'General Storage';
+        let warehouseName = 'General';
+        let rackNumber = 'N/A';
+        let zoneName = 'General';
 
         if (s.location) {
             if (s.location.includes('(')) {
@@ -113,15 +113,15 @@ const BusinessWarehouse = () => {
             wh_stock_id: `WHS-${s.id}`,
             id: s.id,
             product_id: s.sku || `PROD-${s.id}`,
-            product_name: s.name || 'Unnamed Stock Item',
+            product_name: s.name || 'Unknown Product',
             warehouse_name: warehouseName,
             current_stock: current_stock,
-            reserved_stock: 0,
-            damaged_stock: 0,
-            in_transit_stock: 0,
+            reserved_stock: s.reserved_stock || 0,
+            damaged_stock: s.damaged_stock || 0,
+            in_transit_stock: s.in_transit_stock || 0,
             rack_number: rackNumber,
-            shelf_number: 'Shelf 1',
-            bin_number: 'Bin A',
+            shelf_number: s.shelf_number || 'N/A',
+            bin_number: s.bin_number || 'N/A',
             zone: zoneName,
             warehouse_stock_value: current_stock * average_cost
         };
@@ -130,9 +130,9 @@ const BusinessWarehouse = () => {
     // Stateful Stock Transfer Database mapped from live DB warehouse transfers
     const dbTransfers = reportsData?.transfers || [];
     const transfers = dbTransfers.map((t, idx) => {
-        const fromWH = warehouses.find(w => w.id === t.from_warehouse_id) || { warehouse_name: 'Main Godown' };
-        const toWH = warehouses.find(w => w.id === t.to_warehouse_id) || { warehouse_name: 'Shop Front' };
-        const product = dbStocks.find(s => s.id === t.stock_id) || { name: 'Dell Laptop' };
+        const fromWH = warehouses.find(w => w.id === t.from_warehouse_id) || { warehouse_name: 'Facility' };
+        const toWH = warehouses.find(w => w.id === t.to_warehouse_id) || { warehouse_name: 'Branch' };
+        const product = dbStocks.find(s => s.id === t.stock_id) || { name: 'Unknown' };
 
         return {
             transfer_id: `TRF-${t.id || (idx + 100)}`,
@@ -141,34 +141,25 @@ const BusinessWarehouse = () => {
             destination_warehouse: toWH.warehouse_name,
             product_name: product.name,
             transfer_quantity: t.quantity || 0,
-            transfer_status: t.status || 'Completed',
-            dispatch_date: t.created_at ? t.created_at.split('T')[0] : '2026-05-08',
-            received_date: t.created_at ? t.created_at.split('T')[0] : '2026-05-08',
-            carrier_name: 'Bluedart Logistics',
-            tracking_number: `BD-88902${idx}`
+            transfer_status: t.status || 'Pending',
+            dispatch_date: t.created_at ? t.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+            received_date: t.received_at ? t.received_at.split('T')[0] : 'N/A',
+            carrier_name: t.carrier_name || 'N/A',
+            tracking_number: t.tracking_number || 'N/A'
         };
     });
 
-    // Goods Inward (Receivings) Historical Logs mapped from DB Stocks
-    const inwards = dbStocks.map((s) => {
-        let warehouseName = 'Main Godown';
-        if (s.location) {
-            if (s.location.includes('(')) {
-                warehouseName = s.location.split('(')[0].trim();
-            } else {
-                warehouseName = s.location;
-            }
-        }
-        return {
-            inward_id: `INW-${s.id + 8800}`,
-            purchase_id: `BILL-770${s.id}`,
-            product_name: s.name,
-            received_quantity: s.quantity || 10,
-            received_by: 'Vijay Chauhan (Manager)',
-            inward_date: s.created_at ? s.created_at.split('T')[0] : '2026-05-08',
-            warehouse_name: warehouseName
-        };
-    });
+    // Goods Inward (Receivings) Logs from actual backend transactions
+    const dbInwards = reportsData?.inwards || [];
+    const inwards = dbInwards.map((inw) => ({
+        inward_id: `INW-${inw.id}`,
+        purchase_id: inw.purchase_bill_ref || 'N/A',
+        product_name: inw.product_name || 'Unknown Item',
+        received_quantity: inw.quantity || 0,
+        received_by: inw.received_by || 'Staff',
+        inward_date: inw.created_at ? inw.created_at.split('T')[0] : 'N/A',
+        warehouse_name: inw.warehouse_name || 'Not Configured'
+    }));
 
     // Form states
     const [newWarehouse, setNewWarehouse] = useState({
@@ -185,10 +176,10 @@ const BusinessWarehouse = () => {
     });
 
     const [newInward, setNewInward] = useState({
-        purchase_id: 'BILL-90112',
+        purchase_id: '',
         stock_id: '',
-        received_quantity: 100,
-        received_by: 'Vijay Chauhan (Manager)',
+        received_quantity: 0,
+        received_by: '',
         warehouse_id: ''
     });
 
@@ -196,9 +187,9 @@ const BusinessWarehouse = () => {
         source_warehouse_id: '',
         destination_warehouse_id: '',
         stock_id: '',
-        transfer_quantity: 15,
-        carrier_name: 'Bluedart Logistics',
-        tracking_number: 'BD-88902A'
+        transfer_quantity: 0,
+        carrier_name: '',
+        tracking_number: ''
     });
 
     // Set default select values when database lists load
@@ -241,9 +232,15 @@ const BusinessWarehouse = () => {
     };
 
     const createInwardMutation = useMutation({
-        mutationFn: (data) => apiClient.patch(`/stock/${data.stock_id}/adjust-quantity`, { delta: data.quantity }),
+        mutationFn: (data) => apiClient.patch(`/stock/${data.stock_id}/adjust-quantity`, { 
+            delta: data.quantity,
+            purchase_bill_ref: data.purchase_bill_ref,
+            received_by: data.received_by,
+            warehouse_id: data.warehouse_id
+        }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
             alert('Goods Inward receipt logged! Warehouse inventory adjusted automatically.');
             setIsInwardModalOpen(false);
         }
@@ -253,7 +250,10 @@ const BusinessWarehouse = () => {
         e.preventDefault();
         createInwardMutation.mutate({
             stock_id: parseInt(newInward.stock_id),
-            quantity: parseInt(newInward.received_quantity)
+            quantity: parseInt(newInward.received_quantity),
+            purchase_bill_ref: newInward.purchase_id,
+            received_by: newInward.received_by,
+            warehouse_id: parseInt(newInward.warehouse_id)
         });
     };
 
