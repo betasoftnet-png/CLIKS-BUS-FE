@@ -130,20 +130,22 @@ const BusinessBankAccounts = () => {
                 </div>
             </div>
 
-            {/* Quick Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            {/* Quick Stats - Gold Standard Layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
-                    { label: 'Combined Bank Balance', value: `₹${totalBalance.toLocaleString()}`, icon: CreditCard, color: '#1B6B3A', bg: '#F0FDF4' },
-                    { label: 'Active Accounts', value: accounts.length, icon: Building, color: '#0D9488', bg: '#F0FDFA' },
-                    { label: 'Total Ledger Entries', value: totalTransactions, icon: History, color: '#064E3B', bg: '#ECFDF5' },
-                    { label: 'Pending Clearances', value: '0', icon: ShieldCheck, color: '#1B6B3A', bg: '#F0FDF4' }
+                    { label: 'Combined Bank Balance', value: `₹${totalBalance.toLocaleString()}`, icon: CreditCard, color: '#1B6B3A', bg: '#DCF2E4' },
+                    { label: 'Active Accounts', value: accounts.length, icon: Building, color: '#0D9488', bg: '#CCFBF1' },
+                    { label: 'Total Ledger Entries', value: totalTransactions, icon: History, color: '#3B82F6', bg: '#DBEAFE' },
+                    { label: 'Pending Clearances', value: '0', icon: ShieldCheck, color: '#8B5CF6', bg: '#EDE9FE' }
                 ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1.25rem' }}>
-                            <stat.icon size={24} />
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#1E293B', letterSpacing: '-0.02em' }}>{stat.value}</h3>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
+                        </div>
                     </div>
                 ))}
             </div>

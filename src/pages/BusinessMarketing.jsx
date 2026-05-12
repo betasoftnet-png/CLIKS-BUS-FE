@@ -379,59 +379,24 @@ const BusinessMarketing = () => {
                 </button>
             </div>
 
-            {/* Premium Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Reach</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(27, 107, 58, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
-                            <Users size={18} />
+            {/* Premium Stats Grid - Standardized */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+                {[
+                    { label: 'Total Reach', value: totalRecipientsReached.toLocaleString(), icon: Users, color: '#1B6B3A', bg: '#DCF2E4' },
+                    { label: 'Avg. ROI', value: `${avgROI}%`, icon: TrendingUp, color: '#0D9488', bg: '#CCFBF1' },
+                    { label: 'Active Automations', value: campaigns.filter(c => c.automation_status === 'active').length, icon: Clock, color: '#3B82F6', bg: '#DBEAFE' },
+                    { label: 'Conv. Rate', value: `${avgConversionRate}%`, icon: Target, color: '#8B5CF6', bg: '#EDE9FE' }
+                ].map((stat, idx) => (
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                        </div>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
                         </div>
                     </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{totalRecipientsReached.toLocaleString()}</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#1B6B3A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <CheckCircle2 size={12} /> Active target database
-                    </p>
-                </div>
-
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg. ROI</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(13, 148, 136, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0D9488' }}>
-                            <TrendingUp size={18} />
-                        </div>
-                    </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{avgROI}%</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#0D9488', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Sparkles size={12} /> High-converting channels
-                    </p>
-                </div>
-
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Automations</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6' }}>
-                            <Clock size={18} />
-                        </div>
-                    </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{campaigns.filter(c => c.automation_status === 'active').length}</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#3B82F6', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Zap size={12} /> Birthdays & Follow-ups
-                    </p>
-                </div>
-
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conv. Rate</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(6, 78, 59, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#064E3B' }}>
-                            <Target size={18} />
-                        </div>
-                    </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{avgConversionRate}%</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#064E3B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Award size={12} /> Industry standard is 5-8%
-                    </p>
-                </div>
+                ))}
             </div>
 
             {/* Navigation Tabs */}

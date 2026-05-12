@@ -458,50 +458,23 @@ const BusinessDelivery = () => {
             </div>
 
             {/* Stats Dashboard Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery success rate</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(27, 107, 58, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
-                            <Award size={18} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+                {[
+                    { label: 'Delivery Success Rate', value: `${successRate}%`, icon: Award, color: '#1B6B3A', bg: '#DCF2E4' },
+                    { label: 'Avg Delivery Speed', value: '52 mins', icon: Clock, color: '#0D9488', bg: '#CCFBF1' },
+                    { label: 'Failed Delivery Attempts', value: failedCount, icon: AlertCircle, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'Ongoing Shipments', value: pendingCount, icon: Activity, color: '#3B82F6', bg: '#DBEAFE' }
+                ].map((stat, idx) => (
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                        </div>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={20} />
                         </div>
                     </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{successRate}%</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#1B6B3A', fontWeight: '700' }}>On-time delivery goal reached</p>
-                </div>
-
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Delivery Speed</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(13, 148, 136, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0D9488' }}>
-                            <Clock size={18} />
-                        </div>
-                    </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>52 mins</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#0D9488', fontWeight: '700' }}>Within urban zones</p>
-                </div>
-
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Failed Delivery attempts</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
-                            <AlertCircle size={18} />
-                        </div>
-                    </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{failedCount}</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '700' }}>Requires reverse pickup</p>
-                </div>
-
-                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ongoing Shipments</span>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6' }}>
-                            <Activity size={18} />
-                        </div>
-                    </div>
-                    <h3 style={{ fontSize: '1.8rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.25rem' }}>{pendingCount}</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#3B82F6', fontWeight: '700' }}>Active in transit</p>
-                </div>
+                ))}
             </div>
 
             {/* Navigation Tabs */}
