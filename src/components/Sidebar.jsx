@@ -274,7 +274,12 @@ const Sidebar = ({ isOpen, onClose }) => {
                 ) : (
                     <>
                         {navigationConfig.standard.map(item => (
-                            <MenuItem key={item.label} item={item} />
+                            <React.Fragment key={item.label}>
+                                <MenuItem item={item} />
+                                {item.label === 'Dashboard' && (
+                                    <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
+                                )}
+                            </React.Fragment>
                         ))}
                     </>
                 )}
