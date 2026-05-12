@@ -30,7 +30,8 @@ import {
     Barcode,
     ChevronDown,
     ChevronRight,
-    HelpCircle
+    HelpCircle,
+    Receipt
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
@@ -44,7 +45,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const getActiveItemFromPath = (path) => {
         if (path.includes('/business/dashboard')) return 'Dashboard';
-        if (path.includes('/business/billing')) return 'Billing';
+        if (path.includes('/business/billing')) return 'Sales Invoice';
         if (path.includes('/business/orders')) return 'Orders';
         if (path.includes('/business/delivery')) return 'Delivery';
         if (path.includes('/business/crm')) return 'Customers';
@@ -84,6 +85,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     const navigationConfig = {
         standard: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/business/dashboard' },
+            { label: 'Sales Invoice', icon: Receipt, path: '/business/billing' },
             {
                 label: 'Finance',
                 icon: Banknote,
@@ -97,7 +99,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 label: 'Sales',
                 icon: ShoppingCart,
                 children: [
-                    { label: 'Billing', icon: Banknote, path: '/business/billing' },
+                    { label: 'Sales Invoice', icon: Receipt, path: '/business/billing' },
                     { label: 'Orders', icon: ShoppingCart, path: '/business/orders' },
                     { label: 'Customers', icon: Users, path: '/business/crm' },
                     { label: 'Returns', icon: ArrowDownRight, path: '/business/returns' }
@@ -276,7 +278,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                         {navigationConfig.standard.map(item => (
                             <React.Fragment key={item.label}>
                                 <MenuItem item={item} />
-                                {item.label === 'Dashboard' && (
+                                {item.label === 'Sales Invoice' && (
                                     <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
                                 )}
                             </React.Fragment>
