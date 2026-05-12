@@ -42,6 +42,90 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
 
+const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick }) => {
+    const IconComp = item.icon;
+    const isActive = activeItem === item.label;
+    const hasChildren = !!item.children && item.children.length > 0;
+    const isOpen = !!openMenus[item.label];
+    const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
+
+    if (hasChildren) {
+        return (
+            <div style={{ marginBottom: '6px' }}>
+                <button
+                    className={`sidebar-item`}
+                    onClick={() => toggleMenu(item.label)}
+                    style={{ 
+                        justifyContent: 'space-between', 
+                        width: '100%',
+                        background: (isOpen || isChildActive) ? '#DCF2E4' : 'transparent',
+                        boxShadow: isChildActive ? 'inset 4px 0 0 #1B6B3A' : 'none',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <IconComp size={20} style={{ color: '#1B6B3A' }} />
+                        <span className="sidebar-label" style={{ fontWeight: '750', color: '#135029' }}>{item.label}</span>
+                    </div>
+                    <motion.div
+                        animate={{ rotate: isOpen ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ display: 'flex', alignItems: 'center', color: '#1B6B3A', opacity: 0.7 }}
+                    >
+                        <ChevronRight size={16} />
+                    </motion.div>
+                </button>
+                
+                <AnimatePresence initial={false}>
+                    {isOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                            style={{ overflow: 'hidden' }}
+                        >
+                            <div style={{ borderLeft: '2px solid #DCF2E4', marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
+                                {item.children.map((child) => (
+                                    <MenuItem 
+                                        key={child.label} 
+                                        item={child} 
+                                        isChild={true} 
+                                        activeItem={activeItem}
+                                        openMenus={openMenus}
+                                        toggleMenu={toggleMenu}
+                                        handleItemClick={handleItemClick}
+                                    />
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
+
+    return (
+        <button
+            className={`sidebar-item ${isActive ? 'active' : ''}`}
+            onClick={() => handleItemClick(item.label, item.path)}
+            style={{ 
+                marginBottom: '6px',
+                paddingLeft: isChild ? '1.2rem' : '0.75rem',
+                fontSize: isChild ? '0.85rem' : '0.92rem',
+                background: isActive ? '#1B6B3A' : 'transparent',
+                color: isActive ? '#ffffff' : '#111827',
+                borderLeft: isChild && isActive ? '3px solid #135029' : 'none'
+            }}
+        >
+            <div className="flex items-center gap-3">
+                <IconComp size={isChild ? 18 : 20} style={{ color: isActive ? '#ffffff' : '#1B6B3A' }} />
+                <span className="sidebar-label">{item.label}</span>
+            </div>
+        </button>
+    );
+};
+
 const Sidebar = ({ isOpen, onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -180,81 +264,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         }));
     };
 
-    const MenuItem = ({ item, isChild = false }) => {
-        const IconComp = item.icon;
-        const isActive = activeItem === item.label;
-        const hasChildren = !!item.children && item.children.length > 0;
-        const isOpen = !!openMenus[item.label];
-        const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
-
-        if (hasChildren) {
-            return (
-                <div style={{ marginBottom: '6px' }}>
-                    <button
-                        className={`sidebar-item`}
-                        onClick={() => toggleMenu(item.label)}
-                        style={{ 
-                            justifyContent: 'space-between', 
-                            width: '100%',
-                            background: (isOpen || isChildActive) ? '#DCF2E4' : 'transparent',
-                            boxShadow: isChildActive ? 'inset 4px 0 0 #1B6B3A' : 'none',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <div className="flex items-center gap-3">
-                            <IconComp size={20} style={{ color: '#1B6B3A' }} />
-                            <span className="sidebar-label" style={{ fontWeight: '750', color: '#135029' }}>{item.label}</span>
-                        </div>
-                        <motion.div
-                            animate={{ rotate: isOpen ? 90 : 0 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ display: 'flex', alignItems: 'center', color: '#1B6B3A', opacity: 0.7 }}
-                        >
-                            <ChevronRight size={16} />
-                        </motion.div>
-                    </button>
-                    
-                    <AnimatePresence initial={false}>
-                        {isOpen && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.25, ease: 'easeInOut' }}
-                                style={{ overflow: 'hidden' }}
-                            >
-                                <div style={{ borderLeft: '2px solid #DCF2E4', marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
-                                    {item.children.map((child) => (
-                                        <MenuItem key={child.label} item={child} isChild={true} />
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            );
-        }
-
-        return (
-            <button
-                className={`sidebar-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleItemClick(item.label, item.path)}
-                style={{ 
-                    marginBottom: '6px',
-                    paddingLeft: isChild ? '1.2rem' : '0.75rem',
-                    fontSize: isChild ? '0.85rem' : '0.92rem',
-                    background: isActive ? '#1B6B3A' : 'transparent',
-                    color: isActive ? '#ffffff' : '#111827',
-                    borderLeft: isChild && isActive ? '3px solid #135029' : 'none'
-                }}
-            >
-                <div className="flex items-center gap-3">
-                    <IconComp size={isChild ? 18 : 20} style={{ color: isActive ? '#ffffff' : '#1B6B3A' }} />
-                    <span className="sidebar-label">{item.label}</span>
-                </div>
-            </button>
-        );
-    };
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
@@ -269,18 +278,18 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {isSocialMode ? (
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
-                        {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} />)}
+                        {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
                     </>
                 ) : isFinanceMode ? (
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Finance</div>
-                        {navigationConfig.financeMode.map(item => <MenuItem key={item.label} item={item} />)}
+                        {navigationConfig.financeMode.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
                     </>
                 ) : (
                     <>
                         {navigationConfig.standard.map(item => (
                             <React.Fragment key={item.label}>
-                                <MenuItem item={item} />
+                                <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
                                 {item.label === 'Dashboard' && (
                                     <>
                                         <button 
