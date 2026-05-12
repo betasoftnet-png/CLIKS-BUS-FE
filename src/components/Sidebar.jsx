@@ -32,7 +32,8 @@ import {
     ChevronDown,
     ChevronRight,
     HelpCircle,
-    Receipt
+    Receipt,
+    Crown
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
@@ -338,7 +339,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                <CreditCard size={18} strokeWidth={2.5} />
+                                <Crown size={18} strokeWidth={2.5} />
                             </div>
                             <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
                         </div>
