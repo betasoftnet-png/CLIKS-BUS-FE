@@ -337,10 +337,10 @@ const Sidebar = ({ isOpen, onClose }) => {
                         onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                            <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
                                 <CreditCard size={18} strokeWidth={2.5} />
                             </div>
-                            <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
+                            <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
                         </div>
                         
                         {/* Integrated Count Circle requested by user */}
