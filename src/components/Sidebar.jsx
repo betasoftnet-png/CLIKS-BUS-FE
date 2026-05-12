@@ -117,12 +117,12 @@ const Sidebar = ({ isOpen, onClose }) => {
                 children: [
                     { label: 'Products', icon: Package, path: '/business/inventory' },
                     { label: 'Stock', icon: Layers, path: '/business/stock' },
-                    { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' },
-                    { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
+                    { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' }
                 ]
             },
             { label: 'Marketing', icon: Megaphone, path: '/business/marketing' },
-            { label: 'Reports', icon: BarChart3, path: '/business/reports' }
+            { label: 'Reports', icon: BarChart3, path: '/business/reports' },
+            { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
             /* 
             {
                 label: 'HR',
