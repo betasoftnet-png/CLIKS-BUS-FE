@@ -176,6 +176,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         const isActive = activeItem === item.label;
         const hasChildren = !!item.children && item.children.length > 0;
         const isOpen = !!openMenus[item.label];
+        const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
 
         if (hasChildren) {
             return (
@@ -186,8 +187,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                         style={{ 
                             justifyContent: 'space-between', 
                             width: '100%',
-                            background: isOpen ? '#DCF2E4' : 'transparent',
-                            transition: 'background 0.2s ease'
+                            background: (isOpen || isChildActive) ? '#DCF2E4' : 'transparent',
+                            boxShadow: isChildActive ? 'inset 4px 0 0 #1B6B3A' : 'none',
+                            transition: 'all 0.2s ease'
                         }}
                     >
                         <div className="flex items-center gap-3">
