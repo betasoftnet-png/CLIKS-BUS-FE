@@ -217,35 +217,9 @@ const BusinessSalesOrders = () => {
     const handleConvertInvoice = async (order) => {
         if (window.confirm(`Convert Sales Order ${order.order_number} to a Sales Invoice?`)) {
             try {
-                // 1. Hit original conversion endpoint
+                // Fully secure Backend Processing handled on server-side now
                 await ordersService.convertToInvoice(order.id);
-                
-                // 2. Dynamically Map order data to proper Billing Service Payload to guarantee client visibility!
-                const invoiceData = {
-                    invoice_number: `INV-${Date.now().toString().slice(-6)}`,
-                    client_name: order.customer,
-                    client_email: order.customer_email || '',
-                    client_gstin: order.customer_gstin || '',
-                    billing_address: order.billing_address || '',
-                    total_amount: parseFloat(order.grand_total) || 0,
-                    paid_amount: parseFloat(order.advance_amount) || 0,
-                    pending_amount: Math.max(0, (parseFloat(order.grand_total) || 0) - (parseFloat(order.advance_amount) || 0)),
-                    payment_mode: 'Cash',
-                    status: parseFloat(order.advance_amount) >= parseFloat(order.grand_total) ? 'Paid' : 'Partial',
-                    invoice_type: 'GST',
-                    items: Array.isArray(order.items) ? order.items.map(item => ({
-                        description: item.name || item.product_name,
-                        quantity: parseFloat(item.quantity) || 1,
-                        price: parseFloat(item.price) || 0,
-                        tax_rate: parseFloat(item.gst) || 18,
-                        total: parseFloat(item.total) || 0
-                    })) : []
-                };
-                
-                // Persist into billing database
-                await billingService.createInvoice(invoiceData);
-                
-                alert(`Sales Order successfully converted into Invoice! It is now visible in Sales Invoices.`);
+                alert(`Sales Order successfully converted to Invoice securely on the backend!`);
                 loadOrders();
             } catch (err) {
                 console.error('[ConversionFailure]', err);
