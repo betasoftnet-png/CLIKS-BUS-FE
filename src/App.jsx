@@ -6,11 +6,11 @@ import { ErrorBoundary } from './components/common';
 import MainLayout from './layouts/MainLayout';
 import Landing from './pages/Landing';
 
-// Lazy Load Pages to optimize bundle size
-const Auth = React.lazy(() => import('./pages/Auth'));
-const Profile = React.lazy(() => import('./pages/Profile'));
-const Settings = React.lazy(() => import('./pages/Settings'));
-const FAQ = React.lazy(() => import('./pages/FAQ'));
+// Standard Imports for critical pathways to prevent chunk load failures
+import Auth from './pages/Auth';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import FAQ from './pages/FAQ';
 
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
