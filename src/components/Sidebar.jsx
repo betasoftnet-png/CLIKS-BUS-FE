@@ -29,7 +29,8 @@ import {
     Building,
     Barcode,
     ChevronDown,
-    ChevronRight
+    ChevronRight,
+    HelpCircle
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
@@ -65,12 +66,12 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/business/staffing')) return 'Staff';
         if (path.includes('/business/attendance')) return 'Attendance';
         if (path.includes('/business/payroll')) return 'Payroll';
-        if (path.includes('/business/marketing')) return 'Campaigns';
+        if (path.includes('/business/marketing')) return 'Marketing';
         if (path.includes('/business/investors')) return 'Investors';
         if (path.includes('/business/meetup')) return 'Meetup';
         if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
-        if (path.includes('/faq')) return 'Backup & Sync';
+        if (path.includes('/faq')) return 'Help & Support';
         return 'Dashboard';
     };
 
@@ -89,8 +90,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 children: [
                     { label: 'Accounting', icon: Calculator, path: '/business/accounting' },
                     { label: 'Expenses', icon: TrendingUp, path: '/business/expenses' },
-                    { label: 'GST', icon: PercentCircle, path: '/business/gst' },
-                    { label: 'Reports', icon: BarChart3, path: '/business/reports' }
+                    { label: 'GST', icon: PercentCircle, path: '/business/gst' }
                 ]
             },
             {
@@ -121,6 +121,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                     { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
                 ]
             },
+            { label: 'Marketing', icon: Megaphone, path: '/business/marketing' },
+            { label: 'Reports', icon: BarChart3, path: '/business/reports' }
+            /* 
             {
                 label: 'HR',
                 icon: UsersRound,
@@ -130,6 +133,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     { label: 'Payroll', icon: FileCheck, path: '/business/payroll' }
                 ]
             }
+            */
         ],
         social: [
             { label: 'Investors', icon: UsersRound, path: '/business/investors' },
@@ -287,61 +291,63 @@ const Sidebar = ({ isOpen, onClose }) => {
                 background: '#FFFFFF'
             }}>
                 {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    border: '1px solid #FEF3C7'
-                }}>
-                    {/* Top Part: Trial Gauge */}
+                {!isSocialMode && !isFinanceMode && (
                     <div style={{
-                        background: '#FFFBEB',
-                        padding: '0.75rem 1rem',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '6px'
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                        border: '1px solid #FEF3C7'
                     }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B45309' }}>
-                            20 days Trial Left
-                        </div>
-                        <div style={{ width: '100%', height: '4px', background: '#FEF3C7', borderRadius: '10px', overflow: 'hidden' }}>
-                            <div style={{ width: '66%', height: '100%', background: '#F59E0B', borderRadius: '10px' }}></div>
-                        </div>
-                    </div>
-
-                    {/* Bottom Part: Action Trigger */}
-                    <button
-                        onClick={() => handleItemClick('Subscription', '/business/subscription')}
-                        style={{
-                            width: '100%',
+                        {/* Top Part: Trial Gauge */}
+                        <div style={{
+                            background: '#FFFBEB',
+                            padding: '0.75rem 1rem',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.85rem 1rem',
-                            background: '#1E3A8A', /* Shifted to Dark Blue as requested */
-                            color: '#FFFFFF',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontWeight: '700',
-                            fontSize: '0.85rem',
-                            letterSpacing: '0.02em',
-                            transition: 'background 0.2s ease',
-                            borderRadius: '0' /* Reset to merge perfectly with top */
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#172554'}
-                        onMouseOut={(e) => e.currentTarget.style.background = '#1E3A8A'}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
-                                <CreditCard size={16} strokeWidth={2.5} />
+                            flexDirection: 'column',
+                            gap: '6px'
+                        }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#B45309' }}>
+                                20 days Trial Left
                             </div>
-                            <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
+                            <div style={{ width: '100%', height: '4px', background: '#FEF3C7', borderRadius: '10px', overflow: 'hidden' }}>
+                                <div style={{ width: '66%', height: '100%', background: '#F59E0B', borderRadius: '10px' }}></div>
+                            </div>
                         </div>
-                        <ChevronRight size={14} strokeWidth={3} />
-                    </button>
-                </div>
+
+                        {/* Bottom Part: Action Trigger */}
+                        <button
+                            onClick={() => handleItemClick('Subscription', '/business/subscription')}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.85rem 1rem',
+                                background: '#1E3A8A', /* Shifted to Dark Blue as requested */
+                                color: '#FFFFFF',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: '700',
+                                fontSize: '0.85rem',
+                                letterSpacing: '0.02em',
+                                transition: 'background 0.2s ease',
+                                borderRadius: '0' /* Reset to merge perfectly with top */
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#172554'}
+                            onMouseOut={(e) => e.currentTarget.style.background = '#1E3A8A'}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '4px', borderRadius: '6px', display: 'flex', color: '#FFFFFF' }}>
+                                    <CreditCard size={16} strokeWidth={2.5} />
+                                </div>
+                                <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Get Subscription</span>
+                            </div>
+                            <ChevronRight size={14} strokeWidth={3} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Bottom Settings Block (Replaced 'My Company' from example) */}
                 <button
@@ -368,6 +374,35 @@ const Sidebar = ({ isOpen, onClose }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <SettingsIcon size={18} style={{ opacity: 0.8 }} />
                         <span>Settings</span>
+                    </div>
+                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                </button>
+
+                {/* Help & Support Block */}
+                <button
+                    onClick={() => handleItemClick('Help & Support', '/faq')}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        background: location.pathname.includes('/faq') ? '#F0FDF4' : '#F8FAFC',
+                        color: location.pathname.includes('/faq') ? '#1B6B3A' : '#334155',
+                        borderRadius: '10px',
+                        border: '1px solid',
+                        borderColor: location.pathname.includes('/faq') ? '#BBF7D0' : '#E2E8F0',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') ? '#F0FDF4' : '#F1F5F9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') ? '#F0FDF4' : '#F8FAFC'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <HelpCircle size={18} style={{ opacity: 0.8 }} />
+                        <span>Help & Support</span>
                     </div>
                     <ChevronRight size={14} style={{ opacity: 0.5 }} />
                 </button>
