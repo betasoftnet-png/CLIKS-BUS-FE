@@ -50,10 +50,12 @@ const Breadcrumbs = ({ items }) => {
 
     let breadcrumbs = items;
 
+    const EXCLUDED_BREADCRUMBS = ['business', 'dashboard', 'billing', 'books', 'home', 'crm', 'orders', 'accounting', 'expenses', 'gst', 'purchases'];
+
     if (!breadcrumbs) {
         const pathnames = location.pathname.split('/').filter((x) => {
             const val = x.toLowerCase();
-            return val && val !== 'business' && val !== 'dashboard' && val !== 'billing' && val !== 'books' && val !== 'home' && val !== 'crm' && val !== 'orders' && val !== 'accounting' && val !== 'expenses' && val !== 'gst';
+            return val && !EXCLUDED_BREADCRUMBS.includes(val);
         });
         breadcrumbs = pathnames.map((value, index) => {
             let to = `/${pathnames.slice(0, index + 1).join('/')}`;
@@ -74,7 +76,7 @@ const Breadcrumbs = ({ items }) => {
     if (breadcrumbs) {
         breadcrumbs = breadcrumbs.filter(crumb => {
             const val = crumb.label.toLowerCase();
-            return val !== 'business' && val !== 'dashboard' && val !== 'billing' && val !== 'books' && val !== 'home' && val !== 'crm' && val !== 'orders' && val !== 'accounting' && val !== 'expenses' && val !== 'gst';
+            return !EXCLUDED_BREADCRUMBS.includes(val);
         });
     }
 
