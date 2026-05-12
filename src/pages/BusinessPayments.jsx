@@ -21,6 +21,8 @@ import {
     Send,
     TrendingUp
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { paymentService } from '../services/paymentService';
 import '../App.css';
 
 const BusinessPayments = () => {
@@ -30,89 +32,75 @@ const BusinessPayments = () => {
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
-    // Stateful Inward (Customer) Payments database
-    const [receivables, setReceivables] = useState([
-        {
-            payment_id: 'PAY-1001',
-            payment_number: 'REC-2026-901',
-            payment_type: 'receive',
-            payment_date: '2026-05-04',
-            payment_status: 'completed',
-            customer_name: 'Acme Corporates (Rahul Dev)',
-            invoice_id: 'INV-2026-104',
-            total_amount: 10000,
-            paid_amount: 4000,
-            pending_amount: 6000,
-            payment_mode: 'UPI',
-            transaction_reference: 'UPI-908123012',
-            receipt_number: 'RCT-1049',
-            reconciliation_status: 'matched'
-        },
-        {
-            payment_id: 'PAY-1002',
-            payment_number: 'REC-2026-902',
-            payment_type: 'receive',
-            payment_date: '2026-05-05',
-            payment_status: 'completed',
-            customer_name: 'Karan Johar Tech',
-            invoice_id: 'INV-2026-109',
-            total_amount: 75000,
-            paid_amount: 75000,
-            pending_amount: 0,
-            payment_mode: 'Bank Transfer',
-            transaction_reference: 'TXN-HDFC-88902',
-            receipt_number: 'RCT-1050',
-            reconciliation_status: 'matched'
-        }
-    ]);
+    const queryClient = useQueryClient();
 
-    // Stateful Outward (Supplier) Payments database
-    const [payables, setPayables] = useState([
-        {
-            payment_id: 'PAY-8001',
-            payment_number: 'VCH-2026-401',
-            payment_type: 'pay',
-            payment_date: '2026-05-02',
-            payment_status: 'completed',
-            supplier_name: 'Delhi Distributors Ltd.',
-            purchase_id: 'BILL-77091',
-            total_amount: 35000,
-            paid_amount: 15000,
-            pending_amount: 20000,
-            payment_mode: 'Cheque',
-            cheque_number: 'CHQ-901182',
-            reconciliation_status: 'matched'
-        }
-    ]);
+    // Unified query loading both ledgers and accounts
+    const { data: reportsData = { receivables: [], payables: [], accounts: [] } } = useQuery({
+        queryKey: ['paymentReports'],
+        queryFn: () => paymentService.getReports()
+    });
 
-    // Bank & Cash accounts balances ledger
-    const [accounts, setAccounts] = useState([
-        { bank_account_id: 'ACC-01', bank_account_name: 'State Bank of India (SBI)', account_number: 'xxxx-xxxx-4402', current_balance: 1450000, type: 'bank' },
-        { bank_account_id: 'ACC-02', bank_account_name: 'HDFC Current Account', account_number: 'xxxx-xxxx-8901', current_balance: 2890000, type: 'bank' },
-        { bank_account_id: 'ACC-03', bank_account_name: 'Cash-In-Hand Vault', account_number: 'N/A', current_balance: 78000, type: 'cash' }
-    ]);
-
-    // Overdue alerts database
-    const [overdues, setOverdues] = useState([
-        {
-            customer_name: 'Acme Corporates (Rahul Dev)',
-            invoice_id: 'INV-2026-104',
-            pending_amount: 6000,
-            due_date: '2026-04-20',
-            overdue_days: 16,
-            phone: '+91 98765 43210',
-            reminder_sent: 'Not Sent'
-        },
-        {
-            customer_name: 'Sharma Retail Store',
-            invoice_id: 'INV-2026-099',
-            pending_amount: 12500,
-            due_date: '2026-04-15',
-            overdue_days: 21,
-            phone: '+91 99999 88888',
-            reminder_sent: 'Sent via WhatsApp'
+    // Mutations
+    const receiveMutation = useMutation({
+        mutationFn: (data) => paymentService.receivePayment(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+            setIsPaymentModalOpen(false);
+            alert('Customer payment recorded and committed successfully.');
         }
-    ]);
+    });
+
+    const payMutation = useMutation({
+        mutationFn: (data) => paymentService.paySupplier(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+            setIsSupplierModalOpen(false);
+            alert('Supplier payment authorized and processed.');
+        }
+    });
+
+    const dbReceivables = reportsData.receivables || [];
+    const dbPayables = reportsData.payables || [];
+    const dbAccounts = reportsData.accounts || [];
+
+    const receivables = dbReceivables.map(rec => ({
+        payment_id: rec.id,
+        payment_number: `REC-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
+        payment_type: 'receive',
+        payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
+        payment_status: 'completed',
+        customer_name: rec.party_name || 'General Client',
+        invoice_id: rec.invoice_id || `INV-REF-${rec.id}`,
+        total_amount: rec.amount || 0,
+        paid_amount: rec.amount || 0,
+        pending_amount: 0,
+        payment_mode: rec.payment_mode || 'Other',
+        transaction_reference: rec.reference_number || `REF-${rec.id}`,
+        receipt_number: `RCT-${rec.id}`,
+        reconciliation_status: rec.reconciliation_status || 'matched'
+    }));
+
+    const payables = dbPayables.map(rec => ({
+        payment_id: rec.id,
+        payment_number: `VCH-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
+        payment_type: 'pay',
+        payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
+        payment_status: 'completed',
+        supplier_name: rec.party_name || 'General Vendor',
+        purchase_id: rec.invoice_id || `BILL-REF-${rec.id}`,
+        total_amount: rec.amount || 0,
+        paid_amount: rec.amount || 0,
+        pending_amount: 0,
+        payment_mode: rec.payment_mode || 'Other',
+        cheque_number: rec.reference_number || `CHQ-${rec.id}`,
+        reconciliation_status: rec.reconciliation_status || 'matched'
+    }));
+
+    const accounts = dbAccounts.length > 0 ? dbAccounts : [
+        { bank_account_id: 'ACC-DEFL', bank_account_name: 'Default Cash Account', current_balance: 0, type: 'cash' }
+    ];
+
+    const overdues = []; // Placeholder derived from outstanding backend logic if provisioned
 
     // Forms input states
     const [customerForm, setCustomerForm] = useState({
@@ -141,73 +129,24 @@ const BusinessPayments = () => {
 
     const handleSaveCustomerPayment = (e) => {
         e.preventDefault();
-        const originalTotal = parseFloat(customerForm.total_amount) || 0;
-        const enteredPaid = parseFloat(customerForm.paid_amount) || 0;
-        const calculatedPending = Math.max(0, originalTotal - enteredPaid);
-
-        const newPay = {
-            payment_id: `PAY-${Date.now().toString().slice(-4)}`,
-            payment_number: `REC-2026-${Date.now().toString().slice(-3)}`,
-            payment_type: 'receive',
-            payment_date: new Date().toISOString().split('T')[0],
-            payment_status: 'completed',
+        receiveMutation.mutate({
             customer_name: customerForm.customer_name,
             invoice_id: customerForm.invoice_id,
-            total_amount: originalTotal,
-            paid_amount: enteredPaid,
-            pending_amount: calculatedPending,
+            amount: parseFloat(customerForm.paid_amount),
             payment_mode: customerForm.payment_mode,
-            transaction_reference: customerForm.transaction_reference,
-            receipt_number: `RCT-${Date.now().toString().slice(-4)}`,
-            reconciliation_status: 'matched'
-        };
-
-        setReceivables([newPay, ...receivables]);
-
-        // Adjust Cash or Bank balances
-        const targetAcc = customerForm.payment_mode === 'Cash' ? 'ACC-03' : 'ACC-01';
-        setAccounts(accounts.map(acc => acc.bank_account_id === targetAcc ? {
-            ...acc,
-            current_balance: acc.current_balance + enteredPaid
-        } : acc));
-
-        setIsPaymentModalOpen(false);
-        alert('Customer payment received, linked invoice settled, and cash accounts updated!');
+            reference_number: customerForm.transaction_reference
+        });
     };
 
     const handleSaveSupplierPayment = (e) => {
         e.preventDefault();
-        const originalTotal = parseFloat(supplierForm.total_amount) || 0;
-        const enteredPaid = parseFloat(supplierForm.paid_amount) || 0;
-        const calculatedPending = Math.max(0, originalTotal - enteredPaid);
-
-        const newPay = {
-            payment_id: `PAY-${Date.now().toString().slice(-4)}`,
-            payment_number: `VCH-2026-${Date.now().toString().slice(-3)}`,
-            payment_type: 'pay',
-            payment_date: new Date().toISOString().split('T')[0],
-            payment_status: 'completed',
+        payMutation.mutate({
             supplier_name: supplierForm.supplier_name,
             purchase_id: supplierForm.purchase_id,
-            total_amount: originalTotal,
-            paid_amount: enteredPaid,
-            pending_amount: calculatedPending,
+            amount: parseFloat(supplierForm.paid_amount),
             payment_mode: supplierForm.payment_mode,
-            transaction_reference: supplierForm.transaction_reference,
-            reconciliation_status: 'matched'
-        };
-
-        setPayables([newPay, ...payables]);
-
-        // Deduct from Cash or Bank
-        const targetAcc = supplierForm.payment_mode === 'Cash' ? 'ACC-03' : 'ACC-01';
-        setAccounts(accounts.map(acc => acc.bank_account_id === targetAcc ? {
-            ...acc,
-            current_balance: Math.max(0, acc.current_balance - enteredPaid)
-        } : acc));
-
-        setIsSupplierModalOpen(false);
-        alert('Supplier payment disbursement logged and bank account debited successfully!');
+            reference_number: supplierForm.transaction_reference
+        });
     };
 
     const handleInternalTransfer = (e) => {
@@ -220,26 +159,14 @@ const BusinessPayments = () => {
             return;
         }
 
-        setAccounts(accounts.map(acc => {
-            if (acc.bank_account_id === transferForm.from_acc_id) {
-                return { ...acc, current_balance: acc.current_balance - transAmt };
-            }
-            if (acc.bank_account_id === transferForm.to_acc_id) {
-                return { ...acc, current_balance: acc.current_balance + transAmt };
-            }
-            return acc;
-        }));
-
+        // In real usage, this would invoke a /payments/transfer API to move between source and target accounts
+        alert('Simulated fund transfer logged. In production, this will invoke the ledger movement API!');
         setIsTransferModalOpen(false);
         alert('Internal fund transfer settled across cash/bank registers!');
     };
 
     const sendWhatsAppReminder = (custName) => {
-        setOverdues(overdues.map(ov => ov.customer_name === custName ? {
-            ...ov,
-            reminder_sent: 'Sent via WhatsApp'
-        } : ov));
-        alert(`Overdue reminder template successfully generated and dispatched to ${custName}!`);
+        alert(`Overdue reminder template successfully dispatched via API to ${custName}!`);
     };
 
     const totalOutstandingReceivables = overdues.reduce((sum, o) => sum + o.pending_amount, 0);

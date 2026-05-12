@@ -21,6 +21,7 @@ import {
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollService } from '../services/payrollService';
+import { staffingService } from '../services/staffingService';
 
 
 
@@ -36,6 +37,11 @@ const BusinessPayroll = () => {
     const { data: dbRecords = [] } = useQuery({
         queryKey: ['payrollRecords'],
         queryFn: () => payrollService.getPayrollRecords()
+    });
+
+    const { data: staffList = [] } = useQuery({
+        queryKey: ['staffList'],
+        queryFn: () => staffingService.getEmployees()
     });
 
     // Mutations
@@ -93,7 +99,10 @@ const BusinessPayroll = () => {
     })) : [];
 
     const loans = dbRecords.length > 0 && dbRecords.some(rec => rec.loans_data) ? dbRecords.filter(rec => rec.loans_data).map(rec => {
-        const lData = JSON.parse(rec.loans_data || '{}');
+        let lData = {};
+        try {
+            lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data;
+        } catch (_) { lData = {}; }
         return {
             employee_name: rec.employee_name || 'Arun Kumar',
             loan_amount: parseFloat(lData.loan_amount) || 12000,
@@ -105,18 +114,18 @@ const BusinessPayroll = () => {
 
     // Form states
     const [payForm, setPayForm] = useState({
-        employee_id: 'EMP-003',
-        employee_name: 'Karan Mehra (Operations)',
-        basic_salary: 28000,
-        hra_amount: 4000,
-        special_allowance: 1500,
+        employee_id: '',
+        employee_name: '',
+        basic_salary: 30000,
+        hra_amount: 5000,
+        special_allowance: 2000,
         bonus_amount: 0,
-        tds_deduction: 400
+        tds_deduction: 500
     });
 
     const [loanForm, setLoanForm] = useState({
-        employee_name: 'Arun Kumar',
-        loan_amount: 12000,
+        employee_name: '',
+        loan_amount: 10000,
         emi_amount: 1000,
         salary_advance: 0
     });
@@ -147,7 +156,7 @@ const BusinessPayroll = () => {
 
     const handleCreateLoan = (e) => {
         e.preventDefault();
-        const matchingRecord = payrollRecords[0]; // Map to first active record for demo purposes
+        const matchingRecord = payrollRecords.find(r => r.employee_name === loanForm.employee_name);
         if (matchingRecord) {
             createLoanMutation.mutate({
                 id: matchingRecord.payroll_id,
@@ -158,6 +167,8 @@ const BusinessPayroll = () => {
                     salary_advance: parseFloat(loanForm.salary_advance) || 0
                 }
             });
+        } else {
+            alert('To grant a loan, the employee must have at least one payroll record created in the system.');
         }
     };
 
@@ -176,6 +187,7 @@ const BusinessPayroll = () => {
         return sum + (gross - deductions);
     }, 0);
 
+    const totalCompliance = payrollRecords.reduce((sum, rec) => sum + rec.pf_deduction + rec.esi_deduction, 0);
     const totalLoanOutstanding = loans.reduce((sum, l) => sum + l.remaining_balance, 0);
 
     return (
@@ -212,7 +224,7 @@ const BusinessPayroll = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Monthly Salary Expense', value: `₹${totalSalaryExpense.toLocaleString()}`, icon: CreditCard, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Compliance PF / ESI', value: '₹4,250 Filed', icon: ShieldCheck, color: '#10B981', bg: '#ECFDF5' },
+                    { label: 'Compliance PF / ESI', value: `₹${totalCompliance.toLocaleString()} Filed`, icon: ShieldCheck, color: '#10B981', bg: '#ECFDF5' },
                     { label: 'Outstanding Loans', value: `₹${totalLoanOutstanding.toLocaleString()}`, icon: Sliders, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Total Payslips', value: `${payrollRecords.length} Generated`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
@@ -441,8 +453,24 @@ const BusinessPayroll = () => {
                         <form onSubmit={handleProcessPayroll} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee</label>
-                                <select value={payForm.employee_name} onChange={(e) => setPayForm({ ...payForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    <option value="Karan Mehra (Operations)">Karan Mehra (Operations)</option>
+                                <select 
+                                    required
+                                    value={payForm.employee_name} 
+                                    onChange={(e) => {
+                                        const sel = staffList.find(s => s.name === e.target.value);
+                                        setPayForm({ 
+                                            ...payForm, 
+                                            employee_name: e.target.value, 
+                                            employee_id: sel ? `EMP-${sel.id}` : '',
+                                            basic_salary: sel && sel.salary ? sel.salary : payForm.basic_salary
+                                        });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                >
+                                    <option value="">-- Select Staff Member --</option>
+                                    {staffList.map(s => (
+                                        <option key={s.id} value={s.name}>{s.name} ({s.department || 'Staff'})</option>
+                                    ))}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -490,7 +518,17 @@ const BusinessPayroll = () => {
                         <form onSubmit={handleCreateLoan} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name</label>
-                                <input required type="text" value={loanForm.employee_name} onChange={(e) => setLoanForm({ ...loanForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <select 
+                                    required 
+                                    value={loanForm.employee_name} 
+                                    onChange={(e) => setLoanForm({ ...loanForm, employee_name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                >
+                                    <option value="">-- Select Employee --</option>
+                                    {payrollRecords.map(r => (
+                                        <option key={r.payroll_id} value={r.employee_name}>{r.employee_name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>

@@ -5,16 +5,15 @@ import { apiClient } from '../api/client';
  */
 export const paymentService = {
     // Record a new payment (incoming or outgoing)
-    recordPayment: async (data) => await apiClient.post('/crm/payments', data),
+    receivePayment: async (data) => await apiClient.post('/payments/receive', data).then(res => res.data.data || res.data),
     
-    // Get all payments
-    getPayments: async () => await apiClient.get('/crm/payments'),
-    
-    // Get ledger for a specific customer/supplier
-    getLedger: async (partyId) => await apiClient.get(`/crm/ledger/${partyId}`),
+    paySupplier: async (data) => await apiClient.post('/payments/pay', data).then(res => res.data.data || res.data),
+
+    // Get unified reports data containing receivables, payables, accounts
+    getReports: async () => await apiClient.get('/payments/reports').then(res => res.data.data || res.data),
     
     // Get stats
-    getPaymentStats: async () => await apiClient.get('/crm/payments/stats'),
+    getPaymentStats: async () => await apiClient.get('/payments/outstanding').then(res => res.data.data || res.data),
 };
 
 export default paymentService;
