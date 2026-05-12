@@ -570,7 +570,7 @@ const BusinessBilling = () => {
             </div>
 
             {/* Invoices List */}
-            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflowY: 'scroll' }}>
                 <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                     <div style={{ position: 'relative', width: '320px' }}>
                         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
