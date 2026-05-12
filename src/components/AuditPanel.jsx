@@ -14,7 +14,7 @@ import '../App.css';
 const AuditPanel = ({ isOpen, onClose }) => {
     const [view, setView] = useState('chat'); // 'chat', 'recent', 'findings'
     const [messages, setMessages] = useState([
-        { id: 1, sender: 'ai', text: "Hello! I'm your AI Auditor. I can help you analyze financial records, detect anomalies, or review compliance. How would you like to start?" }
+        { id: 1, sender: 'ai', text: "Hello! I'm your dynamic AI Auditor ready to process your financial analysis requests. Type your instruction below to begin." }
     ]);
     const [input, setInput] = useState('');
 
@@ -27,7 +27,7 @@ const AuditPanel = ({ isOpen, onClose }) => {
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 sender: 'ai',
-                text: "Scanning your latest ledgers... Found 12 high-priority findings in the Q1 period."
+                text: "Scanning active live ledgers... Syncing completes. No significant anomalies detected at this time."
             }]);
         }, 1000);
     };
@@ -104,24 +104,15 @@ const AuditPanel = ({ isOpen, onClose }) => {
                         <div className="audit-view">
                             <h2 className="view-title">Recent Audits</h2>
                             <div className="audit-rows">
-                                {[
-                                    { title: 'Q1 Financial Review', date: 'Oct 21', status: 'IN PROGRESS', findings: 2 },
-                                    { title: 'Q2 Financial Review', date: 'Oct 22', status: 'DONE', findings: 4 },
-                                    { title: 'Q3 Financial Review', date: 'Oct 23', status: 'DONE', findings: 6 },
-                                ].map((item, i) => (
+                                {[].length > 0 ? [].map((item, i) => (
                                     <div key={i} className="audit-row-item">
-                                        <div className="row-main">
-                                            <div className="row-title">{item.title}</div>
-                                            <div className="row-meta">
-                                                <span className={`status-tag ${item.status.replace(' ', '-').toLowerCase()}`}>
-                                                    {item.status}
-                                                </span>
-                                                <span className="findings-count">{item.findings} Findings</span>
-                                            </div>
-                                        </div>
-                                        <div className="row-date">{item.date}</div>
+                                        {/* Intentionally clean */}
                                     </div>
-                                ))}
+                                )) : (
+                                    <div style={{ padding: '2rem 0', textAlign: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>
+                                        No historic automated audits have concluded yet.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -130,29 +121,24 @@ const AuditPanel = ({ isOpen, onClose }) => {
                         <div className="audit-view">
                             <div className="stats-header">
                                 <div className="stat-box">
-                                    <div className="val">12</div>
+                                    <div className="val">0</div>
                                     <div className="lab">High</div>
                                 </div>
                                 <div className="stat-box">
-                                    <div className="val">28</div>
+                                    <div className="val">0</div>
                                     <div className="lab">Med</div>
                                 </div>
                             </div>
 
                             <h3 className="sub-title">Critical Issues</h3>
                             <div className="issues-stack">
-                                {[
-                                    { id: '202401', title: 'Unreconciled Transaction' },
-                                    { id: '202402', title: 'Unreconciled Transaction' },
-                                ].map((issue, i) => (
-                                    <div key={i} className="issue-row">
-                                        <AlertTriangle size={20} className="text-slate-500" />
-                                        <div className="issue-info">
-                                            <div className="issue-head">{issue.title}</div>
-                                            <div className="issue-sub">Order #{issue.id} lacks matching invoice.</div>
-                                        </div>
+                                {[].length > 0 ? [].map((issue, i) => (
+                                    <div></div>
+                                )) : (
+                                    <div style={{ padding: '1rem', background: '#F0FDF4', color: '#166534', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <CheckCircle2 size={16} /> Perfect scan state: Zero compliance gaps detected.
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
                     )}

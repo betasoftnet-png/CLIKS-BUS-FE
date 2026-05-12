@@ -91,8 +91,8 @@ const BusinessGST = () => {
     const invoices = dbInvoices.map(item => ({
         gst_invoice_number: item.invoice_number,
         invoice_type: item.invoice_type || 'B2B',
-        date: (item.created_at || '').split('T')[0] || '2026-05-08',
-        place_of_supply: item.place_of_supply || '27-Maharashtra',
+        date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        place_of_supply: item.place_of_supply || 'N/A',
         taxable_value: parseFloat(item.taxable_value) || 0,
         gst_percentage: parseFloat(item.gst_percentage) || 18,
         cgst_amount: parseFloat(item.cgst_amount) || 0,
@@ -101,7 +101,7 @@ const BusinessGST = () => {
         total_tax: parseFloat(item.total_tax) || 0,
         reverse_charge: item.reverse_charge || 'No',
         irn_number: item.irn_number || '',
-        qr_status: item.qr_status || 'Generated'
+        qr_status: item.qr_status || 'Pending'
     }));
 
     const reconciliations = dbReconciliations.map(item => ({
@@ -114,7 +114,7 @@ const BusinessGST = () => {
         eligible_itc: parseFloat(item.eligible_itc) || 0,
         invoice_match_status: item.invoice_match_status || 'matched',
         mismatch_reason: item.mismatch_reason || 'None',
-        reconciliation_date: (item.created_at || '').split('T')[0] || '2026-05-08'
+        reconciliation_date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
     }));
 
     const { data: dbEways = [] } = useQuery({
