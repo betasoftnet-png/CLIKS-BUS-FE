@@ -344,21 +344,42 @@ const Sidebar = ({ isOpen, onClose }) => {
                             <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
                         </div>
                         
-                        {/* Integrated Count Circle requested by user */}
+                        {/* Integrated Dynamic Progress Circle requested by user */}
                         <div style={{ 
-                            width: '38px', 
-                            height: '38px', 
-                            background: '#FFFFFF', 
-                            borderRadius: '50%', 
+                            position: 'relative',
+                            width: '40px', 
+                            height: '40px', 
                             display: 'flex', 
-                            flexDirection: 'column', 
                             alignItems: 'center', 
                             justifyContent: 'center',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
                             flexShrink: 0
                         }}>
-                            <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '850', lineHeight: 1 }}>20</span>
-                            <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+                            {/* Background Circular Track & Filled Disc using SVG */}
+                            <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
+                                {/* Inner solid white disc and container circle */}
+                                <circle 
+                                    cx="20" cy="20" r="18" 
+                                    fill="#FFFFFF" 
+                                    stroke="rgba(255,255,255,0.25)" 
+                                    strokeWidth="3" 
+                                />
+                                {/* Gold Dynamic Progress Arc overlay (calculating ratio 20/30) */}
+                                <circle 
+                                    cx="20" cy="20" r="18" 
+                                    fill="none" 
+                                    stroke="#FBBF24" 
+                                    strokeWidth="3" 
+                                    strokeDasharray="113" /* 2 * PI * r(18) */
+                                    strokeDashoffset={113 * (1 - 20 / 30)} 
+                                    strokeLinecap="round"
+                                    style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+                                />
+                            </svg>
+                            {/* Center Content positioned on top */}
+                            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
+                                <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>20</span>
+                                <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+                            </div>
                         </div>
                     </button>
                 )}
