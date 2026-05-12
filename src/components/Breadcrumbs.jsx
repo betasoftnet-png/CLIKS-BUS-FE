@@ -50,7 +50,7 @@ const Breadcrumbs = ({ items }) => {
 
     let breadcrumbs = items;
 
-    const EXCLUDED_BREADCRUMBS = ['business', 'dashboard', 'billing', 'books', 'home', 'crm', 'orders', 'accounting', 'expenses', 'gst', 'purchases'];
+    const EXCLUDED_BREADCRUMBS = ['business', 'dashboard', 'billing', 'books', 'home', 'crm', 'orders', 'accounting', 'expenses', 'gst', 'purchases', 'suppliers'];
 
     if (!breadcrumbs) {
         const pathnames = location.pathname.split('/').filter((x) => {
