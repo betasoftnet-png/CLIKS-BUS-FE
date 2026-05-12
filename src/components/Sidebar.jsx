@@ -33,7 +33,8 @@ import {
     ChevronRight,
     HelpCircle,
     Receipt,
-    Crown
+    Crown,
+    Monitor
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
@@ -46,6 +47,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
 
     const getActiveItemFromPath = (path) => {
+        if (path.includes('/business/pos')) return 'POS Billing';
         if (path.includes('/business/dashboard')) return 'Dashboard';
         if (path.includes('/business/billing')) return 'Sales Invoice';
         if (path.includes('/business/orders')) return 'Orders';
@@ -132,9 +134,10 @@ const Sidebar = ({ isOpen, onClose }) => {
                     { label: 'Payroll', icon: FileCheck, path: '/business/payroll' }
                 ]
             },
-            { label: 'Marketing', icon: Megaphone, path: '/business/marketing' },
+            { label: 'POS Billing', icon: Monitor, path: '/business/pos' },
             { label: 'Reports', icon: BarChart3, path: '/business/reports' },
-            { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' }
+            { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' },
+            { label: 'Marketing', icon: Megaphone, path: '/business/marketing' }
 
         ],
         social: [

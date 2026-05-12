@@ -102,6 +102,7 @@ function AppContent() {
                     <Route path="/business/delivery" element={<BusinessDelivery />} />
                     <Route path="/business/manufacturing" element={<BusinessManufacturing />} />
                     <Route path="/business/reports" element={<BusinessReports />} />
+                    <Route path="/business/pos" element={<BusinessPlaceholder title="POS Billing" />} />
                     <Route path="/business/subscription" element={<BusinessSubscription />} />
                     <Route path="/business/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
                     <Route path="/business/investors" element={<BusinessPlaceholder title="Business Investors" />} />
