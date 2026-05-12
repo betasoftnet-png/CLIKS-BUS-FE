@@ -184,7 +184,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         if (hasChildren) {
             return (
-                <div style={{ marginBottom: '2px' }}>
+                <div style={{ marginBottom: '6px' }}>
                     <button
                         className={`sidebar-item`}
                         onClick={() => toggleMenu(item.label)}
@@ -218,7 +218,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 transition={{ duration: 0.25, ease: 'easeInOut' }}
                                 style={{ overflow: 'hidden' }}
                             >
-                                <div style={{ borderLeft: '2px solid #DCF2E4', marginLeft: '1.5rem', marginTop: '2px', marginBottom: '4px', paddingLeft: '2px' }}>
+                                <div style={{ borderLeft: '2px solid #DCF2E4', marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
                                     {item.children.map((child) => (
                                         <MenuItem key={child.label} item={child} isChild={true} />
                                     ))}
@@ -235,7 +235,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className={`sidebar-item ${isActive ? 'active' : ''}`}
                 onClick={() => handleItemClick(item.label, item.path)}
                 style={{ 
-                    marginBottom: '2px',
+                    marginBottom: '6px',
                     paddingLeft: isChild ? '1.2rem' : '0.75rem',
                     fontSize: isChild ? '0.85rem' : '0.92rem',
                     background: isActive ? '#1B6B3A' : 'transparent',
