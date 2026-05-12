@@ -96,33 +96,33 @@ const BusinessExpenses = () => {
         expense_status: item.expense_status || 'paid',
         category_name: item.category_name || 'General',
         subcategory: item.subcategory || 'Miscellaneous',
-        payee_name: item.payee_name || 'Generic Merchant',
-        payee_phone: item.payee_phone || '+91 xxxxx xxxxx',
-        payee_gstin: item.payee_gstin || '27XXXXX0000X0Z0',
+        payee_name: item.payee_name || '-',
+        payee_phone: item.payee_phone || '',
+        payee_gstin: item.payee_gstin || '',
         expense_amount: parseFloat(item.expense_amount) || 0,
         gst_percentage: parseFloat(item.gst_percentage) || 0,
         subtotal: parseFloat(item.subtotal) || 0,
         tax_amount: parseFloat(item.tax_amount) || 0,
-        payment_mode: item.payment_mode || 'UPI',
-        transaction_reference: item.transaction_reference || 'TXN-908122',
-        input_tax_credit: item.input_tax_credit || 'Not Applicable'
+        payment_mode: item.payment_mode || 'N/A',
+        transaction_reference: item.transaction_reference || '-',
+        input_tax_credit: item.input_tax_credit || 'N/A'
     }));
 
     const budgets = dbBudgets.map(item => ({
-        category_name: item.category_name || 'Fuel & Logistics',
-        budget_limit: parseFloat(item.budget_limit) || 15000,
+        category_name: item.category_name || 'Uncategorized',
+        budget_limit: parseFloat(item.budget_limit) || 0,
         spent_amount: parseFloat(item.spent_amount) || 0,
         alert_status: item.alert_status || 'Optimal'
     }));
 
     const claims = dbClaims.map(item => ({
         claim_id: item.id,
-        employee_name: item.employee_name || 'Rajesh Mishra',
-        travel_expense: item.travel_expense || 'Travel Meet',
+        employee_name: item.employee_name || 'Anonymous Staff',
+        travel_expense: item.travel_expense || '-',
         claim_amount: parseFloat(item.claim_amount) || 0,
         reimbursement_status: item.reimbursement_status || 'Pending',
         approval_by: item.approval_by || '',
-        date: item.date || '2026-05-08'
+        date: item.date || (item.created_at ? item.created_at.split('T')[0] : '-')
     }));
 
     const { data: dbRecurrings = [] } = useQuery({
@@ -134,10 +134,10 @@ const BusinessExpenses = () => {
         id: item.id || `REC-${item.id}`,
         category_name: item.category_name || 'General',
         recurring_type: item.recurring_type || 'monthly',
-        next_due_date: item.next_due_date || '2026-06-01',
-        auto_create: item.auto_create || 'Active',
+        next_due_date: item.next_due_date || '-',
+        auto_create: item.auto_create || 'Inactive',
         recurring_status: item.recurring_status || 'active',
-        amount: parseFloat(item.amount) || 0
+        amount: parseFloat(item.amount) || parseFloat(item.expense_amount) || 0
     }));
 
     // Form states
