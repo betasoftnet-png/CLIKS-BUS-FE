@@ -183,7 +183,8 @@ const BusinessPOS = () => {
                 quantity: 1,
                 tax_rate: taxRate,
                 unit: 'Pcs',
-                total: prod.price || 0
+                total: prod.price || 0,
+                source: prod.source
             }];
         });
     };
@@ -258,7 +259,8 @@ const BusinessPOS = () => {
                 quantity: item.quantity,
                 price: item.price,
                 tax_rate: taxRate,
-                total: item.total
+                total: item.total,
+                source: item.source
             }))
         };
 
