@@ -10,7 +10,8 @@ export const gstService = {
     getEways: () => apiClient.get('/gst/ewaybill').then(res => res.data.data || res.data || []),
     createEway: (data) => apiClient.post('/gst/ewaybill', data).then(res => res.data.data || res.data),
     getReconciliations: () => apiClient.get('/gst/reconciliation').then(res => res.data.data || res.data),
-    runReconciliation: (data) => apiClient.post('/gst/reconciliation/run', data).then(res => res.data.data || res.data)
+    runReconciliation: (data) => apiClient.post('/gst/reconciliation/run', data).then(res => res.data.data || res.data),
+    deleteInvoice: (id) => apiClient.delete(`/gst/invoices/${id}`).then(res => res.data.data || res.data)
 };
 
 export default gstService;

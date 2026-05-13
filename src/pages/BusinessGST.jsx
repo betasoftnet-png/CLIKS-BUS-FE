@@ -20,7 +20,8 @@ import {
     QrCode, 
     RefreshCw, 
     Sliders,
-    Award
+    Award,
+    Trash2
 } from 'lucide-react';
 import '../App.css';
 
@@ -72,6 +73,25 @@ const BusinessGST = () => {
         }
     });
 
+    const deleteInvoiceMutation = useMutation({
+        mutationFn: (id) => gstService.deleteInvoice(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
+            queryClient.invalidateQueries({ queryKey: ['gstEways'] });
+            queryClient.invalidateQueries({ queryKey: ['gstReconciliations'] });
+            alert('GST record deleted successfully.');
+        },
+        onError: () => {
+            alert('Failed to delete GST record.');
+        }
+    });
+
+    const handleDeleteRecord = (id, label) => {
+        if (window.confirm(`Are you sure you want to delete GST Record ${label || ''}? This will permanently remove it from the books.`)) {
+            deleteInvoiceMutation.mutate(id);
+        }
+    };
+
     // Queries
     const { data: dbSettings = {} } = useQuery({
         queryKey: ['gstSettings'],
@@ -89,6 +109,7 @@ const BusinessGST = () => {
 
     // fallbacks mapping
     const invoices = dbInvoices.map(item => ({
+        id: item.id,
         gst_invoice_number: item.invoice_number,
         invoice_type: item.invoice_type || 'B2B',
         date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -105,6 +126,7 @@ const BusinessGST = () => {
     }));
 
     const reconciliations = dbReconciliations.map(item => ({
+        id: item.id,
         vendor_gstin: item.vendor_gstin || '',
         vendor_name: item.vendor_name || '',
         invoice_amount: parseFloat(item.invoice_amount) || 0,
@@ -123,6 +145,7 @@ const BusinessGST = () => {
     });
 
     const eways = dbEways.map(item => ({
+        id: item.id,
         eway_bill_number: item.eway_bill_number,
         transporter_name: item.transporter_name || '',
         vehicle_number: item.vehicle_number || '',
@@ -322,11 +345,12 @@ const BusinessGST = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>IGST</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total GST</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredInvoices.map((inv) => (
-                                    <tr key={inv.gst_invoice_number} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>{inv.gst_invoice_number}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Date: {inv.date}</span>
@@ -345,6 +369,16 @@ const BusinessGST = () => {
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.85rem' }}>₹{inv.total_tax.toLocaleString()} ({inv.gst_percentage}%)</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>READY</span>
+                                        </td>
+                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
+                                            <button 
+                                                onClick={() => handleDeleteRecord(inv.id, inv.gst_invoice_number)}
+                                                style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '6px' }}
+                                                className="hover-bg-red-50"
+                                                title="Delete Record"
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -371,11 +405,12 @@ const BusinessGST = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Calculated CGST/SGST</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Eligible ITC</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {reconciliations.map((rec) => (
-                                    <tr key={rec.vendor_gstin} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <tr key={rec.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{rec.vendor_gstin}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{rec.vendor_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>₹{rec.invoice_amount.toLocaleString()}</td>
@@ -388,6 +423,15 @@ const BusinessGST = () => {
                                                 color: rec.invoice_match_status === 'matched' ? '#137333' : '#EF4444',
                                                 fontWeight: '800', fontSize: '0.75rem'
                                             }}>{rec.invoice_match_status.toUpperCase()}</span>
+                                        </td>
+                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
+                                            <button 
+                                                onClick={() => handleDeleteRecord(rec.id, rec.vendor_name)}
+                                                style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
+                                                title="Delete Record"
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -417,8 +461,16 @@ const BusinessGST = () => {
                             </p>
 
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Govt Tax Invoice Value:</span>
-                                <span style={{ fontSize: '1.15rem', fontWeight: '950', color: '#1D4ED8' }}>₹{(inv.taxable_value + inv.total_tax).toLocaleString()}</span>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Govt Tax Invoice Value:</span>
+                                    <span style={{ fontSize: '1.15rem', fontWeight: '950', color: '#1D4ED8' }}>₹{(inv.taxable_value + inv.total_tax).toLocaleString()}</span>
+                                </div>
+                                <button 
+                                    onClick={() => handleDeleteRecord(inv.id, inv.gst_invoice_number)}
+                                    style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}
+                                >
+                                    <Trash2 size={14} />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -442,11 +494,12 @@ const BusinessGST = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Distance (Kms)</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Source - Destination</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {eways.map((ew) => (
-                                    <tr key={ew.eway_bill_number} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <tr key={ew.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{ew.eway_bill_number}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{ew.transporter_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{ew.vehicle_number}</td>
@@ -454,6 +507,15 @@ const BusinessGST = () => {
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{ew.dispatch_location} ➔ {ew.delivery_location}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>{ew.status.toUpperCase()}</span>
+                                        </td>
+                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
+                                            <button 
+                                                onClick={() => handleDeleteRecord(ew.id, ew.eway_bill_number)}
+                                                style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
+                                                title="Delete Record"
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
