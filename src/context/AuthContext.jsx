@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/authService';
+import { adminService } from '../services/adminService';
 import { AuthContext } from './auth-context';
+
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -65,6 +67,19 @@ export const AuthProvider = ({ children }) => {
         return data;
     };
 
+    const adminLogin = async (email, password) => {
+        const data = await adminService.adminLogin(email, password);
+        const { accessToken, user: newUser } = data;
+
+        localStorage.setItem('books_auth_token', accessToken);
+        setToken(accessToken);
+        setUser(newUser);
+
+        queryClient.invalidateQueries();
+
+        return data;
+    };
+
     const mockLogin = () => {
         const mockToken = 'mock-test-token';
         const mockUser = {
@@ -84,10 +99,12 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         ssoLogin,
+        adminLogin,
         mockLogin,
         logout,
         isAuthenticated: !!token
     };
+
 
     return (
         <AuthContext.Provider value={value}>

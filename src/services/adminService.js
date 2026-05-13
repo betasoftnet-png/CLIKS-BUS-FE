@@ -5,6 +5,12 @@ import { apiClient } from '../api/client';
  * Interface for global multi-tenant platform management
  */
 export const adminService = {
+    // Platform Admin Native Login (Isolated DB / No SSO)
+    adminLogin: async (email, password) => {
+        const res = await apiClient.post('/admin/auth/login', { email, password });
+        return res.data;
+    },
+
     // Users
     getUsers: async (page = 1, limit = 20) => {
         const res = await apiClient.get('/admin/users', { params: { page, limit } });
