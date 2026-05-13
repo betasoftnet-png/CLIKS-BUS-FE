@@ -29,7 +29,7 @@ import {
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { purchasesService } from '../services/purchasesService';
+import { purchasesService, productsService, suppliersService } from '../services';
 import '../App.css';
 
 const BusinessPurchases = () => {
@@ -49,6 +49,17 @@ const BusinessPurchases = () => {
         queryFn: purchasesService.getPurchases
     });
 
+    // 🚀 Fetch live catalog items and active vendors
+    const { data: catalogProducts = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts()
+    });
+
+    const { data: suppliersList = [] } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => suppliersService.getSuppliers()
+    });
+
     const purchaseOrders = allPurchases.filter(p => p.doc_type === 'PO');
     const purchaseBills = allPurchases.filter(p => p.doc_type === 'BILL');
     const purchaseReturns = allPurchases.filter(p => p.doc_type === 'RETURN');
@@ -60,6 +71,7 @@ const BusinessPurchases = () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             setIsCreateModalOpen(false);
             setFormItems([{
+                product_id: '',
                 product_name: '',
                 sku: '',
                 batch_number: '',
@@ -80,6 +92,16 @@ const BusinessPurchases = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             alert('Purchase successfully updated!');
+        }
+    });
+
+    // 📦 THE MISSING LINK: Automated physical warehouse replenishment
+    const processStockMutation = useMutation({
+        mutationFn: ({ id, data }) => purchasesService.processStockUpdate(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            console.log("Live physical inventories refreshed across target warehouses.");
         }
     });
 
@@ -109,6 +131,7 @@ const BusinessPurchases = () => {
 
     const [formItems, setFormItems] = useState([
         {
+            product_id: '',
             product_name: '',
             sku: '',
             batch_number: '',
@@ -124,6 +147,7 @@ const BusinessPurchases = () => {
 
     const handleAddItemField = () => {
         setFormItems([...formItems, {
+            product_id: '',
             product_name: '',
             sku: '',
             batch_number: '',
@@ -240,6 +264,17 @@ const BusinessPurchases = () => {
 
         updateMutation.mutate({ id: selectedDoc.id, data: updatedDoc }, {
             onSuccess: () => {
+                // 🚀 ACTIVATE LEDGER: Update physical counts on the backend!
+                const stockPayload = {
+                    warehouse_id: selectedDoc.warehouse_id || 'Main Godown',
+                    items: updatedItems.map(i => ({
+                        product_id: i.product_id || i.id || 0,
+                        received_quantity: parseInt(i.received_quantity) || 0,
+                        sku: i.sku || ''
+                    }))
+                };
+                processStockMutation.mutate({ id: selectedDoc.id, data: stockPayload });
+
                 // Auto generate Bill
                 const totals = computeDocTotals(updatedItems, selectedDoc.shipping_charge);
                 const autoBill = {
@@ -249,6 +284,7 @@ const BusinessPurchases = () => {
                     due_date: selectedDoc.due_date,
                     doc_type: 'BILL',
                     status: 'paid',
+                    supplier_id: selectedDoc.supplier_id,
                     supplier_name: selectedDoc.supplier_name,
                     supplier_gstin: selectedDoc.supplier_gstin,
                     billing_address: selectedDoc.billing_address,
@@ -652,7 +688,30 @@ const BusinessPurchases = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier Name</label>
-                                        <input required type="text" value={formHeader.supplier_name} onChange={(e) => setFormHeader({ ...formHeader, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. TechCorp Supplies" />
+                                        <select 
+                                            required 
+                                            value={formHeader.supplier_id || ''} 
+                                            onChange={(e) => {
+                                                const selectedId = e.target.value;
+                                                const supp = suppliersList.find(s => String(s.id || s.supplier_id) === String(selectedId));
+                                                if (supp) {
+                                                    setFormHeader({ 
+                                                        ...formHeader, 
+                                                        supplier_id: supp.id || supp.supplier_id,
+                                                        supplier_name: supp.name || supp.supplier_name || '',
+                                                        supplier_gstin: supp.gstin || supp.gst_number || '',
+                                                        billing_address: supp.address || supp.billing_address || '',
+                                                        contact_number: supp.phone || supp.mobile || ''
+                                                    });
+                                                }
+                                            }} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
+                                        >
+                                            <option value="">-- Select Active Supplier --</option>
+                                            {suppliersList.map(s => (
+                                                <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>{s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GSTIN Number</label>
@@ -703,7 +762,27 @@ const BusinessPurchases = () => {
                                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Product Name</label>
-                                            <input required type="text" value={item.product_name} onChange={(e) => handleItemChange(idx, 'product_name', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="iPhone 15" />
+                                            <select 
+                                                required 
+                                                value={item.product_id || ''} 
+                                                onChange={(e) => {
+                                                    const selectedId = e.target.value;
+                                                    const prod = catalogProducts.find(p => String(p.id || p.product_id) === String(selectedId));
+                                                    if (prod) {
+                                                        handleItemChange(idx, 'product_id', prod.id || prod.product_id);
+                                                        handleItemChange(idx, 'product_name', prod.name || prod.product_name);
+                                                        handleItemChange(idx, 'sku', prod.sku || '');
+                                                        handleItemChange(idx, 'purchase_price', parseFloat(prod.purchase_price || prod.price || 0));
+                                                        handleItemChange(idx, 'primary_unit', prod.primary_unit || 'pcs');
+                                                    }
+                                                }} 
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#1B6B3A' }}
+                                            >
+                                                <option value="">-- Select Product --</option>
+                                                {catalogProducts.map(p => (
+                                                    <option key={p.id || p.product_id} value={p.id || p.product_id}>{p.name || p.product_name} {p.sku ? `[${p.sku}]` : ''}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>SKU</label>

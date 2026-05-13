@@ -29,10 +29,13 @@ import {
     Check,
     Eye
 } from 'lucide-react';
-import { billingService } from '../services/billingService';
-import { inventoryService } from '../services/inventoryService';
-import { crmService } from '../services/crmService';
-import { profileService } from '../services/profileService';
+import { 
+    billingService, 
+    inventoryService, 
+    crmService, 
+    profileService, 
+    productsService 
+} from '../services';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
 import '../App.css';
@@ -208,23 +211,41 @@ const BusinessBilling = () => {
     const handleItemChange = (index, field, value) => {
         const newItems = [...formData.items];
         
-        if (field === 'description' && inventoryItems.length > 0) {
-            // Check if the value matches an inventory item name
-            const selectedInvItem = inventoryItems.find(i => i.name === value);
-            if (selectedInvItem) {
+        if (field === 'description') {
+            // Check if value matches real catalog products first
+            const selectedProd = catalogProducts.find(p => (p.name || p.product_name) === value);
+            if (selectedProd) {
                 newItems[index] = {
                     ...newItems[index],
-                    description: selectedInvItem.name,
-                    inventory_id: selectedInvItem.id,
-                    price: selectedInvItem.price || 0,
-                    hsn_code: selectedInvItem.hsn_sac || '',
-                    tax_rate: selectedInvItem.gst_rate || 18,
-                    unit: selectedInvItem.unit || 'Pcs',
-                    total: (newItems[index].quantity || 1) * (selectedInvItem.price || 0)
+                    description: selectedProd.name || selectedProd.product_name,
+                    product_id: selectedProd.id,
+                    inventory_id: null,
+                    price: parseFloat(selectedProd.selling_price || selectedProd.price || 0),
+                    hsn_code: selectedProd.hsn_code || selectedProd.sku || '',
+                    tax_rate: parseInt(selectedProd.gst_percentage || selectedProd.tax_percentage || 18),
+                    unit: selectedProd.primary_unit || 'Pcs',
+                    total: (newItems[index].quantity || 1) * parseFloat(selectedProd.selling_price || 0)
                 };
             } else {
-                newItems[index][field] = value;
-                newItems[index].inventory_id = null;
+                // Fallback to generic legacy inventory items list
+                const selectedInvItem = inventoryItems.find(i => i.name === value);
+                if (selectedInvItem) {
+                    newItems[index] = {
+                        ...newItems[index],
+                        description: selectedInvItem.name,
+                        inventory_id: selectedInvItem.id,
+                        product_id: null,
+                        price: parseFloat(selectedInvItem.price || 0),
+                        hsn_code: selectedInvItem.hsn_sac || '',
+                        tax_rate: parseInt(selectedInvItem.gst_rate || 18),
+                        unit: selectedInvItem.unit || 'Pcs',
+                        total: (newItems[index].quantity || 1) * parseFloat(selectedInvItem.price || 0)
+                    };
+                } else {
+                    newItems[index][field] = value;
+                    newItems[index].inventory_id = null;
+                    newItems[index].product_id = null;
+                }
             }
         } else {
             newItems[index][field] = value;
@@ -275,6 +296,12 @@ const BusinessBilling = () => {
         queryFn: inventoryService.getInventory
     });
 
+    // 📦 FETCH ACTIVE CORE CATALOG
+    const { data: catalogProducts = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts()
+    });
+
     const { data: customers = [] } = useQuery({
         queryKey: ['business-customers'],
         queryFn: async () => {
@@ -286,6 +313,27 @@ const BusinessBilling = () => {
     // Mutations
     const adjustStockMutation = useMutation({
         mutationFn: ({ id, amount }) => inventoryService.adjustStock(id, amount)
+    });
+
+    // 🚀 UNIFIED PIPELINE: Hook into the central catalog matrix to deduct stock
+    const adjustProductStockMutation = useMutation({
+        mutationFn: ({ id, quantity }) => {
+            const prod = catalogProducts.find(p => String(p.id) === String(id));
+            if (prod) {
+                const currentQty = parseFloat(prod.quantity) || 0;
+                const updatedQty = Math.max(0, currentQty + quantity);
+                const payload = {
+                    ...prod,
+                    quantity: updatedQty,
+                    status: updatedQty < (prod.min_stock || 5) ? 'Low Stock' : 'In Stock'
+                };
+                return productsService.updateProduct(id, payload);
+            }
+            return Promise.resolve(null);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+        }
     });
 
     const createMutation = useMutation({
@@ -300,6 +348,13 @@ const BusinessBilling = () => {
                             amount: -item.quantity 
                         });
                     }
+                    // 📉 Automatically deplete central catalog counts
+                    if (item.product_id) {
+                        adjustProductStockMutation.mutate({
+                            id: item.product_id,
+                            quantity: -item.quantity
+                        });
+                    }
                 });
             } else if (formData.invoice_type === 'Return') {
                 // Add back stock for returns
@@ -308,6 +363,13 @@ const BusinessBilling = () => {
                         adjustStockMutation.mutate({ 
                             id: item.inventory_id, 
                             amount: item.quantity 
+                        });
+                    }
+                    // 📈 Replenish catalog on return events
+                    if (item.product_id) {
+                        adjustProductStockMutation.mutate({
+                            id: item.product_id,
+                            quantity: item.quantity
                         });
                     }
                 });
@@ -781,11 +843,35 @@ const BusinessBilling = () => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
                                                         const barcode = e.target.value;
+                                                        // Search catalog products first
+                                                        const prod = catalogProducts.find(p => p.barcode === barcode || p.sku === barcode);
+                                                        if (prod) {
+                                                            const newItem = {
+                                                                description: prod.name || prod.product_name,
+                                                                product_id: prod.id,
+                                                                inventory_id: null,
+                                                                quantity: 1,
+                                                                price: parseFloat(prod.selling_price || 0),
+                                                                tax_rate: parseInt(prod.gst_percentage || 18),
+                                                                unit: prod.primary_unit || 'Pcs',
+                                                                hsn_code: prod.hsn_code || prod.sku || '',
+                                                                discount_percent: 0,
+                                                                discount_amount: 0,
+                                                                total: parseFloat(prod.selling_price || 0)
+                                                            };
+                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
+                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
+                                                            setFormData({ ...formData, items: newItems, ...totals });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+
                                                         const item = inventoryItems.find(i => i.barcode === barcode || i.sku === barcode);
                                                         if (item) {
                                                             const newItem = {
                                                                 description: item.name,
                                                                 inventory_id: item.id,
+                                                                product_id: null,
                                                                 quantity: 1,
                                                                 price: item.price || 0,
                                                                 tax_rate: item.gst_rate || 18,
@@ -824,8 +910,13 @@ const BusinessBilling = () => {
                                                     style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
                                                 />
                                                 <datalist id="inventory-suggestions">
+                                                    {/* Real Product Catalog Items */}
+                                                    {catalogProducts.map(prod => (
+                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0}</option>
+                                                    ))}
+                                                    {/* Legacy Generic Inventory items fallback */}
                                                     {inventoryItems.map(inv => (
-                                                        <option key={inv.id} value={inv.name}>{inv.sku} - Stock: {inv.quantity}</option>
+                                                        <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
                                                     ))}
                                                 </datalist>
                                             </div>
