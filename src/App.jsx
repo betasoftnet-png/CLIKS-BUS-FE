@@ -18,7 +18,6 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminModeration from './pages/admin/AdminModeration';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
-import AdminLogin from './pages/admin/AdminLogin';
 
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
@@ -67,11 +66,6 @@ function AppContent() {
         <Route path="/auth" element={
           <Suspense fallback={<PageLoader />}>
             <Auth />
-          </Suspense>
-        } />
-        <Route path="/admin/login" element={
-          <Suspense fallback={<PageLoader />}>
-            <AdminLogin />
           </Suspense>
         } />
         

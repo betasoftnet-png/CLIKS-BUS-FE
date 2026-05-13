@@ -13,14 +13,6 @@ export const authService = {
     },
 
     /**
-     * Standard Credential Login
-     */
-    login: async (identifier, password) => {
-        const res = await apiClient.post('/auth/login', { identifier, password });
-        return res.data;
-    },
-
-    /**
      * Get current user profile
      */
     getProfile: async () => {

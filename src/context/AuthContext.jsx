@@ -65,19 +65,6 @@ export const AuthProvider = ({ children }) => {
         return data;
     };
 
-    const login = async (identifier, password) => {
-        const data = await authService.login(identifier, password);
-        const { accessToken, user: newUser } = data;
-
-        localStorage.setItem('books_auth_token', accessToken);
-        setToken(accessToken);
-        setUser(newUser);
-
-        queryClient.invalidateQueries();
-
-        return data;
-    };
-
     const mockLogin = () => {
         const mockToken = 'mock-test-token';
         const mockUser = {
@@ -97,12 +84,10 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         ssoLogin,
-        login,
         mockLogin,
         logout,
         isAuthenticated: !!token
     };
-
 
     return (
         <AuthContext.Provider value={value}>
