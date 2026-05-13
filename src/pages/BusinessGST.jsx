@@ -32,6 +32,7 @@ const BusinessGST = () => {
     const [isEwayModalOpen, setIsEwayModalOpen] = useState(false);
     const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+    const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
 
     const queryClient = useQueryClient();
 
@@ -76,6 +77,10 @@ const BusinessGST = () => {
 
     const deleteInvoiceMutation = useMutation({
         mutationFn: (id) => gstService.deleteInvoice(id),
+        onMutate: (targetId) => {
+            // 🚀 Immediate Native React UI repainting (0 milliseconds)
+            setLocallyDeletedIds(prev => [...prev, String(targetId)]);
+        },
         onSuccess: (_, deletedId) => {
             // Optimistic instant removal from local active cache layers:
             queryClient.setQueryData(['gstInvoices'], (old = []) => 
@@ -115,7 +120,9 @@ const BusinessGST = () => {
     };
 
     // fallbacks mapping
-    const invoices = dbInvoices.map(item => ({
+    const invoices = dbInvoices
+        .filter(item => !locallyDeletedIds.includes(String(item.id)))
+        .map(item => ({
         id: item.id,
         gst_invoice_number: item.invoice_number,
         invoice_type: item.invoice_type || 'B2B',
@@ -132,7 +139,9 @@ const BusinessGST = () => {
         qr_status: item.qr_status || 'Pending'
     }));
 
-    const reconciliations = dbReconciliations.map(item => ({
+    const reconciliations = dbReconciliations
+        .filter(item => !locallyDeletedIds.includes(String(item.id)))
+        .map(item => ({
         id: item.id,
         vendor_gstin: item.vendor_gstin || '',
         vendor_name: item.vendor_name || '',
@@ -151,7 +160,9 @@ const BusinessGST = () => {
         queryFn: () => gstService.getEways()
     });
 
-    const eways = dbEways.map(item => ({
+    const eways = dbEways
+        .filter(item => !locallyDeletedIds.includes(String(item.id)))
+        .map(item => ({
         id: item.id,
         eway_bill_number: item.eway_bill_number,
         transporter_name: item.transporter_name || '',
