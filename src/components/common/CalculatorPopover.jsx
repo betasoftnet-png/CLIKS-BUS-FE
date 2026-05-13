@@ -10,6 +10,14 @@ export function CalculatorPopover() {
     const popoverRef = useRef(null);
     const [calcMode, setCalcMode] = useState('main'); // 'main', 'gst', 'discount'
     const [gstType, setGstType] = useState('add'); // 'add', 'remove'
+    const [customRate, setCustomRate] = useState("");
+    const [showCustomField, setShowCustomField] = useState(false);
+
+    const changeMode = (mode) => {
+        setCalcMode(mode);
+        setShowCustomField(false);
+        setCustomRate("");
+    };
 
     // Close on click outside
     useEffect(() => {
@@ -22,6 +30,8 @@ export function CalculatorPopover() {
             document.addEventListener("mousedown", handleClickOutside);
         } else {
             setCalcMode('main');
+            setShowCustomField(false);
+            setCustomRate("");
         }
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
@@ -301,7 +311,7 @@ export function CalculatorPopover() {
                                     >
                                         <button
                                             type="button"
-                                            onClick={() => setCalcMode('gst')}
+                                            onClick={() => changeMode('gst')}
                                             style={{
                                                 ...styles.modeBtn,
                                                 background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -319,7 +329,7 @@ export function CalculatorPopover() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setCalcMode('discount')}
+                                            onClick={() => changeMode('discount')}
                                             style={{
                                                 ...styles.modeBtn,
                                                 background: 'linear-gradient(135deg, #ffffff 0%, #fff5f5 100%)',
@@ -352,7 +362,7 @@ export function CalculatorPopover() {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <button
                                                 type="button"
-                                                onClick={() => setCalcMode('main')}
+                                                onClick={() => changeMode('main')}
                                                 style={styles.backBtn}
                                                 onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
                                                 onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
@@ -362,7 +372,7 @@ export function CalculatorPopover() {
                                             <div style={{ flex: 1, display: 'flex', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setGstType('add')}
+                                                    onClick={() => { setGstType('add'); setShowCustomField(false); }}
                                                     style={{
                                                         ...styles.gstTypeBtn,
                                                         background: gstType === 'add' ? '#135029' : 'transparent',
@@ -374,7 +384,7 @@ export function CalculatorPopover() {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setGstType('remove')}
+                                                    onClick={() => { setGstType('remove'); setShowCustomField(false); }}
                                                     style={{
                                                         ...styles.gstTypeBtn,
                                                         background: gstType === 'remove' ? '#dc2626' : 'transparent',
@@ -386,37 +396,149 @@ export function CalculatorPopover() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            {[5, 12, 18, 28].map(rate => (
-                                                <button
-                                                    key={rate}
-                                                    type="button"
-                                                    onClick={() => handleGST(rate, gstType)}
-                                                    style={{
-                                                        flex: 1,
-                                                        padding: '6px 0',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid #cbd5e1',
-                                                        background: '#ffffff',
-                                                        color: '#0f172a',
-                                                        fontWeight: '800',
-                                                        fontSize: '11px',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.borderColor = gstType === 'add' ? '#135029' : '#dc2626';
-                                                        e.currentTarget.style.background = gstType === 'add' ? '#f0fdf4' : '#fef2f2';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.borderColor = '#cbd5e1';
-                                                        e.currentTarget.style.background = '#ffffff';
-                                                    }}
+                                        
+                                        <AnimatePresence mode="wait">
+                                            {!showCustomField ? (
+                                                <motion.div 
+                                                    key="gst-pills"
+                                                    initial={{ opacity: 0, y: 5 }} 
+                                                    animate={{ opacity: 1, y: 0 }} 
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    style={{ display: 'flex', gap: '4px' }}
                                                 >
-                                                    {gstType === 'add' ? '+' : '-'}{rate}%
-                                                </button>
-                                            ))}
-                                        </div>
+                                                    {[5, 12, 18].map(rate => (
+                                                        <button
+                                                            key={rate}
+                                                            type="button"
+                                                            onClick={() => handleGST(rate, gstType)}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: '6px 0',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid #cbd5e1',
+                                                                background: '#ffffff',
+                                                                color: '#0f172a',
+                                                                fontWeight: '800',
+                                                                fontSize: '11px',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.borderColor = gstType === 'add' ? '#135029' : '#dc2626';
+                                                                e.currentTarget.style.background = gstType === 'add' ? '#f0fdf4' : '#fef2f2';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                                e.currentTarget.style.background = '#ffffff';
+                                                            }}
+                                                        >
+                                                            {gstType === 'add' ? '+' : '-'}{rate}%
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setShowCustomField(true); setCustomRate(""); }}
+                                                        style={{
+                                                            flex: 1.2,
+                                                            padding: '6px 0',
+                                                            borderRadius: '6px',
+                                                            border: '1px dashed #94a3b8',
+                                                            background: '#f8fafc',
+                                                            color: '#475569',
+                                                            fontWeight: '800',
+                                                            fontSize: '10.5px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '2px'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#f1f5f9';
+                                                            e.currentTarget.style.borderColor = '#64748b';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#f8fafc';
+                                                            e.currentTarget.style.borderColor = '#94a3b8';
+                                                        }}
+                                                    >
+                                                        ✏️ Custom
+                                                    </button>
+                                                </motion.div>
+                                            ) : (
+                                                <motion.div 
+                                                    key="gst-input"
+                                                    initial={{ opacity: 0, scale: 0.96 }} 
+                                                    animate={{ opacity: 1, scale: 1 }} 
+                                                    exit={{ opacity: 0, scale: 0.96 }}
+                                                    style={{ display: 'flex', gap: '4px', width: '100%' }}
+                                                >
+                                                    <div style={{ flex: 1, display: 'flex', border: `1.5px solid ${gstType === 'add' ? '#135029' : '#dc2626'}`, borderRadius: '6px', background: '#ffffff', padding: '1px 2px', alignItems: 'center', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}>
+                                                        <input
+                                                            type="number"
+                                                            value={customRate}
+                                                            onChange={(e) => setCustomRate(e.target.value)}
+                                                            placeholder="Enter Custom %"
+                                                            autoFocus
+                                                            style={{ width: '100%', border: 'none', outline: 'none', padding: '0 6px', fontSize: '11.5px', fontWeight: '700', color: '#0f172a', background: 'transparent' }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    const val = parseFloat(customRate);
+                                                                    if (!isNaN(val)) {
+                                                                        handleGST(val, gstType);
+                                                                        setShowCustomField(false);
+                                                                        setCustomRate("");
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const val = parseFloat(customRate);
+                                                            if (!isNaN(val)) {
+                                                                handleGST(val, gstType);
+                                                                setShowCustomField(false);
+                                                                setCustomRate("");
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            padding: '6px 12px', 
+                                                            background: gstType === 'add' ? '#135029' : '#dc2626', 
+                                                            color: '#ffffff',
+                                                            border: 'none', 
+                                                            borderRadius: '6px', 
+                                                            fontSize: '11px', 
+                                                            fontWeight: '800', 
+                                                            cursor: 'pointer',
+                                                            transition: 'opacity 0.15s'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowCustomField(false)}
+                                                        style={{
+                                                            padding: '6px 8px', 
+                                                            background: '#ffffff', 
+                                                            border: '1px solid #cbd5e1',
+                                                            borderRadius: '6px', 
+                                                            fontSize: '10px', 
+                                                            fontWeight: '800', 
+                                                            color: '#64748b', 
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </motion.div>
                                 )}
 
@@ -432,7 +554,7 @@ export function CalculatorPopover() {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <button
                                                 type="button"
-                                                onClick={() => setCalcMode('main')}
+                                                onClick={() => changeMode('main')}
                                                 style={styles.backBtn}
                                                 onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
                                                 onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
@@ -443,37 +565,147 @@ export function CalculatorPopover() {
                                                 Apply Discount
                                             </span>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            {[5, 10, 15, 20, 25].map(pct => (
-                                                <button
-                                                    key={pct}
-                                                    type="button"
-                                                    onClick={() => handleDiscount(pct)}
-                                                    style={{
-                                                        flex: 1,
-                                                        padding: '6px 0',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#ffffff',
-                                                        color: '#dc2626',
-                                                        fontWeight: '800',
-                                                        fontSize: '11px',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s ease'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = '#fef2f2';
-                                                        e.currentTarget.style.transform = 'translateY(-1px)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = '#ffffff';
-                                                        e.currentTarget.style.transform = 'translateY(0)';
-                                                    }}
+                                        
+                                        <AnimatePresence mode="wait">
+                                            {!showCustomField ? (
+                                                <motion.div 
+                                                    key="disc-pills"
+                                                    initial={{ opacity: 0, y: 5 }} 
+                                                    animate={{ opacity: 1, y: 0 }} 
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    style={{ display: 'flex', gap: '4px' }}
                                                 >
-                                                    -{pct}%
-                                                </button>
-                                            ))}
-                                        </div>
+                                                    {[5, 10, 20].map(pct => (
+                                                        <button
+                                                            key={pct}
+                                                            type="button"
+                                                            onClick={() => handleDiscount(pct)}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: '6px 0',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid #fecaca',
+                                                                background: '#ffffff',
+                                                                color: '#dc2626',
+                                                                fontWeight: '800',
+                                                                fontSize: '11px',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = '#fef2f2';
+                                                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = '#ffffff';
+                                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                            }}
+                                                        >
+                                                            -{pct}%
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setShowCustomField(true); setCustomRate(""); }}
+                                                        style={{
+                                                            flex: 1.2,
+                                                            padding: '6px 0',
+                                                            borderRadius: '6px',
+                                                            border: '1px dashed #fca5a5',
+                                                            background: '#fff5f5',
+                                                            color: '#b91c1c',
+                                                            fontWeight: '800',
+                                                            fontSize: '10.5px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '2px'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#fee2e2';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#fff5f5';
+                                                        }}
+                                                    >
+                                                        ✏️ Custom
+                                                    </button>
+                                                </motion.div>
+                                            ) : (
+                                                <motion.div 
+                                                    key="disc-input"
+                                                    initial={{ opacity: 0, scale: 0.96 }} 
+                                                    animate={{ opacity: 1, scale: 1 }} 
+                                                    exit={{ opacity: 0, scale: 0.96 }}
+                                                    style={{ display: 'flex', gap: '4px', width: '100%' }}
+                                                >
+                                                    <div style={{ flex: 1, display: 'flex', border: '1.5px solid #dc2626', borderRadius: '6px', background: '#ffffff', padding: '1px 2px', alignItems: 'center', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}>
+                                                        <input
+                                                            type="number"
+                                                            value={customRate}
+                                                            onChange={(e) => setCustomRate(e.target.value)}
+                                                            placeholder="Enter Discount %"
+                                                            autoFocus
+                                                            style={{ width: '100%', border: 'none', outline: 'none', padding: '0 6px', fontSize: '11.5px', fontWeight: '700', color: '#b91c1c', background: 'transparent' }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    const val = parseFloat(customRate);
+                                                                    if (!isNaN(val)) {
+                                                                        handleDiscount(val);
+                                                                        setShowCustomField(false);
+                                                                        setCustomRate("");
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const val = parseFloat(customRate);
+                                                            if (!isNaN(val)) {
+                                                                handleDiscount(val);
+                                                                setShowCustomField(false);
+                                                                setCustomRate("");
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            padding: '6px 12px', 
+                                                            background: '#dc2626', 
+                                                            color: '#ffffff',
+                                                            border: 'none', 
+                                                            borderRadius: '6px', 
+                                                            fontSize: '11px', 
+                                                            fontWeight: '800', 
+                                                            cursor: 'pointer',
+                                                            transition: 'opacity 0.15s'
+                                                        }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowCustomField(false)}
+                                                        style={{
+                                                            padding: '6px 8px', 
+                                                            background: '#ffffff', 
+                                                            border: '1px solid #fecaca',
+                                                            borderRadius: '6px', 
+                                                            fontSize: '10px', 
+                                                            fontWeight: '800', 
+                                                            color: '#dc2626', 
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
