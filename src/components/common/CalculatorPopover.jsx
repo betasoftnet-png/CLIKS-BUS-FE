@@ -37,7 +37,7 @@ export function CalculatorPopover() {
     }, [open]);
 
     const handleNumber = (num) => {
-        setDisplay(prev => (prev === "0" ? String(num) : prev + num));
+        setDisplay(prev => (prev === "0" || prev === "Error" ? String(num) : prev + num));
     };
 
     const handleOperator = (op) => {
@@ -51,6 +51,10 @@ export function CalculatorPopover() {
     };
 
     const handleDelete = () => {
+        if (display === "Error") {
+            setDisplay("0");
+            return;
+        }
         if (display.length === 1) {
             setDisplay("0");
         } else {
@@ -59,17 +63,27 @@ export function CalculatorPopover() {
     };
 
     const handleDecimal = () => {
+        if (display === "Error") {
+            setDisplay("0.");
+            return;
+        }
         if (!display.includes(".")) {
             setDisplay(display + ".");
         }
     };
 
     const handleCalculate = () => {
-        if (!equation) return;
+        if (!equation || equation.includes("=") || equation.includes("GST") || equation.includes("Disc")) return;
         try {
             const fullExp = equation + display;
             const sanitized = fullExp.replace(/[^-()\d/*+. ]/g, '');
             const result = Function('"use strict";return (' + sanitized + ')')();
+            
+            if (isNaN(result) || !isFinite(result)) {
+                setDisplay("Error");
+                return;
+            }
+
             setEquation(fullExp + " =");
             setDisplay(String(result));
         } catch {
