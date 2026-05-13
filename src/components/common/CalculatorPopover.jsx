@@ -8,6 +8,8 @@ export function CalculatorPopover() {
     const [display, setDisplay] = useState("0");
     const [equation, setEquation] = useState("");
     const popoverRef = useRef(null);
+    const [calcMode, setCalcMode] = useState('main'); // 'main', 'gst', 'discount'
+    const [gstType, setGstType] = useState('add'); // 'add', 'remove'
 
     // Close on click outside
     useEffect(() => {
@@ -18,6 +20,8 @@ export function CalculatorPopover() {
         };
         if (open) {
             document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            setCalcMode('main');
         }
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
@@ -144,35 +148,53 @@ export function CalculatorPopover() {
             flexDirection: 'column',
             gap: '6px',
             marginBottom: '14px',
-            padding: '10px',
+            padding: '8px 10px',
             background: '#f8fafc',
-            borderRadius: '10px',
-            border: '1px dashed #cbd5e1',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            minHeight: '52px',
+            justifyContent: 'center',
         },
-        bizRow: {
+        modeBtn: {
+            flex: 1,
+            padding: '8px 0',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0',
+            background: '#ffffff',
+            fontSize: '12px',
+            fontWeight: '800',
+            color: '#334155',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         },
-        bizLabel: {
+        gstTypeBtn: {
+            flex: 1,
+            padding: '5px 0',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: '800',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+        },
+        backBtn: {
+            padding: '4px 8px',
+            borderRadius: '6px',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
             fontSize: '10px',
             fontWeight: '800',
             color: '#475569',
-            textTransform: 'uppercase',
-            width: '35px',
-            letterSpacing: '0.02em',
-        },
-        bizBtn: {
-            flex: 1,
-            padding: '4px 0',
-            borderRadius: '6px',
-            border: '1px solid #e2e8f0',
-            background: 'white',
-            fontSize: '11px',
-            fontWeight: '700',
-            color: '#1e293b',
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
         },
         grid: {
             display: 'grid',
@@ -265,32 +287,196 @@ export function CalculatorPopover() {
                             <div style={styles.resultText}>{display}</div>
                         </div>
 
-                        {/* Business Calc Extensions */}
+                        {/* Dynamic Single-Row Business Extensions */}
                         <div style={styles.bizSection}>
-                            <div style={styles.bizRow}>
-                                <div style={styles.bizLabel}>+ GST</div>
-                                {[5, 12, 18, 28].map(rate => (
-                                    <button key={rate} onClick={() => handleGST(rate, 'add')} style={styles.bizBtn} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
-                                        +{rate}%
-                                    </button>
-                                ))}
-                            </div>
-                            <div style={styles.bizRow}>
-                                <div style={styles.bizLabel}>- GST</div>
-                                {[5, 12, 18, 28].map(rate => (
-                                    <button key={rate} onClick={() => handleGST(rate, 'remove')} style={styles.bizBtn} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
-                                        -{rate}%
-                                    </button>
-                                ))}
-                            </div>
-                            <div style={styles.bizRow}>
-                                <div style={styles.bizLabel}>Disc</div>
-                                {[5, 10, 15, 20].map(pct => (
-                                    <button key={pct} onClick={() => handleDiscount(pct)} style={{...styles.bizBtn, color: '#dc2626', borderColor: '#fee2e2'}} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
-                                        -{pct}%
-                                    </button>
-                                ))}
-                            </div>
+                            <AnimatePresence mode="wait">
+                                {calcMode === 'main' && (
+                                    <motion.div
+                                        key="main"
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -5 }}
+                                        transition={{ duration: 0.15 }}
+                                        style={{ display: 'flex', gap: '8px', width: '100%' }}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => setCalcMode('gst')}
+                                            style={{
+                                                ...styles.modeBtn,
+                                                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.borderColor = '#135029';
+                                                e.currentTarget.style.color = '#135029';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                                e.currentTarget.style.color = '#334155';
+                                            }}
+                                        >
+                                            💰 GST Tax
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCalcMode('discount')}
+                                            style={{
+                                                ...styles.modeBtn,
+                                                background: 'linear-gradient(135deg, #ffffff 0%, #fff5f5 100%)',
+                                                borderColor: '#fee2e2',
+                                                color: '#b91c1c',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = '#fef2f2';
+                                                e.currentTarget.style.borderColor = '#dc2626';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #fff5f5 100%)';
+                                                e.currentTarget.style.borderColor = '#fee2e2';
+                                            }}
+                                        >
+                                            🏷️ Discount
+                                        </button>
+                                    </motion.div>
+                                )}
+
+                                {calcMode === 'gst' && (
+                                    <motion.div
+                                        key="gst"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.2 }}
+                                        style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setCalcMode('main')}
+                                                style={styles.backBtn}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                                            >
+                                                ← Back
+                                            </button>
+                                            <div style={{ flex: 1, display: 'flex', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setGstType('add')}
+                                                    style={{
+                                                        ...styles.gstTypeBtn,
+                                                        background: gstType === 'add' ? '#135029' : 'transparent',
+                                                        color: gstType === 'add' ? '#ffffff' : '#475569',
+                                                        boxShadow: gstType === 'add' ? '0 2px 4px rgba(19,80,41,0.2)' : 'none'
+                                                    }}
+                                                >
+                                                    Add (+)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setGstType('remove')}
+                                                    style={{
+                                                        ...styles.gstTypeBtn,
+                                                        background: gstType === 'remove' ? '#dc2626' : 'transparent',
+                                                        color: gstType === 'remove' ? '#ffffff' : '#475569',
+                                                        boxShadow: gstType === 'remove' ? '0 2px 4px rgba(220,38,38,0.2)' : 'none'
+                                                    }}
+                                                >
+                                                    Remove (-)
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {[5, 12, 18, 28].map(rate => (
+                                                <button
+                                                    key={rate}
+                                                    type="button"
+                                                    onClick={() => handleGST(rate, gstType)}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '6px 0',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #cbd5e1',
+                                                        background: '#ffffff',
+                                                        color: '#0f172a',
+                                                        fontWeight: '800',
+                                                        fontSize: '11px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.borderColor = gstType === 'add' ? '#135029' : '#dc2626';
+                                                        e.currentTarget.style.background = gstType === 'add' ? '#f0fdf4' : '#fef2f2';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.borderColor = '#cbd5e1';
+                                                        e.currentTarget.style.background = '#ffffff';
+                                                    }}
+                                                >
+                                                    {gstType === 'add' ? '+' : '-'}{rate}%
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                {calcMode === 'discount' && (
+                                    <motion.div
+                                        key="discount"
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.2 }}
+                                        style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setCalcMode('main')}
+                                                style={styles.backBtn}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                                            >
+                                                ← Back
+                                            </button>
+                                            <span style={{ fontSize: '10px', fontWeight: '900', color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Apply Discount
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {[5, 10, 15, 20, 25].map(pct => (
+                                                <button
+                                                    key={pct}
+                                                    type="button"
+                                                    onClick={() => handleDiscount(pct)}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '6px 0',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #fecaca',
+                                                        background: '#ffffff',
+                                                        color: '#dc2626',
+                                                        fontWeight: '800',
+                                                        fontSize: '11px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#fef2f2';
+                                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#ffffff';
+                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                    }}
+                                                >
+                                                    -{pct}%
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         <div style={styles.grid}>
