@@ -76,14 +76,26 @@ const BusinessGST = () => {
 
     const deleteInvoiceMutation = useMutation({
         mutationFn: (id) => gstService.deleteInvoice(id),
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            // Optimistic instant removal from local active cache layers:
+            queryClient.setQueryData(['gstInvoices'], (old = []) => 
+                Array.isArray(old) ? old.filter(item => String(item.id) !== String(deletedId)) : []
+            );
+            queryClient.setQueryData(['gstEways'], (old = []) => 
+                Array.isArray(old) ? old.filter(item => String(item.id) !== String(deletedId)) : []
+            );
+            queryClient.setQueryData(['gstReconciliations'], (old = []) => 
+                Array.isArray(old) ? old.filter(item => String(item.id) !== String(deletedId)) : []
+            );
+            
+            // Quietly background re-sync and update related counts
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             queryClient.invalidateQueries({ queryKey: ['gstEways'] });
             queryClient.invalidateQueries({ queryKey: ['gstReconciliations'] });
-            alert('GST record deleted successfully.');
         },
-        onError: () => {
-            alert('Failed to delete GST record.');
+        onError: (err) => {
+            console.error('[GST Deletion] Network error:', err);
+            alert('Unable to reach billing network. Please retry.');
         }
     });
 
