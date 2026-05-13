@@ -607,7 +607,7 @@ const BusinessInventory = () => {
                                     return (
                                         <div key={idx}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
-                                                <span style={{ color: '#1E293B' }}>{prod.name} ({prod.product_type.toUpperCase()})</span>
+                                                <span style={{ color: '#1E293B' }}>{prod.name} ({prod.product_type})</span>
                                                 <span style={{ color: '#15803D' }}>Margin: {margin}% (Profit: ₹{profit.toLocaleString()})</span>
                                             </div>
                                             <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
