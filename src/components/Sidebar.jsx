@@ -173,8 +173,25 @@ const Sidebar = ({ isOpen, onClose }) => {
         return 'Dashboard';
     };
 
-    const isSocialMode = location.pathname.startsWith('/social/');
-    const isFinanceMode = location.pathname.startsWith('/payments/') || location.pathname === '/referral';
+    // Synchronous Persistent Module Derivation
+    let activeModule = sessionStorage.getItem('active_cliks_module') || 'books';
+    if (location.pathname.startsWith('/social/')) {
+        activeModule = 'social';
+        sessionStorage.setItem('active_cliks_module', 'social');
+    } else if (location.pathname.startsWith('/payments/')) {
+        activeModule = 'payments';
+        sessionStorage.setItem('active_cliks_module', 'payments');
+    } else if (
+        !location.pathname.includes('/admin/') &&
+        !['/settings', '/faq', '/subscription', '/profile', '/referral'].some(p => location.pathname.startsWith(p)) &&
+        location.pathname !== '/'
+    ) {
+        activeModule = 'books';
+        sessionStorage.setItem('active_cliks_module', 'books');
+    }
+
+    const isSocialMode = activeModule === 'social';
+    const isFinanceMode = activeModule === 'payments';
     const isAdminMode = location.pathname.includes('/admin/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));

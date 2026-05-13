@@ -22,11 +22,28 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         navigate('/');
     };
 
-    const isSocialActive = location.pathname.startsWith('/social/');
-    const isFinanceActive = location.pathname.startsWith('/payments/') || location.pathname === '/referral';
+    // Synchronous Persistent Module Derivation
+    let activeModule = sessionStorage.getItem('active_cliks_module') || 'books';
+    if (location.pathname.startsWith('/social/')) {
+        activeModule = 'social';
+        sessionStorage.setItem('active_cliks_module', 'social');
+    } else if (location.pathname.startsWith('/payments/')) {
+        activeModule = 'payments';
+        sessionStorage.setItem('active_cliks_module', 'payments');
+    } else if (
+        !location.pathname.includes('/admin/') &&
+        !['/settings', '/faq', '/subscription', '/profile', '/referral'].some(p => location.pathname.startsWith(p)) &&
+        location.pathname !== '/'
+    ) {
+        activeModule = 'books';
+        sessionStorage.setItem('active_cliks_module', 'books');
+    }
+
+    const isSocialActive = activeModule === 'social';
+    const isFinanceActive = activeModule === 'payments';
 
     const navItems = [
-        { name: 'Books', url: '/dashboard', icon: BookOpen, active: !isSocialActive && !isFinanceActive },
+        { name: 'Books', url: '/dashboard', icon: BookOpen, active: activeModule === 'books' },
         { name: 'Payments', url: '/payments/transaction', icon: Calculator, active: isFinanceActive },
         { name: 'Social', url: '/social/investors', icon: Users, active: isSocialActive },
     ];
