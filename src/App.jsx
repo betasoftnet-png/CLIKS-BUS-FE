@@ -16,6 +16,8 @@ import FAQ from './pages/FAQ';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminModeration from './pages/admin/AdminModeration';
+import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
@@ -84,6 +86,8 @@ function AppContent() {
                     {/* Admin Control Center */}
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/moderation" element={<AdminModeration />} />
+                    <Route path="/admin/logs" element={<AdminAuditLogs />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
 
                     {/* Business Section */}

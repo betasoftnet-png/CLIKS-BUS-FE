@@ -137,6 +137,8 @@ const Sidebar = ({ isOpen, onClose }) => {
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
         if (path.includes('/admin/users')) return 'Tenant Matrix';
+        if (path.includes('/admin/moderation')) return 'Feed Monitor';
+        if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
         if (path.includes('/business/pos')) return 'POS Billing';
         if (path.includes('/business/dashboard')) return 'Dashboard';
@@ -182,6 +184,8 @@ const Sidebar = ({ isOpen, onClose }) => {
         admin: [
             { label: 'Admin Console', icon: Activity, path: '/admin/dashboard' },
             { label: 'Tenant Matrix', icon: Users, path: '/admin/users' },
+            { label: 'Feed Monitor', icon: ShieldAlert, path: '/admin/moderation' },
+            { label: 'Audit Trail', icon: FileCheck, path: '/admin/logs' },
             { label: 'Engine Overrides', icon: Sliders, path: '/admin/settings' }
         ],
         standard: [

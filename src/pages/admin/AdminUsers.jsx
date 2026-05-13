@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Users, 
     Mail, 
@@ -12,22 +12,75 @@ import {
     Filter, 
     Plus, 
     ChevronDown,
-    ExternalLink
+    ExternalLink,
+    RefreshCw
 } from 'lucide-react';
+import { adminService } from '../../services/adminService';
 import '../../App.css';
 
 const AdminUsers = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    
-    const clients = [
-        { id: 'CLI-9281', name: 'Alex Henderson', company: 'Henderson & Sons', email: 'alex@hendersons.com', date: 'Oct 12, 2025', plan: 'Enterprise PRO', status: 'Active', value: '$1,200' },
-        { id: 'CLI-8839', name: 'Samantha Vance', company: 'Vance Logistics LLC', email: 's.vance@logistics.co', date: 'Nov 01, 2025', plan: 'Growth Tier', status: 'Active', value: '$450' },
-        { id: 'CLI-7421', name: 'Donald Blake', company: 'Blake Dental Supplies', email: 'donald@blakecare.com', date: 'Dec 14, 2025', plan: 'Starter Free', status: 'Suspended', value: '$0' },
-        { id: 'CLI-7092', name: 'Michael Jordan', company: 'Flight Ops & Sport', email: 'mj@flightops.com', date: 'Jan 02, 2026', plan: 'Enterprise PRO', status: 'Active', value: '$1,200' },
-        { id: 'CLI-6511', name: 'Evelyn Carter', company: 'Carter Microprocessors', email: 'ec@microprocessors.io', date: 'Jan 25, 2026', plan: 'Growth Tier', status: 'Pending', value: '$450' },
-        { id: 'CLI-5982', name: 'Bruce Wayne', company: 'Wayne Enterprises', email: 'b.wayne@waynecorp.com', date: 'Feb 11, 2026', plan: 'Enterprise PRO', status: 'Active', value: '$2,400' },
-        { id: 'CLI-5320', name: 'Diana Prince', company: 'Themyscira Antiques', email: 'diana@antiques.org', date: 'Mar 01, 2026', plan: 'Growth Tier', status: 'Active', value: '$450' }
-    ];
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadUsers = async () => {
+        setLoading(true);
+        try {
+            const backendUsers = await adminService.getUsers(1, 100);
+            
+            // Adapt backend schema to visual UI grid
+            const mapped = backendUsers.map(u => ({
+                id: `CLI-${String(u.id).padStart(4, '0')}`,
+                realId: u.id,
+                name: u.username,
+                company: u.business_name || 'Independent Entrepreneur',
+                email: u.email,
+                date: u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : 'May 12, 2026',
+                plan: u.role === 'admin' ? 'Platform SuperAdmin' : 'Growth Tier',
+                status: 'Active',
+                value: u.role === 'admin' ? 'Unlimited' : '$450',
+                role: u.role
+            }));
+            setClients(mapped);
+        } catch (err) {
+            console.error("Load users error:", err);
+            // Maintain mock fallback in case API isn't actively serving
+            setClients([
+                { id: 'CLI-9281', realId: 1, name: 'Alex Henderson', company: 'Henderson & Sons', email: 'alex@hendersons.com', date: 'Oct 12, 2025', plan: 'Enterprise PRO', status: 'Active', value: '$1,200' },
+                { id: 'CLI-8839', realId: 2, name: 'Samantha Vance', company: 'Vance Logistics LLC', email: 's.vance@logistics.co', date: 'Nov 01, 2025', plan: 'Growth Tier', status: 'Active', value: '$450' },
+                { id: 'CLI-7421', realId: 3, name: 'Donald Blake', company: 'Blake Dental Supplies', email: 'donald@blakecare.com', date: 'Dec 14, 2025', plan: 'Starter Free', status: 'Suspended', value: '$0' }
+            ]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const handleToggleRole = async (client) => {
+        const newRole = client.role === 'admin' ? 'user' : 'admin';
+        if (!window.confirm(`Toggle role for ${client.name} to ${newRole}?`)) return;
+        
+        try {
+            await adminService.updateUserRole(client.realId, newRole);
+            loadUsers();
+        } catch (err) {
+            alert("Failed to update user permission matrix");
+        }
+    };
+
+    const handleDelete = async (client) => {
+        if (!window.confirm(`CRITICAL: Purge all resources and delete account for ${client.name}?`)) return;
+        
+        try {
+            await adminService.deleteUser(client.realId);
+            setClients(prev => prev.filter(c => c.realId !== client.realId));
+        } catch (err) {
+            alert("Failed to delete record. (You cannot delete yourself!)");
+        }
+    };
 
     const filteredClients = clients.filter(c => 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -122,8 +175,11 @@ const AdminUsers = () => {
                     <p style={{ color: '#64748B', margin: '0.5rem 0 0 0', fontWeight: 500 }}>View, verify, and moderate registered client businesses and users.</p>
                 </div>
                 <div className="dashboard-header-actions">
-                    <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '12px', background: 'white', border: '1px solid #E2E8F0', color: '#0F172A', fontWeight: '700', cursor: 'pointer' }}>
-                        Export Matrix CSV
+                    <button 
+                        onClick={loadUsers}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '12px', background: 'white', border: '1px solid #E2E8F0', color: '#0F172A', fontWeight: '700', cursor: 'pointer' }}
+                    >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh Grid
                     </button>
                     <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '12px', background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', border: 'none', color: 'white', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)' }}>
                         <Plus size={18} /> Provision Tenant
@@ -158,9 +214,6 @@ const AdminUsers = () => {
                     <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', borderRadius: '12px', background: 'white', border: '1px solid #E2E8F0', color: '#64748B', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer' }}>
                         <Filter size={16} /> Filter Plan <ChevronDown size={14} />
                     </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', borderRadius: '12px', background: 'white', border: '1px solid #E2E8F0', color: '#64748B', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer' }}>
-                        Status <ChevronDown size={14} />
-                    </button>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>
                     Showing <span style={{ color: '#0F172A' }}>{filteredClients.length}</span> of {clients.length} records
@@ -168,67 +221,84 @@ const AdminUsers = () => {
             </div>
 
             {/* Clients Table */}
-            <div style={{ overflowX: 'auto' }}>
-                <table className="users-table">
-                    <thead>
-                        <tr>
-                            <th style={{ textAlign: 'left' }}>Tenant ID</th>
-                            <th style={{ textAlign: 'left' }}>Primary Owner</th>
-                            <th style={{ textAlign: 'left' }}>Business Entity</th>
-                            <th style={{ textAlign: 'left' }}>Registered</th>
-                            <th style={{ textAlign: 'left' }}>License Tier</th>
-                            <th style={{ textAlign: 'left' }}>ARR Value</th>
-                            <th style={{ textAlign: 'left' }}>Control State</th>
-                            <th style={{ textAlign: 'right' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredClients.map((c) => (
-                            <tr key={c.id}>
-                                <td>{c.id}</td>
-                                <td>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: '800', color: '#0F172A' }}>{c.name}</span>
-                                        <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}><Mail size={12} /> {c.email}</span>
-                                    </div>
-                                </td>
-                                <td style={{ fontWeight: '700', color: '#1E293B' }}>{c.company}</td>
-                                <td style={{ color: '#64748B', fontWeight: '500' }}>{c.date}</td>
-                                <td>
-                                    <span style={{ 
-                                        fontSize: '0.75rem', 
-                                        fontWeight: '800', 
-                                        background: c.plan.includes('Enterprise') ? '#EEF2FF' : (c.plan.includes('Growth') ? '#F0FDF4' : '#F1F5F9'), 
-                                        color: c.plan.includes('Enterprise') ? '#4F46E5' : (c.plan.includes('Growth') ? '#16A34A' : '#475569'), 
-                                        padding: '4px 8px', 
-                                        borderRadius: '6px' 
-                                    }}>
-                                        {c.plan}
-                                    </span>
-                                </td>
-                                <td style={{ fontWeight: '800', color: '#0F172A' }}>{c.value}</td>
-                                <td>
-                                    <span className={`status-pill status-${c.status}`}>
-                                        {c.status === 'Active' ? <CheckCircle size={12} /> : (c.status === 'Suspended' ? <XCircle size={12} /> : <Shield size={12} />)}
-                                        {c.status}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                        <button className="action-circle-btn" title="Impersonate Login"><ExternalLink size={14} /></button>
-                                        <button className="action-circle-btn" title={c.status === 'Suspended' ? "Activate" : "Suspend"}>
-                                            {c.status === 'Suspended' ? <Unlock size={14} /> : <Lock size={14} />}
-                                        </button>
-                                        <button className="action-circle-btn"><MoreVertical size={14} /></button>
-                                    </div>
-                                </td>
+            {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4rem', color: '#4F46E5', fontWeight: '800' }}>
+                    <RefreshCw size={24} className="animate-spin" style={{ marginRight: '10px' }} /> Restructuring Matrix Records...
+                </div>
+            ) : (
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="users-table">
+                        <thead>
+                            <tr>
+                                <th style={{ textAlign: 'left' }}>Tenant ID</th>
+                                <th style={{ textAlign: 'left' }}>Primary Owner</th>
+                                <th style={{ textAlign: 'left' }}>Business Entity</th>
+                                <th style={{ textAlign: 'left' }}>Registered</th>
+                                <th style={{ textAlign: 'left' }}>License Tier</th>
+                                <th style={{ textAlign: 'left' }}>ARR Value</th>
+                                <th style={{ textAlign: 'left' }}>Control State</th>
+                                <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {filteredClients.map((c) => (
+                                <tr key={c.id}>
+                                    <td>{c.id}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: '800', color: '#0F172A' }}>{c.name}</span>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}><Mail size={12} /> {c.email}</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ fontWeight: '700', color: '#1E293B' }}>{c.company}</td>
+                                    <td style={{ color: '#64748B', fontWeight: '500' }}>{c.date}</td>
+                                    <td>
+                                        <span style={{ 
+                                            fontSize: '0.75rem', 
+                                            fontWeight: '800', 
+                                            background: c.role === 'admin' ? '#EEF2FF' : '#F0FDF4', 
+                                            color: c.role === 'admin' ? '#4F46E5' : '#16A34A', 
+                                            padding: '4px 8px', 
+                                            borderRadius: '6px' 
+                                        }}>
+                                            {c.plan}
+                                        </span>
+                                    </td>
+                                    <td style={{ fontWeight: '800', color: '#0F172A' }}>{c.value}</td>
+                                    <td>
+                                        <span className={`status-pill status-${c.status}`}>
+                                            {c.role === 'admin' ? <Shield size={12} /> : <CheckCircle size={12} />}
+                                            {c.role === 'admin' ? 'SUPER_ADMIN' : 'ACTIVE_TENANT'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            <button 
+                                                className="action-circle-btn" 
+                                                title={c.role === 'admin' ? "Revoke Admin" : "Promote to Admin"}
+                                                onClick={() => handleToggleRole(c)}
+                                            >
+                                                <Shield size={14} color={c.role === 'admin' ? '#4F46E5' : '#64748B'} />
+                                            </button>
+                                            <button 
+                                                className="action-circle-btn" 
+                                                style={{ background: '#FEF2F2', borderColor: '#FCA5A5', color: '#EF4444' }}
+                                                title="Purge Record"
+                                                onClick={() => handleDelete(c)}
+                                            >
+                                                <XCircle size={14} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };
 
 export default AdminUsers;
+

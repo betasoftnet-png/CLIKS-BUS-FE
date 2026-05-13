@@ -27,6 +27,4 @@ export * from './accountingService';
 export * from './gstService';
 export * from './reportsService';
 export * from './expensesService';
-
-
-
+export * from './adminService';
