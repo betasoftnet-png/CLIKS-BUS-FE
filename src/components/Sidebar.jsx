@@ -140,41 +140,41 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/admin/moderation')) return 'Feed Monitor';
         if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
-        if (path.includes('/business/pos')) return 'POS Billing';
-        if (path.includes('/business/dashboard')) return 'Dashboard';
-        if (path.includes('/business/billing')) return 'Sales Invoice';
-        if (path.includes('/business/orders')) return 'Orders';
-        if (path.includes('/business/delivery')) return 'Delivery';
-        if (path.includes('/business/crm')) return 'Customers';
-        if (path.includes('/business/returns')) return 'Returns';
-        if (path.includes('/business/inventory')) return 'Products';
-        if (path.includes('/business/barcode')) return 'Barcode Gen';
-        if (path.includes('/business/stock')) return 'Stock';
-        if (path.includes('/business/purchases')) return 'Purchases';
-        if (path.includes('/business/suppliers')) return 'Suppliers';
-        if (path.includes('/business/warehouse')) return 'Warehouse';
-        if (path.includes('/business/accounting')) return 'Accounting';
-        if (path.includes('/business/payments')) return 'Transaction';
-        if (path.includes('/business/segregation')) return 'Split & Collect';
-        if (path.includes('/business/referral')) return 'Refer & Earn';
-        if (path.includes('/business/bank-accounts')) return 'Bank Accounts';
-        if (path.includes('/business/expenses')) return 'Expenses';
-        if (path.includes('/business/reports')) return 'Reports';
-        if (path.includes('/business/gst')) return 'GST';
-        if (path.includes('/business/staffing')) return 'Staff';
-        if (path.includes('/business/attendance')) return 'Attendance';
-        if (path.includes('/business/payroll')) return 'Payroll';
-        if (path.includes('/business/marketing')) return 'Marketing';
-        if (path.includes('/business/investors')) return 'Investors';
-        if (path.includes('/business/meetup')) return 'Meetup';
+        if (path.includes('/sales/pos')) return 'POS Billing';
+        if (path.includes('/dashboard')) return 'Dashboard';
+        if (path.includes('/sales/invoice')) return 'Sales Invoice';
+        if (path.includes('/sales/orders')) return 'Orders';
+        if (path.includes('/sales/delivery')) return 'Delivery';
+        if (path.includes('/sales/customers')) return 'Customers';
+        if (path.includes('/sales/returns')) return 'Returns';
+        if (path.includes('/inventory/products')) return 'Products';
+        if (path.includes('/inventory/barcode')) return 'Barcode Gen';
+        if (path.includes('/inventory/stock')) return 'Stock';
+        if (path.includes('/purchases/purchases')) return 'Purchases';
+        if (path.includes('/purchases/suppliers')) return 'Suppliers';
+        if (path.includes('/inventory/warehouse')) return 'Warehouse';
+        if (path.includes('/finance/accounting')) return 'Accounting';
+        if (path.includes('/payments/transaction')) return 'Transaction';
+        if (path.includes('/payments/split-collect')) return 'Split & Collect';
+        if (path.includes('/referral')) return 'Refer & Earn';
+        if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
+        if (path.includes('/finance/expenses')) return 'Expenses';
+        if (path.includes('/reports')) return 'Reports';
+        if (path.includes('/finance/gst')) return 'GST';
+        if (path.includes('/hr/staff')) return 'Staff';
+        if (path.includes('/hr/attendance')) return 'Attendance';
+        if (path.includes('/hr/payroll')) return 'Payroll';
+        if (path.includes('/marketing')) return 'Marketing';
+        if (path.includes('/social/investors')) return 'Investors';
+        if (path.includes('/social/meetup')) return 'Meetup';
         if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
         if (path.includes('/faq')) return 'Help & Support';
         return 'Dashboard';
     };
 
-    const isSocialMode = location.pathname.includes('/business/investors') || location.pathname.includes('/business/meetup');
-    const isFinanceMode = location.pathname.includes('/business/payments') || location.pathname.includes('/business/segregation') || location.pathname.includes('/business/referral') || location.pathname.includes('/business/bank-accounts');
+    const isSocialMode = location.pathname.startsWith('/social/');
+    const isFinanceMode = location.pathname.startsWith('/payments/') || location.pathname === '/referral';
     const isAdminMode = location.pathname.includes('/admin/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
@@ -189,66 +189,66 @@ const Sidebar = ({ isOpen, onClose }) => {
             { label: 'Engine Overrides', icon: Sliders, path: '/admin/settings' }
         ],
         standard: [
-            { label: 'Dashboard', icon: LayoutDashboard, path: '/business/dashboard' },
+            { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
             {
                 label: 'Finance',
                 icon: Banknote,
                 children: [
-                    { label: 'Accounting', icon: Calculator, path: '/business/accounting' },
-                    { label: 'Expenses', icon: TrendingUp, path: '/business/expenses' },
-                    { label: 'GST', icon: PercentCircle, path: '/business/gst' }
+                    { label: 'Accounting', icon: Calculator, path: '/finance/accounting' },
+                    { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses' },
+                    { label: 'GST', icon: PercentCircle, path: '/finance/gst' }
                 ]
             },
             {
                 label: 'Sales',
                 icon: ShoppingCart,
                 children: [
-                    { label: 'Sales Invoice', icon: Receipt, path: '/business/billing' },
-                    { label: 'Orders', icon: ShoppingCart, path: '/business/orders' },
-                    { label: 'Customers', icon: Users, path: '/business/crm' },
-                    { label: 'Returns', icon: ArrowDownRight, path: '/business/returns' }
+                    { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice' },
+                    { label: 'Orders', icon: ShoppingCart, path: '/sales/orders' },
+                    { label: 'Customers', icon: Users, path: '/sales/customers' },
+                    { label: 'Returns', icon: ArrowDownRight, path: '/sales/returns' }
                 ]
             },
             {
                 label: 'Purchases',
                 icon: ShoppingCart,
                 children: [
-                    { label: 'Purchases', icon: ShoppingCart, path: '/business/purchases' },
-                    { label: 'Suppliers', icon: UsersRound, path: '/business/suppliers' }
+                    { label: 'Purchases', icon: ShoppingCart, path: '/purchases/purchases' },
+                    { label: 'Suppliers', icon: UsersRound, path: '/purchases/suppliers' }
                 ]
             },
             {
                 label: 'Inventory',
                 icon: Package,
                 children: [
-                    { label: 'Products', icon: Package, path: '/business/inventory' },
-                    { label: 'Stock', icon: Layers, path: '/business/stock' },
-                    { label: 'Warehouse', icon: MapPin, path: '/business/warehouse' }
+                    { label: 'Products', icon: Package, path: '/inventory/products' },
+                    { label: 'Stock', icon: Layers, path: '/inventory/stock' },
+                    { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse' }
                 ]
             },
             {
                 label: 'HR',
                 icon: UsersRound,
                 children: [
-                    { label: 'Staff', icon: UsersRound, path: '/business/staffing' },
-                    { label: 'Attendance', icon: Calendar, path: '/business/attendance' },
-                    { label: 'Payroll', icon: FileCheck, path: '/business/payroll' }
+                    { label: 'Staff', icon: UsersRound, path: '/hr/staff' },
+                    { label: 'Attendance', icon: Calendar, path: '/hr/attendance' },
+                    { label: 'Payroll', icon: FileCheck, path: '/hr/payroll' }
                 ]
             },
-            { label: 'POS Billing', icon: Monitor, path: '/business/pos' },
-            { label: 'Reports', icon: BarChart3, path: '/business/reports' },
-            { label: 'Barcode Gen', icon: Barcode, path: '/business/barcode' },
-            { label: 'Marketing', icon: Megaphone, path: '/business/marketing' }
+            { label: 'POS Billing', icon: Monitor, path: '/sales/pos' },
+            { label: 'Reports', icon: BarChart3, path: '/reports' },
+            { label: 'Barcode Gen', icon: Barcode, path: '/inventory/barcode' },
+            { label: 'Marketing', icon: Megaphone, path: '/marketing' }
 
         ],
         social: [
-            { label: 'Investors', icon: UsersRound, path: '/business/investors' },
-            { label: 'Meetup', icon: Calendar, path: '/business/meetup' }
+            { label: 'Investors', icon: UsersRound, path: '/social/investors' },
+            { label: 'Meetup', icon: Calendar, path: '/social/meetup' }
         ],
         financeMode: [
-            { label: 'Transaction', icon: CreditCard, path: '/business/payments' },
-            { label: 'Bank Accounts', icon: Building, path: '/business/bank-accounts' },
-            { label: 'Split & Collect', icon: Split, path: '/business/segregation' }
+            { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
+            { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' },
+            { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' }
         ]
     };
 
@@ -332,7 +332,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 {item.label === 'Dashboard' && (
                                     <>
                                         <button 
-                                            onClick={() => handleItemClick('Generate Invoice', '/business/billing?create=true')}
+                                            onClick={() => handleItemClick('Generate Invoice', '/sales/invoice?create=true')}
                                             style={{ 
                                                 width: '100%', padding: '0.75rem', borderRadius: '10px', 
                                                 background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)', 
@@ -367,7 +367,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
                 {!isSocialMode && !isFinanceMode && !isAdminMode && (
                     <button
-                        onClick={() => handleItemClick('Subscription', '/business/subscription')}
+                        onClick={() => handleItemClick('Subscription', '/subscription')}
                         style={{
                             width: '100%',
                             display: 'flex',
@@ -438,7 +438,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {/* Refer & Earn Block */}
                 {(isFinanceMode || isSocialMode) && (
                     <button
-                        onClick={() => handleItemClick('Refer & Earn', '/business/referral')}
+                        onClick={() => handleItemClick('Refer & Earn', '/referral')}
                         style={{
                             width: '100%',
                             display: 'flex',

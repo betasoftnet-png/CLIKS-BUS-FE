@@ -22,13 +22,13 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         navigate('/');
     };
 
-    const isSocialActive = location.pathname.includes('/business/investors') || location.pathname.includes('/business/meetup');
-    const isFinanceActive = location.pathname.includes('/business/payments') || location.pathname.includes('/business/segregation') || location.pathname.includes('/business/referral') || location.pathname.includes('/business/bank-accounts');
+    const isSocialActive = location.pathname.startsWith('/social/');
+    const isFinanceActive = location.pathname.startsWith('/payments/') || location.pathname === '/referral';
 
     const navItems = [
-        { name: 'Books', url: '/business/dashboard', icon: BookOpen, active: !isSocialActive && !isFinanceActive },
-        { name: 'Payments', url: '/business/payments', icon: Calculator, active: isFinanceActive },
-        { name: 'Social', url: '/business/investors', icon: Users, active: isSocialActive },
+        { name: 'Books', url: '/dashboard', icon: BookOpen, active: !isSocialActive && !isFinanceActive },
+        { name: 'Payments', url: '/payments/transaction', icon: Calculator, active: isFinanceActive },
+        { name: 'Social', url: '/social/investors', icon: Users, active: isSocialActive },
     ];
 
     return (

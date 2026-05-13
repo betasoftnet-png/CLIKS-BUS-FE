@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { inventoryService } from '../services/inventoryService';
+import { productsService } from '../services/productsService';
 import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
 import '../App.css';
@@ -49,10 +50,54 @@ const BusinessPOS = () => {
     
     const customerInputRef = useRef(null);
 
-    // 1. Fetch Inventory Items
+    // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products)
     const { data: inventory = [], isLoading: isInventoryLoading } = useQuery({
-        queryKey: ['inventory'],
-        queryFn: inventoryService.getInventory
+        queryKey: ['pos-catalog'],
+        queryFn: async () => {
+            try {
+                const [invRes, prodRes] = await Promise.all([
+                    inventoryService.getInventory().catch(() => []),
+                    productsService.getProducts().catch(() => [])
+                ]);
+
+                // Format Legacy Inventory items
+                const legacyItems = (invRes || []).map(i => ({
+                    id: i.id,
+                    name: i.name,
+                    sku: i.sku,
+                    price: parseFloat(i.price) || 0,
+                    quantity: parseFloat(i.quantity) || 0,
+                    category: i.category || 'General',
+                    source: 'inventory'
+                }));
+
+                // Format Central Catalog Products
+                const catalogItems = (prodRes || []).map(p => ({
+                    id: p.id,
+                    name: p.product_name || p.name,
+                    sku: p.sku || p.hsn_code,
+                    price: parseFloat(p.selling_price) || parseFloat(p.price) || 0,
+                    quantity: parseFloat(p.stock) || parseFloat(p.quantity) || 0,
+                    category: p.category_name || p.category || 'General',
+                    source: 'products'
+                }));
+
+                // Aggregate and de-duplicate by exact case-insensitive name
+                const allItems = [...catalogItems, ...legacyItems];
+                const uniqueMap = new Map();
+                allItems.forEach(item => {
+                    if (!item.name) return;
+                    const key = item.name.toLowerCase().trim();
+                    if (!uniqueMap.has(key)) {
+                        uniqueMap.set(key, item);
+                    }
+                });
+                return Array.from(uniqueMap.values());
+            } catch (err) {
+                console.error('[POS Unified Fetch] Error aggregating catalog:', err);
+                return [];
+            }
+        }
     });
 
     // 2. Fetch Today's Summary
@@ -86,7 +131,7 @@ const BusinessPOS = () => {
             setDiscountVal(0);
             
             // Refetch to reflect updated inventory & stats
-            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             refetchSummary();
         },

@@ -47,7 +47,7 @@ const Landing = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/business/dashboard', { replace: true });
+            navigate('/dashboard', { replace: true });
         }
     }, [isAuthenticated, user, navigate]);
 

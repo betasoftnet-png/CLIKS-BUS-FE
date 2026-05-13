@@ -84,7 +84,7 @@ function AppContent() {
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     {/* Root Redirect */}
-                    <Route path="/" element={<Navigate to="/business/dashboard" replace />} />
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/settings" element={<Settings />} />
@@ -97,39 +97,39 @@ function AppContent() {
                     <Route path="/admin/logs" element={<AdminAuditLogs />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
 
-                    {/* Business Section */}
-                    <Route path="/business/dashboard" element={<BusinessDashboard />} />
-                    <Route path="/business/inventory" element={<BusinessInventory />} />
-                    <Route path="/business/barcode" element={<BusinessBarcode />} />
-                    <Route path="/business/billing" element={<BusinessBilling />} />
-                    <Route path="/business/orders" element={<BusinessSalesOrders />} />
-                    <Route path="/business/purchases" element={<BusinessPurchases />} />
-                    <Route path="/business/plan" element={<BusinessFinancialPlan />} />
-                    <Route path="/business/compare" element={<BusinessCompare />} />
-                    <Route path="/business/staffing" element={<BusinessStaffing />} />
-                    <Route path="/business/attendance" element={<BusinessAttendance />} />
-                    <Route path="/business/payroll" element={<BusinessPayroll />} />
-                    <Route path="/business/segregation" element={<BusinessSegregation />} />
-                    <Route path="/business/crm" element={<BusinessCRM />} />
-                    <Route path="/business/returns" element={<BusinessReturns />} />
-                    <Route path="/business/stock" element={<BusinessStock />} />
-                    <Route path="/business/suppliers" element={<BusinessSuppliers />} />
-                    <Route path="/business/payments" element={<BusinessPayments />} />
-                    <Route path="/business/bank-accounts" element={<BusinessBankAccounts />} />
-                    <Route path="/business/expenses" element={<BusinessExpenses />} />
-                    <Route path="/business/warehouse" element={<BusinessWarehouse />} />
-                    <Route path="/business/accounting" element={<BusinessAccounting />} />
-                    <Route path="/business/gst" element={<BusinessGST />} />
-                    <Route path="/business/marketing" element={<BusinessMarketing />} />
-                    <Route path="/business/delivery" element={<BusinessDelivery />} />
-                    <Route path="/business/manufacturing" element={<BusinessManufacturing />} />
-                    <Route path="/business/reports" element={<BusinessReports />} />
-                    <Route path="/business/pos" element={<BusinessPOS />} />
-                    <Route path="/business/customization" element={<BusinessCustomization />} />
-                    <Route path="/business/subscription" element={<BusinessSubscription />} />
-                    <Route path="/business/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
-                    <Route path="/business/investors" element={<BusinessPlaceholder title="Business Investors" />} />
-                    <Route path="/business/referral" element={<BusinessPlaceholder title="Refer & Earn" />} />
+                    {/* Restructured Business Modules */}
+                    <Route path="/dashboard" element={<BusinessDashboard />} />
+                    <Route path="/inventory/products" element={<BusinessInventory />} />
+                    <Route path="/inventory/barcode" element={<BusinessBarcode />} />
+                    <Route path="/sales/invoice" element={<BusinessBilling />} />
+                    <Route path="/sales/orders" element={<BusinessSalesOrders />} />
+                    <Route path="/purchases/purchases" element={<BusinessPurchases />} />
+                    <Route path="/finance/plan" element={<BusinessFinancialPlan />} />
+                    <Route path="/finance/compare" element={<BusinessCompare />} />
+                    <Route path="/hr/staff" element={<BusinessStaffing />} />
+                    <Route path="/hr/attendance" element={<BusinessAttendance />} />
+                    <Route path="/hr/payroll" element={<BusinessPayroll />} />
+                    <Route path="/payments/split-collect" element={<BusinessSegregation />} />
+                    <Route path="/sales/customers" element={<BusinessCRM />} />
+                    <Route path="/sales/returns" element={<BusinessReturns />} />
+                    <Route path="/inventory/stock" element={<BusinessStock />} />
+                    <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
+                    <Route path="/payments/transaction" element={<BusinessPayments />} />
+                    <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} />
+                    <Route path="/finance/expenses" element={<BusinessExpenses />} />
+                    <Route path="/inventory/warehouse" element={<BusinessWarehouse />} />
+                    <Route path="/finance/accounting" element={<BusinessAccounting />} />
+                    <Route path="/finance/gst" element={<BusinessGST />} />
+                    <Route path="/marketing" element={<BusinessMarketing />} />
+                    <Route path="/sales/delivery" element={<BusinessDelivery />} />
+                    <Route path="/manufacturing" element={<BusinessManufacturing />} />
+                    <Route path="/reports" element={<BusinessReports />} />
+                    <Route path="/sales/pos" element={<BusinessPOS />} />
+                    <Route path="/customization" element={<BusinessCustomization />} />
+                    <Route path="/subscription" element={<BusinessSubscription />} />
+                    <Route path="/social/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
+                    <Route path="/social/investors" element={<BusinessPlaceholder title="Business Investors" />} />
+                    <Route path="/referral" element={<BusinessPlaceholder title="Refer & Earn" />} />
                   </Routes>
                 </Suspense>
               </MainLayout>

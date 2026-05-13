@@ -48,7 +48,7 @@ const Auth = () => {
 
             // 2. Perform SSO Login with backend
             await ssoLogin(bnxToken, 'BUSINESS');
-            navigate('/business/dashboard');
+            navigate('/dashboard');
         } catch (err) {
             console.error('SSO Exchange error:', err);
             setError('Authentication failed. Please try again.');

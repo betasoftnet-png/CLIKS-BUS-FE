@@ -58,7 +58,7 @@ const Settings = () => {
                     <p style={{ color: '#64748B' }}>Manage your application preferences and system configurations.</p>
                 </div>
                 <button 
-                    onClick={() => navigate('/business/customization')}
+                    onClick={() => navigate('/customization')}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '0.5rem',
                         background: 'white', border: '1px solid #e2e8f0',
