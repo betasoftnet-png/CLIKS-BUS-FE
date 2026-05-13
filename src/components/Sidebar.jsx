@@ -34,7 +34,11 @@ import {
     HelpCircle,
     Receipt,
     Crown,
-    Monitor
+    Monitor,
+    Globe,
+    Sliders,
+    Activity,
+    ShieldAlert
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
@@ -131,6 +135,9 @@ const Sidebar = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
 
     const getActiveItemFromPath = (path) => {
+        if (path.includes('/admin/dashboard')) return 'Admin Console';
+        if (path.includes('/admin/users')) return 'Tenant Matrix';
+        if (path.includes('/admin/settings')) return 'Engine Overrides';
         if (path.includes('/business/pos')) return 'POS Billing';
         if (path.includes('/business/dashboard')) return 'Dashboard';
         if (path.includes('/business/billing')) return 'Sales Invoice';
@@ -166,11 +173,17 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const isSocialMode = location.pathname.includes('/business/investors') || location.pathname.includes('/business/meetup');
     const isFinanceMode = location.pathname.includes('/business/payments') || location.pathname.includes('/business/segregation') || location.pathname.includes('/business/referral') || location.pathname.includes('/business/bank-accounts');
+    const isAdminMode = location.pathname.includes('/admin/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
     const [openMenus, setOpenMenus] = useState({});
 
     const navigationConfig = {
+        admin: [
+            { label: 'Admin Console', icon: Activity, path: '/admin/dashboard' },
+            { label: 'Tenant Matrix', icon: Users, path: '/admin/users' },
+            { label: 'Engine Overrides', icon: Sliders, path: '/admin/settings' }
+        ],
         standard: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/business/dashboard' },
             {
@@ -275,7 +288,30 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
 
             <nav className="sidebar-nav" style={{ overflowY: 'auto', padding: '0.75rem' }}>
-                {isSocialMode ? (
+                {isAdminMode ? (
+                    <>
+                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>PLATFORM CONTROL</div>
+                        {navigationConfig.admin.map(item => (
+                            <button
+                                key={item.label}
+                                className={`sidebar-item ${activeItem === item.label ? 'active' : ''}`}
+                                onClick={() => handleItemClick(item.label, item.path)}
+                                style={{ 
+                                    marginBottom: '6px',
+                                    background: activeItem === item.label ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'transparent',
+                                    color: activeItem === item.label ? '#ffffff' : '#1E293B',
+                                    boxShadow: activeItem === item.label ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <item.icon size={20} style={{ color: activeItem === item.label ? '#ffffff' : '#4F46E5' }} />
+                                    <span className="sidebar-label" style={{ fontWeight: 750 }}>{item.label}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </>
+                ) : isSocialMode ? (
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
                         {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
@@ -326,7 +362,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 background: '#FFFFFF'
             }}>
                 {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
-                {!isSocialMode && !isFinanceMode && (
+                {!isSocialMode && !isFinanceMode && !isAdminMode && (
                     <button
                         onClick={() => handleItemClick('Subscription', '/business/subscription')}
                         style={{

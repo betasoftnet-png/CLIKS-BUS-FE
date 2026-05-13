@@ -12,6 +12,11 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import FAQ from './pages/FAQ';
 
+// Admin Section Imports
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminSettings from './pages/admin/AdminSettings';
+
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
 import BusinessInventory from './pages/BusinessInventory';
@@ -75,6 +80,11 @@ function AppContent() {
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/faq" element={<FAQ />} />
+
+                    {/* Admin Control Center */}
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/settings" element={<AdminSettings />} />
 
                     {/* Business Section */}
                     <Route path="/business/dashboard" element={<BusinessDashboard />} />
