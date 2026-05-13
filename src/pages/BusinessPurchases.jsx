@@ -314,11 +314,11 @@ const BusinessPurchases = () => {
         bill.purchase_number.includes(searchTerm)
     );
 
-    // Report aggregates
-    const totalOutwardPayments = purchaseBills.reduce((acc, bill) => acc + (bill.grand_total || 0), 0);
+    // Report aggregates (Parse floats explicitly to prevent string concatenation / floating-point leaks)
+    const totalOutwardPayments = purchaseBills.reduce((acc, bill) => acc + (parseFloat(bill.grand_total) || 0), 0);
     const activePurchaseOrdersCount = purchaseOrders.filter(po => po.status !== 'Completed').length;
-    const inputGstCreditSum = purchaseBills.reduce((acc, b) => acc + (b.total_tax || 0), 0);
-    const totalReturnedRefundsSum = purchaseReturns.reduce((acc, r) => acc + r.returned_items.reduce((sum, item) => sum + item.refund_amount, 0), 0);
+    const inputGstCreditSum = purchaseBills.reduce((acc, b) => acc + (parseFloat(b.total_tax) || 0), 0);
+    const totalReturnedRefundsSum = purchaseReturns.reduce((acc, r) => acc + r.returned_items.reduce((sum, item) => sum + (parseFloat(item.refund_amount) || 0), 0), 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
@@ -358,10 +358,10 @@ const BusinessPurchases = () => {
             {/* Vyapar ERP Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Outward Procurement (At Cost)', value: `₹${totalOutwardPayments.toLocaleString()}`, icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Outward Procurement (At Cost)', value: `₹${Math.round(totalOutwardPayments).toLocaleString()}`, icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Active PO Cycles', value: activePurchaseOrdersCount, icon: ShoppingCart, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Claimable Input Tax Credit (ITC)', value: `₹${inputGstCreditSum.toLocaleString()}`, icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
-                    { label: 'Refund Adjustments', value: `₹${totalReturnedRefundsSum.toLocaleString()}`, icon: RefreshCw, color: '#10B981', bg: '#ECFDF5' }
+                    { label: 'Claimable Input Tax Credit (ITC)', value: `₹${Number(inputGstCreditSum).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
+                    { label: 'Refund Adjustments', value: `₹${Math.round(totalReturnedRefundsSum).toLocaleString()}`, icon: RefreshCw, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
