@@ -166,7 +166,7 @@ const BusinessPurchases = () => {
     };
 
     const handleItemChange = (index, field, val) => {
-        setFormItems(formItems.map((item, idx) => idx === index ? { ...item, [field]: val } : item));
+        setFormItems(prev => prev.map((item, idx) => idx === index ? { ...item, [field]: val } : item));
     };
 
     // Calculate detailed document summary totals dynamically
@@ -769,11 +769,17 @@ const BusinessPurchases = () => {
                                                     const selectedId = e.target.value;
                                                     const prod = catalogProducts.find(p => String(p.id || p.product_id) === String(selectedId));
                                                     if (prod) {
-                                                        handleItemChange(idx, 'product_id', prod.id || prod.product_id);
-                                                        handleItemChange(idx, 'product_name', prod.name || prod.product_name);
-                                                        handleItemChange(idx, 'sku', prod.sku || '');
-                                                        handleItemChange(idx, 'purchase_price', parseFloat(prod.purchase_price || prod.price || 0));
-                                                        handleItemChange(idx, 'primary_unit', prod.primary_unit || 'pcs');
+                                                        // Atomic Batch State Update to prevent React async clobbering
+                                                        setFormItems(prev => prev.map((formItem, itemIdx) => 
+                                                            itemIdx === idx ? { 
+                                                                ...formItem, 
+                                                                product_id: prod.id || prod.product_id,
+                                                                product_name: prod.name || prod.product_name,
+                                                                sku: prod.sku || '',
+                                                                purchase_price: parseFloat(prod.purchase_price || prod.price || 0),
+                                                                primary_unit: prod.primary_unit || 'pcs'
+                                                            } : formItem
+                                                        ));
                                                     }
                                                 }} 
                                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#1B6B3A' }}
