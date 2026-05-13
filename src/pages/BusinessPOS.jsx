@@ -805,7 +805,7 @@ const BusinessPOS = () => {
                                 <Check size={24} strokeWidth={3} />
                             </div>
                             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Payment Successful!</h3>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData.invoice_number} generated</p>
+                            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
                         </div>
 
                         {/* Thermal Receipt Workspace (to print) */}
@@ -813,16 +813,16 @@ const BusinessPOS = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000' }}>
                                 <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', textTransform: 'uppercase' }}>CLIKS BUSINESS POS</h4>
                                 <p style={{ margin: 0, fontSize: '0.75rem' }}>Phone: +91 98765 43210</p>
-                                <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData.invoice_number}</p>
+                                <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
                                 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
                                 
                                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
-                                    <span>Date: {new Date(lastOrderData.created_at).toLocaleDateString()}</span>
-                                    <span>Time: {new Date(lastOrderData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span>Date: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
+                                    <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                 </div>
                                 <div style={{ width: '100%', textAlign: 'left', fontSize: '0.75rem', marginBottom: '8px' }}>
-                                    <span>Customer: {lastOrderData.client_name}</span>
+                                    <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
                                 </div>
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '4px 0 8px' }} />
@@ -837,11 +837,11 @@ const BusinessPOS = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {lastOrderData.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items).map((item, i) => (
+                                        {((lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || []).map((item, i) => (
                                             <tr key={i}>
-                                                <td style={{ padding: '4px 0', maxWidth: '140px', overflow: 'hidden' }}>{item.description}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'center' }}>{item.quantity}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item.total}</td>
+                                                <td style={{ padding: '4px 0', maxWidth: '140px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
+                                                <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0}</td>
+                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item?.total || item?.amount || 0}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -853,9 +853,9 @@ const BusinessPOS = () => {
                                 <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>SUBTOTAL:</span>
-                                        <span>₹{lastOrderData.amount}</span>
+                                        <span>₹{lastOrderData?.amount || 0}</span>
                                     </div>
-                                    {lastOrderData.discount_amount > 0 && (
+                                    {lastOrderData?.discount_amount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span>DISCOUNT:</span>
                                             <span>- ₹{lastOrderData.discount_amount}</span>
@@ -863,16 +863,16 @@ const BusinessPOS = () => {
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>TAX (GST):</span>
-                                        <span>₹{lastOrderData.tax_amount}</span>
+                                        <span>₹{lastOrderData?.tax_amount || 0}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
                                         <span>GRAND TOTAL:</span>
-                                        <span>₹{lastOrderData.total_amount}</span>
+                                        <span>₹{lastOrderData?.total_amount || 0}</span>
                                     </div>
                                 </div>
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
-                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {lastOrderData.payment_mode.toUpperCase()}</p>
+                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
                                 <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>Thank you for your business!</p>
                             </div>
                         </div>
