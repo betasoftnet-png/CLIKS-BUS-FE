@@ -49,6 +49,7 @@ import BusinessManufacturing from './pages/BusinessManufacturing';
 import BusinessSubscription from './pages/BusinessSubscription';
 import BusinessBarcode from './pages/BusinessBarcode';
 import BusinessCustomization from './pages/BusinessCustomization';
+import BusinessPOS from './pages/BusinessPOS';
 
 import './App.css';
 
@@ -123,7 +124,7 @@ function AppContent() {
                     <Route path="/business/delivery" element={<BusinessDelivery />} />
                     <Route path="/business/manufacturing" element={<BusinessManufacturing />} />
                     <Route path="/business/reports" element={<BusinessReports />} />
-                    <Route path="/business/pos" element={<BusinessPlaceholder title="POS Billing" />} />
+                    <Route path="/business/pos" element={<BusinessPOS />} />
                     <Route path="/business/customization" element={<BusinessCustomization />} />
                     <Route path="/business/subscription" element={<BusinessSubscription />} />
                     <Route path="/business/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
