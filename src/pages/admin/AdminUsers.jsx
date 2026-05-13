@@ -29,19 +29,28 @@ const AdminUsers = () => {
             const backendUsers = await adminService.getUsers(1, 100);
             
             // Adapt backend schema to visual UI grid
-            const mapped = backendUsers.map(u => ({
-                id: `CLI-${String(u.id).padStart(4, '0')}`,
-                realId: u.id,
-                name: u.username,
-                company: u.business_name || 'Independent Entrepreneur',
-                email: u.email,
-                date: u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : 'May 12, 2026',
-                plan: u.role === 'admin' ? 'Platform SuperAdmin' : 'Growth Tier',
-                status: 'Active',
-                value: u.role === 'admin' ? 'Unlimited' : '$450',
-                role: u.role
-            }));
+            const mapped = backendUsers.map(u => {
+                const isActive = (u.is_active === true || u.is_active === 1 || u.is_active === 'true');
+                const arrFormatted = u.total_arr > 0 
+                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(u.total_arr) 
+                    : '$0';
+
+                return {
+                    id: `CLI-${String(u.id).padStart(4, '0')}`,
+                    realId: u.id,
+                    name: u.username,
+                    company: u.business_name || 'Independent Entrepreneur',
+                    email: u.email,
+                    date: u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : 'May 12, 2026',
+                    plan: u.role === 'admin' ? 'Platform SuperAdmin' : (u.license_tier || 'Growth Tier'),
+                    status: isActive ? 'Active' : 'Suspended',
+                    value: u.role === 'admin' ? 'Unlimited' : arrFormatted,
+                    role: u.role,
+                    isActive
+                };
+            });
             setClients(mapped);
+
         } catch (err) {
             console.error("Load users error:", err);
             // Maintain mock fallback in case API isn't actively serving
@@ -267,10 +276,11 @@ const AdminUsers = () => {
                                     <td style={{ fontWeight: '800', color: '#0F172A' }}>{c.value}</td>
                                     <td>
                                         <span className={`status-pill status-${c.status}`}>
-                                            {c.role === 'admin' ? <Shield size={12} /> : <CheckCircle size={12} />}
-                                            {c.role === 'admin' ? 'SUPER_ADMIN' : 'ACTIVE_TENANT'}
+                                            {c.role === 'admin' ? <Shield size={12} /> : (c.isActive ? <CheckCircle size={12} /> : <XCircle size={12} />)}
+                                            {c.role === 'admin' ? 'SUPER_ADMIN' : (c.isActive ? 'ACTIVE_TENANT' : 'SUSPENDED')}
                                         </span>
                                     </td>
+
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                             <button 

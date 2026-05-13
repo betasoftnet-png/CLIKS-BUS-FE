@@ -11,7 +11,12 @@ import App from './App.jsx'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        const status = error?.response?.status || error?.status;
+        if (status === 401 || status === 403) return false; // Suppress auth retry loops
+        return failureCount < 1;
+      },
+
       refetchOnWindowFocus: false,
     },
   },

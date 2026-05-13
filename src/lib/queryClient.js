@@ -25,9 +25,16 @@ const defaultQueryOptions = {
         // Allows instant display when revisiting pages
         gcTime: 30 * 60 * 1000, // 30 minutes (formerly cacheTime)
 
-        // Retry failed requests up to 3 times with exponential backoff
-        retry: 3,
+        // Retry failed requests up to 3 times with exponential backoff (except for auth failures)
+        retry: (failureCount, error) => {
+            const status = error?.response?.status || error?.status;
+            if (status === 401 || status === 403) {
+                return false; // Halt automatic retries on authorization/permission failures
+            }
+            return failureCount < 3;
+        },
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+
 
         // Don't refetch on window focus in development (less noise)
         // Enable in production for fresher data
