@@ -436,7 +436,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 )}
 
                 {/* Refer & Earn Block */}
-                {isFinanceMode && (
+                {(isFinanceMode || isSocialMode) && (
                     <button
                         onClick={() => handleItemClick('Refer & Earn', '/business/referral')}
                         style={{
@@ -444,25 +444,70 @@ const Sidebar = ({ isOpen, onClose }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '0.75rem 1rem',
-                            background: location.pathname.includes('/business/referral') ? '#F0FDF4' : '#F8FAFC',
-                            color: location.pathname.includes('/business/referral') ? '#1B6B3A' : '#334155',
-                            borderRadius: '10px',
-                            border: '1px solid',
-                            borderColor: location.pathname.includes('/business/referral') ? '#BBF7D0' : '#E2E8F0',
+                            padding: '0.6rem 0.75rem 0.6rem 0.85rem',
+                            background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
+                            color: '#FFFFFF',
+                            borderRadius: '12px',
+                            border: 'none',
+                            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.25)',
                             cursor: 'pointer',
-                            fontWeight: '700',
+                            fontWeight: '800',
                             fontSize: '0.85rem',
-                            transition: 'background 0.2s'
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            minHeight: '48px'
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/business/referral') ? '#F0FDF4' : '#F1F5F9'}
-                        onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/business/referral') ? '#F0FDF4' : '#F8FAFC'}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 18px rgba(139, 92, 246, 0.35)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.25)';
+                        }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <Gift size={18} style={{ opacity: 0.8 }} />
-                            <span>Refer & Earn</span>
+                        {/* Background ambient accent circle */}
+                        <div style={{
+                            position: 'absolute',
+                            right: '-10px',
+                            bottom: '-10px',
+                            width: '50px',
+                            height: '50px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            zIndex: 0
+                        }} />
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 1 }}>
+                            <div style={{ 
+                                background: 'rgba(255, 255, 255, 0.2)', 
+                                padding: '6px', 
+                                borderRadius: '8px', 
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                            }}>
+                                <Gift size={18} strokeWidth={2.5} color="#FFFFFF" />
+                            </div>
+                            <span style={{ fontWeight: '800', letterSpacing: '0.2px', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Refer & Earn</span>
                         </div>
-                        <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                        
+                        <div style={{ 
+                            background: '#FFFFFF', 
+                            color: '#6366F1', 
+                            padding: '2px 8px', 
+                            borderRadius: '20px', 
+                            fontSize: '0.7rem', 
+                            fontWeight: '900',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            zIndex: 1,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                        }}>
+                            Earn
+                        </div>
                     </button>
                 )}
 
