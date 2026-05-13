@@ -48,6 +48,16 @@ const BusinessPOS = () => {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [lastOrderData, setLastOrderData] = useState(null);
     
+    const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+    const [newProductData, setNewProductData] = useState({
+        name: '',
+        sku: `SKU-${Date.now().toString().slice(-4)}`,
+        category: 'General',
+        selling_price: '',
+        quantity: '',
+        tax_percentage: 18
+    });
+    
     const customerInputRef = useRef(null);
 
     // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products)
@@ -139,6 +149,29 @@ const BusinessPOS = () => {
             console.error('Checkout failed:', error);
             alert('Checkout failed. Please try again.');
             setIsCheckingOut(false);
+        }
+    });
+
+    // 5. Quick Product Creation Mutation (Instant Catalog Injection)
+    const createProductMutation = useMutation({
+        mutationFn: (data) => productsService.createProduct(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            alert('New product added to POS catalog successfully!');
+            setIsAddProductModalOpen(false);
+            // Clean and re-initialize auto-form
+            setNewProductData({
+                name: '',
+                sku: `SKU-${Date.now().toString().slice(-4)}`,
+                category: 'General',
+                selling_price: '',
+                quantity: '',
+                tax_percentage: 18
+            });
+        },
+        onError: (err) => {
+            console.error('Product addition error:', err);
+            alert('Could not add product. Please check input fields.');
         }
     });
 
@@ -322,19 +355,44 @@ const BusinessPOS = () => {
                             </div>
                         </div>
 
-                        {/* Simple Summary Badge */}
-                        {todaySummary && (
-                            <div style={{ display: 'flex', gap: '1.5rem', background: '#ECFDF5', border: '1px solid #D1FAE5', padding: '0.5rem 1rem', borderRadius: '12px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Today Orders</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>{todaySummary.total_orders || 0}</span>
+                        {/* Simple Summary Badge & Add Product CTA */}
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <button
+                                onClick={() => setIsAddProductModalOpen(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.5rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontWeight: '800',
+                                    fontSize: '0.78rem',
+                                    boxShadow: '0 4px 10px rgba(16,185,129,0.15)',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.15s ease'
+                                }}
+                                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
+                                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                <Plus size={15} strokeWidth={3} /> Add Product
+                            </button>
+
+                            {todaySummary && (
+                                <div style={{ display: 'flex', gap: '1.5rem', background: '#ECFDF5', border: '1px solid #D1FAE5', padding: '0.5rem 1rem', borderRadius: '12px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Today Orders</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>{todaySummary.total_orders || 0}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Total Sales</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>₹{(todaySummary.total_sales || 0).toLocaleString()}</span>
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Total Sales</span>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>₹{(todaySummary.total_sales || 0).toLocaleString()}</span>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
                     {/* Search bar */}
@@ -841,6 +899,146 @@ const BusinessPOS = () => {
                                 New Order
                             </button>
                         </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* QUICK ADD PRODUCT MODAL (FOR POS CATALOG) */}
+            {isAddProductModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ padding: '8px', borderRadius: '10px', background: '#ECFDF5', color: '#10B981' }}>
+                                    <Plus size={20} strokeWidth={3} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>Quick Register Item</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Instantly list new products in POS catalog</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsAddProductModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const payload = {
+                                name: newProductData.name,
+                                sku: newProductData.sku || `SKU-${Date.now().toString().slice(-4)}`,
+                                category: newProductData.category || 'General',
+                                quantity: parseFloat(newProductData.quantity) || 0,
+                                purchase_price: parseFloat(newProductData.selling_price) * 0.7, // Default estimated proxy cost
+                                selling_price: parseFloat(newProductData.selling_price) || 0,
+                                tax_percentage: parseFloat(newProductData.tax_percentage) || 18
+                            };
+                            createProductMutation.mutate(payload);
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Item Name *</label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    value={newProductData.name} 
+                                    onChange={(e) => setNewProductData({...newProductData, name: e.target.value})} 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 650 }} 
+                                    placeholder="e.g. Coca-Cola 250ml" 
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price (₹) *</label>
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0.01"
+                                        step="any"
+                                        value={newProductData.selling_price} 
+                                        onChange={(e) => setNewProductData({...newProductData, selling_price: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
+                                        placeholder="0.00" 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Opening Stock *</label>
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0"
+                                        value={newProductData.quantity} 
+                                        onChange={(e) => setNewProductData({...newProductData, quantity: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
+                                        placeholder="Qty left" 
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Category</label>
+                                    <input 
+                                        type="text" 
+                                        value={newProductData.category} 
+                                        onChange={(e) => setNewProductData({...newProductData, category: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                        placeholder="General" 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Tax (GST %)</label>
+                                    <select 
+                                        value={newProductData.tax_percentage} 
+                                        onChange={(e) => setNewProductData({...newProductData, tax_percentage: parseInt(e.target.value)})} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }}
+                                    >
+                                        <option value={0}>0% GST</option>
+                                        <option value={5}>5% GST</option>
+                                        <option value={12}>12% GST</option>
+                                        <option value={18}>18% GST</option>
+                                        <option value={28}>28% GST</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Barcode / SKU</label>
+                                <input 
+                                    type="text" 
+                                    value={newProductData.sku} 
+                                    onChange={(e) => setNewProductData({...newProductData, sku: e.target.value})} 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={createProductMutation.isPending}
+                                style={{
+                                    marginTop: '0.5rem',
+                                    padding: '0.85rem',
+                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '14px',
+                                    fontWeight: '800',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)',
+                                    opacity: createProductMutation.isPending ? 0.7 : 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
+                                }}
+                            >
+                                {createProductMutation.isPending ? 'Registering...' : 'Add to POS & List'}
+                            </button>
+                        </form>
                     </motion.div>
                 </div>
             )}

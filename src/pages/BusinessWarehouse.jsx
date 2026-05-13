@@ -22,7 +22,8 @@ import {
     Activity, 
     Sliders,
     Truck,
-    Folder
+    Folder,
+    Trash2
 } from 'lucide-react';
 import '../App.css';
 
@@ -33,6 +34,8 @@ const BusinessWarehouse = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+    const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
 
     // Live Warehouses database via useQuery
     const { data: dbWarehouses = [] } = useQuery({
@@ -73,7 +76,26 @@ const BusinessWarehouse = () => {
         }
     });
 
-    const warehouses = dbWarehouses.map(w => ({
+    const deleteWarehouseMutation = useMutation({
+        mutationFn: (id) => warehouseService.deleteWarehouse(id),
+        onMutate: (deletedId) => {
+            // Zero-latency optimistic native React state repainting!
+            setLocallyDeletedIds(prev => [...prev, String(deletedId)]);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+        },
+        onError: (err) => {
+            console.error('[Warehouse Delete Error]', err);
+            alert('Action failed. Some active stock entries or transaction logs may still exist for this facility.');
+            // Reset optimistic state to restore UI if API failed
+            setLocallyDeletedIds(prev => prev.filter(id => id !== String(confirmingDeleteId)));
+        }
+    });
+
+    const warehouses = dbWarehouses
+        .filter(w => !locallyDeletedIds.includes(String(w.id)))
+        .map(w => ({
         warehouse_id: `WH-0${w.id}`,
         id: w.id,
         warehouse_code: w.code || `WH-${w.id}`,
@@ -396,6 +418,34 @@ const BusinessWarehouse = () => {
                                     <Mail size={16} style={{ color: '#64748B' }} />
                                     <span>{wh.email}</span>
                                 </div>
+                            </div>
+
+                            {/* Facility Action Footer */}
+                            <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1.25rem', paddingTop: '0.75rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {confirmingDeleteId === wh.id ? (
+                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); deleteWarehouseMutation.mutate(wh.id); setConfirmingDeleteId(null); }} 
+                                            style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '800' }}
+                                        >
+                                            Delete Godown
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
+                                            style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
+                                        >
+                                            No
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(wh.id); }}
+                                        style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                        title="Delete Warehouse Profile"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
