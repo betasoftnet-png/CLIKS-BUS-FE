@@ -248,8 +248,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         financeMode: [
             { label: 'Transaction', icon: CreditCard, path: '/business/payments' },
             { label: 'Bank Accounts', icon: Building, path: '/business/bank-accounts' },
-            { label: 'Split & Collect', icon: Split, path: '/business/segregation' },
-            { label: 'Refer & Earn', icon: Gift, path: '/business/referral' }
+            { label: 'Split & Collect', icon: Split, path: '/business/segregation' }
         ]
     };
 
@@ -433,6 +432,37 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
                             </div>
                         </div>
+                    </button>
+                )}
+
+                {/* Refer & Earn Block */}
+                {isFinanceMode && (
+                    <button
+                        onClick={() => handleItemClick('Refer & Earn', '/business/referral')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.75rem 1rem',
+                            background: location.pathname.includes('/business/referral') ? '#F0FDF4' : '#F8FAFC',
+                            color: location.pathname.includes('/business/referral') ? '#1B6B3A' : '#334155',
+                            borderRadius: '10px',
+                            border: '1px solid',
+                            borderColor: location.pathname.includes('/business/referral') ? '#BBF7D0' : '#E2E8F0',
+                            cursor: 'pointer',
+                            fontWeight: '700',
+                            fontSize: '0.85rem',
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/business/referral') ? '#F0FDF4' : '#F1F5F9'}
+                        onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/business/referral') ? '#F0FDF4' : '#F8FAFC'}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <Gift size={18} style={{ opacity: 0.8 }} />
+                            <span>Refer & Earn</span>
+                        </div>
+                        <ChevronRight size={14} style={{ opacity: 0.5 }} />
                     </button>
                 )}
 
