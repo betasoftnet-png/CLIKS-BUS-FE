@@ -31,6 +31,7 @@ const BusinessGST = () => {
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
     const [isEwayModalOpen, setIsEwayModalOpen] = useState(false);
     const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
     const queryClient = useQueryClient();
 
@@ -85,12 +86,6 @@ const BusinessGST = () => {
             alert('Failed to delete GST record.');
         }
     });
-
-    const handleDeleteRecord = (id, label) => {
-        if (window.confirm(`Are you sure you want to delete GST Record ${label || ''}? This will permanently remove it from the books.`)) {
-            deleteInvoiceMutation.mutate(id);
-        }
-    };
 
     // Queries
     const { data: dbSettings = {} } = useQuery({
@@ -371,14 +366,32 @@ const BusinessGST = () => {
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>READY</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                            <button 
-                                                onClick={() => handleDeleteRecord(inv.id, inv.gst_invoice_number)}
-                                                style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '6px' }}
-                                                className="hover-bg-red-50"
-                                                title="Delete Record"
-                                            >
-                                                <Trash2 size={15} />
-                                            </button>
+                                            {confirmingDeleteId === inv.id ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end' }}>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(inv.id); setConfirmingDeleteId(null); }} 
+                                                        style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
+                                                        style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+                                                    >
+                                                        No
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(inv.id); }}
+                                                    style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '6px' }}
+                                                    className="hover-bg-red-50"
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -425,13 +438,31 @@ const BusinessGST = () => {
                                             }}>{rec.invoice_match_status.toUpperCase()}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                            <button 
-                                                onClick={() => handleDeleteRecord(rec.id, rec.vendor_name)}
-                                                style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
-                                                title="Delete Record"
-                                            >
-                                                <Trash2 size={15} />
-                                            </button>
+                                            {confirmingDeleteId === rec.id ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end' }}>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(rec.id); setConfirmingDeleteId(null); }} 
+                                                        style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
+                                                        style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+                                                    >
+                                                        No
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(rec.id); }}
+                                                    style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -465,12 +496,29 @@ const BusinessGST = () => {
                                     <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Govt Tax Invoice Value:</span>
                                     <span style={{ fontSize: '1.15rem', fontWeight: '950', color: '#1D4ED8' }}>₹{(inv.taxable_value + inv.total_tax).toLocaleString()}</span>
                                 </div>
-                                <button 
-                                    onClick={() => handleDeleteRecord(inv.id, inv.gst_invoice_number)}
-                                    style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}
-                                >
-                                    <Trash2 size={14} />
-                                </button>
+                                {confirmingDeleteId === inv.id ? (
+                                    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(inv.id); setConfirmingDeleteId(null); }} 
+                                            style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '800' }}
+                                        >
+                                            Delete?
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
+                                            style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(inv.id); }}
+                                        style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -509,13 +557,31 @@ const BusinessGST = () => {
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>{ew.status.toUpperCase()}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                            <button 
-                                                onClick={() => handleDeleteRecord(ew.id, ew.eway_bill_number)}
-                                                style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
-                                                title="Delete Record"
-                                            >
-                                                <Trash2 size={15} />
-                                            </button>
+                                            {confirmingDeleteId === ew.id ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end' }}>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(ew.id); setConfirmingDeleteId(null); }} 
+                                                        style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
+                                                        style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+                                                    >
+                                                        No
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(ew.id); }}
+                                                    style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
