@@ -40,7 +40,8 @@ import {
     Activity,
     ShieldAlert,
     Target,
-    Wallet
+    Wallet,
+    LineChart
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -198,6 +199,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/marketing')) return 'Marketing';
         if (path.includes('/social/investors')) return 'Investors';
         if (path.includes('/social/meetup')) return 'Meetup';
+        if (path.includes('/social/trading')) return 'Trading';
         if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
         if (path.includes('/faq')) return 'Help & Support';
@@ -305,7 +307,8 @@ const Sidebar = ({ isOpen, onClose }) => {
         ],
         social: [
             { label: 'Investors', icon: UsersRound, path: '/social/investors' },
-            { label: 'Meetup', icon: Calendar, path: '/social/meetup' }
+            { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
+            { label: 'Trading', icon: LineChart, path: '/social/trading' }
         ],
         financeMode: [
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },

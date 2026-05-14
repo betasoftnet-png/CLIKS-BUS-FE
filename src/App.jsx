@@ -62,8 +62,10 @@ import BusinessBarcode from './pages/BusinessBarcode';
 import BusinessCustomization from './pages/BusinessCustomization';
 import BusinessPOS from './pages/BusinessPOS';
 import BusinessPurposeWallet from './pages/BusinessPurposeWallet';
+import BusinessReferral from './pages/BusinessReferral';
 
 import './App.css';
+
 
 
 const PageLoader = () => (
@@ -162,7 +164,8 @@ function AppContent() {
                     <Route path="/subscription" element={<BusinessSubscription />} />
                     <Route path="/social/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
                     <Route path="/social/investors" element={<BusinessPlaceholder title="Business Investors" />} />
-                    <Route path="/referral" element={<BusinessPlaceholder title="Refer & Earn" />} />
+                    <Route path="/referral" element={<BusinessReferral />} />
+
                   </Routes>
                 </Suspense>
               </MainLayout>

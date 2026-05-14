@@ -1,5 +1,6 @@
 import React from 'react';
-import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users } from 'lucide-react';
+import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users, Coins } from 'lucide-react';
+
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
@@ -144,8 +145,33 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
+                <button 
+                    onClick={() => navigate('/referral')}
+                    title="Refer & Earn Premium Points"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+                        border: '1px solid #FCD34D',
+                        padding: '6px 12px',
+                        borderRadius: '99px',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(217, 119, 6, 0.1)',
+                        transition: 'transform 0.15s ease',
+                        outline: 'none'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.04)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                    <Coins size={15} color="#B45309" style={{ flexShrink: 0 }} />
+                    <span style={{ fontWeight: '800', fontSize: '12.5px', color: '#78350F', letterSpacing: '-0.01em' }}>
+                        1,450 Pts
+                    </span>
+                </button>
                 <CalculatorPopover />
                 <ProfileDropdown
+
                     onAccount={() => navigate('/profile')}
                     onSettings={() => navigate('/settings')}
                     onFAQ={() => navigate('/faq')}
