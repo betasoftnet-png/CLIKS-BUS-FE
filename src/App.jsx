@@ -114,10 +114,12 @@ function AppContent() {
                     <Route path="/admin/sales" element={<AdminSales />} />
                     <Route path="/admin/sales-team" element={<AdminSalesTeam />} />
                     <Route path="/admin/sales-leads" element={<AdminSalesLeads />} />
+                    <Route path="/admin/faq" element={<FAQ />} />
 
                     {/* Sales Representative Workspaces */}
                     <Route path="/sales-portal/dashboard" element={<SalesDashboard />} />
                     <Route path="/sales-portal/leads" element={<SalesLeads />} />
+                    <Route path="/sales-portal/faq" element={<FAQ />} />
 
                     {/* Restructured Business Modules */}
                     <Route path="/dashboard" element={<BusinessDashboard />} />

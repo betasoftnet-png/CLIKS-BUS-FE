@@ -610,25 +610,35 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                 {/* Help & Support Block */}
                 <button
-                    onClick={() => handleItemClick('Help & Support', '/faq')}
+                    onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
                     style={{
                         width: '100%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: location.pathname.includes('/faq') ? '#F0FDF4' : '#F8FAFC',
-                        color: location.pathname.includes('/faq') ? '#1B6B3A' : '#334155',
+                        background: location.pathname.includes('/faq') 
+                            ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4')) 
+                            : '#F8FAFC',
+                        color: location.pathname.includes('/faq') 
+                            ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A')) 
+                            : '#334155',
                         borderRadius: '10px',
                         border: '1px solid',
-                        borderColor: location.pathname.includes('/faq') ? '#BBF7D0' : '#E2E8F0',
+                        borderColor: location.pathname.includes('/faq') 
+                            ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0')) 
+                            : '#E2E8F0',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '0.85rem',
                         transition: 'background 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') ? '#F0FDF4' : '#F1F5F9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') ? '#F0FDF4' : '#F8FAFC'}
+                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') 
+                        ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4')) 
+                        : '#F1F5F9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') 
+                        ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4')) 
+                        : '#F8FAFC'}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <HelpCircle size={18} style={{ opacity: 0.8 }} />
