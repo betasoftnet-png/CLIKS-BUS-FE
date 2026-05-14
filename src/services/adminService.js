@@ -57,6 +57,16 @@ export const adminService = {
     runIntegrityCheck: async () => {
         const res = await apiClient.post('/admin/system/integrity-check');
         return res.data;
+    },
+
+    // Persistent Global Config
+    getPlatformConfig: async () => {
+        const res = await apiClient.get('/admin/config');
+        return res.data;
+    },
+    savePlatformConfig: async (payload) => {
+        const res = await apiClient.post('/admin/config/save', payload);
+        return res.data;
     }
 };
 

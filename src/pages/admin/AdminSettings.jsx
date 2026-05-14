@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Settings, 
     Database, 
@@ -14,19 +14,88 @@ import {
     ShieldCheck,
     AlertTriangle
 } from 'lucide-react';
+import { adminService } from '../../services/adminService';
 import '../../App.css';
 
 const AdminSettings = () => {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [features, setFeatures] = useState({
-        signupEnabled: true,
-        aiAuditing: true,
-        instantInvoicing: true,
-        betaIntegrations: false,
-        maintenanceMode: false
+        signup_enabled: true,
+        ai_auditing: true,
+        instant_invoicing: true,
+        beta_integrations: false,
+        maintenance_mode: false,
+        api_throttle_limit: 1200
     });
+
+    const loadConfig = async () => {
+        setLoading(true);
+        try {
+            const data = await adminService.getPlatformConfig();
+            
+            // Convert incoming 'true'/'false' strings to genuine JS booleans
+            setFeatures({
+                signup_enabled: data.signup_enabled === 'true' || data.signup_enabled === true,
+                ai_auditing: data.ai_auditing === 'true' || data.ai_auditing === true,
+                instant_invoicing: data.instant_invoicing === 'true' || data.instant_invoicing === true,
+                beta_integrations: data.beta_integrations === 'true' || data.beta_integrations === true,
+                maintenance_mode: data.maintenance_mode === 'true' || data.maintenance_mode === true,
+                api_throttle_limit: parseInt(data.api_throttle_limit || 1200, 10)
+            });
+        } catch (err) {
+            console.error("Configuration hydration failure:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadConfig();
+    }, []);
 
     const toggleFeature = (key) => {
         setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const handleSliderChange = (val) => {
+        setFeatures(prev => ({ ...prev, api_throttle_limit: val }));
+    };
+
+    const handleSave = async (updatedOverrides = null) => {
+        setSaving(true);
+        const configToSave = updatedOverrides || features;
+        try {
+            // Push config ensuring values are properly stringified for storage
+            const payload = {
+                signup_enabled: String(configToSave.signup_enabled),
+                ai_auditing: String(configToSave.ai_auditing),
+                instant_invoicing: String(configToSave.instant_invoicing),
+                beta_integrations: String(configToSave.beta_integrations),
+                maintenance_mode: String(configToSave.maintenance_mode),
+                api_throttle_limit: String(configToSave.api_throttle_limit)
+            };
+            
+            await adminService.savePlatformConfig(payload);
+            alert("Platform engine parameters successfully propagated across the network cluster!");
+        } catch {
+            alert("Failed to broadcast configurations to infrastructure node.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const triggerMaintenanceToggle = async () => {
+        const newState = !features.maintenance_mode;
+        const message = newState 
+            ? "WARNING: This will instantly block ALL active client accounts and return 503 errors. Arm system shutdown?"
+            : "Do you want to DE-ARM maintenance mode and restore public infrastructure availability?";
+        
+        if (!window.confirm(message)) return;
+
+        const updated = { ...features, maintenance_mode: newState };
+        setFeatures(updated);
+        await handleSave(updated);
     };
 
     return (
@@ -75,6 +144,7 @@ const AdminSettings = () => {
                     border: 1px solid #E2E8F0;
                     padding: 2rem;
                     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02);
+                    position: relative;
                 }
                 .setting-row {
                     display: flex;
@@ -142,8 +212,13 @@ const AdminSettings = () => {
                     <p style={{ color: '#64748B', margin: '0.5rem 0 0 0', fontWeight: 500 }}>Control global platform behavior, throttling coefficients, and maintenance toggles.</p>
                 </div>
                 <div className="dashboard-header-actions">
-                    <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '12px', background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', border: 'none', color: 'white', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)' }}>
-                        <Save size={18} /> Propagate Changes
+                    <button 
+                        onClick={() => handleSave()}
+                        disabled={saving || loading}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '12px', background: 'linear-gradient(135deg, #4F46E5, #7C3AED)', border: 'none', color: 'white', fontWeight: '800', cursor: (saving || loading) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)', opacity: (saving || loading) ? 0.7 : 1 }}
+                    >
+                        {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />} 
+                        {saving ? "Propagating..." : "Propagate Changes"}
                     </button>
                 </div>
             </div>
@@ -155,106 +230,131 @@ const AdminSettings = () => {
                     <button className="settings-nav-item"><Server size={18} /> DB Scaling</button>
                     <button className="settings-nav-item"><Key size={18} /> Third-Party Keys</button>
                     <button className="settings-nav-item"><Lock size={18} /> Security Headers</button>
-                    <button className="settings-nav-item"><HardDrive size={18} /> Cache Purges</button>
+                    <button className="settings-nav-item" onClick={loadConfig}><HardDrive size={18} /> Re-Sync State</button>
                 </div>
 
                 {/* Right Content */}
                 <div className="settings-panel">
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Sliders size={20} color="#4F46E5" /> Global Feature Flags</h2>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        
-                        <div className="setting-row">
-                            <div>
-                                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Open Registration Matrix</h4>
-                                <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Allowing new businesses to complete landing onboarding independently.</p>
-                            </div>
-                            <label className="switch">
-                                <input type="checkbox" checked={features.signupEnabled} onChange={() => toggleFeature('signupEnabled')} />
-                                <span className="slider"></span>
-                            </label>
+                    {loading ? (
+                        <div style={{ minHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', color: '#4F46E5', gap: '1rem' }}>
+                            <RefreshCw size={32} className="animate-spin" />
+                            <span style={{ fontWeight: '800' }}>Polling infrastructure configurations...</span>
                         </div>
-
-                        <div className="setting-row">
-                            <div>
-                                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Enable LLM-Driven Deep Audit</h4>
-                                <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Triggers automated LLM transaction oversight for Premium users.</p>
-                            </div>
-                            <label className="switch">
-                                <input type="checkbox" checked={features.aiAuditing} onChange={() => toggleFeature('aiAuditing')} />
-                                <span className="slider"></span>
-                            </label>
-                        </div>
-
-                        <div className="setting-row">
-                            <div>
-                                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Realtime Invoicing Engine</h4>
-                                <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Force PDF invoice rendering immediately on WebSocket confirmation.</p>
-                            </div>
-                            <label className="switch">
-                                <input type="checkbox" checked={features.instantInvoicing} onChange={() => toggleFeature('instantInvoicing')} />
-                                <span className="slider"></span>
-                            </label>
-                        </div>
-
-                        <div className="setting-row">
-                            <div>
-                                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Expose Beta API Add-ons</h4>
-                                <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Makes experimental external CRM sinks visible in customization toggles.</p>
-                            </div>
-                            <label className="switch">
-                                <input type="checkbox" checked={features.betaIntegrations} onChange={() => toggleFeature('betaIntegrations')} />
-                                <span className="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Infrastructure Tuning */}
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', marginTop: '3rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Cpu size={20} color="#4F46E5" /> Resource Thresholds</h2>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        <div style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: '#F8FAFC' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>API Throttle Limits</span>
-                                <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#4F46E5' }}>1,200 / min</span>
-                            </div>
-                            <input type="range" min="500" max="5000" defaultValue="1200" style={{ width: '100%', cursor: 'pointer' }} />
-                        </div>
-                        <div style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: '#F8FAFC' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Worker Thread Ratio</span>
-                                <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#4F46E5' }}>x4 Cluster</span>
-                            </div>
-                            <input type="range" min="1" max="16" defaultValue="4" style={{ width: '100%', cursor: 'pointer' }} />
-                        </div>
-                    </div>
-
-                    {/* Danger Zone */}
-                    <div className="danger-zone">
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <AlertTriangle size={24} color="#DC2626" />
-                            <div>
-                                <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#991B1B', margin: 0 }}>System Maintenance Override</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#B91C1C', margin: '4px 0 1.5rem 0', opacity: 0.8 }}>Enabling this will gracefully close active client WebSockets and serve hard-coded Static 503 Down headers to all non-admin IPs immediately.</p>
+                    ) : (
+                        <>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Sliders size={20} color="#4F46E5" /> Global Feature Flags</h2>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 
-                                <button style={{ 
-                                    padding: '0.75rem 1.5rem', 
-                                    background: '#DC2626', 
-                                    color: 'white', 
-                                    border: 'none', 
-                                    borderRadius: '10px', 
-                                    fontWeight: '800', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.5rem', 
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)'
-                                }}>
-                                    <Power size={16} /> ARM STATIC SHUTDOWN
-                                </button>
+                                <div className="setting-row">
+                                    <div>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Open Registration Matrix</h4>
+                                        <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Allowing new businesses to complete landing onboarding independently.</p>
+                                    </div>
+                                    <label className="switch">
+                                        <input type="checkbox" checked={features.signup_enabled} onChange={() => toggleFeature('signup_enabled')} />
+                                        <span className="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div className="setting-row">
+                                    <div>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Enable LLM-Driven Deep Audit</h4>
+                                        <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Triggers automated LLM transaction oversight for Premium users.</p>
+                                    </div>
+                                    <label className="switch">
+                                        <input type="checkbox" checked={features.ai_auditing} onChange={() => toggleFeature('ai_auditing')} />
+                                        <span className="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div className="setting-row">
+                                    <div>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Realtime Invoicing Engine</h4>
+                                        <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Force PDF invoice rendering immediately on WebSocket confirmation.</p>
+                                    </div>
+                                    <label className="switch">
+                                        <input type="checkbox" checked={features.instant_invoicing} onChange={() => toggleFeature('instant_invoicing')} />
+                                        <span className="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div className="setting-row">
+                                    <div>
+                                        <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Expose Beta API Add-ons</h4>
+                                        <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '2px 0 0 0' }}>Makes experimental external CRM sinks visible in customization toggles.</p>
+                                    </div>
+                                    <label className="switch">
+                                        <input type="checkbox" checked={features.beta_integrations} onChange={() => toggleFeature('beta_integrations')} />
+                                        <span className="slider"></span>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+
+                            {/* Infrastructure Tuning */}
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0F172A', marginTop: '3rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Cpu size={20} color="#4F46E5" /> Resource Thresholds</h2>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>API Throttle Limits</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#4F46E5' }}>{features.api_throttle_limit} / min</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="500" 
+                                        max="5000" 
+                                        step="100"
+                                        value={features.api_throttle_limit} 
+                                        onChange={(e) => handleSliderChange(parseInt(e.target.value, 10))}
+                                        style={{ width: '100%', cursor: 'pointer' }} 
+                                    />
+                                </div>
+                                <div style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', background: '#F8FAFC', opacity: 0.6 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569' }}>Worker Thread Ratio</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#4F46E5' }}>x4 Cluster</span>
+                                    </div>
+                                    <input type="range" min="1" max="16" defaultValue="4" disabled style={{ width: '100%', cursor: 'not-allowed' }} />
+                                </div>
+                            </div>
+
+                            {/* Danger Zone */}
+                            <div className="danger-zone" style={{ borderLeft: features.maintenance_mode ? '4px solid #EF4444' : '1px dashed #FCA5A5' }}>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <AlertTriangle size={24} color="#DC2626" />
+                                    <div>
+                                        <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#991B1B', margin: 0 }}>
+                                            System Maintenance Status: <span style={{ textTransform: 'uppercase', color: features.maintenance_mode ? '#EF4444' : '#16A34A' }}>{features.maintenance_mode ? "ARMED / BLOCKED" : "DISARMED / LIVE"}</span>
+                                        </h3>
+                                        <p style={{ fontSize: '0.85rem', color: '#B91C1C', margin: '4px 0 1.5rem 0', opacity: 0.8 }}>
+                                            Enabling this will gracefully intercept active client transactions and serve hard-coded Static 503 Outage screens to all non-admin sessions immediately.
+                                        </p>
+                                        
+                                        <button 
+                                            onClick={triggerMaintenanceToggle}
+                                            disabled={saving}
+                                            style={{ 
+                                                padding: '0.75rem 1.5rem', 
+                                                background: features.maintenance_mode ? '#10B981' : '#DC2626', 
+                                                color: 'white', 
+                                                border: 'none', 
+                                                borderRadius: '10px', 
+                                                fontWeight: '800', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '0.5rem', 
+                                                cursor: saving ? 'not-allowed' : 'pointer',
+                                                boxShadow: `0 4px 12px ${features.maintenance_mode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(220, 38, 38, 0.2)'}`
+                                            }}>
+                                            <Power size={16} /> 
+                                            {features.maintenance_mode ? "RESTORE PUBLIC SERVICE" : "ARM STATIC SHUTDOWN"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
