@@ -20,6 +20,7 @@ import {
     TrendingDown,
     Building
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { paymentsStore } from '../lib/paymentsStore';
 import '../App.css';
 
@@ -28,6 +29,15 @@ const BusinessBankAccounts = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+    
+    // Fast-action modal detection from navigation parameter
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsAccountModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
     
     // State managed via paymentsStore
     const [accounts, setAccounts] = useState(() => paymentsStore.getBankAccounts());

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { suppliersService } from '../services';
 import { 
     Users, 
@@ -42,6 +43,15 @@ const BusinessSuppliers = () => {
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
     const [filterType, setFilterType] = useState('All');
+    
+    // Automatically open creation wizard via query setup
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     // Supplier Payment Form states
     const [paymentForm, setPaymentForm] = useState(() => ({

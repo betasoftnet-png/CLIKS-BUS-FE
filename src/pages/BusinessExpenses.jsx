@@ -24,6 +24,7 @@ import {
 import '../App.css';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { expensesService } from '../services';
 
 const BusinessExpenses = () => {
@@ -32,6 +33,15 @@ const BusinessExpenses = () => {
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+    
+    // Auto-trigger expense modal via search instructions
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsExpenseModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const queryClient = useQueryClient();
 

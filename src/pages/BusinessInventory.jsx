@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { productsService } from '../services';
 import { 
     Package, 
@@ -43,6 +44,15 @@ const BusinessInventory = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'movement', 'reports'
     const [filterCategory, setFilterCategory] = useState('All');
+    
+    // Auto-trigger product modal setup via search params
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     // Live catalog items database from productsService
     const { data: items = [] } = useQuery({

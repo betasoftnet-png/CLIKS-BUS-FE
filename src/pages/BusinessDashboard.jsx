@@ -30,10 +30,10 @@ const MASTER_SHORTCUTS = [
     { id: 'sales_orders', label: 'Sales Orders', path: '/sales/orders', icon: ShoppingCart, color: '#2563EB' },
     { id: 'new_product', label: 'Add Product', path: '/inventory/products?create=true', icon: Package, color: '#EA580C' },
     { id: 'pos_billing', label: 'POS Billing', path: '/sales/pos', icon: LayoutDashboard, color: '#0D9488' },
-    { id: 'expenses', label: 'Add Expense', path: '/finance/expenses', icon: TrendingUp, color: '#DC2626' },
+    { id: 'expenses', label: 'Add Expense', path: '/finance/expenses?create=true', icon: TrendingUp, color: '#DC2626' },
     { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
-    { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers', icon: Users, color: '#7C3AED' },
-    { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts', icon: Briefcase, color: '#4F46E5' },
+    { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
+    { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts?create=true', icon: Briefcase, color: '#4F46E5' },
 ];
 
 const BusinessDashboard = () => {
