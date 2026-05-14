@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
     LayoutDashboard, 
     Briefcase, 
@@ -13,13 +14,46 @@ import {
     ArrowUpRight,
     ArrowDownRight,
     Search,
-    Bell
+    Bell,
+    Plus,
+    X,
+    Settings
 } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import { useQuery } from '@tanstack/react-query';
 import { reportsService } from '../services';
 
+const MASTER_SHORTCUTS = [
+    { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: DollarSign, color: '#1B6B3A' },
+    { id: 'sales_orders', label: 'Sales Orders', path: '/sales/orders', icon: ShoppingCart, color: '#2563EB' },
+    { id: 'new_product', label: 'Add Product', path: '/inventory/products?create=true', icon: Package, color: '#EA580C' },
+    { id: 'pos_billing', label: 'POS Billing', path: '/sales/pos', icon: LayoutDashboard, color: '#0D9488' },
+    { id: 'expenses', label: 'Add Expense', path: '/finance/expenses', icon: TrendingUp, color: '#DC2626' },
+    { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
+    { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers', icon: Users, color: '#7C3AED' },
+    { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts', icon: Briefcase, color: '#4F46E5' },
+];
+
 const BusinessDashboard = () => {
+    const navigate = useNavigate();
+    const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
+        const saved = localStorage.getItem('cliks_dashboard_shortcuts');
+        return saved ? JSON.parse(saved) : ['new_invoice', 'sales_orders', 'new_product', 'pos_billing'];
+    });
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const toggleShortcut = (id) => {
+        setSelectedShortcuts(prev => {
+            const next = prev.includes(id) 
+                ? prev.filter(s => s !== id) 
+                : [...prev, id];
+            localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(next));
+            return next;
+        });
+    };
+
     // Fetch live dashboard summary
     const { data: summary } = useQuery({
         queryKey: ['dashboardSummary'],
@@ -59,8 +93,23 @@ const BusinessDashboard = () => {
                     <button style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B' }}>
                         <Bell size={20} />
                     </button>
-                    <button style={{ padding: '0.65rem 1.5rem', borderRadius: '12px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '600' }}>
-                        Create Report
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        style={{ 
+                            padding: '0.65rem 1.5rem', 
+                            borderRadius: '12px', 
+                            background: '#1B6B3A', 
+                            color: 'white', 
+                            border: 'none', 
+                            fontWeight: '700', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
+                        }}
+                    >
+                        <Settings size={16} /> Customise
                     </button>
                 </div>
             </div>
@@ -79,6 +128,89 @@ const BusinessDashboard = () => {
                         <p style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{stat.value}</p>
                     </div>
                 ))}
+            </div>
+
+            {/* Quick Actions Row */}
+            <div style={{ marginTop: '2.25rem', marginBottom: '2.25rem' }}>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', marginBottom: '1.25rem', letterSpacing: '-0.3px' }}>Quick Action Center</h2>
+                
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    {MASTER_SHORTCUTS.filter(s => selectedShortcuts.includes(s.id)).map(shortcut => {
+                        const Icon = shortcut.icon;
+                        return (
+                            <button
+                                key={shortcut.id}
+                                onClick={() => navigate(shortcut.path)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.85rem',
+                                    padding: '0.75rem 1.25rem',
+                                    borderRadius: '16px',
+                                    background: 'white',
+                                    border: '1px solid #E2E8F0',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-3px)';
+                                    e.currentTarget.style.boxShadow = '0 12px 20px -8px rgba(0,0,0,0.08)';
+                                    e.currentTarget.style.borderColor = shortcut.color;
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
+                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                }}
+                            >
+                                <div style={{ 
+                                    width: '32px', 
+                                    height: '32px', 
+                                    borderRadius: '10px', 
+                                    background: `${shortcut.color}12`, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    color: shortcut.color 
+                                }}>
+                                    <Icon size={16} strokeWidth={2.5} />
+                                </div>
+                                <span style={{ fontWeight: '750', fontSize: '0.9rem', color: '#1E293B' }}>{shortcut.label}</span>
+                            </button>
+                        );
+                    })}
+                    
+                    {/* Add/Manage Button Card */}
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '16px',
+                            background: 'transparent',
+                            border: '2px dashed #CBD5E1',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            color: '#64748B'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.borderColor = '#1B6B3A';
+                            e.currentTarget.style.color = '#1B6B3A';
+                            e.currentTarget.style.background = '#F0FDF4';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.borderColor = '#CBD5E1';
+                            e.currentTarget.style.color = '#64748B';
+                            e.currentTarget.style.background = 'transparent';
+                        }}
+                    >
+                        <Plus size={16} strokeWidth={2.5} />
+                        <span style={{ fontWeight: '750', fontSize: '0.9rem' }}>Manage Shortcuts</span>
+                    </button>
+                </div>
             </div>
 
             {/* Charts & Activity */}
@@ -183,6 +315,145 @@ const BusinessDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Customisation Modal Overlay */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            background: 'rgba(15, 23, 42, 0.4)',
+                            backdropFilter: 'blur(6px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                        }} 
+                        onClick={() => setIsModalOpen(false)}
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 25 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 25 }}
+                            transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                            style={{
+                                width: '90%',
+                                maxWidth: '460px',
+                                background: 'white',
+                                borderRadius: '24px',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                padding: '2rem',
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.5px' }}>Configure Quick Actions</h2>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.4 }}>Pin your most frequent workflows straight to the Dashboard overview.</p>
+                                </div>
+                                <button 
+                                    onClick={() => setIsModalOpen(false)}
+                                    style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', cursor: 'pointer', flexShrink: 0 }}
+                                >
+                                    <X size={18} color="#64748B" />
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px', marginBottom: '1.75rem' }}>
+                                {MASTER_SHORTCUTS.map(shortcut => {
+                                    const Icon = shortcut.icon;
+                                    const isActive = selectedShortcuts.includes(shortcut.id);
+                                    return (
+                                        <div 
+                                            key={shortcut.id}
+                                            onClick={() => toggleShortcut(shortcut.id)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '0.9rem 1rem',
+                                                borderRadius: '16px',
+                                                background: isActive ? `${shortcut.color}05` : '#F8FAFC',
+                                                border: '2px solid',
+                                                borderColor: isActive ? shortcut.color : '#F1F5F9',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                if (!isActive) e.currentTarget.style.borderColor = '#E2E8F0';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                if (!isActive) e.currentTarget.style.borderColor = '#F1F5F9';
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                                <div style={{ 
+                                                    width: '38px', 
+                                                    height: '38px', 
+                                                    borderRadius: '10px', 
+                                                    background: isActive ? `${shortcut.color}15` : 'white', 
+                                                    border: isActive ? 'none' : '1px solid #E2E8F0',
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center', 
+                                                    color: isActive ? shortcut.color : '#94A3B8'
+                                                }}>
+                                                    <Icon size={18} strokeWidth={2.5} />
+                                                </div>
+                                                <div>
+                                                    <span style={{ fontWeight: '800', fontSize: '0.92rem', color: '#1E293B' }}>{shortcut.label}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Checkbox Switch Indicator */}
+                                            <div style={{
+                                                width: '22px',
+                                                height: '22px',
+                                                borderRadius: '7px',
+                                                border: '2.5px solid',
+                                                borderColor: isActive ? shortcut.color : '#CBD5E1',
+                                                background: isActive ? shortcut.color : 'transparent',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                                            }}>
+                                                {isActive && <Plus size={14} strokeWidth={3.5} color="white" style={{ transform: 'rotate(45deg)' }} />}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <button 
+                                onClick={() => setIsModalOpen(false)}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', 
+                                    fontWeight: '850', 
+                                    fontSize: '0.95rem',
+                                    border: 'none', 
+                                    cursor: 'pointer', 
+                                    boxShadow: '0 10px 20px -5px rgba(27, 107, 58, 0.35)',
+                                    letterSpacing: '0.2px'
+                                }}
+                            >
+                                Save Configuration
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
