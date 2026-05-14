@@ -6,11 +6,13 @@ export const salesAgentService = {
      */
     login: async (email, password) => {
         const res = await apiClient.post('/sales-agent/login', { email, password });
-        if (res.data && res.data.data && res.data.data.accessToken) {
-            localStorage.setItem('cliks_auth_token', res.data.data.accessToken);
-            localStorage.setItem('cliks_user_profile', JSON.stringify(res.data.data.user));
+        
+        // If login is successful, save token to standard books_auth_token for API Client Injection
+        if (res && res.success && res.data && res.data.accessToken) {
+            localStorage.setItem('books_auth_token', res.data.accessToken);
+            localStorage.setItem('cliks_user_profile', JSON.stringify(res.data.user));
         }
-        return res.data;
+        return res;
     },
 
     /**
@@ -18,7 +20,7 @@ export const salesAgentService = {
      */
     getLeads: async () => {
         const res = await apiClient.get('/sales-agent/leads');
-        return res.data;
+        return res;
     },
 
     /**
@@ -26,7 +28,7 @@ export const salesAgentService = {
      */
     createLead: async (data) => {
         const res = await apiClient.post('/sales-agent/leads', data);
-        return res.data;
+        return res;
     },
 
     /**
@@ -34,7 +36,7 @@ export const salesAgentService = {
      */
     updateLead: async (id, data) => {
         const res = await apiClient.patch(`/sales-agent/leads/${id}`, data);
-        return res.data;
+        return res;
     },
 
     /**
@@ -42,8 +44,9 @@ export const salesAgentService = {
      */
     getStats: async () => {
         const res = await apiClient.get('/sales-agent/stats');
-        return res.data;
+        return res;
     }
 };
 
 export default salesAgentService;
+
