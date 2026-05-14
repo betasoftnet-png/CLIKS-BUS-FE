@@ -75,7 +75,7 @@ const AdminUsers = () => {
         try {
             await adminService.updateUserRole(client.realId, newRole);
             loadUsers();
-        } catch (err) {
+        } catch {
             alert("Failed to update user permission matrix");
         }
     };
@@ -86,7 +86,7 @@ const AdminUsers = () => {
         try {
             await adminService.deleteUser(client.realId);
             setClients(prev => prev.filter(c => c.realId !== client.realId));
-        } catch (err) {
+        } catch {
             alert("Failed to delete record. (You cannot delete yourself!)");
         }
     };

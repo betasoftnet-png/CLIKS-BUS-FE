@@ -54,7 +54,10 @@ const BusinessSegregation = () => {
 
     const deleteMutation = useMutation({
         mutationFn: businessSegregationService.deleteSegregation,
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueryData(['business-segregations'], (old = []) => 
+                Array.isArray(old) ? old.filter(seg => String(seg.id) !== String(deletedId)) : []
+            );
             queryClient.invalidateQueries({ queryKey: ['business-segregations'] });
         }
     });

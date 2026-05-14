@@ -52,7 +52,10 @@ const BusinessFinancialPlan = () => {
 
     const deleteMutation = useMutation({
         mutationFn: businessPlanService.deletePlan,
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueryData(['business-plans'], (old = []) => 
+                Array.isArray(old) ? old.filter(plan => String(plan.id) !== String(deletedId)) : []
+            );
             queryClient.invalidateQueries({ queryKey: ['business-plans'] });
         }
     });

@@ -248,8 +248,10 @@ const BusinessPurchases = () => {
 
     const handleCommitGoodsReceived = (e) => {
         e.preventDefault();
+        const deltas = selectedDoc.items.map((item, idx) => parseInt(receiveQuantities[idx]) || 0);
+
         const updatedItems = selectedDoc.items.map((item, idx) => {
-            const extraReceived = parseInt(receiveQuantities[idx]) || 0;
+            const extraReceived = deltas[idx];
             return {
                 ...item,
                 received_quantity: Math.min(item.quantity, item.received_quantity + extraReceived)
@@ -264,39 +266,51 @@ const BusinessPurchases = () => {
 
         updateMutation.mutate({ id: selectedDoc.id, data: updatedDoc }, {
             onSuccess: () => {
-                // 🚀 ACTIVATE LEDGER: Update physical counts on the backend!
+                // 🚀 ACTIVATE LEDGER: Update physical counts on the backend with new increment deltas!
                 const stockPayload = {
                     warehouse_id: selectedDoc.warehouse_id || 'Main Godown',
-                    items: updatedItems.map(i => ({
+                    items: updatedItems.map((i, idx) => ({
                         product_id: i.product_id || i.id || 0,
+                        product_name: i.product_name || '',
+                        delta_received: deltas[idx],
                         received_quantity: parseInt(i.received_quantity) || 0,
                         sku: i.sku || ''
                     }))
                 };
                 processStockMutation.mutate({ id: selectedDoc.id, data: stockPayload });
 
-                // Auto generate Bill
-                const totals = computeDocTotals(updatedItems, selectedDoc.shipping_charge);
-                const autoBill = {
-                    purchase_number: `B-${selectedDoc.purchase_number.split('-')[1] || Date.now().toString().slice(-4)}`,
-                    purchase_type: selectedDoc.purchase_type,
-                    purchase_date: new Date().toISOString().split('T')[0],
-                    due_date: selectedDoc.due_date,
-                    doc_type: 'BILL',
-                    status: 'paid',
-                    supplier_id: selectedDoc.supplier_id,
-                    supplier_name: selectedDoc.supplier_name,
-                    supplier_gstin: selectedDoc.supplier_gstin,
-                    billing_address: selectedDoc.billing_address,
-                    contact_number: selectedDoc.contact_number,
-                    warehouse_id: selectedDoc.warehouse_id,
-                    purchase_by: selectedDoc.purchase_by,
-                    items: updatedItems,
-                    payment_status: 'paid',
-                    paid_amount: totals.grand_total,
-                    ...totals
-                };
-                createMutation.mutate(autoBill);
+                // Prepare only the items actually received in this batch for the Bill
+                const billItems = updatedItems
+                    .map((item, idx) => ({
+                        ...item,
+                        quantity: deltas[idx] // Set quantity to EXACT amount received!
+                    }))
+                    .filter(item => item.quantity > 0);
+
+                if (billItems.length > 0) {
+                    // Auto generate partial bill matching precisely what was received!
+                    const totals = computeDocTotals(billItems, selectedDoc.shipping_charge);
+                    const autoBill = {
+                        purchase_number: `B-${selectedDoc.purchase_number.split('-')[1] || Date.now().toString().slice(-4)}`,
+                        purchase_type: selectedDoc.purchase_type,
+                        purchase_date: new Date().toISOString().split('T')[0],
+                        due_date: selectedDoc.due_date,
+                        doc_type: 'BILL',
+                        status: 'paid',
+                        supplier_id: selectedDoc.supplier_id,
+                        supplier_name: selectedDoc.supplier_name,
+                        supplier_gstin: selectedDoc.supplier_gstin,
+                        billing_address: selectedDoc.billing_address,
+                        contact_number: selectedDoc.contact_number,
+                        warehouse_id: selectedDoc.warehouse_id,
+                        purchase_by: selectedDoc.purchase_by,
+                        items: billItems,
+                        payment_status: 'paid',
+                        paid_amount: totals.grand_total,
+                        ...totals
+                    };
+                    createMutation.mutate(autoBill);
+                }
 
                 setIsReceiveModalOpen(false);
                 setSelectedDoc(null);

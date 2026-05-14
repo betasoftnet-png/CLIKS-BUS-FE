@@ -77,7 +77,10 @@ const BusinessSuppliers = () => {
 
     const deleteMutation = useMutation({
         mutationFn: (id) => suppliersService.deleteSupplier(id),
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueryData(['suppliers'], (old = []) => 
+                Array.isArray(old) ? old.filter(sup => (sup.id || sup.supplier_id) !== deletedId) : []
+            );
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
             alert('Supplier deleted successfully.');
         }

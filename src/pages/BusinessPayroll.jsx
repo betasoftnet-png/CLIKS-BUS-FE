@@ -102,7 +102,7 @@ const BusinessPayroll = () => {
         let lData = {};
         try {
             lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data;
-        } catch (_) { lData = {}; }
+        } catch { lData = {}; }
         return {
             employee_name: rec.employee_name || 'Arun Kumar',
             loan_amount: parseFloat(lData.loan_amount) || 12000,

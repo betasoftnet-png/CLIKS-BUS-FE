@@ -413,6 +413,7 @@ const BusinessCustomization = () => {
     );
 };
 
+// eslint-disable-next-line no-unused-vars
 const ProfileInputField = ({ label, icon: Icon, ...props }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>{label}</label>
@@ -423,6 +424,7 @@ const ProfileInputField = ({ label, icon: Icon, ...props }) => (
     </div>
 );
 
+// eslint-disable-next-line no-unused-vars
 const CustomizationCard = ({ title, icon: Icon, children }) => (
     <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
         <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#FAFBFC' }}>

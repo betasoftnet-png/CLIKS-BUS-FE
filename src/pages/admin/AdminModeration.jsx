@@ -49,7 +49,7 @@ const AdminModeration = () => {
         try {
             await adminService.deletePublicPost(id);
             setPosts(prev => prev.filter(p => p.id !== id));
-        } catch (err) {
+        } catch {
             alert("Error deleting post");
         } finally {
             setDeletingId(null);

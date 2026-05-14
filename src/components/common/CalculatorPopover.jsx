@@ -19,19 +19,22 @@ export function CalculatorPopover() {
         setCustomRate("");
     };
 
+    const handleClose = () => {
+        setOpen(false);
+        setCalcMode('main');
+        setShowCustomField(false);
+        setCustomRate("");
+    };
+
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (popoverRef.current && !popoverRef.current.contains(event.target)) {
-                setOpen(false);
+                handleClose();
             }
         };
         if (open) {
             document.addEventListener("mousedown", handleClickOutside);
-        } else {
-            setCalcMode('main');
-            setShowCustomField(false);
-            setCustomRate("");
         }
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
@@ -280,7 +283,7 @@ export function CalculatorPopover() {
         <div style={styles.container} ref={popoverRef}>
             <button
                 type="button"
-                onClick={() => setOpen(!open)}
+                onClick={() => open ? handleClose() : setOpen(true)}
                 style={{
                     ...styles.triggerButton,
                     backgroundColor: open ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)'
@@ -303,7 +306,7 @@ export function CalculatorPopover() {
                     >
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
                             <span style={{fontWeight: '700', fontSize: '14px', color: '#334155'}}>Quick Calc</span>
-                            <button onClick={() => setOpen(false)} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8'}}><X size={16} /></button>
+                            <button onClick={handleClose} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8'}}><X size={16} /></button>
                         </div>
 
                         <div style={styles.displayArea}>

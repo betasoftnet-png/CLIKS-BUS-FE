@@ -404,7 +404,10 @@ const BusinessBilling = () => {
 
     const deleteMutation = useMutation({
         mutationFn: billingService.deleteInvoice,
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueryData(['invoices'], (old = []) => 
+                Array.isArray(old) ? old.filter(inv => String(inv.id) !== String(deletedId)) : []
+            );
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
         }
     });

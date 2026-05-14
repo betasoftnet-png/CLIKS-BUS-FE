@@ -70,7 +70,10 @@ const BusinessInventory = () => {
 
     const deleteMutation = useMutation({
         mutationFn: (id) => productsService.deleteProduct(id),
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            queryClient.setQueryData(['products'], (old = []) => 
+                Array.isArray(old) ? old.filter(item => String(item.id) !== String(deletedId)) : []
+            );
             queryClient.invalidateQueries({ queryKey: ['products'] });
             alert('Product removed from catalog.');
         }

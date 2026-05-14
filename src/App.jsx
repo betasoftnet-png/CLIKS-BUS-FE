@@ -70,6 +70,7 @@ function AppContent() {
             <Auth />
           </Suspense>
         } />
+        <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
         <Route path="/admin/login" element={
           <Suspense fallback={<PageLoader />}>
             <AdminLogin />

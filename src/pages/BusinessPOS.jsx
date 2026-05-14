@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     Search, 
@@ -21,6 +21,7 @@ import {
     Sparkles,
     CircleAlert
 } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { inventoryService } from '../services/inventoryService';
 import { productsService } from '../services/productsService';
@@ -37,26 +38,26 @@ const BusinessPOS = () => {
     const [customerName, setCustomerName] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
-    const [selectedCustomerObj, setSelectedCustomerObj] = useState(null);
+    const [, setSelectedCustomerObj] = useState(null);
     
     const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(0);
     const [taxRate, setTaxRate] = useState(18); // Default GST
-    const [paymentMode, setPaymentMode] = useState('Cash');
+    const [paymentMode] = useState('Cash');
     
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [lastOrderData, setLastOrderData] = useState(null);
     
     const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
-    const [newProductData, setNewProductData] = useState({
+    const [newProductData, setNewProductData] = useState(() => ({
         name: '',
         sku: `SKU-${Date.now().toString().slice(-4)}`,
         category: 'General',
         selling_price: '',
         quantity: '',
         tax_percentage: 18
-    });
+    }));
     
     const customerInputRef = useRef(null);
 
@@ -312,7 +313,6 @@ const BusinessPOS = () => {
 
     const printReceipt = () => {
         const printContents = document.getElementById('thermal-receipt-pane').innerHTML;
-        const originalContents = document.body.innerHTML;
         document.body.innerHTML = `
             <html>
                 <head>
