@@ -65,9 +65,9 @@ const BusinessWallet = () => {
                     
                     if (backendResponse.ok) {
                         const backendData = await backendResponse.json();
-                        if (backendData && backendData.payment_session_id) {
-                            paymentSessionId = backendData.payment_session_id;
-                            actualOrderId = backendData.order_id || generatedOrderId;
+                        if (backendData && backendData.data && backendData.data.payment_session_id) {
+                            paymentSessionId = backendData.data.payment_session_id;
+                            actualOrderId = backendData.data.order_id || generatedOrderId;
                             console.log("[WALLET PROD LOG]: Retrieved payment session securely from local backend.");
                         }
                     }
