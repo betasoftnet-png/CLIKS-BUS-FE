@@ -47,6 +47,7 @@ import BusinessReturns from './pages/BusinessReturns';
 import BusinessStock from './pages/BusinessStock';
 import BusinessWarehouse from './pages/BusinessWarehouse';
 import BusinessPayments from './pages/BusinessPayments';
+import BusinessWallet from './pages/BusinessWallet';
 import BusinessBankAccounts from './pages/BusinessBankAccounts';
 import BusinessExpenses from './pages/BusinessExpenses';
 import BusinessGST from './pages/BusinessGST';
@@ -139,7 +140,7 @@ function AppContent() {
                     <Route path="/inventory/stock" element={<BusinessStock />} />
                     <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
                     <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
-                    <Route path="/payments/wallet" element={<BusinessPayments key="wallet" />} />
+                    <Route path="/payments/wallet" element={<BusinessWallet />} />
                     <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} />
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
                     <Route path="/inventory/warehouse" element={<BusinessWarehouse />} />

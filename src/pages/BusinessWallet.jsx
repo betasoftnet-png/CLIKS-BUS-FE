@@ -1,0 +1,283 @@
+import React, { useState, useEffect } from 'react';
+import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, X, Search, IndianRupee } from 'lucide-react';
+import '../App.css';
+
+const BusinessWallet = () => {
+    // Persisted LocalState for the Wallet context
+    const [balance, setBalance] = useState(() => {
+        const saved = localStorage.getItem('cliks_wallet_balance');
+        return saved ? parseFloat(saved) : 25000.00;
+    });
+
+    const [history, setHistory] = useState(() => {
+        const saved = localStorage.getItem('cliks_wallet_history');
+        return saved ? JSON.parse(saved) : [
+            { id: 'TX-48901', type: 'CREDIT', amount: 15000, description: 'Opening Balance Auto Load', date: '14 May, 2026 • 10:24 AM' },
+            { id: 'TX-48902', type: 'DEBIT', amount: 3500, description: 'Supplier Settlement (Disbursement)', date: '13 May, 2026 • 04:45 PM' },
+            { id: 'TX-48903', type: 'CREDIT', amount: 13500, description: 'Quick QR Fund Transfer', date: '12 May, 2026 • 11:15 AM' }
+        ];
+    });
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [addForm, setAddForm] = useState({ amount: '', description: '' });
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Update persisted storage on mutation
+    useEffect(() => {
+        localStorage.setItem('cliks_wallet_balance', balance.toString());
+    }, [balance]);
+
+    useEffect(() => {
+        localStorage.setItem('cliks_wallet_history', JSON.stringify(history));
+    }, [history]);
+
+    const handleAddMoney = (e) => {
+        e.preventDefault();
+        const amt = parseFloat(addForm.amount);
+        if (isNaN(amt) || amt <= 0) {
+            alert('Please input a valid number to load.');
+            return;
+        }
+
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+
+        const newTx = {
+            id: `TX-${Math.floor(10000 + Math.random() * 90000)}`,
+            type: 'CREDIT',
+            amount: amt,
+            description: addForm.description.trim() || 'Manual Top-Up',
+            date: formattedDate
+        };
+
+        setBalance(prev => prev + amt);
+        setHistory(prev => [newTx, ...prev]);
+        setAddForm({ amount: '', description: '' });
+        setIsModalOpen(false);
+    };
+
+    const filteredHistory = history.filter(item => 
+        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+            
+            {/* Simple Header Block */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ 
+                        width: '46px', 
+                        height: '46px', 
+                        borderRadius: '16px', 
+                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        color: 'white',
+                        boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)'
+                    }}>
+                        <Wallet size={22} />
+                    </div>
+                    <div>
+                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', margin: 0, letterSpacing: '-0.02em' }}>Business Wallet</h1>
+                        <p style={{ color: '#475569', fontSize: '0.95rem', margin: '0.25rem 0 0 0', fontWeight: '500' }}>Manage stored value balances and load funds securely.</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Interactive Balance Dashboard Card */}
+            <div style={{ 
+                background: 'white', 
+                borderRadius: '24px', 
+                padding: '2.5rem', 
+                border: '1px solid #E2E8F0', 
+                boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', 
+                marginBottom: '2.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                <div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Stored Balance</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
+                        <IndianRupee size={28} strokeWidth={3} style={{ color: '#064E3B' }} />
+                        <h2 style={{ fontSize: '3rem', fontWeight: '950', color: '#064E3B', margin: 0, letterSpacing: '-0.02em' }}>
+                            {balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </h2>
+                    </div>
+                </div>
+
+                <button 
+                    onClick={() => setIsModalOpen(true)}
+                    style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.6rem', 
+                        padding: '1rem 2rem', 
+                        borderRadius: '14px', 
+                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                        color: 'white', 
+                        border: 'none', 
+                        fontWeight: '800', 
+                        fontSize: '1rem',
+                        cursor: 'pointer', 
+                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)',
+                        transition: 'transform 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                    <Plus size={18} strokeWidth={3} /> Add Money
+                </button>
+            </div>
+
+            {/* Action Table Container */}
+            <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                
+                {/* Table Toolbar header */}
+                <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>Wallet History</h3>
+                    
+                    <div style={{ position: 'relative', width: '320px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <input 
+                            type="text" 
+                            placeholder="Search descriptions or IDs..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ 
+                                width: '100%', 
+                                padding: '0.65rem 1rem 0.65rem 2.5rem', 
+                                borderRadius: '12px', 
+                                border: '1px solid #E2E8F0', 
+                                outline: 'none',
+                                fontSize: '0.85rem'
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* History Display Grid/Table */}
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid #F1F5F9', background: '#FAFAFA' }}>
+                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Transaction ID</th>
+                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date & Time</th>
+                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Description</th>
+                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Direction</th>
+                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredHistory.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600', fontSize: '0.9rem' }}>
+                                        No transaction matching records found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredHistory.map((tx) => {
+                                    const isCredit = tx.type === 'CREDIT';
+                                    return (
+                                        <tr key={tx.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}>
+                                            <td style={{ padding: '1.25rem 2rem' }}>
+                                                <span style={{ fontFamily: 'monospace', fontWeight: '750', color: '#64748B', fontSize: '0.85rem' }}>{tx.id}</span>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 2rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>{tx.date}</td>
+                                            <td style={{ padding: '1.25rem 2rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{tx.description}</td>
+                                            <td style={{ padding: '1.25rem 2rem' }}>
+                                                <div style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '0.35rem', 
+                                                    padding: '0.35rem 0.65rem', 
+                                                    borderRadius: '8px', 
+                                                    background: isCredit ? '#ECFDF5' : '#FEF2F2', 
+                                                    color: isCredit ? '#059669' : '#DC2626',
+                                                    fontWeight: '800',
+                                                    fontSize: '0.75rem'
+                                                }}>
+                                                    {isCredit ? <ArrowDownLeft size={13} strokeWidth={3} /> : <ArrowUpRight size={13} strokeWidth={3} />}
+                                                    {isCredit ? 'IN' : 'OUT'}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 2rem', textAlign: 'right', fontWeight: '900', color: isCredit ? '#059669' : '#DC2626', fontSize: '0.95rem' }}>
+                                                {isCredit ? '+' : '-'} ₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Simplistic Beautiful Modal for Add Money */}
+            {isModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid #E2E8F0' }}>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Add Money to Wallet</h3>
+                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={handleAddMoney} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Load Amount (INR)</label>
+                                <div style={{ position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>₹</span>
+                                    <input 
+                                        required 
+                                        autoFocus
+                                        type="number" 
+                                        placeholder="5000.00"
+                                        value={addForm.amount} 
+                                        onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 2.2rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '750', color: '#0F172A' }} 
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Brief Note / Description</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g. UPI Top-up, Bank Load"
+                                    value={addForm.description} 
+                                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1E293B' }} 
+                                />
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '0.9rem', 
+                                    borderRadius: '12px', 
+                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '850', 
+                                    fontSize: '1rem', 
+                                    cursor: 'pointer', 
+                                    boxShadow: '0 8px 16px rgba(27, 107, 58, 0.25)',
+                                    marginTop: '0.5rem'
+                                }}
+                            >
+                                Confirm Load
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default BusinessWallet;
