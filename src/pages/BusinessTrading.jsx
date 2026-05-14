@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
     BookOpen, 
     Search, 
@@ -11,7 +11,6 @@ import {
     CheckCircle2, 
     HelpCircle, 
     ArrowRight, 
-    PlayCircle, 
     ChevronRight,
     Layers,
     Gem,
@@ -19,321 +18,558 @@ import {
     Bookmark,
     Zap,
     Scale,
-    Coins,
+    Compass,
+    Activity,
+    Database,
+    ShieldCheck,
+    LineChart,
+    PieChart,
+    Maximize2,
+    BookMarked,
+    Gavel,
     FileText
 } from 'lucide-react';
 import '../App.css';
 
-// Industrial Grade Production Learning Modules Data Base
-const TRADING_MODULES = [
+// Comprehensive 25-Module Enterprise Syllabus Databank
+const CURRICULUM_PHASES = [
     {
-        id: 'mod-1',
-        title: '1. The Marketplace Pillars',
-        icon: BookOpen,
-        duration: '20 Mins',
-        level: 'Beginner',
-        shortDesc: 'Master order types, execution mechanisms, and exchange settlement protocols.',
-        topics: [
+        name: 'Phase 1 — Foundation & Market Understanding',
+        icon: Compass,
+        modules: [
             {
-                title: 'Understanding The Market Mechanism',
-                content: `At its core, the stock market is a highly engineered digital matching engine. Every time you see a ticking price, it represents the Last Traded Price (LTP) where a buyer's bid and a seller's ask matched perfectly.
+                id: 'mod-1',
+                title: 'Module 1: Introduction to Financial Markets',
+                level: 'Beginner', duration: '15 Mins',
+                icon: BookOpen,
+                topics: [
+                    {
+                        title: 'The Ecosystem Structure',
+                        content: `The financial market is a sophisticated infrastructure allowing capital to flow from savers/investors to businesses needing growth funds.
 
-### 🏢 Primary vs. Secondary Markets
+### 🏦 Market Participants Matrix
 
-1. **Primary Market**: This is the incubator. Corporations raise direct capital via Initial Public Offerings (IPOs) or Follow-on Public Offers (FPOs). Capital flows from investors directly to the business treasury.
-2. **Secondary Market**: The active ecosystem. Once listed on exchanges (NSE/BSE), investors trade existing shares among themselves. The company is no longer receiving this capital; prices are purely driven by external market dynamics.
+* **Retail Investors**: Individual traders/investors putting in personal savings.
+* **HNI (High Net-worth Individuals)**: Individuals with massive deployable capital exceeding ₹2 Crores.
+* **DIIs (Domestic Institutional Investors)**: Local mutual funds (e.g., SBI Mutual Fund), insurance firms (LIC), and pension schemes.
+* **FIIs (Foreign Institutional Investors)**: Giant international hedge funds, endowments, and foreign banks investing in Indian assets. They provide massive liquidity.
 
-### ⏳ The Settlement Cycle: T+1
+### 🏛️ Key Regulators & Depositories
 
-India operates on an advanced **T+1 settlement cycle** (Trade Day + 1 Business Day). If you buy shares on Monday, the funds are deducted instantly, but the absolute ownership delivery into your CDSL/NSDL Demat account completes on Tuesday.`
+* **SEBI (Securities & Exchange Board of India)**: The absolute apex watchdog protecting retail investor safety and regulating integrity.
+* **NSE vs. BSE**: The primary National Stock Exchange (high liquidity, tech-driven) and Bombay Stock Exchange (oldest in Asia, vast listings).
+* **Demat Depositories**: **NSDL** and **CDSL**. They serve as digital bank accounts holding your acquired share assets digitally to eliminate paper fraud.`
+                    }
+                ]
             },
             {
-                title: 'Order Execution Protocols',
-                content: `To trade professionally, you must master how to communicate instructions to the exchange engine. Using the wrong order type can lead to massive slippage and instant losses.
+                id: 'mod-2',
+                title: 'Module 2: Marketplace Pillars & Order Mechanics',
+                level: 'Beginner', duration: '20 Mins',
+                icon: Target,
+                topics: [
+                    {
+                        title: 'Execution & Matching Engines',
+                        content: `Trading requires telling the exchange matching engine exactly how to act. Using the wrong product type or order logic causes heavy slippage losses.
 
-### 📥 The 4 Critical Order Types
+### 📥 Order Matching Protocols
 
-1. **Market Order**: Tells the system to buy or sell instantly at the best available current price. Highly dangerous in illiquid stocks as you might get filled at an unexpectedly unfavorable rate.
-2. **Limit Order**: Sets an exact price ceiling for buying or a price floor for selling. Your trade executes *only* at your specified price or better.
-3. **Stop-Loss Limit (SL)**: An inactive order sitting on your broker's server. It "triggers" and enters the exchange only if the stock price reaches a specific trigger price. Essential for cutting losses.
-4. **Stop-Loss Market (SL-M)**: Similar to SL, but once triggered, it fires as an immediate Market order to guarantee exit.
+* **Bid/Ask Spread**: The "Bid" is the highest price a buyer wants to pay; the "Ask" is the lowest price a seller accepts. The gap is the spread. Highly liquid stocks have tight 0.05 paisa spreads.
+* **Liquidity**: How easily you can buy/sell large volumes without impacting price. Low liquidity causes high slippage (getting filled at terrible rates).
+* **Settlement Cycle**: NSE/BSE use **T+1 cycles**—transactions on Day T deliver shares to your Demat by Day T+1.
 
-### 🏷️ Product Typology: MIS vs. CNC
+### 🛠️ Understanding Order Configurations
 
-* **MIS (Margin Intraday Square-off)**: A purely intraday product. Your broker grants leverage (e.g., 5x capital), but you *must* close the position before 3:20 PM, or the system auto-liquidates it.
-* **CNC (Cash and Carry)**: Delivery-based trading. Requires 100% upfront capital. Used for holding equities for days, months, or years.`
+1. **Market Order**: Buy/Sell instantly at whatever price is currently printing on screen.
+2. **Limit Order**: Specifying an exact threshold price. Triggers *only* when matching conditions align.
+3. **Stop Loss Order (SL)**: A protection trigger. Lies dormant until stock hits trigger price, then executes automatically.
+4. **Product Codes**:
+   * **CNC (Cash & Carry)**: Fully paid long-term investing. No leverage.
+   * **MIS (Margin Intraday)**: Dynamic day-trading with 5x leverage. Positions auto-liquidated at 3:20 PM.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-3',
+                title: 'Module 3: Platforms & Broker Infrastructure',
+                level: 'Beginner', duration: '15 Mins',
+                icon: Activity,
+                topics: [
+                    {
+                        title: 'The Modern Terminal Architecture',
+                        content: `Brokers act as tech pipelines connecting you directly to NSE/BSE matching servers.
+
+### 💻 Terminal Components
+
+* **Market Depth (L2 Data)**: Shows the top 5 pending buy and sell orders waiting on exchange order books. Tells you immediate demand/supply levels.
+* **Option Chain**: A comprehensive map charting every single strike price, call/put pricing, and open interest positions for a stock.
+* **Margin Management**: The RMS (Risk Management System) run by brokers monitors user accounts in real-time. If your losses exceed your capital buffer, the automated RMS systematically triggers margin-calls and liquidates assets.
+* **API Hooks**: Connect customized algorithms or external Excel sheets directly to terminal systems for automated execution.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-4',
+                title: 'Module 4: Economic & Market Ecosystem',
+                level: 'Beginner', duration: '25 Mins',
+                icon: Globe,
+                topics: [
+                    {
+                        title: 'Macroeconomic Drivers',
+                        content: `No stock operates in a vacuum. Macro factors set by central banks dictate massive institutional money flow.
+
+### 💰 Central Banking & Policy
+
+* **Repo Rate**: Set by the RBI (Reserve Bank of India). High rates increase corporate borrowing costs, reducing corporate expansion and theoretically pulling down equity valuations.
+* **Inflation (CPI)**: Persistent inflation erodes purchasing power, prompting RBI to Hike rates.
+* **USD-INR Mechanics**: A weakening Rupee boosts export companies (IT/Pharma) but hurts heavily importing companies (Oil/Paints).
+* **Crude Oil Correlation**: India imports over 80% of its oil needs. Rising crude prices damage corporate profitability across aviation, logistics, and paint industries.`
+                    }
+                ]
             }
         ]
     },
     {
-        id: 'mod-2',
-        title: '2. Fundamental Analysis Masterclass',
+        name: 'Phase 2 — Fundamental Investing Masterclass',
         icon: Gem,
-        duration: '30 Mins',
-        level: 'Intermediate',
-        shortDesc: 'Evaluate a business through intrinsic values, ratio matrices and balance sheets.',
-        topics: [
+        modules: [
             {
-                title: 'Dissecting Financial Reports',
-                content: `Fundamental Analysis (FA) evaluates a company's intrinsic worth. Instead of chasing green and red candles, FA practitioners investigate if the underlying company produces actual, tangible cash flow and profits.
+                id: 'mod-5',
+                title: 'Module 5: Financial Statements Deep Dive',
+                level: 'Intermediate', duration: '25 Mins',
+                icon: FileText,
+                topics: [
+                    {
+                        title: 'Reading Corporate Accounts',
+                        content: `To invest for the long-term, you must inspect if the actual corporate engine generates growing cash.
 
-### 📊 The Big Three Reports
+### 📊 The Three Fundamental Columns
 
-1. **The Balance Sheet**: Displays Assets (what they own), Liabilities (what they owe), and Shareholder Equity (Net Worth). *Formula: Assets = Liabilities + Equity*. A solid sheet shows growing assets with flat or declining debt.
-2. **The Profit & Loss Statement (P&L)**: Measures operating metrics—Revenue, COGS, Operating Margin, Interest, Taxes, and finally, Net Profit. Consistently rising EBITDA margins demonstrate growing corporate pricing power.
-3. **The Cash Flow Statement**: Shows the actual movement of hard cash. It is divided into Operating (daily business cash), Investing (buying factories/machines), and Financing (issuing debt or paying dividends). Always verify that Operating Cash Flow is close to or higher than reported Net Profit.`
+1. **Profit & Loss (P&L)**: Tracks Revenues, Operating Margins (EBITDA), Depreciation, Taxes, and net PAT (Profit After Tax). If EBITDA margins expand, the business enjoys scaling efficiency.
+2. **Balance Sheet**: Evaluates total assets against external borrowing debt and internal Shareholder Equity.
+3. **Cash Flow Statement**: Reveals the absolute cash moving in/out. Crucially, look for **Operating Cash Flow (OCF)**. High PAT with zero OCF flags fraudulent credit sales.`
+                    }
+                ]
             },
             {
-                title: 'Valuation Ratios & Matrices',
-                content: `Never judge a stock purely by its absolute share price. A ₹2000 stock can be incredibly cheap, while a ₹2 stock can be fundamentally bankrupt. You must use valuation ratios to make standardized comparisons.
+                id: 'mod-6',
+                title: 'Module 6: Ratios & Valuation Models',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: Scale,
+                topics: [
+                    {
+                        title: 'Mastering Mathematical Valuations',
+                        content: `Ratios help distinguish between an expensive hype trap and a fundamentally undervalued powerhouse.
 
-### 🧮 Core Analytical Ratios
+### 📐 Advanced Mathematical Metrics
 
-1. **P/E Ratio (Price to Earnings)**: *Current Price ÷ Earnings Per Share (EPS)*. It tells you how many rupees investors are willing to pay for every ₹1 of annual earnings. Compare this against the industry average.
-2. **Debt-to-Equity (D/E)**: *Total Liabilities ÷ Shareholder Equity*. Measures leverage risk. Generally, a D/E below 1.0 is considered safe. A D/E above 2.0 in non-banking sectors flags potential bankruptcy risks.
-3. **Price-to-Book (P/B)**: Useful for asset-heavy industries like Banking and Manufacturing. Compares market price against net book asset value.
-4. **ROE & ROCE**: Return on Equity (ROE) measures how efficiently management uses investor funds. Return on Capital Employed (ROCE) measures total capital efficiency including debt. Excellent companies maintain both above 15-20% consistently.`
+1. **P/E Ratio**: Price-to-Earnings tells you multiple paid. Higher than 50 demands extraordinary growth backing it.
+2. **PEG Ratio (P/E to Growth)**: A PEG below 1.0 generally identifies an undervalued growth stock.
+3. **ROCE vs ROE**: **Return on Capital Employed** assesses total funding efficiency including debt. Excellent management teams deliver ROCE above 20% consistently.
+4. **Discounted Cash Flow (DCF)**: Estimating the net present value of a business by projecting future free cash flows back to the present day using a discount rate.`
+                    }
+                ]
             },
             {
-                title: 'Understanding Corporate Actions',
-                content: `Public corporations regularly conduct events that directly impact share structures and capital valuations.
+                id: 'mod-7',
+                title: 'Module 7: Corporate Actions & Shareholder Events',
+                level: 'Intermediate', duration: '20 Mins',
+                icon: Zap,
+                topics: [
+                    {
+                        title: 'Events Impacting Share Capital',
+                        content: `Major events executed by the corporate board fundamentally affect equity liquidity and share counts.
 
-### 📢 Primary Action Drivers
+### 📢 The Complete Corporate Event List
 
-* **Dividends**: A portion of corporate net profits distributed back directly to shareholders as hard cash credited to their registered bank accounts.
-* **Stock Splits**: Dividing existing shares into multiple shares to boost trading liquidity. A 1:5 split converts 1 share worth ₹500 into 5 shares worth ₹100 each. Total wealth remains identical.
-* **Bonus Issues**: Giving additional free shares to current investors drawn from corporate reserves. Retains absolute market cap but increases total outstanding share volume.
-* **Buybacks**: When the company purchases its own shares back from the open market, reducing total outstanding shares and automatically increasing EPS for remaining holders. Usually a highly bullish signal.`
+* **Stock Splits**: Breaking high-value shares (e.g., ₹5000 to 10 shares of ₹500) to improve retail trade accessibility. Total valuation stays static.
+* **Dividends & Yield**: Retained profits sent directly as cash. Dividend Yield measures cash returned relative to market price.
+* **Promoter Pledging**: Highly critical warning sign! If founders pledge their personal stock as collateral for heavy corporate debt, they risk forced market liquidation during crashes. Avoid companies where pledging exceeds 25% of promoter shares.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-8',
+                title: 'Module 8: Sector & Business Analysis',
+                level: 'Intermediate', duration: '25 Mins',
+                icon: Briefcase,
+                topics: [
+                    {
+                        title: 'Evaluating Cyclicality and Moats',
+                        content: `Different sectors run on completely unique economic cycles and metrics.
+
+### 🏢 Analyzing Major Indian Sectors
+
+* **Banking (BFSI)**: Track **NPA** (Non-Performing Assets) and Net Interest Margins (NIM). Rising NPAs flag system danger.
+* **Information Tech (IT)**: Heavily driven by USD strength and international US client budgets.
+* **Defensive vs. Cyclical**: FMCG/Pharma remain steady in recessions (Defensive). Infrastructure, Auto, Steel boom or bust based on economy (Cyclicals).
+* **The Economic Moat**: Competitive advantages like absolute brand power (Maggi/iPhone) or high customer switching costs that guard profits against competitors.`
+                    }
+                ]
             }
         ]
     },
     {
-        id: 'mod-3',
-        title: '3. Technical Analysis & Charting',
+        name: 'Phase 3 — Technical Analysis Mastery',
         icon: BarChart3,
-        duration: '35 Mins',
-        level: 'Intermediate',
-        shortDesc: 'Decipher market psychology via candlesticks, moving averages, and pattern structures.',
-        topics: [
+        modules: [
             {
-                title: 'Anatomy of Candlesticks & Price Action',
-                content: `Technical Analysis assumes that all fundamentals, news, and rumors are already priced into the chart. It is the visual study of mass human psychology: greed and fear.
+                id: 'mod-9',
+                title: 'Module 9: Chart Reading & Price Action',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: LineChart,
+                topics: [
+                    {
+                        title: 'Foundations of Pure Price Action',
+                        content: `Price Action assumes that news, earnings, and fundamentals are automatically calculated into the current chart pattern instantly.
 
-### 🕯️ Understanding The Candlestick
+### 📈 Market Structure Mechanics
 
-Each candle represents trading activity across a chosen timeframe (1 Min, 15 Min, 1 Day):
-* **Body**: The rectangular core showing the distance between the Open and Close prices.
-* **Wicks (Shadows)**: The thin lines displaying the absolute High and Low prices reached.
-* **Green (Bullish)**: Closes higher than the Open. Buyers dominated.
-* **Red (Bearish)**: Closes lower than the Open. Sellers dominated.
-
-### 🔑 Essential Candlestick Formations
-
-1. **Hammer / Pin Bar**: A small body at the top with a very long lower wick. Indicates sellers pushed hard, but buyers roared back to drive the price up. Potentially marks a market bottom.
-2. **Marubozu**: A giant solid body with almost no wicks. Indicates absolute 100% dominance in one direction from the opening bell to the close.
-3. **Doji**: Open and Close are identical. Represents total indecision. High probability of an imminent trend reversal.`
+* **The 3 Market Cycles**:
+  1. **Uptrend**: Printing a clear, stair-case sequence of Higher Highs (HH) and Higher Lows (HL).
+  2. **Downtrend**: Lower Highs (LH) and Lower Lows (LL).
+  3. **Sideways/Consolidation**: Equal Highs and Lows bound in a tight range.
+* **Breakouts**: When a range boundary is pierced with sudden violence.
+* **Multi-Timeframe Analysis (MTFA)**: Use higher timeframes (Weekly/Daily) to find the trend, and smaller timeframes (15 Min/5 Min) to execute entry precision.`
+                    }
+                ]
             },
             {
-                title: 'Support, Resistance & Trendlines',
-                content: `Markets never move in straight vertical lines. They travel in zig-zag wave structures comprised of impulses and corrections.
+                id: 'mod-10',
+                title: 'Module 10: Candlestick Psychology',
+                level: 'Intermediate', duration: '25 Mins',
+                icon: Target,
+                topics: [
+                    {
+                        title: 'Decoding Mass Psychology',
+                        content: `Candlesticks capture the visual battleground between bulls and bears in fixed time buckets.
 
-### 🧱 Building The Chart Infrastructure
+### 🕯️ The Essential Candlestick Codex
 
-1. **Support Level**: A historical price floor where buying pressure consistently overpowers selling pressure, stopping a decline. Think of it as a trampoline.
-2. **Resistance Level**: A historical ceiling where supply increases and sellers consistently block further upward movement.
-3. **Trendlines**: Slanted lines connecting rising Swing Lows (Uptrend) or falling Swing Highs (Downtrend). The third touch of a trendline is statistically highly reliable for entries.
-
-> ⚠️ **The Rule of Polar Change**: Once a major Resistance level is broken upward, it transforms and acts as a new Support level on subsequent pullbacks.`
+* **Hammer/Pinbar**: A tiny body resting atop a very long lower wick. Indicates heavy panic selling occurred, but buyers fiercely rejected those prices to close near the high. Bullish reversal sign.
+* **Shooting Star**: Long upper wick, small lower body. Buyers tried pushing higher but institutional sellers stepped in at the top. Bearish reversal sign.
+* **Bullish Engulfing**: A large green candle fully consuming/wrapping the entire body of the previous red candle. Signifies sudden, absolute buyer dominance.`
+                    }
+                ]
             },
             {
-                title: 'Core Technical Indicators',
-                content: `Indicators are mathematical calculations based on past price and volume. They act as secondary confirmation filters; never trade them in absolute isolation.
+                id: 'mod-11',
+                title: 'Module 11: Support, Resistance & Structure',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: Layers,
+                topics: [
+                    {
+                        title: 'Building the Chart Skeleton',
+                        content: `S/R zones are historical reference price zones where institutions typically build buy or sell order reserves.
 
-### 📐 The Professional Indicator Toolkit
+### 🧱 Principles of Key Levels
 
-1. **Moving Averages (SMA/EMA)**: Smooths out noise. The **200-Day EMA** is the ultimate institutional line. If price is above it, the stock is in a macro uptrend; below it, a downtrend.
-2. **Relative Strength Index (RSI)**: A momentum oscillator ranging from 0 to 100.
-   * **RSI > 70**: Overbought. The asset might be overextended and due for a short-term correction.
-   * **RSI < 30**: Oversold. Panic selling has peaked; potential bounce candidate.
-3. **Moving Average Convergence Divergence (MACD)**: Captures trend shifts. Crossovers between the MACD line and the signal line signal shifts in momentum.
-4. **Volume Analysis**: The ultimate lie detector. A price breakout without high volume is likely a "bull trap." True institutional breakouts must be backed by massive, above-average volume spikes.`
+* **Static Levels**: Horizontal zones where price bounced historically multiple times.
+* **The Polar Principle**: A major Resistance level once broken hard upward converts directly into a new Support zone on subsequent retests.
+* **Supply & Demand Zones**: Broader boxes where institutional liquidity imbalances reside, triggering rapid price originations.
+* **Trendline Validation**: Slanted lines connecting rising lows or falling highs. The 3rd touch point generally offers the highest statistical accuracy.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-12',
+                title: 'Module 12: Indicators & Momentum Systems',
+                level: 'Intermediate', duration: '35 Mins',
+                icon: Activity,
+                topics: [
+                    {
+                        title: 'Mathematical Trend Following',
+                        content: `Indicators process past price to reveal invisible factors like momentum, velocity, and volatility.
+
+### 🛠️ The Professional Toolkit
+
+* **Moving Averages (EMA)**: The **20 EMA** guides intraday momentum. The **200 EMA** represents the institutional macro bias. If price stays above 200 EMA, only buy setups.
+* **RSI (Relative Strength Index)**: Ranges 0-100. Overbought (>70) flags danger; Oversold (<30) signals potential panic bottom. Look for **Divergences** between RSI and price.
+* **VWAP (Volume Weighted Avg Price)**: Crucial for intraday trading. Acts as the average buying benchmark for big institutions. Price below VWAP implies bearish bias.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-13',
+                title: 'Module 13: Volume & Smart Money Concepts',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: Database,
+                topics: [
+                    {
+                        title: 'Following Institutional Tracks',
+                        content: `Smart Money (institutions) cannot hide their footprint because their massive order sizes must print on Volume charts.
+
+### 🔍 Decoding The Trace
+
+* **Volume Confirmation**: A breakout above resistance without high volume is likely a retail trap. True breakouts MUST have massive, 2x average volume spikes.
+* **Accumulation/Distribution**: Long, tight consolidations where institutions quietly buy huge blocks without spiking price, before orchestrating a markup phase.
+* **Liquidity Grabs**: Sweeping stop losses sitting just below support lines to collect shares before firing the price in the opposite direction.`
+                    }
+                ]
             }
         ]
     },
     {
-        id: 'mod-4',
-        title: '4. Derivatives: Futures & Options',
+        name: 'Phase 4 — Derivatives & Advanced Instruments',
         icon: Layers,
-        duration: '45 Mins',
-        level: 'Advanced',
-        shortDesc: 'Master complex leveraged hedging, Options Greeks, and structural strategies.',
-        topics: [
+        modules: [
             {
-                title: 'The World of Futures Contracts',
-                content: `Derivatives are specialized contracts deriving value from an underlying asset. They allow for two critical concepts: **Leverage** and the ability to easily **Short Sell** (make money when markets fall).
+                id: 'mod-14',
+                title: 'Module 14: Futures Trading',
+                level: 'Advanced', duration: '35 Mins',
+                icon: TrendingUp,
+                topics: [
+                    {
+                        title: 'Leveraged Obligations',
+                        content: `Futures permit trading large underlying asset baskets using a fraction of the capital (Margin).
 
-### 🔄 Mechanics of Futures
+### 🔄 Futures Operational Mechanics
 
-A Futures contract is a binding obligation to buy or sell an asset at a preset price on a specific expiration date.
-* **Lot Sizes**: You cannot buy 1 share in futures. You trade fixed "Lots" (e.g., NIFTY lot size is 75).
-* **Margin Leverage**: To command a lot worth ₹10 Lakhs, your broker only requires an upfront margin of roughly ₹1.5 Lakhs (approx 15%).
-* **Risk Alert**: This leverage is a double-edged sword. A 5% favorable move on the stock yields massive profits, but a 5% adverse move can instantly wipe out 30%+ of your deposited margin.`
+* **Leverage Mechanics**: An index future lot might be worth ₹10 Lakhs, but your margin requirement is only approx ₹1.5 Lakhs (15%).
+* **MTM (Mark-to-Market)**: Daily profit or loss is settled electronically in cash every single day at 3:30 PM.
+* **Hedging**: Institutional portfolio managers sell futures to safeguard multi-crore long portfolios from market crashes.`
+                    }
+                ]
             },
             {
-                title: 'Options Essentials: Calls, Puts, & Moneyness',
-                content: `Unlike futures, Options give the buyer the "right" but not the "obligation" to execute a trade. Buyers pay a non-refundable **Premium** upfront to Sellers (Writers).
+                id: 'mod-15',
+                title: 'Module 15: Options Foundations',
+                level: 'Advanced', duration: '40 Mins',
+                icon: Gem,
+                topics: [
+                    {
+                        title: 'Understanding Basic Call & Put Rights',
+                        content: `Unlike futures, options give rights to the buyer without absolute obligation.
 
-### 📑 The Core Operations
+### 📍 Concepts of Options Contracts
 
-1. **Call Option (CE)**: The buyer expects prices to rise sharply.
-2. **Put Option (PE)**: The buyer expects prices to crash, or uses it as insurance to protect equity holdings.
-
-### 📍 Understanding Moneyness
-
-* **ITM (In the Money)**: Options with intrinsic value. For Call options, the strike price is *lower* than current spot price.
-* **ATM (At the Money)**: The strike price is identical to current spot price.
-* **OTM (Out of the Money)**: Options with zero intrinsic value, comprised entirely of "Time Value." Cheap but carry high probability of expiring worthless at ₹0.
-
-> ⚠️ **Fact**: Nearly 90% of Out-of-the-Money (OTM) options expire completely worthless. Option buyers must be correct on direction, magnitude, AND time.`
+* **Call Option (CE)**: Buyer bets price will rise.
+* **Put Option (PE)**: Buyer bets price will fall.
+* **Premium Components**: Premium consists of **Intrinsic Value** (real-money value) + **Time Value** (decaying hope).
+* **Moneyness Breakdown**:
+  * **ITM (In The Money)**: Real value exists. Safe but expensive.
+  * **ATM (At The Money)**: Strike exactly equal to spot.
+  * **OTM (Out of The Money)**: Zero intrinsic value. Pure speculation. Mostly expire at ₹0.`
+                    }
+                ]
             },
             {
-                title: 'Demystifying Option Greeks',
-                content: `The premium of an option fluctuates based on dynamic mathematical forces called "The Greeks." Understanding these is mandatory to avoid trading blindly.
+                id: 'mod-16',
+                title: 'Module 16: Options Greeks & Volatility',
+                level: 'Advanced', duration: '45 Mins',
+                icon: Compass,
+                topics: [
+                    {
+                        title: 'Mathematical Decay and Acceleration',
+                        content: `The Greek metrics calculate exactly how an option premium shifts under changing volatility, price, and time.
 
 ### 🇬🇷 The Big Four Greeks
 
-1. **Delta**: Measures rate of change. A Delta of 0.5 means for every ₹1 the stock rises, the option premium will rise by ₹0.50.
-2. **Theta (Time Decay)**: The Option Buyer's worst enemy. Theta measures the daily erosion of premium as expiration approaches. The closer to expiry, the faster the premium decays to zero.
-3. **Vega (Volatility)**: Measures sensitivity to market volatility. If fear spikes (India VIX rises), option premiums inflate rapidly, even if the underlying stock price hasn't moved.
-4. **Gamma**: Measures the rate of change in Delta itself. Crucial for understanding violent price acceleration during expiry days ("Hero-Zero" moves).`
+1. **Delta**: Rate of change. Call Option delta goes from 0 to +1. Put goes 0 to -1.
+2. **Theta (Time Decay)**: The daily decay value. Options are melting ice-cubes. Every night you hold, Theta decays the value. Highly beneficial for option sellers.
+3. **Vega**: Sensitivity to volatility changes. If India VIX rises, all premiums swell up.
+4. **IV Crush**: When an event ends (earnings, elections), volatility collapses instantly, crushing option premium values even if price hasn't shifted.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-17',
+                title: 'Module 17: Professional Options Strategies',
+                level: 'Advanced', duration: '40 Mins',
+                icon: Layers,
+                topics: [
+                    {
+                        title: 'Building Structured Risk Spreads',
+                        content: `Professional derivative players almost never buy single naked options. They use defined-risk spreads to control risk.
+
+### 📑 Core Structural Strategies
+
+* **Bull Call Spread**: Buying a lower-strike Call and selling a higher-strike Call to reduce cost and hedge theta decay. Max loss is tightly capped.
+* **Iron Condor**: Selling both an OTM Call and an OTM Put while buying further OTM wings as protection. Reaps max profits in non-directional sideways ranges.
+* **Covered Call**: Holding physical delivery of stocks and selling OTM Calls monthly to generate consistent cash rent.`
+                    }
+                ]
             }
         ]
     },
     {
-        id: 'mod-5',
-        title: '5. Trading Styles & Gameplans',
+        name: 'Phase 5 — Trading Styles & Strategy Design',
         icon: Briefcase,
-        duration: '25 Mins',
-        level: 'Intermediate',
-        shortDesc: 'Identify your financial style: Scalping, Intraday, Swing, or Long-term Investing.',
-        topics: [
+        modules: [
             {
-                title: 'Choosing Your Methodology',
-                content: `There is no single "best" way to trade. Your success depends entirely on selecting a style that aligns with your daily schedule, capital size, and emotional tolerance.
+                id: 'mod-18',
+                title: 'Module 18: Scalping & Intraday Trading',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: Target,
+                topics: [
+                    {
+                        title: 'Zero-Overnight Risk Systems',
+                        content: `Intraday systems demand intense focus, fast setups, and liquid instruments.
 
-### ⏱️ The 4 Primary Trading Disciplines
+### ⏱️ Intraday Trade Frameworks
 
-1. **Scalping**: Holds positions for mere seconds to minutes. Captures tiny price increments with massive capital and leverage. Requires robotic reflexes and low latency setups.
-2. **Intraday Trading**: Positions opened and closed within the same trading session (9:15 AM to 3:30 PM). Zero overnight risk, meaning global market gaps do not affect your open capital.
-3. **Swing Trading**: Holds positions for days to weeks. Targets medium-term momentum swings. Excellent for part-time traders holding regular day jobs.
-4. **Positional/Investing**: Holds for months or years based on structural fundamentals and macro trends. Extremely passive but yields compounding multi-bagger wealth.`
+* **Scalping**: Ultra-short durations (seconds to 2 minutes) on 1-minute charts using massive sizes. Catches micro breakouts using 9 EMA.
+* **ORB (Opening Range Breakout)**: Evaluating the high and low boundaries of the first 15 minutes, and entering directionally when broken with heavy volume.
+* **VWAP Bounce**: Buying support near the VWAP line when strong volume establishes an early institutional trend.`
+                    }
+                ]
             },
             {
-                title: 'Constructing a Professional Trading Plan',
-                content: `Professional trading is a business, and every business requires a rigid business plan. Trading without a written set of rules is merely sophisticated gambling.
+                id: 'mod-19',
+                title: 'Module 19: Swing Trading Systems',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: LineChart,
+                topics: [
+                    {
+                        title: 'Capturing Mid-Term Trend Swings',
+                        content: `Holds positions for days to weeks. Requires 15-30 mins daily analysis, perfect for working professionals.
 
-### 📋 Components of a Structural Plan
+### 📈 Swing Concepts
 
-* **The Universe**: Exactly which instruments will you trade? (e.g., "Only Top 50 High-Volume Nifty Liquid Stocks").
-* **The Entry Trigger**: What concrete visual setup must appear? (e.g., "Daily 20 EMA bounce backed by 2x average volume").
-* **The Exit Rule (Stop Loss)**: Defined *before* you press the buy button. (e.g., "Exit immediately if price closes below previous Swing Low").
-* **The Target Rule**: How and when will you book profits? (e.g., "Book 50% profit at 1:2 Risk-Reward ratio, trail the remaining half").`
+* **Pullback Entries**: Letting a stock break out, waiting for a 30-40% drop back to its 50 EMA or broken resistance (Support), and buying the bounce.
+* **Gap Trading**: Spotting morning earnings gaps and either trading in gap direction or fading them on overextension.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-20',
+                title: 'Module 20: Positional & Long-Term Investing',
+                level: 'Beginner', duration: '25 Mins',
+                icon: PieChart,
+                topics: [
+                    {
+                        title: 'Compounding Wealth Structures',
+                        content: `Positional systems focus on macroscopic economic shifts lasting months to multi-years.
+
+### 💰 The Investor Core
+
+* **Trend Following**: Entering powerful weekly chart breakouts and trailing the 20-Week EMA until a structural change.
+* **SIP Methodology**: Consistent monthly purchases ignoring interim volatilities to benefit from Rupee Cost Averaging.
+* **Portfolio Rebalancing**: Trimming asset allocations yearly to restore targeted risk boundaries.`
+                    }
+                ]
+            },
+            {
+                id: 'mod-21',
+                title: 'Module 21: Strategy Building & Backtesting',
+                level: 'Intermediate', duration: '30 Mins',
+                icon: ShieldCheck,
+                topics: [
+                    {
+                        title: 'Validating the Trading Edge',
+                        content: `A trading strategy without written data validations is simply blind hope.
+
+### 📋 Framework for Building
+
+1. **Define The Set**: Write exact logical conditions for entry (e.g., Price > 200 EMA + Bullish engulfing at Support).
+2. **The Backtest**: Manually scan the past 2 years of chart data and log every trade setup.
+3. **Metric Target**: Your setup must achieve positive **Expectancy**. Expectancy = (Win% * Avg Win) - (Loss% * Avg Loss). Even a 40% win rate yields immense wealth if Avg Win is 2.5x Avg Loss.`
+                    }
+                ]
             }
         ]
     },
     {
-        id: 'mod-6',
-        title: '6. Risk Intelligence & Math',
+        name: 'Phase 6 — Risk, Psychology & Performance',
         icon: ShieldAlert,
-        duration: '30 Mins',
-        level: 'Crucial',
-        shortDesc: 'Preserve capital via position sizing formulas, drawdowns, and psychological shields.',
-        topics: [
+        modules: [
             {
-                title: 'The Core Risk Management Formulas',
-                content: `Amateurs obsess over how much money they can make. Professionals obsess over how much money they can lose. Without mathematics, your account will eventually go to zero.
+                id: 'mod-22',
+                title: 'Module 22: Risk Intelligence & Capital Protection',
+                level: 'Crucial', duration: '35 Mins',
+                icon: Scale,
+                topics: [
+                    {
+                        title: 'Preventing Account Ruin',
+                        content: `The ultimate secret of professional trading is preserving capital at all cost.
 
-### 🛡️ The 1% Absolute Capital Rule
+### 🛡️ Capital Survival Mathematics
 
-Never risk more than **1% of your total account equity** on any single trade. If your total capital is ₹1,00,000, your maximum allowed loss on any failed trade is exactly ₹1,000. This allows you to survive an incredible 10-trade losing streak with 90% of your capital still intact.
-
-### 📐 The Position Sizing Formula
-
-To trade the 1% rule, you must mathematically calculate how many shares to buy:
-
-* **Formula**: *Number of Shares = (Total Risk Capital) ÷ (Entry Price - Stop Loss Price)*
-
-* **Example**: You have ₹1,00,000 capital (Risk = ₹1,000). You buy ABC stock at ₹500 with a Stop Loss at ₹480.
-* **Math**: 1000 ÷ (500 - 480) = 1000 ÷ 20 = **50 Shares**.
-* Buying more than 50 shares exposes you to emotional panic if the price drops.`
+* **The 1% Golden Rule**: Never risk more than 1% of total capital on any singular trade.
+* **Position Sizing Formula**:
+  * *Shares = (Capital * 0.01) ÷ (Entry Price - Stop Loss Price)*
+  * *Example*: Capital ₹1,00,000 (Risk = ₹1,000). Entry ₹500, SL ₹480 (Risk/share = ₹20). Buying volume = 1000 / 20 = **50 Shares**.
+* **Drawdown Recovery**: A 10% loss requires 11% to recover. A 50% loss requires an impossible 100% gain to break even. Never let losses compound.`
+                    }
+                ]
             },
             {
-                title: 'Understanding Risk-to-Reward Ratio (RRR)',
-                content: `Even if your win rate is only 40%, you can still become insanely profitable if your Risk-to-Reward ratio is mathematically favorable.
+                id: 'mod-23',
+                title: 'Module 23: Trading Psychology & Discipline',
+                level: 'Crucial', duration: '30 Mins',
+                icon: Activity,
+                topics: [
+                    {
+                        title: 'Conquering Internal Biological Urges',
+                        content: `The human brain is biologically hardwired to fail in trading. We run from pain (realizing losses) and seek instant safety (booking profits early).
 
-### ⚖️ The Power of 1:2 RRR
+### 🧠 Psychological Pitfalls
 
-Always aim for setups that yield at least 2 units of profit for every 1 unit of risk.
-
-### 📊 Math Comparison (10 Trades)
-
-* **Win Rate**: 40% (4 Wins, 6 Losses)
-* **Risking**: ₹1,000 per trade
-* **Targeting**: ₹2,000 per trade (1:2 RR)
-* **Total Losses**: 6 × ₹1,000 = **-₹6,000**
-* **Total Profits**: 4 × ₹2,000 = **+₹8,000**
-* **Net Result**: **+₹2,000 Net Profit**
-
-By maintaining discipline on your Risk-Reward ratio, you make money even while being wrong more than half of the time!`
+* **FOMO (Fear of Missing Out)**: Entering too late out of pure greed.
+* **Revenge Trading**: Scaling size after a loss to "win it back."
+* **Aversion to Loss**: Refusing to execute a Stop Loss, praying for a rebound until a minor 2% loss destroys the account. True professionals view Stop Losses as normal, calculated business expenses.`
+                    }
+                ]
             },
             {
-                title: 'Mastering Trading Psychology',
-                content: `Trading strategies are cheap; discipline is expensive. Two core human instincts systematically destroy trading accounts.
+                id: 'mod-24',
+                title: 'Module 24: Professional Trading Operations',
+                level: 'Intermediate', duration: '25 Mins',
+                icon: Briefcase,
+                topics: [
+                    {
+                        title: 'Operating Trading as a Business',
+                        content: `Retail traders act like gamblers; professionals establish standard operational workflows.
 
-### 🧠 The Fatal Biases
+### 📋 Operational Checklist
 
-1. **Fear of Missing Out (FOMO)**: Watching a stock run up 10% and buying at the peak out of greed. You end up providing exit liquidity to institutional professionals.
-2. **Aversion to Loss (The Hope Trap)**: Refusing to trigger your Stop Loss when a stock falls, "hoping" it will bounce back. A small 2% loss transforms into a catastrophic 50% capital destroyer.
-3. **Revenge Trading**: Entering random, large positions immediately after a loss in an angry attempt to make it back. Never trade when emotionally triggered.`
+* **Daily Journaling**: Record entry reason, chart snap, emotion at entry, slip value, and exit reasoning for every trade.
+* **KPI Analytics**: Review your win rate, maximum consecutive losses, profit factor, and average hold times monthly.
+* **Daily Routine**: 8:30 AM global market scans; 9:00 AM pre-market setups; 9:15 AM focus execution; 3:30 PM log performance and switch system off.`
+                    }
+                ]
             }
         ]
     },
     {
-        id: 'mod-7',
-        title: '7. Charges, Taxes & Compliance',
-        icon: Scale,
-        duration: '20 Mins',
-        level: 'Crucial',
-        shortDesc: 'Learn about STT, GST, brokerages, and Capital Gains tax mechanisms.',
-        topics: [
+        name: 'Phase 7 — Indian Market Compliance & Growth',
+        icon: Gavel,
+        modules: [
             {
-                title: 'The Hidden Costs of Trading',
-                content: `Gross profits do not equal net profits. Every trade executes through a chain of intermediaries who charge fees. High-frequency traders can sometimes wipe out 20%+ of their profits in charges.
+                id: 'mod-25',
+                title: 'Module 25: Indian Taxes, Charges & Legal Compliance',
+                level: 'Crucial', duration: '40 Mins',
+                icon: Scale,
+                topics: [
+                    {
+                        title: 'Taxes, Charges, and ITR Filing',
+                        content: `Trading generates legal taxable income that must be filed under exact heads with the Indian Income Tax Department.
 
-### 💸 Breakdown of Levies
+### 💸 Mandatory Transactional Fees
 
-1. **Brokerage**: The fee paid to your broker. Usually zero for equity delivery, and a flat ₹20 per executed order for Intraday and F&O.
-2. **Securities Transaction Tax (STT)**: A direct government tax levied on purchase and sale values. Extremely high on equity delivery (0.1% on both sides) and moderate on F&O.
-3. **Exchange Transaction Charges**: Paid directly to NSE/BSE for utilizing their matching engine.
-4. **GST**: Charged at 18% on the combined value of Brokerage and Transaction fees.
-5. **SEBI Turnover Fee & Stamp Duty**: Micro-charges mandated by regulators.`
-            },
-            {
-                title: 'Capital Gains & Business Taxation',
-                content: `Trading income in India is classified and taxed under specific legal headers by the Income Tax Department.
+1. **Brokerage**: Direct fee paid to broker (delivery usually ₹0; intraday/F&O flat ₹20).
+2. **STT (Securities Transaction Tax)**: Goverment levy on turnover value. High on equities (0.1% buy/sell).
+3. **GST**: 18% on the combined total of Brokerage + Exchange charges.
+4. **Stamp Duty / SEBI Fee**: Mandatory micro-fees applied per turnover crore.
 
-### 📁 Taxation Framework
+### 📁 The Indian Income Tax Framework
 
-1. **Short-Term Capital Gains (STCG)**: Applies to equity shares held for less than 12 months. Taxed at a flat rate of **20%** (increased recently from 15%).
-2. **Long-Term Capital Gains (LTCG)**: Applies to equities held for longer than 12 months. Taxed at **12.5%** (on gains exceeding ₹1.25 Lakhs annually).
-3. **Intraday & F&O Taxation**: Classified as **Business Income** (Speculative and Non-Speculative). These profits are added directly to your total income and taxed according to your personal income tax slab. You can offset losses against other business incomes.`
+* **Short-Term Capital Gains (STCG)**: Equity delivery held under 12 months. Flat tax rate of **20%**.
+* **Long-Term Capital Gains (LTCG)**: Delivery held over 12 months. Taxed at **12.5%** on gains over ₹1.25 Lakhs.
+* **Intraday Trading**: Deemed **Speculative Business Income**. Taxed at your slab.
+* **F&O Trading**: Deemed **Non-Speculative Business Income**. Add to total income, tax at personal slab. You can deduct legitimate expenses like internet, computer, advisory fees, and broker charges against business revenues.`
+                    }
+                ]
             }
         ]
     }
 ];
 
+// Quick lookup dictionary to find a module based on global flat index
+const ALL_MODULES_FLAT = CURRICULUM_PHASES.flatMap(phase => phase.modules);
+
 const BusinessTrading = () => {
-    const [activeModule, setActiveModule] = useState(TRADING_MODULES[0]);
+    const [activeModule, setActiveModule] = useState(ALL_MODULES_FLAT[0]);
     const [activeTopicIdx, setActiveTopicIdx] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [bookmarkList, setBookmarkList] = useState(() => {
@@ -341,10 +577,19 @@ const BusinessTrading = () => {
         return local ? JSON.parse(local) : [];
     });
 
-    const filteredModules = TRADING_MODULES.filter(mod => 
-        mod.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        mod.shortDesc.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Track open/collapsed state for Phase accordions
+    const [openPhases, setOpenPhases] = useState(() => {
+        // Start with all phases expanded by default for visibility
+        return CURRICULUM_PHASES.map((_, idx) => idx);
+    });
+
+    const togglePhase = (phaseIdx) => {
+        if (openPhases.includes(phaseIdx)) {
+            setOpenPhases(openPhases.filter(i => i !== phaseIdx));
+        } else {
+            setOpenPhases([...openPhases, phaseIdx]);
+        }
+    };
 
     const toggleBookmark = (topicTitle) => {
         let updated = [...bookmarkList];
@@ -364,7 +609,27 @@ const BusinessTrading = () => {
 
     const currentTopic = activeModule.topics[activeTopicIdx];
 
-    // Dynamic Markdown Bold Processor (**Bold**)
+    // Helper to find which Phase an active module belongs to
+    const activePhaseName = useMemo(() => {
+        const found = CURRICULUM_PHASES.find(phase => 
+            phase.modules.some(m => m.id === activeModule.id)
+        );
+        return found ? found.name : '';
+    }, [activeModule]);
+
+    // Filtering logic spanning all 25 modules
+    const filteredPhases = useMemo(() => {
+        if (!searchQuery) return CURRICULUM_PHASES;
+        
+        return CURRICULUM_PHASES.map(phase => {
+            const matchingModules = phase.modules.filter(mod => 
+                mod.title.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            return { ...phase, modules: matchingModules };
+        }).filter(phase => phase.modules.length > 0);
+    }, [searchQuery]);
+
+    // Inline Markdown Bold Processing Engine
     const renderInlineMarkdown = (lineText) => {
         if (!lineText) return '';
         const parts = lineText.split(/(\*\*.*?\*\*)/g);
@@ -376,28 +641,28 @@ const BusinessTrading = () => {
         });
     };
 
-    // Parse rich content into HTML friendly rendering
+    // Rich Text Parser
     const formatContent = (text) => {
         return text.split('\n\n').map((paragraph, index) => {
-            // Subheaders
+            // Custom Blockquotes
+            if (paragraph.startsWith('> ')) {
+                const cleaned = paragraph.replace('> ', '');
+                return (
+                    <div key={index} style={{ padding: '1.25rem 1.5rem', borderLeft: '5px solid #EF4444', background: '#FEF2F2', borderRadius: '0 16px 16px 0', color: '#B91C1C', fontSize: '0.95rem', margin: '1.75rem 0', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.03)' }}>
+                        {renderInlineMarkdown(cleaned)}
+                    </div>
+                );
+            }
+            // Main headers
             if (paragraph.startsWith('### ')) {
                 const cleaned = paragraph.replace('### ', '');
                 return (
-                    <h3 key={index} style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', marginTop: '2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
+                    <h3 key={index} style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', marginTop: '2.25rem', marginBottom: '1rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
                         {renderInlineMarkdown(cleaned)}
                     </h3>
                 );
             }
-            // Main Headers
-            if (paragraph.startsWith('## ')) {
-                const cleaned = paragraph.replace('## ', '');
-                return (
-                    <h2 key={index} style={{ fontSize: '1.5rem', fontWeight: '950', color: '#064E3B', marginTop: '2.5rem', marginBottom: '1.25rem', borderBottom: '2.5px solid #ECFDF5', paddingBottom: '0.6rem' }}>
-                        {renderInlineMarkdown(cleaned)}
-                    </h2>
-                );
-            }
-            // Bullet / Numbered lists
+            // List builders
             if (paragraph.startsWith('* ') || paragraph.startsWith('1. ') || paragraph.startsWith('2. ') || paragraph.startsWith('3. ') || paragraph.startsWith('4. ')) {
                 return (
                     <ul key={index} style={{ paddingLeft: '1.5rem', margin: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem', listStyleType: paragraph.startsWith('*') ? 'disc' : 'decimal' }}>
@@ -412,16 +677,7 @@ const BusinessTrading = () => {
                     </ul>
                 );
             }
-            // Quote / Block Alert Warning
-            if (paragraph.startsWith('> ')) {
-                const cleaned = paragraph.replace('> ', '');
-                return (
-                    <div key={index} style={{ padding: '1.25rem 1.5rem', borderLeft: '5px solid #EF4444', background: '#FEF2F2', borderRadius: '0 16px 16px 0', color: '#B91C1C', fontSize: '0.95rem', margin: '1.75rem 0', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.04)' }}>
-                        {renderInlineMarkdown(cleaned)}
-                    </div>
-                );
-            }
-            // Default standard paragraphs
+            // Paragraphs
             return (
                 <p key={index} style={{ color: '#334155', lineHeight: '1.8', fontSize: '1rem', marginBottom: '1.25rem' }}>
                     {renderInlineMarkdown(paragraph)}
@@ -430,241 +686,276 @@ const BusinessTrading = () => {
         });
     };
 
+    // Linear navigation controls
+    const handleNextModuleStep = () => {
+        const currentFlatIdx = ALL_MODULES_FLAT.findIndex(m => m.id === activeModule.id);
+        
+        if (activeTopicIdx < activeModule.topics.length - 1) {
+            setActiveTopicIdx(activeTopicIdx + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (currentFlatIdx < ALL_MODULES_FLAT.length - 1) {
+            // Advance to next module in database
+            const nextModule = ALL_MODULES_FLAT[currentFlatIdx + 1];
+            setActiveModule(nextModule);
+            setActiveTopicIdx(0);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            alert("🎓 Extraordinary Achievement! You have fully navigated, studied, and reviewed our absolute complete 25-Module professional syllabus!");
+        }
+    };
+
     return (
-        <div style={{ padding: '2rem 2.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
+        <div style={{ padding: '2.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
             
-            {/* Header Banner */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)', borderRadius: '24px', padding: '2rem 2.5rem', color: 'white', boxShadow: '0 12px 30px rgba(6, 78, 59, 0.15)' }}>
-                <div style={{ maxWidth: '60%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.15)', width: 'fit-content', padding: '0.35rem 0.75rem', borderRadius: '999px', marginBottom: '1rem', backdropFilter: 'blur(4px)' }}>
-                        <Award size={14} className="text-yellow-300" />
-                        <span style={{ fontSize: '0.75rem', fontWeight: '800', letterSpacing: '0.03em', textTransform: 'uppercase' }}>Cliks Market Academy — Production Grade V1.2</span>
+            {/* Main Header Boarding */}
+            <div style={{ 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)', 
+                borderRadius: '28px', padding: '2.5rem 3rem', color: 'white', 
+                marginBottom: '2.5rem', boxShadow: '0 15px 40px -10px rgba(6, 78, 59, 0.2)' 
+            }}>
+                <div style={{ maxWidth: '65%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.15)', width: 'fit-content', padding: '0.4rem 0.9rem', borderRadius: '999px', marginBottom: '1.25rem', backdropFilter: 'blur(4px)' }}>
+                        <Award size={15} className="text-yellow-300" />
+                        <span style={{ fontSize: '0.72rem', fontWeight: '900', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Complete 25-Module Professional Syllabus</span>
                     </div>
-                    <h1 style={{ fontSize: '2.25rem', fontWeight: '950', letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>Enterprise Trading Academy</h1>
-                    <p style={{ opacity: 0.9, fontWeight: '500', fontSize: '1.02rem', lineHeight: '1.5', margin: 0 }}>Access deep-dive structured education from core exchange infrastructure up to derivatives pricing, Greeks management, and tax liabilities.</p>
+                    <h1 style={{ fontSize: '2.5rem', fontWeight: '950', letterSpacing: '-0.03em', margin: '0 0 0.5rem 0' }}>Enterprise Trading Academy</h1>
+                    <p style={{ opacity: 0.9, fontSize: '1.05rem', lineHeight: '1.6', fontWeight: '500', margin: 0 }}>Master the absolute spectrum of stock market operations—covering raw matching infrastructure, balance sheet evaluations, indicator strategies, advanced Options Greeks, and direct Indian ITR compliance.</p>
                 </div>
-                <div style={{ width: '180px', height: '180px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <BookOpen size={80} style={{ color: 'white', opacity: 0.25 }} />
+                <div style={{ width: '190px', height: '190px', background: 'rgba(255, 255, 255, 0.07)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <BookMarked size={90} style={{ color: 'white', opacity: 0.3 }} />
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '2rem', alignItems: 'flex-start' }}>
+            {/* Content Layout Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.4fr', gap: '2rem', alignItems: 'flex-start' }}>
                 
-                {/* Left Navigation Syllabus */}
+                {/* Left Floating Curriculum Accordion View */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: '2rem' }}>
                     
-                    {/* Search Input */}
-                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 6px rgba(0,0,0,0.01)' }}>
-                        <Search size={18} style={{ color: '#94A3B8' }} />
+                    {/* Dynamic Search Filter */}
+                    <div style={{ background: 'white', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                        <Search size={19} style={{ color: '#94A3B8' }} />
                         <input 
                             type="text" 
-                            placeholder="Search concepts or syllabus..." 
+                            placeholder="Search modules or phases..." 
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', fontWeight: '500', color: '#1E293B' }}
+                            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.95rem', fontWeight: '500', color: '#1E293B' }}
                         />
                     </div>
 
-                    {/* Syllabus Module List */}
-                    <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                    {/* Major Course Accordion Stack */}
+                    <div style={{ 
+                        background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', 
+                        overflow: 'hidden', boxShadow: '0 4px 20px -4px rgba(0,0,0,0.03)', 
+                        maxHeight: '70vh', display: 'flex', flexDirection: 'column' 
+                    }}>
                         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B' }}>Curriculum Modules</span>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '2px 8px', borderRadius: '6px' }}>{TRADING_MODULES.length} Courses</span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B' }}>Syllabus Spectrum</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '850', color: '#1B6B3A', background: '#DCF2E4', padding: '3px 8px', borderRadius: '6px' }}>25 Modules</span>
                         </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '65vh', overflowY: 'auto' }}>
-                            {filteredModules.map((module) => {
-                                const Icon = module.icon;
-                                const isActive = activeModule.id === module.id;
+
+                        <div style={{ overflowY: 'auto', flex: 1 }}>
+                            {filteredPhases.map((phase, phaseIdx) => {
+                                const PhaseIcon = phase.icon;
+                                const isOpen = openPhases.includes(phaseIdx);
                                 return (
-                                    <div 
-                                        key={module.id}
-                                        onClick={() => handleModuleSelect(module)}
-                                        style={{ 
-                                            padding: '1.25rem 1.5rem', 
-                                            borderBottom: '1px solid #F1F5F9', 
-                                            cursor: 'pointer',
-                                            background: isActive ? '#F0FDF4' : 'transparent',
-                                            borderLeft: isActive ? '4px solid #1B6B3A' : '4px solid transparent',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: isActive ? '#DCF2E4' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#1B6B3A' : '#64748B', flexShrink: 0 }}>
-                                                <Icon size={18} />
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: isActive ? '#1B6B3A' : '#64748B' }}>{module.level}</span>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748B' }}>
-                                                        <Clock size={10} />
-                                                        <span style={{ fontSize: '0.65rem', fontWeight: '650' }}>{module.duration}</span>
-                                                    </div>
+                                    <div key={phaseIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                        {/* Phase Accordion Header Toggle */}
+                                        <div 
+                                            onClick={() => togglePhase(phaseIdx)}
+                                            style={{ 
+                                                padding: '1.1rem 1.25rem', background: '#FAFAFA', cursor: 'pointer', 
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                borderBottom: isOpen ? '1px solid #F1F5F9' : 'none'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                <div style={{ color: '#1B6B3A' }}>
+                                                    <PhaseIcon size={16} />
                                                 </div>
-                                                <h4 style={{ fontSize: '0.92rem', fontWeight: '850', color: isActive ? '#064E3B' : '#1E293B', margin: 0, lineHeight: '1.4' }}>{module.title}</h4>
+                                                <span style={{ fontSize: '0.78rem', fontWeight: '900', color: '#1E293B' }}>{phase.name}</span>
                                             </div>
+                                            <ChevronRight size={16} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
                                         </div>
+
+                                        {/* Render Module Items nested in this Phase */}
+                                        {isOpen && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', background: 'white' }}>
+                                                {phase.modules.map((module) => {
+                                                    const Icon = module.icon;
+                                                    const isActive = activeModule.id === module.id;
+                                                    return (
+                                                        <div 
+                                                            key={module.id}
+                                                            onClick={() => handleModuleSelect(module)}
+                                                            style={{ 
+                                                                padding: '1rem 1.25rem', 
+                                                                cursor: 'pointer',
+                                                                borderLeft: isActive ? '4px solid #1B6B3A' : '4px solid transparent',
+                                                                background: isActive ? '#F0FDF4' : 'transparent',
+                                                                borderBottom: '1px solid #F8FAFC',
+                                                                transition: 'background 0.15s'
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isActive ? '#DCF2E4' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#1B6B3A' : '#64748B', flexShrink: 0 }}>
+                                                                    <Icon size={15} />
+                                                                </div>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', color: isActive ? '#1B6B3A' : '#64748B' }}>{module.level}</span>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#94A3B8' }}>
+                                                                            <Clock size={9} />
+                                                                            <span style={{ fontSize: '0.6rem', fontWeight: '600' }}>{module.duration}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: isActive ? '#064E3B' : '#334155', margin: 0, lineHeight: '1.35' }}>{module.title}</h4>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
-                            {filteredModules.length === 0 && (
-                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontSize: '0.85rem' }}>No matching topics found.</div>
+                            {filteredPhases.length === 0 && (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>No matching modules found in this curriculum.</div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Content Reader */}
-                <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                {/* Right Premium Content Reader Board */}
+                <div style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 8px 24px -8px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
                     
-                    {/* Inner Topic Sub-navigation Bar */}
-                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {/* Top Topic Controller & Bookmark Header */}
+                    <div style={{ padding: '1.25rem 2.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                        <div style={{ display: 'flex', gap: '0.6rem' }}>
                             {activeModule.topics.map((topic, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setActiveTopicIdx(idx)}
                                     style={{ 
-                                        padding: '0.6rem 1.1rem', 
-                                        borderRadius: '10px', 
+                                        padding: '0.6rem 1.25rem', borderRadius: '10px', 
                                         border: activeTopicIdx === idx ? 'none' : '1px solid #E2E8F0', 
                                         background: activeTopicIdx === idx ? '#1B6B3A' : 'white', 
                                         color: activeTopicIdx === idx ? 'white' : '#475569', 
-                                        fontWeight: '800', 
-                                        fontSize: '0.82rem', 
-                                        cursor: 'pointer',
-                                        boxShadow: activeTopicIdx === idx ? '0 4px 12px rgba(27, 107, 58, 0.15)' : 'none',
-                                        transition: 'all 0.2s'
+                                        fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer',
+                                        boxShadow: activeTopicIdx === idx ? '0 4px 12px rgba(27, 107, 58, 0.15)' : 'none'
                                     }}
                                 >
-                                    Part {idx + 1}: {topic.title.length > 25 ? topic.title.substring(0, 25) + '...' : topic.title}
+                                    Part {idx + 1}: {topic.title.length > 35 ? topic.title.substring(0, 35) + '...' : topic.title}
                                 </button>
                             ))}
                         </div>
-                        
-                        {/* Bookmark Button */}
+
                         <button 
                             onClick={() => toggleBookmark(currentTopic.title)}
-                            style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', color: bookmarkList.includes(currentTopic.title) ? '#F59E0B' : '#94A3B8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                            title="Bookmark Chapter"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: bookmarkList.includes(currentTopic.title) ? '#F59E0B' : '#94A3B8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                         >
                             <Bookmark size={18} fill={bookmarkList.includes(currentTopic.title) ? '#F59E0B' : 'none'} />
-                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#64748B' }}>{bookmarkList.includes(currentTopic.title) ? 'Bookmarked' : 'Save'}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '850', color: '#64748B' }}>{bookmarkList.includes(currentTopic.title) ? 'Bookmarked' : 'Save'}</span>
                         </button>
                     </div>
 
-                    {/* Content Rendering Area */}
+                    {/* Content Presentation Panel */}
                     <div style={{ padding: '3.5rem' }} className="animate-in fade-in duration-300">
                         
-                        {/* Heading info */}
+                        {/* Header Metadata Info */}
                         <div style={{ marginBottom: '2.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', fontSize: '0.8rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                                <span>{activeModule.title}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', fontSize: '0.82rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                                <span>{activePhaseName}</span>
                                 <ChevronRight size={14} />
-                                <span>Chapter Section {activeTopicIdx + 1}</span>
+                                <span>Module Selection</span>
                             </div>
-                            <h1 style={{ fontSize: '2.25rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', lineHeight: 1.25, margin: '0 0 1.25rem 0' }}>
-                                {currentTopic.title}
+                            <h1 style={{ fontSize: '2.25rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', lineHeight: '1.25', margin: '0 0 1.25rem 0' }}>
+                                {activeModule.title}
                             </h1>
-                            <div style={{ display: 'flex', gap: '1.5rem', color: '#64748B', fontSize: '0.82rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', gap: '1.5rem', color: '#64748B', fontSize: '0.82rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.75rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <Clock size={15} />
-                                    <span style={{ fontWeight: '600' }}>Estimated Reading: ~10-12 mins</span>
+                                    <span style={{ fontWeight: '650' }}>System Estimation: ~12-15 mins</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <CheckCircle2 size={15} color="#10B981" />
-                                    <span style={{ fontWeight: '600' }}>Industry Standard Certified Syllabus</span>
+                                    <span style={{ fontWeight: '650' }}>SEBI Compliant Training Framework</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Rich Formatted Explanations */}
+                        {/* Dynamic Content Rich Text Rendering */}
                         <article style={{ fontSize: '1.02rem', color: '#334155' }}>
                             {formatContent(currentTopic.content)}
                         </article>
 
-                        {/* Bottom Navigation Guide / Read next */}
-                        <div style={{ marginTop: '4rem', borderTop: '1px solid #E2E8F0', paddingTop: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {/* Footer Navigation Guide */}
+                        <div style={{ marginTop: '4.5rem', borderTop: '1px solid #E2E8F0', paddingTop: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.35rem 0' }}>Curriculum Progress</p>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.35rem 0' }}>Module Completion State</p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
-                                    <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0F172A' }}>Section complete! Ready for next level?</span>
+                                    <span style={{ fontSize: '0.88rem', fontWeight: '850', color: '#0F172A' }}>Finished this section! Ready to unlock next chapter?</span>
                                 </div>
                             </div>
 
-                            {/* Continue Button */}
-                            {activeTopicIdx < activeModule.topics.length - 1 ? (
-                                <button 
-                                    onClick={() => {
-                                        setActiveTopicIdx(activeTopicIdx + 1);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
-                                        color: 'white', border: 'none', padding: '0.85rem 1.75rem', borderRadius: '12px', fontWeight: '850', fontSize: '0.92rem', cursor: 'pointer',
-                                        boxShadow: '0 4px 15px rgba(27, 107, 58, 0.25)', transition: 'transform 0.2s'
-                                    }}
-                                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                                >
-                                    Next Chapter <ArrowRight size={16} />
-                                </button>
-                            ) : (
-                                <button 
-                                    onClick={() => {
-                                        const nextIdx = TRADING_MODULES.findIndex(m => m.id === activeModule.id) + 1;
-                                        if (nextIdx < TRADING_MODULES.length) {
-                                            handleModuleSelect(TRADING_MODULES[nextIdx]);
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                        } else {
-                                            alert("🎓 Magnificent Achievement! You have exhausted and fully analyzed the absolute limits of our complete Market Academy suite!");
-                                        }
-                                    }}
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', 
-                                        color: 'white', border: 'none', padding: '0.85rem 1.75rem', borderRadius: '12px', fontWeight: '850', fontSize: '0.92rem', cursor: 'pointer',
-                                        boxShadow: '0 4px 15px rgba(15, 23, 42, 0.25)', transition: 'transform 0.2s'
-                                    }}
-                                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                                >
-                                    Proceed to Next Module <ArrowRight size={16} />
-                                </button>
-                            )}
+                            <button 
+                                onClick={handleNextModuleStep}
+                                style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', border: 'none', padding: '0.9rem 2rem', borderRadius: '14px', fontWeight: '900', fontSize: '0.95rem', cursor: 'pointer',
+                                    boxShadow: '0 8px 25px rgba(27, 107, 58, 0.22)', transition: 'transform 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
+                                Next Curriculum Stage <ArrowRight size={18} />
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Quick Reference Glossary & Disclaimer Footer */}
+            {/* Global Institutional Warnings */}
             <div style={{ marginTop: '4rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.75rem' }}>
-                <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 10px rgba(0,0,0,0.01)' }}>
+                <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#1B6B3A', marginBottom: '0.85rem' }}>
                         <Zap size={20} />
-                        <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Pro-Trading Principal</h4>
+                        <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Principle of Capital</h4>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>"Plan your trade, and trade your plan." Capital security must govern every execution. Refusal to set and stick to calculated stop-losses will lead to total capital failure.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Wealth is built by maximizing asymmetry. Restrict your losses to 1% on ANY individual setup to survive macro market volatility cycles mathematically.</p>
                 </div>
 
-                <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 10px rgba(0,0,0,0.01)' }}>
+                <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#3B82F6', marginBottom: '0.85rem' }}>
                         <HelpCircle size={20} />
-                        <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Analyzing Real Charts?</h4>
+                        <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Practice Environments</h4>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Pair this documentation with elite analytical software like TradingView or Sensibull. Study historical EMA interactions and practice candlestick pattern hunting live.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Pair this academic data with interactive simulator sandboxes. Backtest strategy conditions on 2 years of historical daily stock data before deploying live capital.</p>
                 </div>
 
-                <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 10px rgba(0,0,0,0.01)' }}>
+                <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#EF4444', marginBottom: '0.85rem' }}>
                         <ShieldAlert size={20} />
-                        <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Regulatory Hazard</h4>
+                        <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Legal Risk Advisory</h4>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Leveraged instruments (Futures & Options) are extremely speculative. Certified SEBI data warns that over 90% of retail participants lose money in derivatives trading.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>This educational hub is strictly instructional. Leveraged derivative trades possess high default risk. SEBI reports show over 9 out of 10 retail traders incur net losses in F&O.</p>
                 </div>
             </div>
         </div>
     );
 };
+
+// Fallback icon wrapper just in case Globe or others have pathing mismatches
+const Globe = ({ size, style }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </svg>
+);
 
 export default BusinessTrading;
