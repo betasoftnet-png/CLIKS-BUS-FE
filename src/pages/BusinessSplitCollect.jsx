@@ -41,7 +41,6 @@ const BusinessSplitCollect = () => {
         participants: [] 
     });
     
-    const [items, setItems] = useState([{ id: 1, name: '', amount: '', assignedTo: [] }]);
     const [formError, setFormError] = useState('');
 
     // ── Queries ─────────────────────────────────────────────────────────────
@@ -192,7 +191,6 @@ const BusinessSplitCollect = () => {
 
     const resetForm = () => {
         setFormData({ title: '', amount: '', paidBy: 'You', date: new Date().toISOString().split('T')[0], participants: [] });
-        setItems([{ id: 1, name: '', amount: '', assignedTo: [] }]);
         setSplitType('equal');
         setFormError('');
     };

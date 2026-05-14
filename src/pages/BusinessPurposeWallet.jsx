@@ -115,9 +115,7 @@ const BusinessPurposeWallet = () => {
 
     // Derived Statistics
     const wallets = Array.isArray(responseData) ? responseData : [];
-    const totalWallets = wallets.length;
     const activeWallets = wallets.filter(w => w.status !== 'completed').length;
-    const completedWallets = wallets.filter(w => w.status === 'completed').length;
     const totalAllocated = wallets.reduce((sum, w) => sum + (w.current_amount || 0), 0);
     const totalTarget = wallets.reduce((sum, w) => sum + (w.target_amount || 0), 0);
     const globalProgress = totalTarget > 0 ? Math.round((totalAllocated / totalTarget) * 100) : 0;

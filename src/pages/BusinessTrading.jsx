@@ -52,18 +52,14 @@ const BusinessTrading = () => {
     const [selectedAsset, setSelectedAsset] = useState(null);
     const [tradeModal, setTradeModal] = useState({ isOpen: false, type: 'BUY' });
     const [tradeForm, setTradeForm] = useState({ quantity: '', price: '' });
-    const [liveTick, setLiveTick] = useState(0);
-
     // Simulate ticking prices every few seconds
     useEffect(() => {
         const timer = setInterval(() => {
             setPortfolio(prev => prev.map(asset => {
                 const randTick = (Math.random() - 0.5) * 2.5; // Random movement
                 const newLtp = parseFloat((asset.ltp + randTick).toFixed(2));
-                const newChange = parseFloat((((newLtp - asset.avgCost) / asset.avgCost) * 100).toFixed(2));
                 return { ...asset, ltp: newLtp > 1 ? newLtp : asset.ltp };
             }));
-            setLiveTick(t => t + 1);
         }, 4000);
         return () => clearInterval(timer);
     }, []);
@@ -78,7 +74,6 @@ const BusinessTrading = () => {
     const currentValuation = portfolio.reduce((sum, item) => sum + (item.ltp * item.quantity), 0);
     const totalPnL = currentValuation - totalInvestment;
     const pnlPercentage = (totalPnL / (totalInvestment || 1)) * 100;
-    const dailyPnL = portfolio.reduce((sum, item) => sum + ((item.ltp * (item.change / 100)) * item.quantity), 0); // Simulated daily movement
 
     const handleTradeSubmit = (e) => {
         e.preventDefault();

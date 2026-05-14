@@ -63,6 +63,7 @@ import BusinessCustomization from './pages/BusinessCustomization';
 import BusinessPOS from './pages/BusinessPOS';
 import BusinessPurposeWallet from './pages/BusinessPurposeWallet';
 import BusinessReferral from './pages/BusinessReferral';
+import BusinessTrading from './pages/BusinessTrading';
 
 import './App.css';
 
@@ -164,6 +165,7 @@ function AppContent() {
                     <Route path="/subscription" element={<BusinessSubscription />} />
                     <Route path="/social/meetup" element={<BusinessPlaceholder title="Business Meetup" />} />
                     <Route path="/social/investors" element={<BusinessPlaceholder title="Business Investors" />} />
+                    <Route path="/social/trading" element={<BusinessTrading />} />
                     <Route path="/referral" element={<BusinessReferral />} />
 
                   </Routes>
