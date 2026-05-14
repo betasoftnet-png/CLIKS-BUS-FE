@@ -46,21 +46,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
 
-const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false }) => {
+const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false }) => {
     const IconComp = item.icon;
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
     const isOpen = !!openMenus[item.label];
     const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
 
-    // Dynamic styling variables mapping User Green vs Admin Indigo
-    const primaryColor = isAdmin ? '#4F46E5' : '#1B6B3A';
-    const activeBg = isAdmin ? '#EEF2FF' : '#DCF2E4';
-    const activeText = isActive ? '#ffffff' : (isAdmin ? '#1E293B' : '#111827');
-    const darkTextColor = isAdmin ? '#3730A3' : '#135029';
-    const backgroundStyle = isActive 
-        ? (isAdmin ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : '#1B6B3A')
-        : 'transparent';
+    // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange
+    const primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : '#1B6B3A');
+    const activeBg = isSales ? '#FFF7ED' : (isAdmin ? '#EEF2FF' : '#DCF2E4');
+    const activeText = isActive ? '#ffffff' : (isSales ? '#EA580C' : (isAdmin ? '#1E293B' : '#111827'));
+    const darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : '#135029');
+    
+    let backgroundStyle = 'transparent';
+    if (isActive) {
+        if (isSales) {
+            backgroundStyle = 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)';
+        } else if (isAdmin) {
+            backgroundStyle = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)';
+        } else {
+            backgroundStyle = '#1B6B3A';
+        }
+    }
 
     if (hasChildren) {
         return (
@@ -109,6 +117,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                                         toggleMenu={toggleMenu}
                                         handleItemClick={handleItemClick}
                                         isAdmin={isAdmin}
+                                        isSales={isSales}
                                     />
                                 ))}
                             </div>
@@ -129,8 +138,8 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                 fontSize: isChild ? '0.85rem' : '0.92rem',
                 background: backgroundStyle,
                 color: activeText,
-                borderLeft: isChild && isActive ? `3px solid ${isAdmin ? '#3730A3' : '#135029'}` : 'none',
-                boxShadow: isActive && isAdmin ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none'
+                borderLeft: isChild && isActive ? `3px solid ${isSales ? '#EA580C' : (isAdmin ? '#3730A3' : '#135029')}` : 'none',
+                boxShadow: isActive && (isAdmin || isSales) ? `0 4px 12px ${isSales ? 'rgba(234, 88, 12, 0.2)' : 'rgba(79, 70, 229, 0.2)'}` : 'none'
             }}
         >
             <div className="flex items-center gap-3">
@@ -148,7 +157,11 @@ const Sidebar = ({ isOpen, onClose }) => {
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
         if (path.includes('/admin/users')) return 'Tenant Matrix';
+        if (path.includes('/admin/sales-team')) return 'Sales Team';
+        if (path.includes('/admin/sales-leads')) return 'Leads Matrix';
         if (path.includes('/admin/sales')) return 'Platform Sales';
+        if (path.includes('/sales-portal/dashboard')) return 'Sales Overview';
+        if (path.includes('/sales-portal/leads')) return 'My Prospects';
         if (path.includes('/admin/moderation')) return 'Feed Monitor';
         if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
@@ -205,6 +218,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     const isSocialMode = activeModule === 'social';
     const isFinanceMode = activeModule === 'payments';
     const isAdminMode = location.pathname.includes('/admin/');
+    const isSalesAgentMode = location.pathname.includes('/sales-portal/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
     const [openMenus, setOpenMenus] = useState({});
@@ -217,12 +231,18 @@ const Sidebar = ({ isOpen, onClose }) => {
                 label: 'Sales Control',
                 icon: ShoppingCart,
                 children: [
-                    { label: 'Platform Sales', icon: Receipt, path: '/admin/sales' }
+                    { label: 'Platform Sales', icon: Receipt, path: '/admin/sales' },
+                    { label: 'Sales Team', icon: Users, path: '/admin/sales-team' },
+                    { label: 'Leads Matrix', icon: FileCheck, path: '/admin/sales-leads' }
                 ]
             },
             { label: 'Feed Monitor', icon: ShieldAlert, path: '/admin/moderation' },
             { label: 'Audit Trail', icon: FileCheck, path: '/admin/logs' },
             { label: 'Engine Overrides', icon: Sliders, path: '/admin/settings' }
+        ],
+        salesAgent: [
+            { label: 'Sales Overview', icon: LayoutDashboard, path: '/sales-portal/dashboard' },
+            { label: 'My Prospects', icon: Users, path: '/sales-portal/leads' }
         ],
         standard: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -347,6 +367,21 @@ const Sidebar = ({ isOpen, onClose }) => {
                             />
                         ))}
                     </>
+                ) : isSalesAgentMode ? (
+                    <>
+                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#EA580C', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SALES DESK</div>
+                        {navigationConfig.salesAgent.map(item => (
+                            <MenuItem 
+                                key={item.label} 
+                                item={item} 
+                                activeItem={activeItem} 
+                                openMenus={openMenus} 
+                                toggleMenu={toggleMenu} 
+                                handleItemClick={handleItemClick} 
+                                isSales={true} 
+                            />
+                        ))}
+                    </>
                 ) : isSocialMode ? (
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
@@ -398,7 +433,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 background: '#FFFFFF'
             }}>
                 {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
-                {!isSocialMode && !isFinanceMode && !isAdminMode && (
+                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
                     <button
                         onClick={() => handleItemClick('Subscription', '/subscription')}
                         style={{

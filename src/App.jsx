@@ -20,6 +20,13 @@ import AdminModeration from './pages/admin/AdminModeration';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminSales from './pages/admin/AdminSales';
+import AdminSalesTeam from './pages/admin/AdminSalesTeam';
+import AdminSalesLeads from './pages/admin/AdminSalesLeads';
+
+// Platform Marketing Reps Section Imports
+import SalesLogin from './pages/salesAgent/SalesLogin';
+import SalesDashboard from './pages/salesAgent/SalesDashboard';
+import SalesLeads from './pages/salesAgent/SalesLeads';
 
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
@@ -77,6 +84,12 @@ function AppContent() {
             <AdminLogin />
           </Suspense>
         } />
+
+        <Route path="/sales/login" element={
+          <Suspense fallback={<PageLoader />}>
+            <SalesLogin />
+          </Suspense>
+        } />
         
         {/* Protected Routes - All routes within MainLayout require authentication */}
         <Route path="*" element={
@@ -99,6 +112,12 @@ function AppContent() {
                     <Route path="/admin/logs" element={<AdminAuditLogs />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
                     <Route path="/admin/sales" element={<AdminSales />} />
+                    <Route path="/admin/sales-team" element={<AdminSalesTeam />} />
+                    <Route path="/admin/sales-leads" element={<AdminSalesLeads />} />
+
+                    {/* Sales Representative Workspaces */}
+                    <Route path="/sales-portal/dashboard" element={<SalesDashboard />} />
+                    <Route path="/sales-portal/leads" element={<SalesLeads />} />
 
                     {/* Restructured Business Modules */}
                     <Route path="/dashboard" element={<BusinessDashboard />} />

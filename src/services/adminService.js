@@ -90,6 +90,22 @@ export const adminService = {
         const res = await apiClient.get('/admin/sales');
         return res.data;
     },
+    getSalesAgents: async () => {
+        const res = await apiClient.get('/admin/sales/agents');
+        return res.data;
+    },
+    createSalesAgent: async (data) => {
+        const res = await apiClient.post('/admin/sales/agents', data);
+        return res.data;
+    },
+    toggleSalesAgent: async (id) => {
+        const res = await apiClient.patch(`/admin/sales/agents/${id}/toggle`);
+        return res.data;
+    },
+    getGlobalLeads: async () => {
+        const res = await apiClient.get('/admin/sales/leads');
+        return res.data;
+    },
     // Public Access (No Auth Header Strict Check Required)
     getActiveAnnouncement: async () => {
         const res = await apiClient.get('/public/announcement');
