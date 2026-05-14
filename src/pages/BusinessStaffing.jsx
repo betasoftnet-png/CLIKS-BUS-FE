@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
 
 const INITIAL_EMPLOYEES = [
@@ -114,6 +115,15 @@ const BusinessStaffing = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
     const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
+
+    // Trigger instant onboarding flow from dashboard shortcuts
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsOnboardModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const queryClient = useQueryClient();
 

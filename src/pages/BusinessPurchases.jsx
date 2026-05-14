@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { purchasesService, productsService, suppliersService } from '../services';
 import '../App.css';
@@ -40,6 +41,16 @@ const BusinessPurchases = () => {
     const [createDocType, setCreateDocType] = useState('PO'); // 'PO', 'BILL', 'RETURN'
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
+
+    // Handle instant PO creation launch via Quick Actions Shortcut
+    const [searchParams, setSearchParams] = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setCreateDocType('PO');
+            setIsCreateModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const queryClient = useQueryClient();
 

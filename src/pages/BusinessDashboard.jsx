@@ -17,7 +17,9 @@ import {
     Bell,
     Plus,
     X,
-    Settings
+    Settings,
+    UserPlus,
+    FileText
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,6 +36,14 @@ const MASTER_SHORTCUTS = [
     { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
     { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
     { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts?create=true', icon: Briefcase, color: '#4F46E5' },
+    
+    // 🚀 Brand New Expansion Triggers
+    { id: 'new_customer', label: 'Add Customer', path: '/sales/customers?create=true', icon: UserPlus, color: '#EC4899' },
+    { id: 'new_purchase', label: 'New Purchase PO', path: '/purchases/purchases?create=true', icon: ShoppingCart, color: '#4338CA' },
+    { id: 'staff_claim', label: 'Staff Claim', path: '/finance/expenses?claim=true', icon: FileText, color: '#BE185D' },
+    { id: 'onboard_staff', label: 'Onboard Staff', path: '/hr/staff?create=true', icon: UserPlus, color: '#059669' },
+    { id: 'gst_filing', label: 'GST Records', path: '/finance/gst', icon: BarChart3, color: '#F59E0B' },
+    { id: 'marketing_hub', label: 'Marketing Hub', path: '/marketing', icon: Target, color: '#E11D48' },
 ];
 
 const BusinessDashboard = () => {

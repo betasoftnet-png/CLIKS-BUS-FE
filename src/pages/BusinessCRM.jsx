@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
     UserPlus, 
     Search, 
@@ -64,6 +65,15 @@ const BusinessCRM = () => {
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'reports'
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Handle instant Add Customer trigger from Dashboard
+    const [searchParams, setSearchParams] = useSearchParams();
+    useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            setIsModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const [paymentData, setPaymentData] = useState({
         amount: 0,

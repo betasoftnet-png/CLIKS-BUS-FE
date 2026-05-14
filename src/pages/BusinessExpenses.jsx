@@ -40,6 +40,10 @@ const BusinessExpenses = () => {
         if (searchParams.get('create') === 'true') {
             setIsExpenseModalOpen(true);
             setSearchParams({}, { replace: true });
+        } else if (searchParams.get('claim') === 'true') {
+            setActiveTab('claims');
+            setIsClaimModalOpen(true);
+            setSearchParams({}, { replace: true });
         }
     }, [searchParams, setSearchParams]);
 
