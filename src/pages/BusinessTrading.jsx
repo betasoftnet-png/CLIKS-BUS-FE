@@ -36,10 +36,12 @@ const TRADING_MODULES = [
                 content: `A stock market is a centralized, regulated public marketplace where buyers and sellers congregate to trade ownership stakes (shares) of publicly listed corporations. In India, the premier platforms facilitating these secure interactions are the National Stock Exchange (NSE) and the Bombay Stock Exchange (BSE).
 
 ### 🏢 Primary vs. Secondary Markets
+
 1. **Primary Market**: This is where companies first issue shares to the public via an Initial Public Offering (IPO) to raise fresh expansion capital. The capital flows directly from the investors to the corporation.
 2. **Secondary Market**: This is where regular everyday trading happens. Investors trade shares among themselves. The company is not actively involved in these transactions, and share prices fluctuate dynamically based on buyer/seller supply and demand.
 
 ### 📈 Key Market Intermediaries
+
 * **SEBI (Securities & Exchange Board of India)**: The apex regulator overseeing integrity, preventing insider misconduct, and safeguarding retail investor capital.
 * **Stock Brokers**: Licensed firms (like Zerodha, Angel One, etc.) providing the technological platform for retail clients to route orders to the exchange.
 * **Depositories (NSDL/CDSL)**: Secure electronic vaults holding your acquired shares digitally so no physical paper certificates are necessary.`
@@ -49,6 +51,7 @@ const TRADING_MODULES = [
                 content: `A stock price is essentially governed by the basic laws of supply and demand. If more participants desire to buy a stock (high demand) than sell it (low supply), the price rises. Conversely, if sellers outweigh buyers, the price descends.
 
 ### 🔍 Primary Price Drivers
+
 * **Corporate Earnings**: Quarterly net profit and revenue performance metrics. High profits prompt immediate institutional buying.
 * **Economic Indicators**: Interest rate variations set by the RBI, domestic inflation percentages, and GDP growth parameters.
 * **Global Sentiment**: Macro-political tensions, international market indices behavior (like the US NASDAQ or S&P 500), and global crude oil pricing volatility.`
@@ -68,6 +71,7 @@ const TRADING_MODULES = [
                 content: `Fundamental Analysis (FA) is the holistic evaluation of a corporation's intrinsic value by examining its associated financial and economic factors. Instead of staring at charts, FA practitioners analyze the actual strength of the underlying business.
 
 ### 📊 The Big Three Documents
+
 1. **Balance Sheet**: A snapshot of what the company owns (Assets) and what it owes to outside parties (Liabilities) alongside shareholder equity.
 2. **Income Statement (P&L)**: Records total revenues minus all operating costs to display Net Income over a designated quarter or fiscal year.
 3. **Cash Flow Statement**: Displays the liquidity movement—Operating cash flows, Investing cycles, and Financing activities. It determines if reported accounting profits actually exist as tangible cash.`
@@ -77,6 +81,7 @@ const TRADING_MODULES = [
                 content: `To make fast, standardized comparisons between competing companies, professional investors utilize mathematical ratios.
 
 ### 🧮 The Golden Indicators
+
 * **P/E Ratio (Price to Earnings)**: Calculated as Current Stock Price ÷ Earnings Per Share (EPS). A P/E of 20 implies investors are willing to pay ₹20 for every ₹1 the company generates in net annual profit. 
 * **Debt to Equity (D/E)**: Measures financial leverage. A D/E below 1.0 generally signifies a safe, conservative capital structure with minimal insolvency risk.
 * **ROE (Return on Equity)**: Highlights efficiency. An ROE higher than 15-20% demonstrates management excels at generating healthy returns on invested shareholder equity.`
@@ -96,6 +101,7 @@ const TRADING_MODULES = [
                 content: `Technical Analysis is the study of historical market price data and volumes to forecast future directional movements. It assumes all fundamental information is already discounted into the current price chart.
 
 ### 🕯️ The Anatomy of a Candlestick
+
 Every Japanese Candlestick encapsulates price activity within a selected timeframe (e.g., 5 minutes, 1 hour, 1 day):
 * **Body**: The solid colored portion representing the distance between the Open and Close prices. Green indicates the Close is higher than the Open (bullish); Red indicates the Close is lower than the Open (bearish).
 * **Wicks (Shadows)**: The thin lines extending above and below the body showing the extreme High and Low prices tagged during the period.`
@@ -105,6 +111,7 @@ Every Japanese Candlestick encapsulates price activity within a selected timefra
                 content: `Markets do not move in direct straight lines; they undulate in structured cycles and trends.
 
 ### 🧱 Core Concepts
+
 * **Support Level**: A price floor where historically, buying interest becomes powerful enough to halt a downward slide and reverse the trend back up.
 * **Resistance Level**: A price ceiling where selling pressure habitually overpowers buying momentum, causing the price to bounce lower.
 * **RSI (Relative Strength Index)**: A momentum oscillator ranging from 0 to 100. Levels above 70 generally indicate an "Overbought" condition (due for a pullback), whereas levels below 30 suggest "Oversold" status (ripe for a potential bounce).`
@@ -124,6 +131,7 @@ Every Japanese Candlestick encapsulates price activity within a selected timefra
                 content: `Derivatives are specialized financial contracts whose underlying value is entirely "derived" from a primary asset (such as a stock, index, or commodity). Instead of trading the actual stock, you trade agreements linked to its future price movements.
 
 ### 🔄 Futures Contracts
+
 A Futures contract is a legally binding agreement to buy or sell an asset at a predetermined future date for an agreed fixed price. 
 * **Key Aspect**: Futures utilize leverage—meaning you only deposit a fraction of the total trade value (Margin) to command a very large contract size. This amplifies both potential returns and potential losses.`
             },
@@ -132,6 +140,7 @@ A Futures contract is a legally binding agreement to buy or sell an asset at a p
                 content: `Unlike futures, Options grant the buyer the absolute "right" (but not the obligation) to buy or sell an asset. The buyer pays a non-refundable fee called a **Premium** to the seller.
 
 ### 📑 Primary Options Categories
+
 1. **Call Option (CE)**: Gives the buyer the right to buy the asset. Purchased when you are highly bullish and expect the price to climb steeply.
 2. **Put Option (PE)**: Gives the buyer the right to sell the asset. Purchased when you are bearish and anticipate a heavy downward price drop, or used as insurance (hedging) to safeguard long holdings.
 
@@ -152,9 +161,11 @@ A Futures contract is a legally binding agreement to buy or sell an asset at a p
                 content: `Amateur traders focus solely on potential profits; professional traders focus intensely on mitigating risk. Without rigid risk control, even the most brilliant trading strategy will lead to eventual capital ruin.
 
 ### 🛡️ The 1% Core Rule
+
 Never risk more than **1% of your total trading capital** on any single trade. If you have ₹1,00,000 in capital, the maximum loss you should tolerate before a trade is automatically aborted is ₹1,000. This allows you to withstand long losing streaks without catastrophic account damage.
 
 ### 🛑 Stop Loss Execution
+
 A Stop-Loss Order is an automatic instruction given to your broker to liquidate your position the exact second a stock touches a predetermined exit price. It converts emotional, spiraling losses into calculated, minor expenses.`
             },
             {
@@ -162,6 +173,7 @@ A Stop-Loss Order is an automatic instruction given to your broker to liquidate 
                 content: `Trading success is 20% strategy and 80% discipline and psychological control. Two toxic human emotions cause 90% of trading failures:
 
 ### 🧠 The Emotional Traps
+
 * **Fear of Missing Out (FOMO)**: Entering a trade late at peak prices because everyone else is profiting. This invariably leads to buying the absolute top right before institutional smart money sells.
 * **Revenge Trading**: Doubling your position size immediately after a heavy loss in a desperate attempt to "win it back." This bypasses analysis and frequently leads to rapid capital annihilation.`
             }
@@ -201,42 +213,71 @@ const BusinessTrading = () => {
 
     const currentTopic = activeModule.topics[activeTopicIdx];
 
+    // Dynamic Markdown Bold Processor (**Bold**)
+    const renderInlineMarkdown = (lineText) => {
+        if (!lineText) return '';
+        // Regex split using capturing group for double asterisks to retain them in array
+        const parts = lineText.split(/(\*\*.*?\*\*)/g);
+        return parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i} style={{ fontWeight: '850', color: '#0F172A' }}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
+    };
+
     // Parse rich content into HTML friendly rendering
     const formatContent = (text) => {
         return text.split('\n\n').map((paragraph, index) => {
+            // Subheaders
             if (paragraph.startsWith('### ')) {
-                return <h3 key={index} style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', marginTop: '1.5rem', marginBottom: '0.75rem' }}>{paragraph.replace('### ', '')}</h3>;
-            }
-            if (paragraph.startsWith('## ')) {
-                return <h2 key={index} style={{ fontSize: '1.4rem', fontWeight: '900', color: '#064E3B', marginTop: '2rem', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>{paragraph.replace('## ', '')}</h2>;
-            }
-            if (paragraph.startsWith('* ') || paragraph.startsWith('1. ')) {
+                const cleaned = paragraph.replace('### ', '');
                 return (
-                    <ul key={index} style={{ paddingLeft: '1.25rem', margin: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <h3 key={index} style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', marginTop: '2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
+                        {renderInlineMarkdown(cleaned)}
+                    </h3>
+                );
+            }
+            // Main Headers
+            if (paragraph.startsWith('## ')) {
+                const cleaned = paragraph.replace('## ', '');
+                return (
+                    <h2 key={index} style={{ fontSize: '1.5rem', fontWeight: '950', color: '#064E3B', marginTop: '2.5rem', marginBottom: '1.25rem', borderBottom: '2.5px solid #ECFDF5', paddingBottom: '0.6rem' }}>
+                        {renderInlineMarkdown(cleaned)}
+                    </h2>
+                );
+            }
+            // Bullet / Numbered lists
+            if (paragraph.startsWith('* ') || paragraph.startsWith('1. ') || paragraph.startsWith('2. ') || paragraph.startsWith('3. ')) {
+                return (
+                    <ul key={index} style={{ paddingLeft: '1.5rem', margin: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem', listStyleType: paragraph.startsWith('*') ? 'disc' : 'decimal' }}>
                         {paragraph.split('\n').map((li, liIdx) => {
-                            const cleanedLi = li.replace(/^\d+\.\s+\*\*/, '').replace(/^\*\s+\*\*/, '').replace(/^\*\s+/, '').replace(/^\d+\.\s+/, '');
-                            const boldSplit = cleanedLi.split('**: ');
+                            // Extract clean textual line removing markdown numbering/bullet chars
+                            const bulletCleaned = li.replace(/^\s*(\*|\d+\.)\s+/, '');
                             return (
-                                <li key={liIdx} style={{ color: '#334155', lineHeight: '1.65', fontSize: '0.95rem' }}>
-                                    {boldSplit.length > 1 ? (
-                                        <><strong>{boldSplit[0]}</strong>: {boldSplit[1]}</>
-                                    ) : (
-                                        cleanedLi
-                                    )}
+                                <li key={liIdx} style={{ color: '#334155', lineHeight: '1.75', fontSize: '0.96rem', paddingLeft: '0.25rem' }}>
+                                    {renderInlineMarkdown(bulletCleaned)}
                                 </li>
                             );
                         })}
                     </ul>
                 );
             }
+            // Quote / Block Alert Warning
             if (paragraph.startsWith('> ')) {
+                const cleaned = paragraph.replace('> ', '');
                 return (
-                    <div key={index} style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #EF4444', background: '#FEF2F2', borderRadius: '0 12px 12px 0', color: '#B91C1C', fontWeight: '600', fontSize: '0.92rem', margin: '1.5rem 0' }}>
-                        {paragraph.replace('> ', '')}
+                    <div key={index} style={{ padding: '1.25rem 1.5rem', borderLeft: '5px solid #EF4444', background: '#FEF2F2', borderRadius: '0 16px 16px 0', color: '#B91C1C', fontSize: '0.95rem', margin: '1.75rem 0', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.04)' }}>
+                        {renderInlineMarkdown(cleaned)}
                     </div>
                 );
             }
-            return <p key={index} style={{ color: '#334155', lineHeight: '1.75', fontSize: '0.98rem', marginBottom: '1rem' }}>{paragraph}</p>;
+            // Default standard paragraphs
+            return (
+                <p key={index} style={{ color: '#334155', lineHeight: '1.8', fontSize: '1rem', marginBottom: '1.25rem' }}>
+                    {renderInlineMarkdown(paragraph)}
+                </p>
+            );
         });
     };
 
