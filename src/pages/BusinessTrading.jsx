@@ -1,464 +1,469 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-    LineChart, 
-    TrendingUp, 
-    TrendingDown, 
-    Briefcase, 
-    ArrowRight, 
+    BookOpen, 
     Search, 
-    Filter, 
-    DollarSign, 
-    IndianRupee, 
     Clock, 
-    Activity, 
-    ArrowUpRight, 
-    ArrowDownRight, 
+    Award, 
+    TrendingUp, 
+    ShieldAlert, 
+    BarChart3, 
+    Target, 
     CheckCircle2, 
-    Plus, 
-    History, 
-    Shield, 
-    Info, 
+    HelpCircle, 
+    ArrowRight, 
+    PlayCircle, 
     ChevronRight,
-    Globe,
-    Wallet
+    Layers,
+    Gem,
+    Briefcase,
+    Bookmark,
+    Zap
 } from 'lucide-react';
 import '../App.css';
 
-// Initial Mock Portfolio Data
-const INITIAL_PORTFOLIO = [
-    { id: 'S1', ticker: 'RELIANCE', name: 'Reliance Industries Ltd.', quantity: 120, avgCost: 2450.50, ltp: 2840.20, segment: 'Equity', change: 1.45 },
-    { id: 'S2', ticker: 'TCS', name: 'Tata Consultancy Services', quantity: 45, avgCost: 3200.00, ltp: 3850.45, segment: 'Equity', change: -0.32 },
-    { id: 'S3', ticker: 'HDFCBANK', name: 'HDFC Bank Ltd.', quantity: 250, avgCost: 1420.10, ltp: 1610.00, segment: 'Equity', change: 0.85 },
-    { id: 'S4', ticker: 'NIFTY_BEES', name: 'Nippon India Nifty 50 ETF', quantity: 1500, avgCost: 185.40, ltp: 234.10, segment: 'ETF', change: 1.20 },
-    { id: 'S5', ticker: 'INFY', name: 'Infosys Technologies Ltd.', quantity: 85, avgCost: 1550.75, ltp: 1420.30, segment: 'Equity', change: -1.85 }
-];
+// Learning Modules Data Base
+const TRADING_MODULES = [
+    {
+        id: 'mod-1',
+        title: 'Introduction to Stock Markets',
+        icon: BookOpen,
+        duration: '15 Mins',
+        level: 'Beginner',
+        shortDesc: 'Master the core architecture of equity exchanges, buyers and sellers.',
+        topics: [
+            {
+                title: 'What is a Stock Market?',
+                content: `A stock market is a centralized, regulated public marketplace where buyers and sellers congregate to trade ownership stakes (shares) of publicly listed corporations. In India, the premier platforms facilitating these secure interactions are the National Stock Exchange (NSE) and the Bombay Stock Exchange (BSE).
 
-const WATCHLIST = [
-    { ticker: 'TATASTEEL', name: 'Tata Steel Ltd.', ltp: 155.20, change: 2.45 },
-    { ticker: 'BHARTIARTL', name: 'Bharti Airtel Ltd.', ltp: 1220.50, change: 0.95 },
-    { ticker: 'ZOMATO', name: 'Zomato Ltd.', ltp: 194.80, change: 4.20 },
-    { ticker: 'ITC', name: 'ITC Ltd.', ltp: 430.15, change: -0.15 },
-    { ticker: 'WIPRO', name: 'Wipro Ltd.', ltp: 465.40, change: -1.10 }
+### 🏢 Primary vs. Secondary Markets
+1. **Primary Market**: This is where companies first issue shares to the public via an Initial Public Offering (IPO) to raise fresh expansion capital. The capital flows directly from the investors to the corporation.
+2. **Secondary Market**: This is where regular everyday trading happens. Investors trade shares among themselves. The company is not actively involved in these transactions, and share prices fluctuate dynamically based on buyer/seller supply and demand.
+
+### 📈 Key Market Intermediaries
+* **SEBI (Securities & Exchange Board of India)**: The apex regulator overseeing integrity, preventing insider misconduct, and safeguarding retail investor capital.
+* **Stock Brokers**: Licensed firms (like Zerodha, Angel One, etc.) providing the technological platform for retail clients to route orders to the exchange.
+* **Depositories (NSDL/CDSL)**: Secure electronic vaults holding your acquired shares digitally so no physical paper certificates are necessary.`
+            },
+            {
+                title: 'How Share Prices Move',
+                content: `A stock price is essentially governed by the basic laws of supply and demand. If more participants desire to buy a stock (high demand) than sell it (low supply), the price rises. Conversely, if sellers outweigh buyers, the price descends.
+
+### 🔍 Primary Price Drivers
+* **Corporate Earnings**: Quarterly net profit and revenue performance metrics. High profits prompt immediate institutional buying.
+* **Economic Indicators**: Interest rate variations set by the RBI, domestic inflation percentages, and GDP growth parameters.
+* **Global Sentiment**: Macro-political tensions, international market indices behavior (like the US NASDAQ or S&P 500), and global crude oil pricing volatility.`
+            }
+        ]
+    },
+    {
+        id: 'mod-2',
+        title: 'Fundamental Analysis Mastery',
+        icon: Gem,
+        duration: '25 Mins',
+        level: 'Intermediate',
+        shortDesc: 'Evaluate a business through financial statements, ratios and valuations.',
+        topics: [
+            {
+                title: 'Evaluating Financial Statements',
+                content: `Fundamental Analysis (FA) is the holistic evaluation of a corporation's intrinsic value by examining its associated financial and economic factors. Instead of staring at charts, FA practitioners analyze the actual strength of the underlying business.
+
+### 📊 The Big Three Documents
+1. **Balance Sheet**: A snapshot of what the company owns (Assets) and what it owes to outside parties (Liabilities) alongside shareholder equity.
+2. **Income Statement (P&L)**: Records total revenues minus all operating costs to display Net Income over a designated quarter or fiscal year.
+3. **Cash Flow Statement**: Displays the liquidity movement—Operating cash flows, Investing cycles, and Financing activities. It determines if reported accounting profits actually exist as tangible cash.`
+            },
+            {
+                title: 'Core Financial Ratios',
+                content: `To make fast, standardized comparisons between competing companies, professional investors utilize mathematical ratios.
+
+### 🧮 The Golden Indicators
+* **P/E Ratio (Price to Earnings)**: Calculated as Current Stock Price ÷ Earnings Per Share (EPS). A P/E of 20 implies investors are willing to pay ₹20 for every ₹1 the company generates in net annual profit. 
+* **Debt to Equity (D/E)**: Measures financial leverage. A D/E below 1.0 generally signifies a safe, conservative capital structure with minimal insolvency risk.
+* **ROE (Return on Equity)**: Highlights efficiency. An ROE higher than 15-20% demonstrates management excels at generating healthy returns on invested shareholder equity.`
+            }
+        ]
+    },
+    {
+        id: 'mod-3',
+        title: 'Technical Analysis Essentials',
+        icon: BarChart3,
+        duration: '30 Mins',
+        level: 'Intermediate',
+        shortDesc: 'Decipher market psychology via price charts, candlesticks and volume indicators.',
+        topics: [
+            {
+                title: 'Introduction to Candlestick Charts',
+                content: `Technical Analysis is the study of historical market price data and volumes to forecast future directional movements. It assumes all fundamental information is already discounted into the current price chart.
+
+### 🕯️ The Anatomy of a Candlestick
+Every Japanese Candlestick encapsulates price activity within a selected timeframe (e.g., 5 minutes, 1 hour, 1 day):
+* **Body**: The solid colored portion representing the distance between the Open and Close prices. Green indicates the Close is higher than the Open (bullish); Red indicates the Close is lower than the Open (bearish).
+* **Wicks (Shadows)**: The thin lines extending above and below the body showing the extreme High and Low prices tagged during the period.`
+            },
+            {
+                title: 'Support, Resistance & Indicators',
+                content: `Markets do not move in direct straight lines; they undulate in structured cycles and trends.
+
+### 🧱 Core Concepts
+* **Support Level**: A price floor where historically, buying interest becomes powerful enough to halt a downward slide and reverse the trend back up.
+* **Resistance Level**: A price ceiling where selling pressure habitually overpowers buying momentum, causing the price to bounce lower.
+* **RSI (Relative Strength Index)**: A momentum oscillator ranging from 0 to 100. Levels above 70 generally indicate an "Overbought" condition (due for a pullback), whereas levels below 30 suggest "Oversold" status (ripe for a potential bounce).`
+            }
+        ]
+    },
+    {
+        id: 'mod-4',
+        title: 'Futures & Options Basics',
+        icon: Layers,
+        duration: '35 Mins',
+        level: 'Advanced',
+        shortDesc: 'Understand the high-leverage world of derivative hedging and contracts.',
+        topics: [
+            {
+                title: 'What are Derivative Instruments?',
+                content: `Derivatives are specialized financial contracts whose underlying value is entirely "derived" from a primary asset (such as a stock, index, or commodity). Instead of trading the actual stock, you trade agreements linked to its future price movements.
+
+### 🔄 Futures Contracts
+A Futures contract is a legally binding agreement to buy or sell an asset at a predetermined future date for an agreed fixed price. 
+* **Key Aspect**: Futures utilize leverage—meaning you only deposit a fraction of the total trade value (Margin) to command a very large contract size. This amplifies both potential returns and potential losses.`
+            },
+            {
+                title: 'Options: Calls and Puts',
+                content: `Unlike futures, Options grant the buyer the absolute "right" (but not the obligation) to buy or sell an asset. The buyer pays a non-refundable fee called a **Premium** to the seller.
+
+### 📑 Primary Options Categories
+1. **Call Option (CE)**: Gives the buyer the right to buy the asset. Purchased when you are highly bullish and expect the price to climb steeply.
+2. **Put Option (PE)**: Gives the buyer the right to sell the asset. Purchased when you are bearish and anticipate a heavy downward price drop, or used as insurance (hedging) to safeguard long holdings.
+
+> ⚠️ **Risk Warning**: Option buying has limited risk (the premium paid) but low probability of success due to time decay (Theta). Option selling has high probability but mathematically unlimited risk.`
+            }
+        ]
+    },
+    {
+        id: 'mod-5',
+        title: 'Risk Management & Psychology',
+        icon: ShieldAlert,
+        duration: '20 Mins',
+        level: 'Crucial',
+        shortDesc: 'Construct protective trading rules to safeguard capital from absolute wipeouts.',
+        topics: [
+            {
+                title: 'The Capital Preservation Strategy',
+                content: `Amateur traders focus solely on potential profits; professional traders focus intensely on mitigating risk. Without rigid risk control, even the most brilliant trading strategy will lead to eventual capital ruin.
+
+### 🛡️ The 1% Core Rule
+Never risk more than **1% of your total trading capital** on any single trade. If you have ₹1,00,000 in capital, the maximum loss you should tolerate before a trade is automatically aborted is ₹1,000. This allows you to withstand long losing streaks without catastrophic account damage.
+
+### 🛑 Stop Loss Execution
+A Stop-Loss Order is an automatic instruction given to your broker to liquidate your position the exact second a stock touches a predetermined exit price. It converts emotional, spiraling losses into calculated, minor expenses.`
+            },
+            {
+                title: 'Controlling Human Emotions',
+                content: `Trading success is 20% strategy and 80% discipline and psychological control. Two toxic human emotions cause 90% of trading failures:
+
+### 🧠 The Emotional Traps
+* **Fear of Missing Out (FOMO)**: Entering a trade late at peak prices because everyone else is profiting. This invariably leads to buying the absolute top right before institutional smart money sells.
+* **Revenge Trading**: Doubling your position size immediately after a heavy loss in a desperate attempt to "win it back." This bypasses analysis and frequently leads to rapid capital annihilation.`
+            }
+        ]
+    }
 ];
 
 const BusinessTrading = () => {
-    const [portfolio, setPortfolio] = useState(() => {
-        const local = localStorage.getItem('cliks_trading_portfolio');
-        return local ? JSON.parse(local) : INITIAL_PORTFOLIO;
-    });
-    
-    const [activeTab, setActiveTab] = useState('portfolio'); // 'portfolio' | 'markets' | 'orders' | 'margin'
+    const [activeModule, setActiveModule] = useState(TRADING_MODULES[0]);
+    const [activeTopicIdx, setActiveTopicIdx] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedAsset, setSelectedAsset] = useState(null);
-    const [tradeModal, setTradeModal] = useState({ isOpen: false, type: 'BUY' });
-    const [tradeForm, setTradeForm] = useState({ quantity: '', price: '' });
-    // Simulate ticking prices every few seconds
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setPortfolio(prev => prev.map(asset => {
-                const randTick = (Math.random() - 0.5) * 2.5; // Random movement
-                const newLtp = parseFloat((asset.ltp + randTick).toFixed(2));
-                return { ...asset, ltp: newLtp > 1 ? newLtp : asset.ltp };
-            }));
-        }, 4000);
-        return () => clearInterval(timer);
-    }, []);
+    const [bookmarkList, setBookmarkList] = useState(() => {
+        const local = localStorage.getItem('cliks_reading_bookmarks');
+        return local ? JSON.parse(local) : [];
+    });
 
-    const savePortfolio = (data) => {
-        setPortfolio(data);
-        localStorage.setItem('cliks_trading_portfolio', JSON.stringify(data));
-    };
-
-    // Calculations
-    const totalInvestment = portfolio.reduce((sum, item) => sum + (item.avgCost * item.quantity), 0);
-    const currentValuation = portfolio.reduce((sum, item) => sum + (item.ltp * item.quantity), 0);
-    const totalPnL = currentValuation - totalInvestment;
-    const pnlPercentage = (totalPnL / (totalInvestment || 1)) * 100;
-
-    const handleTradeSubmit = (e) => {
-        e.preventDefault();
-        if (!selectedAsset || !tradeForm.quantity) return;
-
-        const qty = parseInt(tradeForm.quantity);
-        const cost = parseFloat(tradeForm.price) || selectedAsset.ltp;
-
-        let updated = [...portfolio];
-        const existingIdx = updated.findIndex(i => i.ticker === selectedAsset.ticker);
-
-        if (tradeModal.type === 'BUY') {
-            if (existingIdx > -1) {
-                const current = updated[existingIdx];
-                const totalQty = current.quantity + qty;
-                const newAvg = ((current.avgCost * current.quantity) + (cost * qty)) / totalQty;
-                updated[existingIdx] = {
-                    ...current,
-                    quantity: totalQty,
-                    avgCost: parseFloat(newAvg.toFixed(2)),
-                    ltp: cost
-                };
-            } else {
-                updated.push({
-                    id: `S${Date.now()}`,
-                    ticker: selectedAsset.ticker,
-                    name: selectedAsset.name,
-                    quantity: qty,
-                    avgCost: cost,
-                    ltp: cost,
-                    segment: 'Equity',
-                    change: 0
-                });
-            }
-        } else { // SELL
-            if (existingIdx > -1) {
-                const current = updated[existingIdx];
-                if (qty > current.quantity) {
-                    alert('Insufficient holdings to complete sale.');
-                    return;
-                }
-                const remaining = current.quantity - qty;
-                if (remaining === 0) {
-                    updated = updated.filter(i => i.ticker !== selectedAsset.ticker);
-                } else {
-                    updated[existingIdx] = {
-                        ...current,
-                        quantity: remaining,
-                        ltp: cost
-                    };
-                }
-            } else {
-                alert('You do not own this stock in your portfolio.');
-                return;
-            }
-        }
-
-        savePortfolio(updated);
-        setTradeModal({ isOpen: false, type: 'BUY' });
-        setTradeForm({ quantity: '', price: '' });
-        alert(`Successfully executed ${tradeModal.type} order for ${qty} shares of ${selectedAsset.ticker}!`);
-    };
-
-    const filteredPortfolio = portfolio.filter(item => 
-        item.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredModules = TRADING_MODULES.filter(mod => 
+        mod.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        mod.shortDesc.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    return (
-        <div style={{ padding: '2rem 2.5rem', background: '#FAFDFB', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
-            {/* Header Section */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '1.5rem' }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' }}>
-                            <LineChart size={22} />
-                        </div>
-                        <h1 style={{ fontSize: '1.85rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em' }}>Enterprise Trading Desk</h1>
+    const toggleBookmark = (topicTitle) => {
+        let updated = [...bookmarkList];
+        if (updated.includes(topicTitle)) {
+            updated = updated.filter(t => t !== topicTitle);
+        } else {
+            updated.push(topicTitle);
+        }
+        setBookmarkList(updated);
+        localStorage.setItem('cliks_reading_bookmarks', JSON.stringify(updated));
+    };
+
+    const handleModuleSelect = (module) => {
+        setActiveModule(module);
+        setActiveTopicIdx(0);
+    };
+
+    const currentTopic = activeModule.topics[activeTopicIdx];
+
+    // Parse rich content into HTML friendly rendering
+    const formatContent = (text) => {
+        return text.split('\n\n').map((paragraph, index) => {
+            if (paragraph.startsWith('### ')) {
+                return <h3 key={index} style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', marginTop: '1.5rem', marginBottom: '0.75rem' }}>{paragraph.replace('### ', '')}</h3>;
+            }
+            if (paragraph.startsWith('## ')) {
+                return <h2 key={index} style={{ fontSize: '1.4rem', fontWeight: '900', color: '#064E3B', marginTop: '2rem', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>{paragraph.replace('## ', '')}</h2>;
+            }
+            if (paragraph.startsWith('* ') || paragraph.startsWith('1. ')) {
+                return (
+                    <ul key={index} style={{ paddingLeft: '1.25rem', margin: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {paragraph.split('\n').map((li, liIdx) => {
+                            const cleanedLi = li.replace(/^\d+\.\s+\*\*/, '').replace(/^\*\s+\*\*/, '').replace(/^\*\s+/, '').replace(/^\d+\.\s+/, '');
+                            const boldSplit = cleanedLi.split('**: ');
+                            return (
+                                <li key={liIdx} style={{ color: '#334155', lineHeight: '1.65', fontSize: '0.95rem' }}>
+                                    {boldSplit.length > 1 ? (
+                                        <><strong>{boldSplit[0]}</strong>: {boldSplit[1]}</>
+                                    ) : (
+                                        cleanedLi
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                );
+            }
+            if (paragraph.startsWith('> ')) {
+                return (
+                    <div key={index} style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #EF4444', background: '#FEF2F2', borderRadius: '0 12px 12px 0', color: '#B91C1C', fontWeight: '600', fontSize: '0.92rem', margin: '1.5rem 0' }}>
+                        {paragraph.replace('> ', '')}
                     </div>
-                    <p style={{ color: '#64748B', fontWeight: '500', fontSize: '0.95rem' }}>Simulate corporate equity portfolios, manage liquid treasury assets and view live market indices.</p>
+                );
+            }
+            return <p key={index} style={{ color: '#334155', lineHeight: '1.75', fontSize: '0.98rem', marginBottom: '1rem' }}>{paragraph}</p>;
+        });
+    };
+
+    return (
+        <div style={{ padding: '2rem 2.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
+            
+            {/* Header Banner */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)', borderRadius: '24px', padding: '2rem 2.5rem', color: 'white', boxShadow: '0 12px 30px rgba(6, 78, 59, 0.15)' }}>
+                <div style={{ maxWidth: '60%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.15)', width: 'fit-content', padding: '0.35rem 0.75rem', borderRadius: '999px', marginBottom: '1rem', backdropFilter: 'blur(4px)' }}>
+                        <Award size={14} className="text-yellow-300" />
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', letterSpacing: '0.03em', textTransform: 'uppercase' }}>Knowledge Hub Academy</span>
+                    </div>
+                    <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>Cliks Trading Academy</h1>
+                    <p style={{ opacity: 0.9, fontWeight: '500', fontSize: '0.98rem', lineHeight: '1.5' }}>Master stock market fundamentals, decode technical indicators, and study corporate financial matrices directly inside your system.</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'white', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.2)' }} className="animate-ping" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Live NSE/BSE Connection Active</span>
+                <div style={{ width: '180px', height: '180px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', filter: 'blur(0)' }}>
+                    <BookOpen size={80} style={{ color: 'white', opacity: 0.3 }} />
                 </div>
             </div>
 
-            {/* Master Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
-                {[
-                    { label: 'Current Valuation', value: `₹${currentValuation.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, icon: Briefcase, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'Total Investment', value: `₹${totalInvestment.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, icon: IndianRupee, color: '#0D9488', bg: '#CCFBF1' },
-                    { 
-                        label: 'Total Unrealized P&L', 
-                        value: `${totalPnL >= 0 ? '+' : ''}₹${totalPnL.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, 
-                        sub: `${totalPnL >= 0 ? '▲' : '▼'} ${Math.abs(pnlPercentage).toFixed(2)}%`,
-                        icon: totalPnL >= 0 ? TrendingUp : TrendingDown, 
-                        color: totalPnL >= 0 ? '#1B6B3A' : '#EF4444', 
-                        bg: totalPnL >= 0 ? '#DCF2E4' : '#FEE2E2' 
-                    },
-                    { label: 'Trading Margin Available', value: '₹5,20,000.00', icon: Wallet, color: '#3B82F6', bg: '#DBEAFE' }
-                ].map((stat, idx) => (
-                    <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
-                        <div>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>{stat.value}</h3>
-                            {stat.sub && (
-                                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: stat.color, marginTop: '0.2rem', display: 'inline-block' }}>{stat.sub}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '2rem', alignItems: 'flex-start' }}>
+                
+                {/* Left Navigation Syllabus */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: '2rem' }}>
+                    
+                    {/* Search Input */}
+                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 6px rgba(0,0,0,0.01)' }}>
+                        <Search size={18} style={{ color: '#94A3B8' }} />
+                        <input 
+                            type="text" 
+                            placeholder="Search learning modules..." 
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', fontWeight: '500', color: '#1E293B' }}
+                        />
+                    </div>
+
+                    {/* Syllabus Module List */}
+                    <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B' }}>Course Curriculum</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '60vh', overflowY: 'auto' }}>
+                            {filteredModules.map((module) => {
+                                const Icon = module.icon;
+                                const isActive = activeModule.id === module.id;
+                                return (
+                                    <div 
+                                        key={module.id}
+                                        onClick={() => handleModuleSelect(module)}
+                                        style={{ 
+                                            padding: '1.25rem 1.5rem', 
+                                            borderBottom: '1px solid #F1F5F9', 
+                                            cursor: 'pointer',
+                                            background: isActive ? '#F0FDF4' : 'transparent',
+                                            borderLeft: isActive ? '4px solid #1B6B3A' : '4px solid transparent',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: isActive ? '#DCF2E4' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#1B6B3A' : '#64748B', flexShrink: 0 }}>
+                                                <Icon size={18} />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: isActive ? '#1B6B3A' : '#64748B' }}>{module.level}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748B' }}>
+                                                        <Clock size={10} />
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: '650' }}>{module.duration}</span>
+                                                    </div>
+                                                </div>
+                                                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: isActive ? '#064E3B' : '#1E293B', margin: 0, lineHeight: '1.4' }}>{module.title}</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {filteredModules.length === 0 && (
+                                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontSize: '0.85rem' }}>No matching modules found.</div>
                             )}
                         </div>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
-                            <stat.icon size={20} />
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Tabs Menu */}
-            <div style={{ display: 'flex', gap: '1rem', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.25rem', marginBottom: '2rem' }}>
-                <button 
-                    onClick={() => setActiveTab('portfolio')}
-                    style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', color: activeTab === 'portfolio' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'portfolio' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
-                >
-                    📈 Current Holdings
-                </button>
-                <button 
-                    onClick={() => setActiveTab('markets')}
-                    style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', color: activeTab === 'markets' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'markets' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
-                >
-                    ⚡ Watchlist & Markets
-                </button>
-                <button 
-                    onClick={() => setActiveTab('orders')}
-                    style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', color: activeTab === 'orders' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.95rem', cursor: 'pointer', borderBottom: activeTab === 'orders' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
-                >
-                    📜 Order Log
-                </button>
-            </div>
-
-            {/* 1. HOLDINGS PORTFOLIO TAB */}
-            {activeTab === 'portfolio' && (
-                <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, maxWidth: '400px', background: 'white', padding: '0.5rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                            <Search size={16} style={{ color: '#94A3B8' }} />
-                            <input 
-                                type="text" 
-                                placeholder="Search holdings..." 
-                                value={searchQuery} 
-                                onChange={e => setSearchQuery(e.target.value)} 
-                                style={{ border: 'none', outline: 'none', fontSize: '0.85rem', width: '100%', fontWeight: '500' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '800', background: '#EFF6FF', color: '#3B82F6', padding: '0.3rem 0.6rem', borderRadius: '6px' }}>Total Scrips: {portfolio.length}</span>
-                        </div>
-                    </div>
-
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '700', background: '#F8FAFC' }}>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Instrument</th>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Qty</th>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Avg. Cost</th>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>LTP</th>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Current Value</th>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>P&L</th>
-                                    <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredPortfolio.map(item => {
-                                    const cost = item.avgCost * item.quantity;
-                                    const value = item.ltp * item.quantity;
-                                    const pnl = value - cost;
-                                    const pnlPct = ((item.ltp - item.avgCost) / item.avgCost) * 100;
-
-                                    return (
-                                        <tr key={item.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} className="hover:bg-slate-50">
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.15rem' }}>
-                                                        <strong style={{ color: '#0F172A', fontSize: '0.95rem' }}>{item.ticker}</strong>
-                                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '0.1rem 0.4rem', borderRadius: '4px', background: '#F1F5F9', color: '#64748B' }}>{item.segment}</span>
-                                                    </div>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>{item.name}</span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', fontWeight: '700', color: '#334155' }}>{item.quantity}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', color: '#64748B', fontWeight: '500' }}>₹{item.avgCost.toFixed(2)}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', color: '#0F172A', fontWeight: '700' }}>₹{item.ltp.toFixed(2)}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', color: '#0F172A', fontWeight: '800' }}>₹{value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontWeight: '800', color: pnl >= 0 ? '#1B6B3A' : '#EF4444', fontSize: '0.9rem' }}>
-                                                        {pnl >= 0 ? '+' : ''}₹{Math.abs(pnl).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                                    </span>
-                                                    <span style={{ fontSize: '0.7rem', fontWeight: '700', color: pnl >= 0 ? '#1B6B3A' : '#EF4444' }}>
-                                                        {pnl >= 0 ? '▲' : '▼'} {Math.abs(pnlPct).toFixed(2)}%
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                    <button 
-                                                        onClick={() => { setSelectedAsset(item); setTradeModal({ isOpen: true, type: 'BUY' }); }}
-                                                        style={{ background: '#E8F5EE', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '6px', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer' }}
-                                                    >
-                                                        BUY
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => { setSelectedAsset(item); setTradeModal({ isOpen: true, type: 'SELL' }); }}
-                                                        style={{ background: '#FEE2E2', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '6px', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer' }}
-                                                    >
-                                                        SELL
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
-            )}
 
-            {/* 2. WATCHLIST & MARKETS TAB */}
-            {activeTab === 'markets' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
-                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>🚀 Standard Equity Watchlist</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {WATCHLIST.map(w => (
-                                <div key={w.ticker} style={{ padding: '1rem 1.25rem', borderRadius: '12px', background: '#FAFDFB', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <strong style={{ fontSize: '0.95rem', color: '#0F172A' }}>{w.ticker}</strong>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{w.name}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontWeight: '800', color: '#0F172A' }}>₹{w.ltp.toFixed(2)}</div>
-                                            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: w.change >= 0 ? '#1B6B3A' : '#EF4444' }}>
-                                                {w.change >= 0 ? '+' : ''}{w.change}%
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => { setSelectedAsset(w); setTradeModal({ isOpen: true, type: 'BUY' }); }}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#1B6B3A', border: 'none', color: 'white', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '750', cursor: 'pointer' }}
-                                        >
-                                            <Plus size={12} /> Trade
-                                        </button>
-                                    </div>
-                                </div>
+                {/* Right Content Reader */}
+                <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                    
+                    {/* Inner Topic Sub-navigation Bar */}
+                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            {activeModule.topics.map((topic, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setActiveTopicIdx(idx)}
+                                    style={{ 
+                                        padding: '0.6rem 1.25rem', 
+                                        borderRadius: '10px', 
+                                        border: activeTopicIdx === idx ? 'none' : '1px solid #E2E8F0', 
+                                        background: activeTopicIdx === idx ? '#1B6B3A' : 'white', 
+                                        color: activeTopicIdx === idx ? 'white' : '#475569', 
+                                        fontWeight: '750', 
+                                        fontSize: '0.85rem', 
+                                        cursor: 'pointer',
+                                        boxShadow: activeTopicIdx === idx ? '0 4px 12px rgba(27, 107, 58, 0.15)' : 'none',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {idx + 1}. {topic.title}
+                                </button>
                             ))}
                         </div>
+                        
+                        {/* Bookmark Button */}
+                        <button 
+                            onClick={() => toggleBookmark(currentTopic.title)}
+                            style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', color: bookmarkList.includes(currentTopic.title) ? '#F59E0B' : '#94A3B8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                            title="Save Article for later"
+                        >
+                            <Bookmark size={20} fill={bookmarkList.includes(currentTopic.title) ? '#F59E0B' : 'none'} />
+                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748B' }}>{bookmarkList.includes(currentTopic.title) ? 'Saved' : 'Save'}</span>
+                        </button>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-                            <h4 style={{ fontSize: '1rem', fontWeight: '850', color: '#064E3B', marginBottom: '1rem' }}>🌍 Global Market Benchmarks</h4>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {[
-                                    { index: 'NIFTY 50', value: '22,450.20', change: 1.25, isUp: true },
-                                    { index: 'SENSEX', value: '73,910.45', change: 1.10, isUp: true },
-                                    { index: 'NIFTY BANK', value: '47,820.00', change: -0.45, isUp: false },
-                                    { index: 'NASDAQ 100', value: '18,210.50', change: 0.88, isUp: true }
-                                ].map((m, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #F1F5F9' }}>
-                                        <div>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{m.index}</span>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <strong style={{ fontSize: '0.85rem', color: '#0F172A' }}>{m.value}</strong>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: '800', color: m.isUp ? '#1B6B3A' : '#EF4444' }}>
-                                                {m.isUp ? '▲' : '▼'} {m.change}%
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                    {/* Content Rendering Area */}
+                    <div style={{ padding: '3rem' }} className="animate-in fade-in duration-300">
+                        
+                        {/* Heading info */}
+                        <div style={{ marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                                <span>{activeModule.title}</span>
+                                <ChevronRight size={14} />
+                                <span>Chapter {activeTopicIdx + 1}</span>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 3. ORDER LOG TAB */}
-            {activeTab === 'orders' && (
-                <div style={{ background: 'white', padding: '3rem', borderRadius: '20px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                    <History size={48} style={{ color: '#94A3B8', margin: '0 auto 1.25rem' }} />
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>All Orders Filled</h3>
-                    <p style={{ color: '#64748B', maxWidth: '400px', margin: '0 auto', lineHeight: '1.5', fontSize: '0.85rem' }}>All transaction orders are processed and settled directly to your enterprise ledger account.</p>
-                </div>
-            )}
-
-            {/* TRADE MODAL DIALOG */}
-            {tradeModal.isOpen && selectedAsset && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                    <div style={{ background: 'white', width: '450px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }} className="animate-in fade-in zoom-in-95 duration-200">
-                        <div style={{ 
-                            background: tradeModal.type === 'BUY' ? 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)' : 'linear-gradient(135deg, #EF4444 0%, #991B1B 100%)', 
-                            padding: '1.5rem', 
-                            color: 'white' 
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: '900', background: 'rgba(255,255,255,0.2)', padding: '0.2rem 0.6rem', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        {tradeModal.type} Order
-                                    </span>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', marginTop: '0.5rem' }}>{selectedAsset.ticker}</h3>
-                                    <p style={{ opacity: 0.8, fontSize: '0.8rem', fontWeight: '500' }}>{selectedAsset.name}</p>
+                            <h1 style={{ fontSize: '2rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2, margin: '0 0 1rem 0' }}>
+                                {currentTopic.title}
+                            </h1>
+                            <div style={{ display: 'flex', gap: '1.25rem', color: '#64748B', fontSize: '0.82rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={14} />
+                                    <span>Est. read time: ~8-10 mins</span>
                                 </div>
-                                <button onClick={() => setTradeModal({ isOpen: false, type: 'BUY' })} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <CheckCircle2 size={14} color="#10B981" />
+                                    <span>Self-Paced Module Verified</span>
+                                </div>
                             </div>
                         </div>
 
-                        <form onSubmit={handleTradeSubmit} style={{ padding: '1.5rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Market LTP</label>
-                                    <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', fontWeight: '800', color: '#0F172A', border: '1px solid #E2E8F0' }}>
-                                        ₹{selectedAsset.ltp?.toFixed(2)}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Required Quantity</label>
-                                    <input 
-                                        type="number" 
-                                        required 
-                                        min="1" 
-                                        value={tradeForm.quantity} 
-                                        onChange={e => setTradeForm({ ...tradeForm, quantity: e.target.value })} 
-                                        placeholder="0"
-                                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', outline: 'none' }}
-                                    />
+                        {/* Rich Formatted Explanations */}
+                        <article style={{ fontSize: '1rem', color: '#334155' }}>
+                            {formatContent(currentTopic.content)}
+                        </article>
+
+                        {/* Bottom Navigation Guide / Read next */}
+                        <div style={{ marginTop: '3.5rem', borderTop: '1px solid #E2E8F0', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Academy Status</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#0F172A' }}>You've read through this section!</span>
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Limit Price (Leave empty for Market)</label>
-                                <input 
-                                    type="number" 
-                                    step="0.05"
-                                    value={tradeForm.price} 
-                                    onChange={e => setTradeForm({ ...tradeForm, price: e.target.value })} 
-                                    placeholder={`Market Rate (₹${selectedAsset.ltp?.toFixed(2)})`}
-                                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', outline: 'none' }}
-                                />
-                            </div>
-
-                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px dashed #E2E8F0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '500' }}>Estimated Total Value:</span>
-                                    <strong style={{ fontSize: '0.95rem', color: '#0F172A' }}>
-                                        ₹{((parseFloat(tradeForm.price) || selectedAsset.ltp) * (parseInt(tradeForm.quantity) || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                    </strong>
-                                </div>
-                            </div>
-
-                            <button 
-                                type="submit"
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '0.9rem', 
-                                    border: 'none', 
-                                    borderRadius: '12px', 
-                                    background: tradeModal.type === 'BUY' ? 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)' : 'linear-gradient(135deg, #EF4444 0%, #991B1B 100%)',
-                                    color: 'white', 
-                                    fontWeight: '800', 
-                                    fontSize: '0.95rem', 
-                                    cursor: 'pointer',
-                                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}
-                            >
-                                Confirm {tradeModal.type} Order
-                            </button>
-                        </form>
+                            {/* Continue Button */}
+                            {activeTopicIdx < activeModule.topics.length - 1 ? (
+                                <button 
+                                    onClick={() => setActiveTopicIdx(activeTopicIdx + 1)}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                        color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' 
+                                    }}
+                                >
+                                    Next Chapter <ArrowRight size={16} />
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={() => {
+                                        const nextIdx = TRADING_MODULES.findIndex(m => m.id === activeModule.id) + 1;
+                                        if (nextIdx < TRADING_MODULES.length) {
+                                            handleModuleSelect(TRADING_MODULES[nextIdx]);
+                                        } else {
+                                            alert("🎓 Outstanding! You have fully read and reviewed all corporate curriculum modules!");
+                                        }
+                                    }}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', 
+                                        color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' 
+                                    }}
+                                >
+                                    Continue to Next Module <ArrowRight size={16} />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Quick Reference Glossary & Disclaimer Footer */}
+            <div style={{ marginTop: '3rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', marginBottom: '0.75rem' }}>
+                        <Zap size={18} />
+                        <h4 style={{ fontWeight: '800', fontSize: '0.95rem', margin: 0 }}>Pro-Trading Principle</h4>
+                    </div>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', lineHeight: '1.5', margin: 0 }}>"Plan your trade, and trade your plan." Strict adherence to structured stop-losses is what separates durable wealth creation from quick failures.</p>
+                </div>
+
+                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#3B82F6', marginBottom: '0.75rem' }}>
+                        <HelpCircle size={18} />
+                        <h4 style={{ fontWeight: '800', fontSize: '0.95rem', margin: 0 }}>Need Real-Time Charts?</h4>
+                    </div>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', lineHeight: '1.5', margin: 0 }}>Use trusted portals such as TradingView or Sensibull to analyze ticking candles, verify RSI signals and deploy mock strategy buckets safely.</p>
+                </div>
+
+                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#EF4444', marginBottom: '0.75rem' }}>
+                        <ShieldAlert size={18} />
+                        <h4 style={{ fontWeight: '800', fontSize: '0.95rem', margin: 0 }}>Regulatory Warning</h4>
+                    </div>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', lineHeight: '1.5', margin: 0 }}>Equity derivatives (F&O) carry heavy systemic risk. Statistically, SEBI studies show 9 out of 10 retail traders suffer net capital erosion in derivatives.</p>
+                </div>
+            </div>
         </div>
     );
 };
