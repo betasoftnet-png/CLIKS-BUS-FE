@@ -38,7 +38,8 @@ import {
     Globe,
     Sliders,
     Activity,
-    ShieldAlert
+    ShieldAlert,
+    Wallet
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
@@ -180,6 +181,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/inventory/warehouse')) return 'Warehouse';
         if (path.includes('/finance/accounting')) return 'Accounting';
         if (path.includes('/payments/transaction')) return 'Transaction';
+        if (path.includes('/payments/wallet')) return 'Wallet';
         if (path.includes('/payments/split-collect')) return 'Split & Collect';
         if (path.includes('/referral')) return 'Refer & Earn';
         if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
@@ -303,6 +305,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         ],
         financeMode: [
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
+            { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
             { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' },
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' }
         ]

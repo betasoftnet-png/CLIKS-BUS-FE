@@ -19,14 +19,21 @@ import {
     Clock, 
     Calendar,
     Send,
-    TrendingUp
+    TrendingUp,
+    Copy,
+    Lock
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { paymentService } from '../services/paymentService';
 import '../App.css';
 
 const BusinessPayments = () => {
-    const [activeTab, setActiveTab] = useState('receivables'); // 'receivables', 'payables', 'bank', 'reminders'
+    const location = useLocation();
+    const [activeTab, setActiveTab] = useState(() => {
+        return location.pathname.includes('/payments/wallet') ? 'wallet' : 'receivables';
+    });
+
     const [searchTerm, setSearchTerm] = useState('');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
@@ -236,7 +243,8 @@ const BusinessPayments = () => {
                 {[
                     { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
                     { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
-                    { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet },
+                    { id: 'wallet', label: 'Virtual Wallet & Cards', icon: Wallet },
+                    { id: 'bank', label: 'Bank & Cash Registers', icon: Building },
                     { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock }
                 ].map(tab => (
                     <button 
@@ -430,6 +438,167 @@ const BusinessPayments = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Tab 5: Virtual Wallet & Fast Checkout Cards */}
+            {activeTab === 'wallet' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '2rem' }}>
+                    
+                    {/* Left Column: Premium Wallet Instrument & Balance Drawer */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* Black Titanium Virtual Debit Card */}
+                        <div style={{ 
+                            background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+                            borderRadius: '24px',
+                            padding: '2rem',
+                            color: '#FFFFFF',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            boxShadow: '0 20px 40px rgba(15, 23, 42, 0.35)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            height: '220px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between'
+                        }}>
+                            {/* Decorative abstract vector glowing orbs */}
+                            <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 70%)', pointerEvents: 'none' }} />
+                            
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Virtual Corporate Instrument</p>
+                                    <h4 style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', letterSpacing: '0.5px', background: 'linear-gradient(90deg, #FFFFFF 0%, #E2E8F0 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CLIKS CORP</h4>
+                                </div>
+                                <div style={{ width: '45px', height: '32px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#CBD5E1' }}>VISA</span>
+                                </div>
+                            </div>
+
+                            {/* Isolated Masked Card Numbers */}
+                            <div style={{ margin: '1rem 0', zIndex: 1, display: 'flex', alignItems: 'center', gap: '1.25rem', fontFamily: 'monospace', fontSize: '1.35rem', letterSpacing: '2px', color: '#F1F5F9', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                                <span>4050</span>
+                                <span>1092</span>
+                                <span>8821</span>
+                                <span>9910</span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 1 }}>
+                                <div style={{ display: 'flex', gap: '2rem' }}>
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '0.6rem', color: '#64748B', textTransform: 'uppercase' }}>Expiry</p>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>09/32</span>
+                                    </div>
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '0.6rem', color: '#64748B', textTransform: 'uppercase' }}>CVV</p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>***</span>
+                                            <Lock size={12} color="#64748B" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontSize: '0.65rem', fontWeight: '800', border: '1px solid rgba(16, 185, 129, 0.25)', textTransform: 'uppercase' }}>Active</span>
+                            </div>
+                        </div>
+
+                        {/* Visual Limit Metric controls */}
+                        <div style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Loadable Balance Matrix</h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Stored Value Balance:</span>
+                                    <p style={{ margin: 0, fontSize: '1.75rem', fontWeight: '950', color: '#0F172A' }}>₹45,000.00</p>
+                                </div>
+                                <button onClick={() => alert('PCI payload secured. Copied token authorization.')} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', padding: '0.5rem 0.75rem', borderRadius: '10px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#475569', fontWeight: '800', fontSize: '0.75rem' }}>
+                                    <Copy size={12} /> Copy details
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <button onClick={() => alert('Redirecting to Fast Load Gateway...')} style={{ padding: '0.75rem', borderRadius: '12px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                    <Plus size={14} /> Top Up Wallet
+                                </button>
+                                <button onClick={() => alert('Sweep-out trigger verified.')} style={{ padding: '0.75rem', borderRadius: '12px', background: 'white', color: '#475569', border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                    <ArrowUpRight size={14} /> Withdraw Sweep
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Right Column: Receipt QR Vector & Micro history */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1.7fr', gap: '1.5rem' }}>
+                            {/* Dynamic QR generator placeholder */}
+                            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '24px', border: '1px solid #E2E8F0', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                <h5 style={{ margin: '0 0 0.75rem 0', fontSize: '0.8rem', fontWeight: '850', color: '#064E3B', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Smartphone size={14} /> Quick Top-Up QR
+                                </h5>
+                                
+                                <div style={{ padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#F8FAFC', marginBottom: '0.75rem' }}>
+                                    <svg width="100" height="100" viewBox="0 0 100 100" style={{ display: 'block' }}>
+                                        <path d="M 5 5 H 25 V 25 H 5 Z M 75 5 H 95 V 25 H 75 Z M 5 75 H 25 V 95 H 5 Z" fill="none" stroke="#0F172A" strokeWidth="4" />
+                                        <rect x="10" y="10" width="10" height="10" fill="#0F172A" />
+                                        <rect x="80" y="10" width="10" height="10" fill="#0F172A" />
+                                        <rect x="10" y="80" width="10" height="10" fill="#0F172A" />
+                                        <rect x="35" y="10" width="8" height="8" fill="#0F172A" /><rect x="50" y="20" width="8" height="8" fill="#0F172A" />
+                                        <rect x="80" y="45" width="8" height="8" fill="#0F172A" /><rect x="45" y="45" width="15" height="15" fill="#0F172A" />
+                                        <rect x="35" y="75" width="8" height="15" fill="#0F172A" /><rect x="65" y="70" width="10" height="10" fill="#0F172A" />
+                                        <rect x="70" y="85" width="15" height="8" fill="#0F172A" />
+                                    </svg>
+                                </div>
+
+                                <p style={{ margin: 0, fontSize: '0.68rem', color: '#64748B', fontWeight: '700' }}>Scan to load Wallet instantly</p>
+                                <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.72rem', color: '#1E293B', fontFamily: 'monospace', fontWeight: '800' }}>cliks.corp@hdfcupi</p>
+                            </div>
+
+                            {/* Premium Compliant Info Banner */}
+                            <div style={{ background: '#EEF2FF', padding: '1.5rem', borderRadius: '24px', border: '1px solid #C7D2FE', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                    <CheckCircle2 size={18} color="#4F46E5" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                    <div>
+                                        <h5 style={{ margin: 0, color: '#1E1B4B', fontSize: '0.85rem', fontWeight: '850' }}>Zero Settlement Delay</h5>
+                                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#4338CA', fontWeight: '600' }}>Payments routed via fast QR auto-settle to stored value vaults instantly with zero lag.</p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                                    <AlertCircle size={18} color="#4F46E5" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                    <div>
+                                        <h5 style={{ margin: 0, color: '#1E1B4B', fontSize: '0.85rem', fontWeight: '850' }}>PCI-DSS Layered Security</h5>
+                                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#4338CA', fontWeight: '600' }}>End-to-end payment virtualization protects your primary corporate current accounts.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Specific wallet micro logs table */}
+                        <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'hidden' }}>
+                            <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h5 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>Recent Wallet Logs</h5>
+                                <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700' }}>Live Updates</span>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                {[
+                                    { desc: 'Fast-Deposit UPI QR Top Up', date: '14 May, 2026', amt: '+₹15,000.00', plus: true },
+                                    { desc: 'Card Outflow - Server Infrastructure', date: '12 May, 2026', amt: '-₹8,200.00', plus: false },
+                                    { desc: 'Wallet Vendor Payout (Ref ID: 8801)', date: '10 May, 2026', amt: '-₹4,500.00', plus: false },
+                                ].map((log, ix) => (
+                                    <div key={ix} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1.5rem', borderBottom: ix === 2 ? 'none' : '1px solid #F8FAFC' }}>
+                                        <div>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '750', color: '#1E293B' }}>{log.desc}</p>
+                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{log.date}</span>
+                                        </div>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '850', color: log.plus ? '#10B981' : '#EF4444' }}>{log.amt}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                    
                 </div>
             )}
 
