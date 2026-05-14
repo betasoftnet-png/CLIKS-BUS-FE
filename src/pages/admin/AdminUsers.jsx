@@ -16,9 +16,11 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
+import { useAuth } from '../../context';
 import '../../App.css';
 
 const AdminUsers = () => {
+    const { impersonateLogin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -77,6 +79,22 @@ const AdminUsers = () => {
             loadUsers();
         } catch {
             alert("Failed to update user permission matrix");
+        }
+    };
+
+    const handleImpersonate = async (client) => {
+        if (client.role === 'admin') {
+            alert("SuperAdmin impersonation cross-overs are blocked. You can only impersonate standard client tenants.");
+            return;
+        }
+        if (!window.confirm(`IMPERSONATION SHIELD WARNING!\n\nYou are opening a secure remote support tunnel into the Dashboard belonging to @${client.name} (${client.company}).\n\nDo you want to proceed?`)) return;
+
+        try {
+            await impersonateLogin(client.realId);
+            // Fully redirect root to rebuild execution state on new user claims
+            window.location.href = '/';
+        } catch {
+            alert("Gateway failed to validate temporary support JWT claims.");
         }
     };
 
@@ -283,6 +301,16 @@ const AdminUsers = () => {
 
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            {c.role !== 'admin' && (
+                                                <button 
+                                                    className="action-circle-btn" 
+                                                    style={{ background: '#F0FDF4', borderColor: '#BBF7D0', color: '#15803D' }}
+                                                    title="Login As Tenant"
+                                                    onClick={() => handleImpersonate(c)}
+                                                >
+                                                    <ExternalLink size={14} />
+                                                </button>
+                                            )}
                                             <button 
                                                 className="action-circle-btn" 
                                                 title={c.role === 'admin' ? "Revoke Admin" : "Promote to Admin"}
@@ -311,4 +339,5 @@ const AdminUsers = () => {
 };
 
 export default AdminUsers;
+
 

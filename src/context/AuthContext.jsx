@@ -80,6 +80,22 @@ export const AuthProvider = ({ children }) => {
         return data;
     };
 
+    const impersonateLogin = async (userId) => {
+        // Trigger the high-trust impersonation link
+        const data = await adminService.impersonateUser(userId);
+        const { accessToken, user: impersonatedUser } = data;
+
+        // Force immediate memory cache dump to prevent support personnel from seeing stale admin queries
+        queryClient.clear();
+
+        // Hydrate impersonated tenant parameters
+        localStorage.setItem('books_auth_token', accessToken);
+        setToken(accessToken);
+        setUser(impersonatedUser);
+
+        return data;
+    };
+
     const mockLogin = () => {
         const mockToken = 'mock-test-token';
         const mockUser = {
@@ -100,6 +116,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         ssoLogin,
         adminLogin,
+        impersonateLogin,
         mockLogin,
         logout,
         isAuthenticated: !!token

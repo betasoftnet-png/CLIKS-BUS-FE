@@ -24,6 +24,10 @@ export const adminService = {
         const res = await apiClient.patch(`/admin/users/${userId}/role`, { role });
         return res.data;
     },
+    impersonateUser: async (userId) => {
+        const res = await apiClient.post(`/admin/users/${userId}/impersonate`);
+        return res.data;
+    },
 
     // Public Feed Moderation
     getPublicPosts: async () => {
@@ -42,6 +46,16 @@ export const adminService = {
     },
     getAuditLogs: async () => {
         const res = await apiClient.get('/admin/logs');
+        return res.data;
+    },
+
+    // System Actions (Self Healing Suite)
+    flushCache: async () => {
+        const res = await apiClient.post('/admin/system/flush-cache');
+        return res.data;
+    },
+    runIntegrityCheck: async () => {
+        const res = await apiClient.post('/admin/system/integrity-check');
         return res.data;
     }
 };
