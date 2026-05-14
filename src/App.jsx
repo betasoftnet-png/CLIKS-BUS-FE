@@ -38,7 +38,9 @@ import BusinessCRM from './pages/BusinessCRM';
 import BusinessStaffing from './pages/BusinessStaffing';
 import BusinessFinancialPlan from './pages/BusinessFinancialPlan';
 import BusinessSegregation from './pages/BusinessSegregation';
+import BusinessSplitCollect from './pages/BusinessSplitCollect';
 import BusinessCompare from './pages/BusinessCompare';
+
 import BusinessAccounting from './pages/BusinessAccounting';
 import BusinessMarketing from './pages/BusinessMarketing';
 import BusinessReports from './pages/BusinessReports';
@@ -136,8 +138,9 @@ function AppContent() {
                     <Route path="/hr/staff" element={<BusinessStaffing />} />
                     <Route path="/hr/attendance" element={<BusinessAttendance />} />
                     <Route path="/hr/payroll" element={<BusinessPayroll />} />
-                    <Route path="/payments/split-collect" element={<BusinessSegregation />} />
+                    <Route path="/payments/split-collect" element={<BusinessSplitCollect />} />
                     <Route path="/sales/customers" element={<BusinessCRM />} />
+
                     <Route path="/sales/returns" element={<BusinessReturns />} />
                     <Route path="/inventory/stock" element={<BusinessStock />} />
                     <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />

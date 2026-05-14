@@ -30,4 +30,6 @@ export * from './expensesService';
 export * from './adminService';
 export * from './posService';
 export * from './goalWalletService';
+export * from './splitExpenseService';
+
 
