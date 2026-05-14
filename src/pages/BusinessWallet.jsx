@@ -45,41 +45,75 @@ const BusinessWallet = () => {
             setIsProcessing(true);
             const generatedOrderId = `ORDER_${Date.now()}_${Math.floor(Math.random() * 999)}`;
 
-            // Step 1: Attempt Direct API Handshake using User-provided Sandbox Keys
-            const response = await fetch("https://sandbox.cashfree.com/pg/orders", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-version": "2023-08-01",
-                    "x-client-id": import.meta.env.VITE_CASHFREE_CLIENT_ID || "",
-                    "x-client-secret": import.meta.env.VITE_CASHFREE_SECRET_KEY || ""
-                },
-                body: JSON.stringify({
-                    "order_id": generatedOrderId,
-                    "order_amount": amt,
-                    "order_currency": "INR",
-                    "customer_details": {
-                        "customer_id": "CLIKS_SANDBOX_ADMIN",
-                        "customer_phone": "9999999999",
-                        "customer_name": "CLIKS Sandbox Tester",
-                        "customer_email": "tech@cliksbusiness.com"
-                    },
-                    "order_meta": {
-                        "notify_url": "https://www.cliksbusiness.com/api/dummy-webhook"
-                    }
-                })
-            });
+            let paymentSessionId = null;
+            let actualOrderId = generatedOrderId;
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "Failed to communicate with Cashfree Sandbox Cloud.");
+            // PREFERENCE 1: Secure Production/Local Backend Attempt (No CORS Issues)
+            const apiBase = import.meta.env.VITE_API_BASE_URL;
+            if (apiBase) {
+                try {
+                    const backendResponse = await fetch(`${apiBase}/payments/create-order`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            amount: amt,
+                            orderId: generatedOrderId
+                        })
+                    });
+                    
+                    if (backendResponse.ok) {
+                        const backendData = await backendResponse.json();
+                        if (backendData && backendData.payment_session_id) {
+                            paymentSessionId = backendData.payment_session_id;
+                            actualOrderId = backendData.order_id || generatedOrderId;
+                            console.log("[WALLET PROD LOG]: Retrieved payment session securely from local backend.");
+                        }
+                    }
+                } catch {
+                    console.warn("[WALLET DEV LOG]: Secure local backend offline or endpoint unreachable. Falling back to Sandbox Sandbox Client.");
+                }
             }
 
-            const orderData = await response.json();
-            const paymentSessionId = orderData.payment_session_id;
+            // PREFERENCE 2: Direct Gateway Handshake (Used for local sandbox validation / triggers simulation on CORS)
+            if (!paymentSessionId) {
+                const response = await fetch("https://sandbox.cashfree.com/pg/orders", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-version": "2023-08-01",
+                        "x-client-id": import.meta.env.VITE_CASHFREE_CLIENT_ID || "",
+                        "x-client-secret": import.meta.env.VITE_CASHFREE_SECRET_KEY || ""
+                    },
+                    body: JSON.stringify({
+                        "order_id": generatedOrderId,
+                        "order_amount": amt,
+                        "order_currency": "INR",
+                        "customer_details": {
+                            "customer_id": "CLIKS_SANDBOX_ADMIN",
+                            "customer_phone": "9999999999",
+                            "customer_name": "CLIKS Sandbox Tester",
+                            "customer_email": "tech@cliksbusiness.com"
+                        },
+                        "order_meta": {
+                            "notify_url": "https://www.cliksbusiness.com/api/dummy-webhook"
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const orderData = await response.json();
+                    paymentSessionId = orderData.payment_session_id;
+                    actualOrderId = orderData.order_id || generatedOrderId;
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "Failed communication with sandbox servers.");
+                }
+            }
 
             if (!paymentSessionId) {
-                throw new Error("Session Token missing in response payload.");
+                throw new Error("Session Token missing in payload chain.");
             }
 
             // Step 2: Initialize Native Cashfree SDK for React Client
@@ -98,7 +132,7 @@ const BusinessWallet = () => {
                     alert("Gateway Interrupted: " + result.error.message);
                 } else {
                     // Successful flow settlement
-                    executeLocalWalletCredit(amt, orderData.order_id);
+                    executeLocalWalletCredit(amt, actualOrderId);
                 }
             });
 
