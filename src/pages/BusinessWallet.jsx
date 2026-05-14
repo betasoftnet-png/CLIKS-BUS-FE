@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, X, Search, IndianRupee, Loader } from 'lucide-react';
 import { load } from '@cashfreepayments/cashfree-js';
+import { apiClient } from '../api/client';
 import '../App.css';
 
 const BusinessWallet = () => {
@@ -48,68 +49,23 @@ const BusinessWallet = () => {
             let paymentSessionId = null;
             let actualOrderId = generatedOrderId;
 
-            // PREFERENCE 1: Secure Production/Local Backend Attempt (No CORS Issues)
-            const apiBase = import.meta.env.VITE_API_BASE_URL;
-            if (apiBase) {
-                try {
-                    const backendResponse = await fetch(`${apiBase}/payments/create-order`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            amount: amt,
-                            orderId: generatedOrderId
-                        })
-                    });
-                    
-                    if (backendResponse.ok) {
-                        const backendData = await backendResponse.json();
-                        if (backendData && backendData.data && backendData.data.payment_session_id) {
-                            paymentSessionId = backendData.data.payment_session_id;
-                            actualOrderId = backendData.data.order_id || generatedOrderId;
-                            console.log("[WALLET PROD LOG]: Retrieved payment session securely from local backend.");
-                        }
-                    }
-                } catch {
-                    console.warn("[WALLET DEV LOG]: Secure local backend offline or endpoint unreachable. Falling back to Sandbox Sandbox Client.");
-                }
-            }
-
-            // PREFERENCE 2: Direct Gateway Handshake (Used for local sandbox validation / triggers simulation on CORS)
-            if (!paymentSessionId) {
-                const response = await fetch("https://sandbox.cashfree.com/pg/orders", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-api-version": "2023-08-01",
-                        "x-client-id": import.meta.env.VITE_CASHFREE_CLIENT_ID || "",
-                        "x-client-secret": import.meta.env.VITE_CASHFREE_SECRET_KEY || ""
-                    },
-                    body: JSON.stringify({
-                        "order_id": generatedOrderId,
-                        "order_amount": amt,
-                        "order_currency": "INR",
-                        "customer_details": {
-                            "customer_id": "CLIKS_SANDBOX_ADMIN",
-                            "customer_phone": "9999999999",
-                            "customer_name": "CLIKS Sandbox Tester",
-                            "customer_email": "tech@cliksbusiness.com"
-                        },
-                        "order_meta": {
-                            "notify_url": "https://www.cliksbusiness.com/api/dummy-webhook"
-                        }
-                    })
+            // PREFERENCE 1: Secure Production Backend Proxy (Bypasses CORS & Prevents Token Exposure)
+            try {
+                const backendData = await apiClient.post('/payments/create-order', {
+                    amount: amt,
+                    orderId: generatedOrderId
                 });
-
-                if (response.ok) {
-                    const orderData = await response.json();
-                    paymentSessionId = orderData.payment_session_id;
-                    actualOrderId = orderData.order_id || generatedOrderId;
+                
+                if (backendData && backendData.data && backendData.data.payment_session_id) {
+                    paymentSessionId = backendData.data.payment_session_id;
+                    actualOrderId = backendData.data.order_id || generatedOrderId;
+                    console.log("[WALLET PROD LOG]: Retrieved payment session securely from backend pipeline.");
                 } else {
-                    const errorText = await response.text();
-                    throw new Error(errorText || "Failed communication with sandbox servers.");
+                    throw new Error("Malformed session received from server cluster.");
                 }
+            } catch (backendErr) {
+                console.error("[WALLET PROD ERROR]:", backendErr);
+                throw new Error(backendErr.message || "Secure backend gateway offline. Payment cannot proceed.");
             }
 
             if (!paymentSessionId) {
