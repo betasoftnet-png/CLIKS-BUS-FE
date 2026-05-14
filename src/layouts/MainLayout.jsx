@@ -4,7 +4,7 @@ import Topbar from '../components/Topbar';
 import AuditPanel from '../components/AuditPanel';
 import '../App.css';
 
-import Breadcrumbs from '../components/Breadcrumbs';
+import BroadcastBanner from '../components/BroadcastBanner';
 
 const MainLayout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
@@ -30,6 +30,7 @@ const MainLayout = ({ children }) => {
                 )}
                 <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 <div className="main-content-area">
+                    <BroadcastBanner />
                     <div className="content-scrollable">
                         {children}
                     </div>

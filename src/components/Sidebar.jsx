@@ -530,25 +530,25 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                 {/* Bottom Settings Block (Replaced 'My Company' from example) */}
                 <button
-                    onClick={() => handleItemClick('Settings', '/settings')}
+                    onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
                     style={{
                         width: '100%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: location.pathname.includes('/settings') ? '#F0FDF4' : '#F8FAFC',
-                        color: location.pathname.includes('/settings') ? '#1B6B3A' : '#334155',
+                        background: location.pathname.includes('/settings') ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
+                        color: location.pathname.includes('/settings') ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
                         borderRadius: '10px',
                         border: '1px solid',
-                        borderColor: location.pathname.includes('/settings') ? '#BBF7D0' : '#E2E8F0',
+                        borderColor: location.pathname.includes('/settings') ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '0.85rem',
                         transition: 'background 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? '#F0FDF4' : '#F1F5F9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? '#F0FDF4' : '#F8FAFC'}
+                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <SettingsIcon size={18} style={{ opacity: 0.8 }} />

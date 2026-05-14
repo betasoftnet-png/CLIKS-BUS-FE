@@ -67,6 +67,29 @@ export const adminService = {
     savePlatformConfig: async (payload) => {
         const res = await apiClient.post('/admin/config/save', payload);
         return res.data;
+    },
+
+    // Broadcast & Announcements Engine
+    getAnnouncements: async () => {
+        const res = await apiClient.get('/admin/announcements');
+        return res.data;
+    },
+    createAnnouncement: async (payload) => {
+        const res = await apiClient.post('/admin/announcements', payload);
+        return res.data;
+    },
+    toggleAnnouncement: async (id) => {
+        const res = await apiClient.patch(`/admin/announcements/${id}/toggle`);
+        return res.data;
+    },
+    deleteAnnouncement: async (id) => {
+        const res = await apiClient.delete(`/admin/announcements/${id}`);
+        return res.data;
+    },
+    // Public Access (No Auth Header Strict Check Required)
+    getActiveAnnouncement: async () => {
+        const res = await apiClient.get('/public/announcement');
+        return res.data;
     }
 };
 
