@@ -59,8 +59,10 @@ import BusinessSubscription from './pages/BusinessSubscription';
 import BusinessBarcode from './pages/BusinessBarcode';
 import BusinessCustomization from './pages/BusinessCustomization';
 import BusinessPOS from './pages/BusinessPOS';
+import BusinessPurposeWallet from './pages/BusinessPurposeWallet';
 
 import './App.css';
+
 
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '200px', color: '#64748B' }}>
@@ -141,7 +143,9 @@ function AppContent() {
                     <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
                     <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
                     <Route path="/payments/wallet" element={<BusinessWallet />} />
+                    <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
                     <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} />
+
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
                     <Route path="/inventory/warehouse" element={<BusinessWarehouse />} />
                     <Route path="/finance/accounting" element={<BusinessAccounting />} />

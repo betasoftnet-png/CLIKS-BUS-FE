@@ -39,8 +39,10 @@ import {
     Sliders,
     Activity,
     ShieldAlert,
+    Target,
     Wallet
 } from 'lucide-react';
+
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -182,7 +184,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/finance/accounting')) return 'Accounting';
         if (path.includes('/payments/transaction')) return 'Transaction';
         if (path.includes('/payments/wallet')) return 'Wallet';
+        if (path.includes('/payments/segregation')) return 'Segregation';
         if (path.includes('/payments/split-collect')) return 'Split & Collect';
+
         if (path.includes('/referral')) return 'Refer & Earn';
         if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
         if (path.includes('/finance/expenses')) return 'Expenses';
@@ -306,9 +310,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         financeMode: [
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
             { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
+            { label: 'Segregation', icon: Target, path: '/payments/segregation' },
             { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' },
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' }
         ]
+
     };
 
     // Smart Expansion Detection
