@@ -19,6 +19,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import AdminModeration from './pages/admin/AdminModeration';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminSales from './pages/admin/AdminSales';
 
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
@@ -97,6 +98,7 @@ function AppContent() {
                     <Route path="/admin/moderation" element={<AdminModeration />} />
                     <Route path="/admin/logs" element={<AdminAuditLogs />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
+                    <Route path="/admin/sales" element={<AdminSales />} />
 
                     {/* Restructured Business Modules */}
                     <Route path="/dashboard" element={<BusinessDashboard />} />

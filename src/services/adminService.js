@@ -86,6 +86,10 @@ export const adminService = {
         const res = await apiClient.delete(`/admin/announcements/${id}`);
         return res.data;
     },
+    getGlobalSalesData: async () => {
+        const res = await apiClient.get('/admin/sales');
+        return res.data;
+    },
     // Public Access (No Auth Header Strict Check Required)
     getActiveAnnouncement: async () => {
         const res = await apiClient.get('/public/announcement');

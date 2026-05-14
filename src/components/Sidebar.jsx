@@ -46,12 +46,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
 
-const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick }) => {
+const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false }) => {
     const IconComp = item.icon;
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
     const isOpen = !!openMenus[item.label];
     const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
+
+    // Dynamic styling variables mapping User Green vs Admin Indigo
+    const primaryColor = isAdmin ? '#4F46E5' : '#1B6B3A';
+    const activeBg = isAdmin ? '#EEF2FF' : '#DCF2E4';
+    const activeText = isActive ? '#ffffff' : (isAdmin ? '#1E293B' : '#111827');
+    const darkTextColor = isAdmin ? '#3730A3' : '#135029';
+    const backgroundStyle = isActive 
+        ? (isAdmin ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : '#1B6B3A')
+        : 'transparent';
 
     if (hasChildren) {
         return (
@@ -62,19 +71,19 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                     style={{ 
                         justifyContent: 'space-between', 
                         width: '100%',
-                        background: (isOpen || isChildActive) ? '#DCF2E4' : 'transparent',
-                        boxShadow: isChildActive ? 'inset 4px 0 0 #1B6B3A' : 'none',
+                        background: (isOpen || isChildActive) ? activeBg : 'transparent',
+                        boxShadow: isChildActive ? `inset 4px 0 0 ${primaryColor}` : 'none',
                         transition: 'all 0.2s ease'
                     }}
                 >
                     <div className="flex items-center gap-3">
-                        <IconComp size={20} style={{ color: '#1B6B3A' }} />
-                        <span className="sidebar-label" style={{ fontWeight: '750', color: '#135029' }}>{item.label}</span>
+                        <IconComp size={20} style={{ color: primaryColor }} />
+                        <span className="sidebar-label" style={{ fontWeight: '750', color: darkTextColor }}>{item.label}</span>
                     </div>
                     <motion.div
                         animate={{ rotate: isOpen ? 90 : 0 }}
                         transition={{ duration: 0.2 }}
-                        style={{ display: 'flex', alignItems: 'center', color: '#1B6B3A', opacity: 0.7 }}
+                        style={{ display: 'flex', alignItems: 'center', color: primaryColor, opacity: 0.7 }}
                     >
                         <ChevronRight size={16} />
                     </motion.div>
@@ -89,7 +98,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                             transition={{ duration: 0.25, ease: 'easeInOut' }}
                             style={{ overflow: 'hidden' }}
                         >
-                            <div style={{ borderLeft: '2px solid #DCF2E4', marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
+                            <div style={{ borderLeft: `2px solid ${activeBg}`, marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
                                 {item.children.map((child) => (
                                     <MenuItem 
                                         key={child.label} 
@@ -99,6 +108,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                                         openMenus={openMenus}
                                         toggleMenu={toggleMenu}
                                         handleItemClick={handleItemClick}
+                                        isAdmin={isAdmin}
                                     />
                                 ))}
                             </div>
@@ -117,14 +127,15 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                 marginBottom: '6px',
                 paddingLeft: isChild ? '1.2rem' : '0.75rem',
                 fontSize: isChild ? '0.85rem' : '0.92rem',
-                background: isActive ? '#1B6B3A' : 'transparent',
-                color: isActive ? '#ffffff' : '#111827',
-                borderLeft: isChild && isActive ? '3px solid #135029' : 'none'
+                background: backgroundStyle,
+                color: activeText,
+                borderLeft: isChild && isActive ? `3px solid ${isAdmin ? '#3730A3' : '#135029'}` : 'none',
+                boxShadow: isActive && isAdmin ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none'
             }}
         >
             <div className="flex items-center gap-3">
-                <IconComp size={isChild ? 18 : 20} style={{ color: isActive ? '#ffffff' : '#1B6B3A' }} />
-                <span className="sidebar-label">{item.label}</span>
+                <IconComp size={isChild ? 18 : 20} style={{ color: isActive ? '#ffffff' : primaryColor }} />
+                <span className="sidebar-label" style={{ fontWeight: isActive ? '750' : 'inherit' }}>{item.label}</span>
             </div>
         </button>
     );
@@ -137,6 +148,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
         if (path.includes('/admin/users')) return 'Tenant Matrix';
+        if (path.includes('/admin/sales')) return 'Platform Sales';
         if (path.includes('/admin/moderation')) return 'Feed Monitor';
         if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
@@ -201,6 +213,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         admin: [
             { label: 'Admin Console', icon: Activity, path: '/admin/dashboard' },
             { label: 'Tenant Matrix', icon: Users, path: '/admin/users' },
+            {
+                label: 'Sales Control',
+                icon: ShoppingCart,
+                children: [
+                    { label: 'Platform Sales', icon: Receipt, path: '/admin/sales' }
+                ]
+            },
             { label: 'Feed Monitor', icon: ShieldAlert, path: '/admin/moderation' },
             { label: 'Audit Trail', icon: FileCheck, path: '/admin/logs' },
             { label: 'Engine Overrides', icon: Sliders, path: '/admin/settings' }
@@ -279,6 +298,11 @@ const Sidebar = ({ isOpen, onClose }) => {
                 setOpenMenus(prev => ({ ...prev, [item.label]: true }));
             }
         });
+        navigationConfig.admin.forEach(item => {
+            if (item.children && item.children.some(child => location.pathname.includes(child.path))) {
+                setOpenMenus(prev => ({ ...prev, [item.label]: true }));
+            }
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname]);
 
@@ -312,23 +336,15 @@ const Sidebar = ({ isOpen, onClose }) => {
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>PLATFORM CONTROL</div>
                         {navigationConfig.admin.map(item => (
-                            <button
-                                key={item.label}
-                                className={`sidebar-item ${activeItem === item.label ? 'active' : ''}`}
-                                onClick={() => handleItemClick(item.label, item.path)}
-                                style={{ 
-                                    marginBottom: '6px',
-                                    background: activeItem === item.label ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' : 'transparent',
-                                    color: activeItem === item.label ? '#ffffff' : '#1E293B',
-                                    boxShadow: activeItem === item.label ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <item.icon size={20} style={{ color: activeItem === item.label ? '#ffffff' : '#4F46E5' }} />
-                                    <span className="sidebar-label" style={{ fontWeight: 750 }}>{item.label}</span>
-                                </div>
-                            </button>
+                            <MenuItem 
+                                key={item.label} 
+                                item={item} 
+                                activeItem={activeItem} 
+                                openMenus={openMenus} 
+                                toggleMenu={toggleMenu} 
+                                handleItemClick={handleItemClick} 
+                                isAdmin={true} 
+                            />
                         ))}
                     </>
                 ) : isSocialMode ? (
