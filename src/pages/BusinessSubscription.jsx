@@ -12,10 +12,65 @@ import {
     Calendar,
     Sparkles
 } from 'lucide-react';
+import { load } from '@cashfreepayments/cashfree-js';
+import { apiClient } from '../api/client';
 import '../App.css';
 
 const BusinessSubscription = () => {
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleUpgrade = async (tier) => {
+        if (tier.name === selectedTier) return;
+        
+        const amt = tier.priceAnnually;
+        
+        try {
+            setIsProcessing(true);
+            const generatedOrderId = `SUB_${Date.now()}_${Math.floor(Math.random() * 999)}`;
+            let paymentSessionId = null;
+
+            const backendData = await apiClient.post('/payments/create-order', {
+                amount: amt,
+                orderId: generatedOrderId
+            });
+
+            if (backendData && backendData.data && backendData.data.payment_session_id) {
+                paymentSessionId = backendData.data.payment_session_id;
+            } else {
+                throw new Error("Malformed session received from server cluster.");
+            }
+
+            const cashfree = await load({ mode: "sandbox" });
+
+            cashfree.checkout({
+                paymentSessionId: paymentSessionId,
+                redirectTarget: "_modal"
+            }).then((result) => {
+                if (result.error) {
+                    alert("Gateway Interrupted: " + result.error.message);
+                } else {
+                    setSelectedTier(tier.name);
+                    alert(`Successfully upgraded to ${tier.name}!`);
+                }
+            });
+
+        } catch (err) {
+            console.warn("[CASHFREE GATEWAY LOGGER]:", err.message);
+            const shouldSimulate = window.confirm(
+                `🚨 [CASHFREE GATEWAY ERROR]\n\n` +
+                `Transaction Handshake Failed: ${err.message}\n\n` +
+                `Would you like to simulate a SUCCESSFUL Gateway callback anyway to test UI loading logic?`
+            );
+
+            if (shouldSimulate) {
+                setSelectedTier(tier.name);
+                alert(`Successfully simulated upgrade to ${tier.name}!`);
+            }
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const tiers = [
         {
@@ -167,18 +222,21 @@ const BusinessSubscription = () => {
                                 </span>
                             </div>
 
-                            <button style={{ 
+                            <button 
+                                onClick={() => handleUpgrade(tier)}
+                                disabled={isProcessing}
+                                style={{ 
                                 width: '100%', 
                                 padding: '1rem', 
                                 borderRadius: '16px', 
                                 border: isActive ? 'none' : `1px solid ${tier.color}`,
-                                background: isActive ? `linear-gradient(135deg, ${tier.color} 0%, #064E3B 100%)` : 'white',
+                                background: isActive ? `linear-gradient(135deg, ${tier.color} 0%, #064E3B 100%)` : (isProcessing ? '#94A3B8' : 'white'),
                                 color: isActive ? 'white' : tier.color,
                                 fontWeight: '800',
-                                cursor: 'pointer',
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
                                 marginBottom: '2rem'
                             }}>
-                                {isActive ? 'Currently Active Plan' : 'Upgrade Plan'}
+                                {isActive ? 'Currently Active Plan' : (isProcessing ? 'Connecting...' : 'Upgrade Plan')}
                             </button>
 
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '2rem' }}>
