@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     ArrowLeft, Save, Sliders, FileText, RefreshCw, Building2, 
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
     Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, Edit,
-    Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown
+    Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
 import { Toggle } from '../components/ui/toggle';
+import { settingsService } from '../services';
 
 const BusinessCustomization = () => {
     const navigate = useNavigate();
@@ -15,42 +16,117 @@ const BusinessCustomization = () => {
     const [activeTab, setActiveTab] = useState('profile');
 
     const [config, setConfig] = useState({
-        // GENERAL
-        passcode: false, gstin: true, negativeStock: false, blockItems: false, 
-        blockParties: false, deliveryChallan: true, godown: false, autoBackup: true, auditTrail: true,
+        // PROFILE / COMPANY INFO
+        companyName: 'My Primary Firm',
+        phone: '',
+        gstinRef: '',
+        email: '',
+        booksBeginDate: '',
+        businessVerticalType: 'Retail',
+        businessCategory: 'Grocery',
+        stateRegistered: 'Maharashtra',
+        pincode: '',
+        registeredAddress: '',
+        signatureUrl: null,
+        logoUrl: null,
 
-        // TRANSACTION
-        invoiceBillNo: true, addTime: false, cashSale: false, billingName: true, custPO: false,
-        inclusiveTax: true, displayPurchase: true, last5Sale: false, last5Purchase: false, freeQty: false,
-        txnTax: false, txnDiscount: false, roundOff: true, billingType: 'full', 
+        // GENERAL CONFIGS
+        passcode: false, 
+        negativeStock: false, 
+        blockParties: false, 
+        deliveryChallan: true, 
+        godown: false, 
+        autoBackup: true, 
+        auditTrail: true,
+        reverseGoodsLogic: true,
+        displayAmountChallan: false,
 
-        // PRINT
-        printerType: 'regular', repeatHeader: true, printName: 'My Company', printLogo: true,
-        paperSize: 'A4',
+        // TRANSACTION CONFIGS
+        invoiceBillNo: true, 
+        addTime: false, 
+        cashSale: false, 
+        inclusiveTax: true, 
+        displayPurchase: true, 
+        freeQty: false,
+        txnTax: false, 
+        txnDiscount: false, 
+        roundOff: true, 
+        billingType: 'full', 
+        prefixSale: 'INV-',
+        prefixPurchase: 'PO-',
+        prefixCredit: 'CN-',
 
-        // GST
-        enableGst: true, hsnCode: true, cess: false, reverseCharge: false,
-        placeSupply: true, compositeScheme: false, enableTcs: false, enableTds: false,
+        // PRINT CONFIGS
+        printerType: 'regular', 
+        repeatHeader: true, 
+        printName: 'My Company', 
+        printLogo: true,
+        paperSize: 'A4 Size',
+        displayTitlePrint: 'My Super Company',
 
-        // MESSAGE
-        msgMethod: 'Vyapar', msgToParty: true, msgUpdate: false, msgCopySelf: false,
-        autoSendSales: true, autoSendPurchase: true, autoSendReturn: true,
+        // GST CONFIGS
+        enableGst: true, 
+        hsnCode: true, 
+        reverseCharge: false,
+        placeSupply: true,
 
-        // PARTY
-        partyGroup: false, shipAddr: false, partyStatus: false, payReminder: true, loyalty: true,
+        // PARTY CRM CONFIGS
+        partyGroup: false, 
+        partyStatus: false, 
+        loyalty: true, 
+        payReminder: true,
 
-        // NEW: ACCOUNTING & REMINDERS
+        // ACCOUNTING & REMINDERS
         accountingModule: false,
         serviceReminders: false
     });
+
+    // ── Load Cloud Sync Configuration ───────────────────────────────
+    useEffect(() => {
+        const loadMasterConfig = async () => {
+            try {
+                const res = await settingsService.getSettings();
+                const payload = res?.data || res;
+                if (payload && typeof payload === 'object') {
+                    // Safely merge payload on top of current local structures
+                    setConfig(prev => ({
+                        ...prev,
+                        ...payload
+                    }));
+                }
+            } catch (err) {
+                console.warn('[Settings Engine] Cloud node offline. Operating locally.', err);
+            }
+        };
+        loadMasterConfig();
+    }, []);
 
     const handleToggle = (key) => {
         setConfig(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const handleSave = () => {
+    const handleTextChange = (key, val) => {
+        setConfig(prev => ({ ...prev, [key]: val }));
+    };
+
+    const handleSave = async () => {
         setIsSaving(true);
-        setTimeout(() => { setIsSaving(false); alert('Master system state synchronized and deployed!'); }, 800);
+        try {
+            await settingsService.updateSettings(config);
+            alert('Master deployment parameters synchronized to secure ledger successfully!');
+        } catch (err) {
+            console.error('[Sync Router] Failed to write metadata:', err);
+            alert('Network Sync Exception: Connection to backend control layer was interrupted.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSimulateUpload = (field) => {
+        const name = prompt('Simulate Uploading (Enter dummy file URL or click OK):', `https://api.cliksbusiness.com/simulations/${field}.png`);
+        if (name) {
+            setConfig(prev => ({ ...prev, [field]: name }));
+        }
     };
 
     const tabs = [
@@ -84,12 +160,19 @@ const BusinessCustomization = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2.5rem' }}>
-                    <div style={{ position: 'relative' }}>
-                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '4px dashed #CBD5E1', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#94A3B8' }}>
-                            <Camera size={24} />
-                            <span style={{ fontSize: '0.7rem', fontWeight: '700', marginTop: '4px' }}>Add Logo</span>
-                        </div>
-                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', background: '#4F46E5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: '2px solid white', cursor: 'pointer' }}>
+                    <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => handleSimulateUpload('logoUrl')}>
+                        {config.logoUrl ? (
+                            <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '2px solid #4F46E5', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <img src={config.logoUrl} alt="Branding Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display='none'; }} />
+                                <Building2 size={32} color="#4F46E5" />
+                            </div>
+                        ) : (
+                            <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '4px dashed #CBD5E1', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#94A3B8' }}>
+                                <Camera size={24} />
+                                <span style={{ fontSize: '0.7rem', fontWeight: '700', marginTop: '4px' }}>Add Logo</span>
+                            </div>
+                        )}
+                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', background: '#4F46E5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: '2px solid white' }}>
                             <Edit size={14} />
                         </div>
                     </div>
@@ -103,11 +186,40 @@ const BusinessCustomization = () => {
                     {/* Column 1: Core Details */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Business Details</h3>
-                        <ProfileInputField label="Business Name *" icon={Building2} defaultValue="My Primary Firm" />
-                        <ProfileInputField label="Phone Number" icon={Phone} placeholder="Enter mobile no." />
-                        <ProfileInputField label="GSTIN Reference" icon={ShieldCheck} placeholder="E.g. 27AAAAA0000A1Z5" />
-                        <ProfileInputField label="Contact Email ID" icon={Mail} placeholder="mail@business.com" />
-                        <ProfileInputField label="Books Beginning Date" icon={Calendar} type="date" />
+                        <ProfileInputField 
+                            label="Business Name *" 
+                            icon={Building2} 
+                            value={config.companyName} 
+                            onChange={(e) => handleTextChange('companyName', e.target.value)} 
+                        />
+                        <ProfileInputField 
+                            label="Phone Number" 
+                            icon={Phone} 
+                            placeholder="Enter mobile no." 
+                            value={config.phone} 
+                            onChange={(e) => handleTextChange('phone', e.target.value)} 
+                        />
+                        <ProfileInputField 
+                            label="GSTIN Reference" 
+                            icon={ShieldCheck} 
+                            placeholder="E.g. 27AAAAA0000A1Z5" 
+                            value={config.gstinRef} 
+                            onChange={(e) => handleTextChange('gstinRef', e.target.value)} 
+                        />
+                        <ProfileInputField 
+                            label="Contact Email ID" 
+                            icon={Mail} 
+                            placeholder="mail@business.com" 
+                            value={config.email} 
+                            onChange={(e) => handleTextChange('email', e.target.value)} 
+                        />
+                        <ProfileInputField 
+                            label="Books Beginning Date" 
+                            icon={Calendar} 
+                            type="date" 
+                            value={config.booksBeginDate} 
+                            onChange={(e) => handleTextChange('booksBeginDate', e.target.value)} 
+                        />
                     </div>
 
                     {/* Column 2: Extra Detail */}
@@ -115,17 +227,53 @@ const BusinessCustomization = () => {
                         <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Localization</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Business Vertical Type</label>
-                            <select style={selectStyle}><option>Select Business Type</option><option>Retail</option><option>Manufacturing</option></select>
+                            <select 
+                                style={selectStyle} 
+                                value={config.businessVerticalType} 
+                                onChange={(e) => handleTextChange('businessVerticalType', e.target.value)}
+                            >
+                                <option>Retail</option>
+                                <option>Manufacturing</option>
+                                <option>Wholesale Distributor</option>
+                                <option>Service Provider</option>
+                            </select>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Business Category</label>
-                            <select style={selectStyle}><option>Select Category</option><option>Automobile</option><option>Grocery</option></select>
+                            <select 
+                                style={selectStyle} 
+                                value={config.businessCategory} 
+                                onChange={(e) => handleTextChange('businessCategory', e.target.value)}
+                            >
+                                <option>Grocery</option>
+                                <option>Automobile</option>
+                                <option>Apparel & Clothing</option>
+                                <option>Electronics</option>
+                                <option>Pharmaceutical</option>
+                            </select>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>State Registered</label>
-                            <select style={selectStyle}><option>Select State</option><option>Maharashtra</option><option>Karnataka</option></select>
+                            <select 
+                                style={selectStyle} 
+                                value={config.stateRegistered} 
+                                onChange={(e) => handleTextChange('stateRegistered', e.target.value)}
+                            >
+                                <option>Maharashtra</option>
+                                <option>Karnataka</option>
+                                <option>Delhi</option>
+                                <option>Tamil Nadu</option>
+                                <option>Gujarat</option>
+                                <option>West Bengal</option>
+                            </select>
                         </div>
-                        <ProfileInputField label="Pincode" icon={MapPin} placeholder="6 digit code" />
+                        <ProfileInputField 
+                            label="Pincode" 
+                            icon={MapPin} 
+                            placeholder="6 digit code" 
+                            value={config.pincode} 
+                            onChange={(e) => handleTextChange('pincode', e.target.value)} 
+                        />
                     </div>
 
                     {/* Column 3: Signature & Address */}
@@ -133,14 +281,32 @@ const BusinessCustomization = () => {
                         <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Physical Presence</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Full Registered Address</label>
-                            <textarea rows="3" style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', resize: 'none' }} placeholder="Enter detailed operating address..."></textarea>
+                            <textarea 
+                                rows="3" 
+                                style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', resize: 'none' }} 
+                                placeholder="Enter detailed operating address..."
+                                value={config.registeredAddress}
+                                onChange={(e) => handleTextChange('registeredAddress', e.target.value)}
+                            />
                         </div>
                         
                         <div style={{ marginTop: '1rem' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569', display: 'block', marginBottom: '0.5rem' }}>Authorized E-Signature</label>
-                            <div style={{ height: '100px', border: '2px dashed #CBD5E1', borderRadius: '10px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer' }}>
-                                <UploadCloud size={24} color="#94A3B8" />
-                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748B', marginTop: '4px' }}>Upload Signature PNG</span>
+                            <div 
+                                onClick={() => handleSimulateUpload('signatureUrl')}
+                                style={{ height: '100px', border: config.signatureUrl ? '2px solid #10B981' : '2px dashed #CBD5E1', borderRadius: '10px', background: config.signatureUrl ? '#ECFDF5' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer' }}
+                            >
+                                {config.signatureUrl ? (
+                                    <>
+                                        <CheckCircle2 size={24} color="#10B981" />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#065F46', marginTop: '4px' }}>Signature Attached</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <UploadCloud size={24} color="#94A3B8" />
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748B', marginTop: '4px' }}>Upload Signature PNG</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -173,7 +339,7 @@ const BusinessCustomization = () => {
                     <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Master Your Customer Follow-ups!</h2>
                     <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#BFDBFE' }}>Watch how to reduce outstanding dues by 40% with automated SMS/WhatsApp triggers.</p>
                 </div>
-                <button style={{ position: 'relative', zIndex: 2, background: '#EF4444', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '50px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)' }}>
+                <button onClick={() => alert('Demo simulation starting in window...')} style={{ position: 'relative', zIndex: 2, background: '#EF4444', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '50px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)' }}>
                     <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={14} /></div>
                     PLAY DEMO VIDEO
                 </button>
@@ -183,7 +349,7 @@ const BusinessCustomization = () => {
             {/* Feature Visualizer */}
             <div style={{ textAlign: 'center', maxWidth: '500px', marginTop: '1rem' }}>
                 <div style={{ background: '#FFFBEB', width: '160px', height: '160px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', border: '1px solid #FDE68A', boxShadow: 'inset 0 0 20px rgba(251, 191, 36, 0.1)' }}>
-                    <Bell size={60} color="#D97706" strokeWidth={1.5} className="animate-pulse" />
+                    <Bell size={60} color="#D97706" strokeWidth={1.5} className={!config.serviceReminders ? "animate-pulse" : ""} />
                 </div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>Automated Service & Payment Reminders <span style={{ background: '#EF4444', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '0.5rem' }}>NEW</span></h3>
                 <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.5rem', lineHeight: '1.5' }}>⏰ Never miss a renewal | 🤝 Retain existing clientele | 📈 Accelerate Cash flow.</p>
@@ -225,10 +391,20 @@ const BusinessCustomization = () => {
                         {config.deliveryChallan && (
                             <div style={{ marginLeft: '2.75rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', gap: '1rem' }}>
                                 <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
-                                    <input type="checkbox" defaultChecked style={{ accentColor: '#1B6B3A' }} /> Reverse Goods Logic
+                                    <input 
+                                        type="checkbox" 
+                                        checked={config.reverseGoodsLogic} 
+                                        onChange={() => handleToggle('reverseGoodsLogic')} 
+                                        style={{ accentColor: '#1B6B3A' }} 
+                                    /> Reverse Goods Logic
                                 </label>
                                 <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
-                                    <input type="checkbox" style={{ accentColor: '#1B6B3A' }} /> Display Amount
+                                    <input 
+                                        type="checkbox" 
+                                        checked={config.displayAmountChallan} 
+                                        onChange={() => handleToggle('displayAmountChallan')} 
+                                        style={{ accentColor: '#1B6B3A' }} 
+                                    /> Display Amount
                                 </label>
                             </div>
                         )}
@@ -279,11 +455,11 @@ const BusinessCustomization = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <h4 style={{ fontSize: '0.85rem', color: '#94A3B8', textTransform: 'uppercase', margin: 0 }}>Billing Mode</h4>
                             <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div onClick={() => setConfig(p => ({...p, billingType: 'lite'}))} style={{ flex: 1, padding: '0.75rem', border: config.billingType === 'lite' ? '2px solid #3B82F6' : '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer', background: config.billingType === 'lite' ? '#EFF6FF' : 'white' }}>
-                                    <span style={{ fontWeight: '800', fontSize: '0.85rem' }}>Lite Sale</span>
+                                <div onClick={() => handleTextChange('billingType', 'lite')} style={{ flex: 1, padding: '0.75rem', border: config.billingType === 'lite' ? '2px solid #3B82F6' : '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer', background: config.billingType === 'lite' ? '#EFF6FF' : 'white', transition: 'all 0.2s' }}>
+                                    <span style={{ fontWeight: '800', fontSize: '0.85rem', color: config.billingType === 'lite' ? '#1D4ED8' : '#475569' }}>Lite Sale</span>
                                 </div>
-                                <div onClick={() => setConfig(p => ({...p, billingType: 'full'}))} style={{ flex: 1, padding: '0.75rem', border: config.billingType === 'full' ? '2px solid #3B82F6' : '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer', background: config.billingType === 'full' ? '#EFF6FF' : 'white' }}>
-                                    <span style={{ fontWeight: '800', fontSize: '0.85rem' }}>Full Sale</span>
+                                <div onClick={() => handleTextChange('billingType', 'full')} style={{ flex: 1, padding: '0.75rem', border: config.billingType === 'full' ? '2px solid #3B82F6' : '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer', background: config.billingType === 'full' ? '#EFF6FF' : 'white', transition: 'all 0.2s' }}>
+                                    <span style={{ fontWeight: '800', fontSize: '0.85rem', color: config.billingType === 'full' ? '#1D4ED8' : '#475569' }}>Full Sale</span>
                                 </div>
                             </div>
                         </div>
@@ -293,12 +469,36 @@ const BusinessCustomization = () => {
             <div style={{ gridColumn: 'span 4' }}>
                 <CustomizationCard title="Tracking Prefixes" icon={Edit}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {['Sale Invoice', 'Purchase Order', 'Credit Note'].map(item => (
-                            <div key={item} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>{item}</label>
-                                <input type="text" placeholder="E.g. INV-" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} />
-                            </div>
-                        ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Sale Invoice</label>
+                            <input 
+                                type="text" 
+                                placeholder="E.g. INV-" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixSale}
+                                onChange={(e) => handleTextChange('prefixSale', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Purchase Order</label>
+                            <input 
+                                type="text" 
+                                placeholder="E.g. PO-" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixPurchase}
+                                onChange={(e) => handleTextChange('prefixPurchase', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Credit Note</label>
+                            <input 
+                                type="text" 
+                                placeholder="E.g. CN-" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixCredit}
+                                onChange={(e) => handleTextChange('prefixCredit', e.target.value)}
+                            />
+                        </div>
                     </div>
                 </CustomizationCard>
             </div>
@@ -310,24 +510,51 @@ const BusinessCustomization = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <CustomizationCard title="Printer Mechanism" icon={Printer}>
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <button onClick={() => setConfig(p => ({...p, printerType: 'regular'}))} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', background: config.printerType === 'regular' ? '#8B5CF6' : '#F1F5F9', color: config.printerType === 'regular' ? 'white' : '#64748B', fontWeight: '700', cursor: 'pointer' }}>REGULAR</button>
-                        <button onClick={() => setConfig(p => ({...p, printerType: 'thermal'}))} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', background: config.printerType === 'thermal' ? '#8B5CF6' : '#F1F5F9', color: config.printerType === 'thermal' ? 'white' : '#64748B', fontWeight: '700', cursor: 'pointer' }}>THERMAL</button>
+                        <button onClick={() => handleTextChange('printerType', 'regular')} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', background: config.printerType === 'regular' ? '#8B5CF6' : '#F1F5F9', color: config.printerType === 'regular' ? 'white' : '#64748B', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}>REGULAR</button>
+                        <button onClick={() => handleTextChange('printerType', 'thermal')} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', background: config.printerType === 'thermal' ? '#8B5CF6' : '#F1F5F9', color: config.printerType === 'thermal' ? 'white' : '#64748B', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}>THERMAL</button>
                     </div>
                     <CheckboxWithLabel label="Repeat header on multi-sheet outputs" checked={config.repeatHeader} onChange={() => handleToggle('repeatHeader')} />
                 </CustomizationCard>
                 <CustomizationCard title="Info Overrides" icon={Edit}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <ProfileInputField label="Display Title for Print" icon={Briefcase} defaultValue="My Super Company" />
+                        <ProfileInputField 
+                            label="Display Title for Print" 
+                            icon={Briefcase} 
+                            value={config.displayTitlePrint} 
+                            onChange={(e) => handleTextChange('displayTitlePrint', e.target.value)} 
+                        />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>Page Dim:</span>
-                            <select style={selectStyle}><option>A4 Size</option><option>Letter</option></select>
+                            <select 
+                                style={selectStyle} 
+                                value={config.paperSize} 
+                                onChange={(e) => handleTextChange('paperSize', e.target.value)}
+                            >
+                                <option>A4 Size</option>
+                                <option>Letter</option>
+                                <option>Legal</option>
+                                <option>3 Inch (Thermal)</option>
+                            </select>
                         </div>
                     </div>
                 </CustomizationCard>
             </div>
             <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
-                <div style={{ padding: '1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800' }}><Eye size={16} color="#8B5CF6" /> VIEWPORT</div>
-                <div style={{ padding: '1.5rem', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CBD5E1', fontSize: '0.8rem' }}>[ Rendering Live Frame ]</div>
+                <div style={{ padding: '1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800' }}><Eye size={16} color="#8B5CF6" /> VIEWPORT PREVIEW</div>
+                <div style={{ padding: '2rem', height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9' }}>
+                    <div style={{ width: '75%', background: 'white', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ fontWeight: '900', color: '#0F172A', fontSize: '0.85rem' }}>{config.displayTitlePrint}</div>
+                            <div style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700' }}>{config.prefixSale}001</div>
+                        </div>
+                        <div style={{ height: '8px', background: '#F1F5F9', width: '100%', borderRadius: '4px' }}></div>
+                        <div style={{ height: '8px', background: '#F1F5F9', width: '80%', borderRadius: '4px' }}></div>
+                        <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            {config.signatureUrl && <div style={{ fontSize: '0.5rem', color: '#10B981', fontStyle: 'italic', border: '1px dashed #10B981', padding: '2px 4px', transform: 'rotate(-5deg)', fontWeight: '800' }}>SIGNED</div>}
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: '1rem', fontWeight: '750', textTransform: 'uppercase' }}>Active Dimension: {config.paperSize}</div>
+                </div>
             </div>
         </div>
     );
@@ -359,7 +586,7 @@ const BusinessCustomization = () => {
                     Gain exclusive early access to experimental features, AI-powered insights, and advanced integrations before they roll out to the public.
                 </p>
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }}>
-                    <button style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', border: 'none', padding: '1rem 2.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 10px 25px rgba(245, 158, 11, 0.3)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button onClick={() => alert('Application queued! The board will review.')} style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', border: 'none', padding: '1rem 2.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 10px 25px rgba(245, 158, 11, 0.3)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Crown size={18} /> APPLY FOR ACCESS
                     </button>
                 </div>
@@ -386,7 +613,7 @@ const BusinessCustomization = () => {
         <div className="premium-container" style={{ paddingBottom: '4rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <button onClick={() => navigate('/settings')} style={{ background: 'transparent', border: 'none', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '0.5rem', padding: 0 }}>
+                    <button onClick={() => navigate(-1)} style={{ background: 'transparent', border: 'none', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '0.5rem', padding: 0 }}>
                         <ArrowLeft size={16} /> BACK
                     </button>
                     <h1 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#111827', letterSpacing: '-0.02em', margin: 0 }}>Advanced Engine Configuration</h1>
