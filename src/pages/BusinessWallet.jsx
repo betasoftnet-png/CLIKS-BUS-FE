@@ -185,8 +185,8 @@ const BusinessWallet = () => {
                 <div>
                     <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Stored Balance</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
-                        <IndianRupee size={28} strokeWidth={3} style={{ color: '#064E3B' }} />
-                        <h2 style={{ fontSize: '3rem', fontWeight: '950', color: '#064E3B', margin: 0, letterSpacing: '-0.02em' }}>
+                        <IndianRupee size={22} strokeWidth={3.5} style={{ color: '#064E3B' }} />
+                        <h2 style={{ fontSize: '2.25rem', fontWeight: '850', color: '#064E3B', margin: 0, letterSpacing: '-0.01em' }}>
                             {balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
                     </div>
