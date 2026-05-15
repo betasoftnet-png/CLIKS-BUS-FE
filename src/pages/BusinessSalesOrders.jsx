@@ -48,7 +48,17 @@ const BusinessSalesOrders = () => {
             setLoading(true);
             const res = await ordersService.getOrders({ search: searchTerm });
             if (res && res.success) {
-                setOrders(res.data || []);
+                const parsed = (res.data || []).map(o => ({
+                    ...o,
+                    grand_total: parseFloat(o.grand_total || 0),
+                    advance_amount: parseFloat(o.advance_amount || 0),
+                    pending_amount: parseFloat(o.pending_amount || 0),
+                    shipping_charge: parseFloat(o.shipping_charge || 0),
+                    subtotal: parseFloat(o.subtotal || 0),
+                    total_discount: parseFloat(o.total_discount || 0),
+                    total_tax: parseFloat(o.total_tax || 0)
+                }));
+                setOrders(parsed);
             }
         } catch (err) {
             console.error('Failed to load live orders:', err);
@@ -256,9 +266,9 @@ const BusinessSalesOrders = () => {
 
     // Dynamic Computations for KPIs & Reports
     const activeOrdersCount = orders.filter(o => o.status !== 'Invoiced' && o.status !== 'Cancelled').length;
-    const totalPendingValue = orders.filter(o => o.status !== 'Invoiced').reduce((acc, o) => acc + (o.grand_total || 0), 0);
+    const totalPendingValue = orders.filter(o => o.status !== 'Invoiced').reduce((acc, o) => acc + parseFloat(o.grand_total || 0), 0);
     const readyToInvoiceCount = orders.filter(o => o.status === 'Confirmed').length;
-    const invoicedThisMonth = orders.filter(o => o.status === 'Invoiced').reduce((acc, o) => acc + (o.grand_total || 0), 0);
+    const invoicedThisMonth = orders.filter(o => o.status === 'Invoiced').reduce((acc, o) => acc + parseFloat(o.grand_total || 0), 0);
 
     // Reports Analytics calculations
     const pendingOrdersList = orders.filter(o => o.status === 'Draft' || o.status === 'Confirmed');
@@ -271,7 +281,7 @@ const BusinessSalesOrders = () => {
     // Top Customers
     const customerTotals = orders.reduce((acc, o) => {
         if (o.status !== 'Cancelled') {
-            acc[o.customer] = (acc[o.customer] || 0) + o.grand_total;
+            acc[o.customer] = (acc[o.customer] || 0) + parseFloat(o.grand_total || 0);
         }
         return acc;
     }, {});
@@ -298,31 +308,30 @@ const BusinessSalesOrders = () => {
     const fulfillmentRate = totalProcessed > 0 ? Math.round((totalFulfilled / totalProcessed) * 100) : 0;
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '11px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(124, 58, 237, 0.15)' }}>
-                            <ShoppingCart size={18} />
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                            <ShoppingCart size={20} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Sales Orders Center</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Sales Orders Center</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Manage customer requests, reserve stocks, track shipments, and convert to invoices.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage customer requests, reserve stocks, track shipments, and convert to invoices.</p>
                 </div>
                 <button 
                     onClick={() => { resetForm(); setIsModalOpen(true); }}
                     className="crm-btn"
                     style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                        padding: '0.5rem 1.1rem', borderRadius: '10px', 
-                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
-                        boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)',
-                        transition: 'transform 0.2s'
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        padding: '0.65rem 1.25rem', borderRadius: '10px', 
+                        background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                        fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
+                        boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
                     }}
                 >
-                    <Plus size={16} />
+                    <Plus size={18} />
                     New Order
                 </button>
             </div>
@@ -331,18 +340,16 @@ const BusinessSalesOrders = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Orders', value: activeOrdersCount, icon: ShoppingCart, color: '#7C3AED', bg: '#F3E8FF' },
-                    { label: 'Pending Value', value: `₹${totalPendingValue.toLocaleString()}`, icon: Clock, color: '#B45309', bg: '#FFFBEB' },
+                    { label: 'Pending Value', value: `₹${totalPendingValue.toLocaleString('en-IN')}`, icon: Clock, color: '#B45309', bg: '#FFFBEB' },
                     { label: 'Confirmed (Ready)', value: readyToInvoiceCount, icon: Package, color: '#0369A1', bg: '#F0F9FF' },
-                    { label: 'Invoiced / Completed', value: `₹${invoicedThisMonth.toLocaleString()}`, icon: CheckCircle2, color: '#15803D', bg: '#F0FDF4' }
+                    { label: 'Invoiced / Completed', value: `₹${invoicedThisMonth.toLocaleString('en-IN')}`, icon: CheckCircle2, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
-                        </div>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                    <div key={idx} className="stat-card" style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.5rem' }}>
                             <stat.icon size={20} />
                         </div>
+                        <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem', margin: 0 }}>{stat.label}</p>
+                        <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>{stat.value}</h3>
                     </div>
                 ))}
             </div>
@@ -436,10 +443,10 @@ const BusinessSalesOrders = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#7C3AED' }}>₹{row.grand_total.toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#7C3AED' }}>₹{parseFloat(row.grand_total || 0).toLocaleString('en-IN')}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0D9488' }}>₹{row.advance_amount.toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0D9488' }}>₹{parseFloat(row.advance_amount || 0).toLocaleString('en-IN')}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ 
@@ -497,7 +504,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>No: {o.order_number} | Due: {o.delivery_date}</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#7C3AED', fontSize: '1.05rem' }}>₹{o.grand_total.toLocaleString()}</p>
+                                                <p style={{ fontWeight: '850', color: '#7C3AED', fontSize: '1.05rem' }}>₹{parseFloat(o.grand_total || 0).toLocaleString('en-IN')}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309' }}>{o.status.toUpperCase()}</span>
                                             </div>
                                         </div>
@@ -525,7 +532,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#991B1B' }}>Expected Delivery: <strong style={{ textDecoration: 'underline' }}>{o.delivery_date}</strong> (Delayed)</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#991B1B', fontSize: '1.05rem' }}>₹{o.grand_total.toLocaleString()}</p>
+                                                <p style={{ fontWeight: '850', color: '#991B1B', fontSize: '1.05rem' }}>₹{parseFloat(o.grand_total || 0).toLocaleString('en-IN')}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444' }}>OVERDUE</span>
                                             </div>
                                         </div>
@@ -551,7 +558,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>No: {o.order_number} | Date: {o.date}</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#94A3B8', fontSize: '1.05rem', textDecoration: 'line-through' }}>₹{o.grand_total.toLocaleString()}</p>
+                                                <p style={{ fontWeight: '850', color: '#94A3B8', fontSize: '1.05rem', textDecoration: 'line-through' }}>₹{parseFloat(o.grand_total || 0).toLocaleString('en-IN')}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444' }}>CANCELLED</span>
                                             </div>
                                         </div>
@@ -593,7 +600,7 @@ const BusinessSalesOrders = () => {
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
-                                            <span style={{ color: '#7C3AED' }}>₹{cust.value.toLocaleString()}</span>
+                                            <span style={{ color: '#7C3AED' }}>₹{parseFloat(cust.value || 0).toLocaleString('en-IN')}</span>
                                         </div>
                                         <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, (cust.value / Math.max(...topCustomers.map(c => c.value))) * 100)}%` }}></div>
@@ -762,7 +769,7 @@ const BusinessSalesOrders = () => {
                                                 <option value={18}>18% GST</option>
                                                 <option value={28}>28% GST</option>
                                             </select>
-                                            <span style={{ fontWeight: '750', color: '#7C3AED', minWidth: '70px', textAlign: 'right', fontSize: '0.95rem' }}>₹{(item.total || 0).toLocaleString()}</span>
+                                            <span style={{ fontWeight: '750', color: '#7C3AED', minWidth: '70px', textAlign: 'right', fontSize: '0.95rem' }}>₹{(item.total || 0).toLocaleString('en-IN')}</span>
                                             {formData.items.length > 1 && (
                                                 <button type="button" onClick={() => handleRemoveItem(idx)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><Trash size={16} /></button>
                                             )}
@@ -797,23 +804,23 @@ const BusinessSalesOrders = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '1rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Subtotal</span>
-                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.subtotal || 0).toLocaleString()}</span>
+                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.subtotal || 0).toLocaleString('en-IN')}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Total Discount</span>
-                                        <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{(formData.total_discount || 0).toLocaleString()}</span>
+                                        <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{(formData.total_discount || 0).toLocaleString('en-IN')}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Total Tax (GST)</span>
-                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.total_tax || 0).toLocaleString()}</span>
+                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.total_tax || 0).toLocaleString('en-IN')}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Shipping Charge</span>
-                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.shipping_charge || 0).toLocaleString()}</span>
+                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.shipping_charge || 0).toLocaleString('en-IN')}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', borderTop: '2px solid #F1F5F9', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
                                         <span style={{ color: '#7C3AED' }}>Grand Total</span>
-                                        <span style={{ color: '#7C3AED' }}>₹{(formData.grand_total || 0).toLocaleString()}</span>
+                                        <span style={{ color: '#7C3AED' }}>₹{(formData.grand_total || 0).toLocaleString('en-IN')}</span>
                                     </div>
                                 </div>
                             </div>

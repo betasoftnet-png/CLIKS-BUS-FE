@@ -24,6 +24,7 @@ import {
     QrCode
 } from 'lucide-react';
 import { meetupsService, profileService } from '../services';
+import { QRCodeCanvas } from 'qrcode.react';
 import '../App.css';
 
 const BusinessMeetup = () => {
@@ -163,7 +164,7 @@ const BusinessMeetup = () => {
         try {
             const options = { day: 'numeric', month: 'short' };
             return new Date(dateStr).toLocaleDateString('en-IN', options);
-        } catch (e) {
+        } catch {
             return dateStr;
         }
     };
@@ -585,8 +586,14 @@ const BusinessMeetup = () => {
                                 </div>
 
                                 <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-                                        <QrCode size={100} style={{ color: '#0F172A' }} />
+                                    <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                        <QRCodeCanvas 
+                                            value={`CLIKS-MEETUP | Pass: TXN-PASS-${selectedTicketMeetup.id || 'MUP'}-${currentUser.id || 'USR'} | Title: ${selectedTicketMeetup.title || ''} | Date: ${selectedTicketMeetup.date || ''}`} 
+                                            size={110}
+                                            bgColor={"#ffffff"}
+                                            fgColor={"#064E3B"}
+                                            level={"H"}
+                                        />
                                     </div>
                                     <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '750', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
                                         TXN-PASS-{selectedTicketMeetup.id || 'MUP'}-{currentUser.id || 'USR'}
