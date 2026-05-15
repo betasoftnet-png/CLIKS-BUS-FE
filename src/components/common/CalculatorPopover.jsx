@@ -327,7 +327,8 @@ export function CalculatorPopover() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: '#FAFBFC'
+            background: '#FAFBFC',
+            flexShrink: 0
         },
         title: {
             fontSize: '14px',
@@ -367,7 +368,8 @@ export function CalculatorPopover() {
             flexDirection: 'column',
             justifyContent: 'center',
             minHeight: '70px',
-            borderBottom: '1px solid #E2E8F0'
+            borderBottom: '1px solid #E2E8F0',
+            flexShrink: 0
         },
         smartBar: {
             display: 'flex',
@@ -396,7 +398,8 @@ export function CalculatorPopover() {
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '8px',
             padding: '16px',
-            background: '#FFFFFF'
+            background: '#FFFFFF',
+            flexShrink: 0
         },
         keyBtn: {
             height: '48px',
@@ -571,7 +574,7 @@ export function CalculatorPopover() {
                         </div>
 
                         {/* Requirement 2: Smart Bar with GST, Discount & Labels */}
-                        <div style={{ display: 'flex', flexDirection: 'column', background: '#FFFFFF' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', background: '#FFFFFF', flexShrink: 0 }}>
                             <div style={styles.smartBar}>
                                 <button 
                                     onClick={() => setShowSmartOptions(showSmartOptions === 'gst' ? null : 'gst')}
@@ -676,7 +679,8 @@ export function CalculatorPopover() {
                             color: 'white',
                             display: 'flex',
                             justifyContent: 'space-between',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            flexShrink: 0
                         }}>
                             <div>
                                 <span style={{ fontSize: '10px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
