@@ -18,8 +18,7 @@ import {
     Calendar, 
     Bell, 
     MessageSquare, 
-    CheckCircle2,
-    Edit2
+    CheckCircle2
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import '../App.css';
@@ -199,6 +198,35 @@ const BusinessPeople = () => {
         createReminderMutation.mutate(reminderForm);
     };
 
+    const renderAvatar = (name, size = 42) => {
+        const firstLetter = (name || '?').trim().charAt(0).toUpperCase();
+        let hash = 0;
+        const str = name || '';
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hues = [145, 195, 220, 260, 310, 340, 25, 55];
+        const hue = hues[Math.abs(hash) % hues.length];
+        return (
+            <div style={{ 
+                width: `${size}px`, 
+                height: `${size}px`, 
+                borderRadius: size > 50 ? '24px' : '12px', 
+                background: `hsl(${hue}, 75%, 93%)`, 
+                color: `hsl(${hue}, 75%, 32%)`, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontWeight: '900', 
+                fontSize: `${size * 0.45}px`,
+                fontFamily: "'Outfit', 'Inter', sans-serif",
+                flexShrink: 0
+            }}>
+                {firstLetter}
+            </div>
+        );
+    };
+
     const formatCurr = (val) => {
         const num = parseFloat(val || 0);
         return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -339,9 +367,7 @@ const BusinessPeople = () => {
                                     >
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', overflow: 'hidden', background: '#F1F5F9' }}>
-                                                    <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${p.name}`} alt="" />
-                                                </div>
+                                                {renderAvatar(p.name, 42)}
                                                 <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', margin: 0 }}>{p.name}</p>
                                             </div>
                                         </td>
@@ -489,12 +515,30 @@ const BusinessPeople = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Network Role</label>
-                                        <select value={contactForm.role_type} onChange={(e) => setContactForm({ ...contactForm, role_type: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}>
+                                        <select 
+                                            value={['friend', 'family', 'colleague', 'business'].includes(contactForm.role_type) ? contactForm.role_type : 'others'} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setContactForm({ ...contactForm, role_type: val === 'others' ? '' : val });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
+                                        >
                                             <option value="friend">Friend</option>
                                             <option value="family">Family</option>
                                             <option value="colleague">Colleague</option>
                                             <option value="business">Business Partner</option>
+                                            <option value="others">Others (Custom)</option>
                                         </select>
+                                        {!['friend', 'family', 'colleague', 'business'].includes(contactForm.role_type) && (
+                                            <input 
+                                                placeholder="Specify custom role..." 
+                                                type="text" 
+                                                value={contactForm.role_type} 
+                                                onChange={(e) => setContactForm({ ...contactForm, role_type: e.target.value })} 
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', marginTop: '0.5rem' }} 
+                                                required
+                                            />
+                                        )}
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Company Label</label>
@@ -620,9 +664,7 @@ const BusinessPeople = () => {
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                                        <div style={{ width: '80px', height: '80px', borderRadius: '24px', overflow: 'hidden', background: 'white', border: '3px solid #E2E8F0' }}>
-                                            <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${personDetails?.name || ''}`} alt="" />
-                                        </div>
+                                        {renderAvatar(personDetails?.name, 80)}
                                         <div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                                                 <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textTransform: 'uppercase' }}>{personDetails?.name}</h2>
