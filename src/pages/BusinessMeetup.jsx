@@ -170,8 +170,11 @@ const BusinessMeetup = () => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#F0F9F4', padding: '2.5rem', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
+
             {/* Header Presentation Board */}
             <div style={{
                 background: 'linear-gradient(135deg, #064E3B 0%, #14532D 100%)',
@@ -483,6 +486,7 @@ const BusinessMeetup = () => {
                     })}
                 </div>
             )}
+            </div>
 
             {/* ── MODAL: Host Roster Registry Overlay ───────────────────────── */}
             <AnimatePresence>

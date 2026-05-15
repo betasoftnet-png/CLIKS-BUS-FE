@@ -134,7 +134,7 @@ const BusinessWallet = () => {
     );
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
             {/* Simple Header Block */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
@@ -158,6 +158,9 @@ const BusinessWallet = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Interactive Balance Dashboard Card */}
             <div style={{ 
@@ -286,6 +289,7 @@ const BusinessWallet = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
             </div>
 
             {/* Simplistic Beautiful Modal for Add Money */}

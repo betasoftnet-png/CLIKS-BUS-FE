@@ -82,7 +82,7 @@ const BusinessReports = () => {
         : allReports.filter(r => r.category === activeCategory);
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -135,6 +135,9 @@ const BusinessReports = () => {
                     </button>
                 ))}
             </div>
+            
+            {/* Central Auto-Scrolling Frame */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
             {/* Reports Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
@@ -171,6 +174,7 @@ const BusinessReports = () => {
                         </div>
                     </div>
                 ))}
+            </div>
             </div>
 
             {/* Dynamic Report Details Modal */}

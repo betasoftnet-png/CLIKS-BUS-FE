@@ -84,9 +84,9 @@ const BusinessDashboard = () => {
     ];
 
     return (
-        <div className="premium-container" style={{ minHeight: '100vh' }}>
+        <div className="premium-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
             {/* Header */}
-            <div className="dashboard-header">
+            <div className="dashboard-header" style={{ flexShrink: 0 }}>
                 <div className="dashboard-header-title">
                     <h1>Business Overview</h1>
                     <p>Monitor your enterprise performance and operations.</p>
@@ -124,8 +124,10 @@ const BusinessDashboard = () => {
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="dashboard-stats-grid">
+            {/* Scrollable Dashboard Content */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
+                {/* Stats Grid */}
+                <div className="dashboard-stats-grid">
                 {stats.map((stat, idx) => (
                     <div key={idx} className="dashboard-stat-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -324,6 +326,7 @@ const BusinessDashboard = () => {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
 
             {/* Customisation Modal Overlay */}

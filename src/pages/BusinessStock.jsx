@@ -262,7 +262,7 @@ const BusinessStock = () => {
     const lowStockAlertsCount = stocks.filter(s => s.current_stock <= s.reorder_level).length;
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -342,6 +342,9 @@ const BusinessStock = () => {
                     </button>
                 ))}
             </div>
+            
+            {/* Central Auto-Scrolling Frame */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
             {/* Tab 1: Stock Registry */}
             {activeTab === 'registry' && (
@@ -541,7 +544,7 @@ const BusinessStock = () => {
                     </table>
                 </div>
             )}
-
+            </div>
             {/* Adjust Stock Counts Modal */}
             {isAdjustmentModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>

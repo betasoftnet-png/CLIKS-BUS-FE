@@ -69,9 +69,9 @@ const BusinessCompare = () => {
     };
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
@@ -82,6 +82,9 @@ const BusinessCompare = () => {
                     <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500' }}>Benchmarking and scenario analysis for your business operations.</p>
                 </div>
             </div>
+
+            {/* Scrollable Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Periodic Stats Snapshot - Matching Gold Standard */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
@@ -190,6 +193,7 @@ const BusinessCompare = () => {
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );

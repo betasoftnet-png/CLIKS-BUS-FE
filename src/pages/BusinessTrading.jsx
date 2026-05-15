@@ -409,7 +409,8 @@ Embracing these hardened financial laws converts wealth creation from an emotion
     // Rendering the Campus Hub selection screen if no track is selected
     if (!selectedTrack) {
         return (
-            <div style={{ padding: '1.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
+            <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
+                <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
                 
                 {/* Campus Hub Top Banner */}
                 <div style={{ 
@@ -503,6 +504,7 @@ Embracing these hardened financial laws converts wealth creation from an emotion
                         );
                     })}
                 </div>
+                </div>
             </div>
         );
     }
@@ -511,11 +513,11 @@ Embracing these hardened financial laws converts wealth creation from an emotion
     const AcademyIcon = activeAcademy.icon;
 
     return (
-        <div style={{ padding: '1.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
             
             {/* Main Header Banner for Active Academy */}
             <div style={{ 
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'center', 
                 background: activeAcademy.gradient, 
                 borderRadius: '20px', padding: '1.5rem 2rem', color: 'white', 
                 marginBottom: '1.5rem', boxShadow: `0 12px 32px -8px ${activeAcademy.shadow}`,
@@ -544,6 +546,9 @@ Embracing these hardened financial laws converts wealth creation from an emotion
                     <AcademyIcon size={52} style={{ color: 'white', opacity: 0.35 }} />
                 </div>
             </div>
+
+            {/* Scrollable Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Content Layout Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.4fr', gap: '1.25rem', alignItems: 'flex-start' }}>
@@ -768,6 +773,7 @@ Embracing these hardened financial laws converts wealth creation from an emotion
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>This integrated campus is strictly informational. Markets are subject to investment risks. Always evaluate detailed statutory scheme offer documents before deploying capital.</p>
                 </div>
+            </div>
             </div>
         </div>
     );

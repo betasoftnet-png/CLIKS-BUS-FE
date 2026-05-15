@@ -44,10 +44,10 @@ const BusinessReferral = () => {
     ];
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2.5rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
             {/* Overhead Title Grid */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                         <div style={{ 
@@ -68,6 +68,9 @@ const BusinessReferral = () => {
                     <p style={{ color: '#64748B', fontSize: '1rem', fontWeight: '500', margin: 0 }}>Invite fellow businesses to CLIKS. Earn premium points for every successful activation!</p>
                 </div>
             </div>
+
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Hero Banner (Splendor design) */}
             <div style={{ 
@@ -316,6 +319,7 @@ const BusinessReferral = () => {
                     </div>
 
                 </div>
+            </div>
             </div>
         </div>
     );

@@ -356,7 +356,7 @@ const BusinessCRM = () => {
     };
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }} onClick={() => setActiveMenu(null)}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }} onClick={() => setActiveMenu(null)}>
             <style>{`
                 .crm-table-row:hover {
                     background-color: #F8FAFC !important;
@@ -490,7 +490,7 @@ const BusinessCRM = () => {
                     <p style={{ color: '#7C3AED', fontSize: '1rem', fontWeight: '800' }}>Loading Live Customers Ledger...</p>
                 </div>
             ) : activeTab === 'list' && (
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'visible' }}>
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'hidden' }}>
                     <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ position: 'relative', width: '280px' }}>
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
@@ -507,18 +507,18 @@ const BusinessCRM = () => {
                         </button>
                     </div>
 
-                    <div style={{ overflowX: 'visible', overflowY: 'visible', padding: '0.5rem' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Business / Contact</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Type</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limit</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outstanding Balance</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Loyalty Points</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Business / Contact</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Type</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limit</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outstanding Balance</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Status</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Loyalty Points</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

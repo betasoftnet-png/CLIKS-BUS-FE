@@ -242,7 +242,7 @@ const BusinessReturns = () => {
     });
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -332,8 +332,10 @@ const BusinessReturns = () => {
                     <Wrench size={16} /> Warranty & Replacement Claims
                 </button>
             </div>
-
-            {isLoading && (
+            
+            {/* Central Auto-Scrolling Frame */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                {isLoading && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '3rem 0' }}>
                     <Loader2 className="animate-spin" size={32} style={{ color: '#064E3B' }} />
                 </div>
@@ -538,7 +540,7 @@ const BusinessReturns = () => {
                     </table>
                 </div>
             )}
-
+            </div>
             {/* Quality Check Verification Modal */}
             {isInspectionModalOpen && selectedReturn && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>

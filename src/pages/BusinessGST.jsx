@@ -243,7 +243,7 @@ const BusinessGST = () => {
     );
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -334,6 +334,9 @@ const BusinessGST = () => {
                     </button>
                 ))}
             </div>
+            
+            {/* Central Auto-Scrolling Frame */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
             {/* Tab 1: GSTR-1 Outward Supplies */}
             {activeTab === 'returns' && (
@@ -766,6 +769,7 @@ const BusinessGST = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };

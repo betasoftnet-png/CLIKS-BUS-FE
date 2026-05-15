@@ -203,7 +203,7 @@ const BusinessAccounting = () => {
                              (parseFloat(dbBalanceSheet?.liabilities?.equity) || 0);
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#FFFFFF', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#FFFFFF', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             <style>{`
                 .crm-table-row:hover {
                     background-color: #FDF4FF !important;
@@ -354,7 +354,7 @@ const BusinessAccounting = () => {
             </div>
 
             {/* Content Area */}
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                 {activeTab === 'expenses' && (
                     <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>

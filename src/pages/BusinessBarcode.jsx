@@ -128,7 +128,7 @@ const BusinessBarcode = () => {
     };
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
@@ -150,6 +150,9 @@ const BusinessBarcode = () => {
                     </button>
                 </div>
             </div>
+            
+            {/* Central Auto-Scrolling Frame */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
                 {/* Left Column: Settings & Input */}
@@ -479,6 +482,7 @@ const BusinessBarcode = () => {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     );

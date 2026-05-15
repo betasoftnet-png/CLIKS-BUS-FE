@@ -308,7 +308,7 @@ const BusinessWarehouse = () => {
     const totalWarehouseValue = whStocks.reduce((sum, s) => sum + s.warehouse_stock_value, 0);
 
     return (
-        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -388,6 +388,9 @@ const BusinessWarehouse = () => {
                     </button>
                 ))}
             </div>
+            
+            {/* Central Auto-Scrolling Frame */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
             {/* Tab 1: Godown Profiles */}
             {activeTab === 'profiles' && (
@@ -579,7 +582,7 @@ const BusinessWarehouse = () => {
                     </table>
                 </div>
             )}
-
+            </div>
             {/* Goods Inward Receiving Modal */}
             {isInwardModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>

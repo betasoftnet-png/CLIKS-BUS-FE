@@ -133,9 +133,9 @@ const BusinessPurposeWallet = () => {
     const globalProgress = totalTarget > 0 ? Math.round((totalAllocated / totalTarget) * 100) : 0;
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Main Title Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <div style={{ 
@@ -172,6 +172,9 @@ const BusinessPurposeWallet = () => {
                     Setup Purpose Wallet
                 </button>
             </div>
+
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Statistics Overhead Panel */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
@@ -413,6 +416,7 @@ const BusinessPurposeWallet = () => {
                     })}
                 </div>
             )}
+            </div>
 
             {/* SETUP NEW WALLET MODAL */}
             {isCreateModalOpen && (

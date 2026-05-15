@@ -358,9 +358,9 @@ const BusinessManufacturing = () => {
     const runningCount = workOrders.filter(w => w.production_status === 'Running').length;
 
     return (
-        <div style={{ padding: '2rem 2.5rem', background: '#FAFDFB', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2.5rem', background: '#FAFDFB', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '1rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                         <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' }}>
@@ -456,6 +456,9 @@ const BusinessManufacturing = () => {
                     🧪 Quality Control (QC) Logs
                 </button>
             </div>
+
+            {/* Scrollable Tab Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* TAB CONTENT: WORK ORDERS */}
             {activeTab === 'all' && (
@@ -697,6 +700,7 @@ const BusinessManufacturing = () => {
                     </div>
                 </div>
             )}
+            </div>
 
             {/* CREATE BOM MODAL */}
             {isBOMOpen && (

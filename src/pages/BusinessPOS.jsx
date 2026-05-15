@@ -337,7 +337,7 @@ const BusinessPOS = () => {
     };
 
     return (
-        <div style={{ display: 'flex', height: 'calc(100vh - 2rem)', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ display: 'flex', height: '100%', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
             {/* Left Side: Product Catalog */}
             <div style={{ flex: '1 1 60%', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>

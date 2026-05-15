@@ -36,7 +36,9 @@ export default function BusinessPitches() {
         funding_target: '',
         equity_offered: '',
         use_of_funds: '',
-        pitch_deck_url: ''
+        pitch_deck_url: '',
+        founder_phone: '',
+        founder_email: ''
     });
 
     // API Actions
@@ -58,7 +60,9 @@ export default function BusinessPitches() {
                 funding_target: '',
                 equity_offered: '',
                 use_of_funds: '',
-                pitch_deck_url: ''
+                pitch_deck_url: '',
+                founder_phone: '',
+                founder_email: ''
             });
             alert("Venture entry successfully published to the active marketplace!");
         },
@@ -80,8 +84,8 @@ export default function BusinessPitches() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.business_name || !formData.headline || !formData.funding_target) {
-            alert("Please fill in core requirements.");
+        if (!formData.business_name || !formData.headline || !formData.funding_target || !formData.founder_email || !formData.founder_phone) {
+            alert("Please supply active founder contact details so investors can reach you.");
             return;
         }
         createMutation.mutate(formData);
@@ -103,17 +107,22 @@ export default function BusinessPitches() {
 
     return (
         <div style={{
-            minHeight: '100vh',
+            height: '100%',
             background: 'radial-gradient(circle at top left, #f0fdf4 0%, #ffffff 70%)',
-            padding: '2.5rem',
+            padding: '1.25rem 2.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
             fontFamily: '"Outfit", sans-serif'
         }}>
             
             {/* Header Banner Section */}
             <div style={{
+                flexShrink: 0,
                 background: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)',
                 borderRadius: '28px',
-                padding: '3rem',
+                padding: '2rem 3rem',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
@@ -121,7 +130,7 @@ export default function BusinessPitches() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 boxShadow: '0 20px 40px -10px rgba(6, 78, 59, 0.2)',
-                marginBottom: '3rem'
+                marginBottom: '1.5rem'
             }}>
                 <div style={{ position: 'relative', zIndex: 2 }}>
                     <div style={{
@@ -191,10 +200,11 @@ export default function BusinessPitches() {
 
             {/* Filtering and Actions */}
             <div style={{
+                flexShrink: 0,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '2rem'
+                marginBottom: '1.5rem'
             }}>
                 <div style={{
                     display: 'flex',
@@ -235,6 +245,9 @@ export default function BusinessPitches() {
                     </button>
                 </div>
             </div>
+
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Main Content Switcher */}
             {isLoading ? (
@@ -492,6 +505,7 @@ export default function BusinessPitches() {
                     </div>
                 </div>
             )}
+            </div>
 
             {/* Studio Drafting Overlay */}
             {showCreateModal && (
@@ -626,6 +640,41 @@ export default function BusinessPitches() {
                                     placeholder="Briefly detail operational growth goals or capital allocation..."
                                     style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', resize: 'vertical' }}
                                 />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
+                                        Investor Query Email *
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                                        <input 
+                                            type="email"
+                                            required
+                                            value={formData.founder_email}
+                                            onChange={(e) => setFormData({ ...formData, founder_email: e.target.value })}
+                                            placeholder="founder@yourbiz.com"
+                                            style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
+                                        Founder Contact Phone *
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                                        <input 
+                                            type="text"
+                                            required
+                                            value={formData.founder_phone}
+                                            onChange={(e) => setFormData({ ...formData, founder_phone: e.target.value })}
+                                            placeholder="+91 99999 99999"
+                                            style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div style={{ marginBottom: '2rem' }}>
