@@ -596,17 +596,6 @@ export function CalculatorPopover() {
                                     <Tag size={13} /> Discount
                                 </button>
                                 <button 
-                                    onClick={() => setShowSmartOptions(showSmartOptions === 'label' ? null : 'label')}
-                                    style={{ 
-                                        ...styles.smartBtn, 
-                                        background: showSmartOptions === 'label' ? '#EEF2FF' : '#FFFFFF',
-                                        color: '#6366F1',
-                                        borderColor: showSmartOptions === 'label' ? '#6366F1' : '#E2E8F0'
-                                    }}
-                                >
-                                    <Plus size={13} /> Label
-                                </button>
-                                <button 
                                     onClick={() => setIsConverted(!isConverted)}
                                     style={{ 
                                         ...styles.smartBtn, 
@@ -644,23 +633,6 @@ export function CalculatorPopover() {
                                                         -{rate}%
                                                     </button>
                                                 ))}
-                                            </div>
-                                        )}
-                                        {showSmartOptions === 'label' && (
-                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                <input 
-                                                    type="text"
-                                                    value={activeLabel}
-                                                    onChange={(e) => setActiveLabel(e.target.value)}
-                                                    placeholder="Enter Active Line Label (e.g., Rent)"
-                                                    style={{ flex: 1, border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', outline: 'none' }}
-                                                />
-                                                <button 
-                                                    onClick={() => setShowSmartOptions(null)}
-                                                    style={{ background: '#6366F1', border: 'none', borderRadius: '8px', padding: '0 12px', color: 'white', fontSize: '11px', fontWeight: '800', cursor: 'pointer' }}
-                                                >
-                                                    Set
-                                                </button>
                                             </div>
                                         )}
                                     </motion.div>
