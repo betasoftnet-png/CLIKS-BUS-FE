@@ -438,7 +438,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
             {/* Refer & Earn Block (Moved outside the white footer box as requested) */}
             {(isFinanceMode || isSocialMode) && (
-                <div style={{ padding: '0 1rem 1rem 1rem', flexShrink: 0 }}>
+                <div style={{ padding: '0.5rem 1rem 1rem 1rem', flexShrink: 0 }}>
                     <button
                         onClick={() => {
                             if (onReferralClick) onReferralClick();
@@ -449,30 +449,36 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0.6rem 0.8rem',
+                            gap: '0.65rem',
+                            padding: '0.65rem 1rem',
                             background: 'transparent',
-                            color: '#475569',
-                            borderRadius: '10px',
-                            border: 'none',
+                            color: '#6B7280',
+                            borderRadius: '12px',
+                            border: '1px solid transparent',
                             cursor: 'pointer',
-                            fontWeight: '750',
-                            fontSize: '0.9rem',
-                            transition: 'all 0.2s ease',
-                            outline: 'none'
+                            fontWeight: '700',
+                            fontSize: '0.875rem',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            outline: 'none',
+                            marginTop: '0.35rem'
                         }}
                         onMouseOver={(e) => {
-                            e.currentTarget.style.background = '#F8FAFC';
-                            e.currentTarget.style.color = '#8B5CF6';
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+                            e.currentTarget.style.color = '#7C3AED';
+                            e.currentTarget.style.borderColor = '#DDD6FE';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
                         }}
                         onMouseOut={(e) => {
                             e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#475569';
+                            e.currentTarget.style.color = '#6B7280';
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.transform = 'translateY(0)';
                         }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Gift size={20} color="#8B5CF6" />
-                            <span>Refer & Earn</span>
-                        </div>
+                        <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
+                        <span>Refer &amp; Earn</span>
                     </button>
                 </div>
             )}
