@@ -43,9 +43,15 @@ const BusinessPeople = () => {
     const [isInlineTxOpen, setIsInlineTxOpen] = useState(false);
     const [inlineTxForm, setInlineTxForm] = useState({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
 
+    // Inline Reminder/Maturity state inside popup
+    const [isInlineRemOpen, setIsInlineRemOpen] = useState(false);
+    const [inlineRemForm, setInlineRemForm] = useState({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
+
     React.useEffect(() => {
         setIsInlineTxOpen(false);
+        setIsInlineRemOpen(false);
         setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
+        setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
     }, [selectedPersonId]);
 
     // ── Queries ─────────────────────────────────────────────────────────────
@@ -190,6 +196,21 @@ const BusinessPeople = () => {
         e.preventDefault();
         if (!selectedPersonId) return alert('Target registry contact missing.');
         createTxMutation.mutate({ ...inlineTxForm, person_id: selectedPersonId });
+    };
+
+    const handleSaveInlineRem = (e) => {
+        e.preventDefault();
+        if (!selectedPersonId) return alert('Target registry contact missing.');
+        createReminderMutation.mutate(
+            { ...inlineRemForm, person_id: selectedPersonId },
+            {
+                onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: ['person-reminders', selectedPersonId] });
+                    setIsInlineRemOpen(false);
+                    setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
+                }
+            }
+        );
     };
 
     const handleSaveReminder = (e) => {
@@ -733,38 +754,9 @@ const BusinessPeople = () => {
                                             </div>
 
                                             {/* Specific Reminder Flows */}
-                                            {/* Right Column: Reminders or Inline Transaction Form */}
+                                            {/* Right Column: Reminders OR Inline Transaction Form OR Inline Reminder Form */}
                                             <AnimatePresence mode="wait">
-                                                {!isInlineTxOpen ? (
-                                                    <Motion.div key="reminders" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Maturity Due Alerts</h4>
-                                                            <Bell size={16} style={{ color: '#94A3B8' }} />
-                                                        </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                            {isPersonRemLoading ? (
-                                                                <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Fetching deadlines...</p>
-                                                            ) : (!personReminders || (personReminders.data ? personReminders.data.length === 0 : personReminders.length === 0)) ? (
-                                                                <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
-                                                                    <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>All accounts cleared.</p>
-                                                                </div>
-                                                            ) : (
-                                                                (personReminders.data || personReminders || []).slice(0, 4).map((rem, i) => (
-                                                                    <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
-                                                                            <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
-                                                                        </div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
-                                                                            <Calendar size={12} />
-                                                                            <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                ))
-                                                            )}
-                                                        </div>
-                                                    </Motion.div>
-                                                ) : (
+                                                {isInlineTxOpen ? (
                                                     <Motion.div key="tx-form" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ background: '#F8FAFC', padding: '1.5rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                                                             <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#064E3B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Log New Entry</h4>
@@ -797,6 +789,61 @@ const BusinessPeople = () => {
                                                             </button>
                                                         </form>
                                                     </Motion.div>
+                                                ) : isInlineRemOpen ? (
+                                                    <Motion.div key="rem-form" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} style={{ background: '#FFFBEB', padding: '1.5rem', borderRadius: '24px', border: '1px solid #FEF3C7' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#B45309', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Set Maturity Alarm</h4>
+                                                            <button type="button" onClick={() => setIsInlineRemOpen(false)} style={{ border: 'none', background: 'white', padding: '4px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#D97706' }}><X size={16} /></button>
+                                                        </div>
+                                                        <form onSubmit={handleSaveInlineRem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>PURPOSE / DETAILS</label>
+                                                                <input required placeholder="e.g. Handloan Repayment Date" type="text" value={inlineRemForm.title} onChange={(e) => setInlineRemForm({ ...inlineRemForm, title: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontSize: '0.85rem' }} />
+                                                            </div>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                                                <div>
+                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>EXPECTED (₹)</label>
+                                                                    <input required type="number" placeholder="0.00" value={inlineRemForm.amount} onChange={(e) => setInlineRemForm({ ...inlineRemForm, amount: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} />
+                                                                </div>
+                                                                <div>
+                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>DUE MATURITY</label>
+                                                                    <input required type="date" value={inlineRemForm.due_date} onChange={(e) => setInlineRemForm({ ...inlineRemForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontSize: '0.85rem' }} />
+                                                                </div>
+                                                            </div>
+                                                            <button type="submit" disabled={createReminderMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                                                {createReminderMutation.isPending ? 'Enabling...' : 'Enable Alarm 🔔'}
+                                                            </button>
+                                                        </form>
+                                                    </Motion.div>
+                                                ) : (
+                                                    <Motion.div key="reminders" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Maturity Due Alerts</h4>
+                                                            <Bell size={16} style={{ color: '#94A3B8' }} />
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                            {isPersonRemLoading ? (
+                                                                <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Fetching deadlines...</p>
+                                                            ) : (!personReminders || (personReminders.data ? personReminders.data.length === 0 : personReminders.length === 0)) ? (
+                                                                <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
+                                                                    <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>All accounts cleared.</p>
+                                                                </div>
+                                                            ) : (
+                                                                (personReminders.data || personReminders || []).slice(0, 4).map((rem, i) => (
+                                                                    <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
+                                                                            <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
+                                                                        </div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
+                                                                            <Calendar size={12} />
+                                                                            <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </Motion.div>
                                                 )}
                                             </AnimatePresence>
                                         </div>
@@ -805,9 +852,16 @@ const BusinessPeople = () => {
                             </div>
                             {/* Footer */}
                             <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #E2E8F0', background: 'white', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                                <button onClick={() => setIsInlineTxOpen(prev => !prev)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineTxOpen ? '#FEE2E2' : '#F1F5F9', border: 'none', color: isInlineTxOpen ? '#991B1B' : '#475569', fontWeight: '750', cursor: 'pointer' }}>
-                                    {isInlineTxOpen ? 'Cancel Entry' : 'Record Transaction'}
-                                </button>
+                                {!isInlineRemOpen && (
+                                    <button onClick={() => { setIsInlineTxOpen(prev => !prev); setIsInlineRemOpen(false); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineTxOpen ? '#FEE2E2' : '#F1F5F9', border: 'none', color: isInlineTxOpen ? '#991B1B' : '#475569', fontWeight: '750', cursor: 'pointer' }}>
+                                        {isInlineTxOpen ? 'Cancel Entry' : 'Record Transaction'}
+                                    </button>
+                                )}
+                                {!isInlineTxOpen && (
+                                    <button onClick={() => { setIsInlineRemOpen(prev => !prev); setIsInlineTxOpen(false); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineRemOpen ? '#FEF2F2' : '#FEF3C7', border: 'none', color: isInlineRemOpen ? '#991B1B' : '#D97706', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {isInlineRemOpen ? 'Cancel Alarm' : <><Bell size={15} /> Set Maturity Due</>}
+                                    </button>
+                                )}
                                 <button onClick={() => setSelectedPersonId(null)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#1B6B3A', border: 'none', color: 'white', fontWeight: '750', cursor: 'pointer' }}>
                                     Dismiss Records
                                 </button>

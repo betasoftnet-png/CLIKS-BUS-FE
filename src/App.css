@@ -6,9 +6,7 @@
     border-right: 1px solid #DCF2E4 !important;
     display: flex;
     flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
+    height: 100%;
     flex-shrink: 0;
 }
 

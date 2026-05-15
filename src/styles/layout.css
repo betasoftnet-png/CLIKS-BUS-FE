@@ -2,7 +2,8 @@
 .app-root {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .app-body {
@@ -23,7 +24,6 @@
     flex-direction: column;
     min-width: 0;
     overflow: hidden;
-    height: 100vh;
     background-color: white;
 }
 
