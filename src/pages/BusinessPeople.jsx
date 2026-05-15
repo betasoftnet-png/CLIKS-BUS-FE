@@ -40,6 +40,15 @@ const BusinessPeople = () => {
     const [txForm, setTxForm] = useState({ person_id: '', type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
     const [reminderForm, setReminderForm] = useState({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
 
+    // Inline Transaction state inside popup
+    const [isInlineTxOpen, setIsInlineTxOpen] = useState(false);
+    const [inlineTxForm, setInlineTxForm] = useState({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
+
+    React.useEffect(() => {
+        setIsInlineTxOpen(false);
+        setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
+    }, [selectedPersonId]);
+
     // ── Queries ─────────────────────────────────────────────────────────────
     const { data: peopleRes = [], isLoading: isPeopleLoading } = useQuery({
         queryKey: ['people-list', searchTerm],
@@ -75,6 +84,17 @@ const BusinessPeople = () => {
         enabled: !!selectedPersonId
     });
 
+    const computedNetBalance = React.useMemo(() => {
+        const txList = personTx?.data || personTx || [];
+        if (!Array.isArray(txList) || txList.length === 0) {
+            return parseFloat(personDetails?.net_balance || 0);
+        }
+        return txList.reduce((acc, curr) => {
+            const amt = parseFloat(curr.amount || 0);
+            return curr.type === 'lent' ? acc + amt : acc - amt;
+        }, 0);
+    }, [personTx, personDetails]);
+
     const people = peopleRes.data || peopleRes || [];
     const transactions = transactionsRes.data || transactionsRes || [];
     const reminders = remindersRes.data || remindersRes || [];
@@ -107,11 +127,17 @@ const BusinessPeople = () => {
 
     const createTxMutation = useMutation({
         mutationFn: (data) => peopleService.createTransaction(data.person_id, data),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries(['people-transactions-all']);
             queryClient.invalidateQueries(['people-list']);
+            if (variables.person_id) {
+                queryClient.invalidateQueries(['person-transactions', variables.person_id]);
+                queryClient.invalidateQueries(['person-detail', variables.person_id]);
+            }
             setIsTxModalOpen(false);
+            setIsInlineTxOpen(false);
             setTxForm({ person_id: '', type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
+            setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
             alert('Transaction logged successfully.');
         }
     });
@@ -159,6 +185,12 @@ const BusinessPeople = () => {
         e.preventDefault();
         if (!txForm.person_id) return alert('Please select a contact.');
         createTxMutation.mutate(txForm);
+    };
+
+    const handleSaveInlineTx = (e) => {
+        e.preventDefault();
+        if (!selectedPersonId) return alert('Target registry contact missing.');
+        createTxMutation.mutate({ ...inlineTxForm, person_id: selectedPersonId });
     };
 
     const handleSaveReminder = (e) => {
@@ -612,15 +644,16 @@ const BusinessPeople = () => {
                                 {!isPersonDetailLoading && personDetails && (
                                     <>
                                         {/* Exposure Card */}
-                                        <div style={{ background: parseFloat(personDetails.net_balance || 0) >= 0 ? '#ECFDF5' : '#FEF2F2', padding: '1.75rem', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', border: '1.5px solid', borderColor: parseFloat(personDetails.net_balance || 0) >= 0 ? '#A7F3D0' : '#FCA5A5', boxShadow: '0 4px 10px -2px rgba(0,0,0,0.02)' }}>
+                                        {/* Exposure Card */}
+                                        <div style={{ background: computedNetBalance >= 0 ? '#ECFDF5' : '#FEF2F2', padding: '1.75rem', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', border: '1.5px solid', borderColor: computedNetBalance >= 0 ? '#A7F3D0' : '#FCA5A5', boxShadow: '0 4px 10px -2px rgba(0,0,0,0.02)' }}>
                                             <div>
-                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '850', textTransform: 'uppercase', color: parseFloat(personDetails.net_balance || 0) >= 0 ? '#047857' : '#B91C1C', letterSpacing: '0.05em' }}>Consolidated Ledger Stand</p>
-                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '2.25rem', fontWeight: '950', color: parseFloat(personDetails.net_balance || 0) >= 0 ? '#065F46' : '#991B1B', letterSpacing: '-0.03em' }}>
-                                                    {formatCurr(personDetails.net_balance)}
+                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '850', textTransform: 'uppercase', color: computedNetBalance >= 0 ? '#047857' : '#B91C1C', letterSpacing: '0.05em' }}>Consolidated Ledger Stand</p>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '2.25rem', fontWeight: '950', color: computedNetBalance >= 0 ? '#065F46' : '#991B1B', letterSpacing: '-0.03em' }}>
+                                                    {formatCurr(computedNetBalance)}
                                                 </h3>
                                             </div>
-                                            <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: parseFloat(personDetails.net_balance || 0) >= 0 ? '#059669' : '#DC2626', boxShadow: '0 4px 6px rgba(0,0,0,0.04)' }}>
-                                                {parseFloat(personDetails.net_balance || 0) >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}
+                                            <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: computedNetBalance >= 0 ? '#059669' : '#DC2626', boxShadow: '0 4px 6px rgba(0,0,0,0.04)' }}>
+                                                {computedNetBalance >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}
                                             </div>
                                         </div>
 
@@ -658,42 +691,80 @@ const BusinessPeople = () => {
                                             </div>
 
                                             {/* Specific Reminder Flows */}
-                                            <div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                                    <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Maturity Due Alerts</h4>
-                                                    <Bell size={16} style={{ color: '#94A3B8' }} />
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                    {isPersonRemLoading ? (
-                                                        <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Fetching deadlines...</p>
-                                                    ) : (!personReminders || (personReminders.data ? personReminders.data.length === 0 : personReminders.length === 0)) ? (
-                                                        <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
-                                                            <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>All accounts cleared.</p>
+                                            {/* Right Column: Reminders or Inline Transaction Form */}
+                                            <AnimatePresence mode="wait">
+                                                {!isInlineTxOpen ? (
+                                                    <Motion.div key="reminders" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Maturity Due Alerts</h4>
+                                                            <Bell size={16} style={{ color: '#94A3B8' }} />
                                                         </div>
-                                                    ) : (
-                                                        (personReminders.data || personReminders || []).slice(0, 4).map((rem, i) => (
-                                                            <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
-                                                                    <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                            {isPersonRemLoading ? (
+                                                                <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Fetching deadlines...</p>
+                                                            ) : (!personReminders || (personReminders.data ? personReminders.data.length === 0 : personReminders.length === 0)) ? (
+                                                                <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
+                                                                    <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>All accounts cleared.</p>
                                                                 </div>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
-                                                                    <Calendar size={12} />
-                                                                    <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
+                                                            ) : (
+                                                                (personReminders.data || personReminders || []).slice(0, 4).map((rem, i) => (
+                                                                    <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
+                                                                            <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
+                                                                        </div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
+                                                                            <Calendar size={12} />
+                                                                            <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </Motion.div>
+                                                ) : (
+                                                    <Motion.div key="tx-form" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ background: '#F8FAFC', padding: '1.5rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#064E3B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Log New Entry</h4>
+                                                            <button type="button" onClick={() => setIsInlineTxOpen(false)} style={{ border: 'none', background: 'white', padding: '4px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={16} /></button>
+                                                        </div>
+                                                        <form onSubmit={handleSaveInlineTx} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>DIRECTION</label>
+                                                                <select value={inlineTxForm.type} onChange={(e) => setInlineTxForm({ ...inlineTxForm, type: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem' }}>
+                                                                    <option value="lent">I Lent Money (+)</option>
+                                                                    <option value="borrowed">I Borrowed Money (-)</option>
+                                                                </select>
+                                                            </div>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                                                <div>
+                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>AMOUNT (₹)</label>
+                                                                    <input required type="number" placeholder="0.00" value={inlineTxForm.amount} onChange={(e) => setInlineTxForm({ ...inlineTxForm, amount: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} />
+                                                                </div>
+                                                                <div>
+                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>DATE</label>
+                                                                    <input type="date" value={inlineTxForm.date} onChange={(e) => setInlineTxForm({ ...inlineTxForm, date: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} />
                                                                 </div>
                                                             </div>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>MEMO / NARRATIVE</label>
+                                                                <input placeholder="Registry note..." type="text" value={inlineTxForm.description} onChange={(e) => setInlineTxForm({ ...inlineTxForm, description: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} />
+                                                            </div>
+                                                            <button type="submit" disabled={createTxMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                                                {createTxMutation.isPending ? 'Saving...' : 'Submit Entry'}
+                                                            </button>
+                                                        </form>
+                                                    </Motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     </>
                                 )}
                             </div>
                             {/* Footer */}
                             <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #E2E8F0', background: 'white', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                                <button onClick={() => { setSelectedPersonId(null); setIsTxModalOpen(true); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#F1F5F9', border: 'none', color: '#475569', fontWeight: '750', cursor: 'pointer' }}>
-                                    Record Transaction
+                                <button onClick={() => setIsInlineTxOpen(prev => !prev)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineTxOpen ? '#FEE2E2' : '#F1F5F9', border: 'none', color: isInlineTxOpen ? '#991B1B' : '#475569', fontWeight: '750', cursor: 'pointer' }}>
+                                    {isInlineTxOpen ? 'Cancel Entry' : 'Record Transaction'}
                                 </button>
                                 <button onClick={() => setSelectedPersonId(null)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#1B6B3A', border: 'none', color: 'white', fontWeight: '750', cursor: 'pointer' }}>
                                     Dismiss Records

@@ -9,7 +9,7 @@ import logoPng from '../assets/cliks5.png'; // Final branding
 import { ProfileDropdown } from './ProfileDropdown';
 import { CalculatorPopover } from './common/CalculatorPopover';
 
-const Topbar = ({ onToggleSidebar, isSidebarOpen, onReferralClick }) => {
+const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const { logout, user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -154,9 +154,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, onReferralClick }) => {
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
                 {!isAdminOrSales && (
-                    <button 
-                        onClick={() => onReferralClick ? onReferralClick() : navigate('/referral')}
-                        title="Refer & Earn Premium Points"
+                    <div 
+                        title="Your Premium Points Balance"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -165,19 +164,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, onReferralClick }) => {
                             border: '1px solid #FCD34D',
                             padding: '6px 12px',
                             borderRadius: '99px',
-                            cursor: 'pointer',
+                            cursor: 'default',
                             boxShadow: '0 2px 6px rgba(217, 119, 6, 0.1)',
-                            transition: 'transform 0.15s ease',
                             outline: 'none'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.04)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
                         <Coins size={15} color="#B45309" style={{ flexShrink: 0 }} />
                         <span style={{ fontWeight: '800', fontSize: '12.5px', color: '#78350F', letterSpacing: '-0.01em' }}>
                             1,450 Pts
                         </span>
-                    </button>
+                    </div>
                 )}
                 <CalculatorPopover />
                 <ProfileDropdown
