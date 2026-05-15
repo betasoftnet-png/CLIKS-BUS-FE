@@ -473,19 +473,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             <Gift size={20} color="#8B5CF6" />
                             <span>Refer & Earn</span>
                         </div>
-                        
-                        <div style={{ 
-                            background: '#EDE9FE', 
-                            color: '#6366F1', 
-                            padding: '2px 8px', 
-                            borderRadius: '20px', 
-                            fontSize: '0.65rem', 
-                            fontWeight: '900',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                        }}>
-                            Earn
-                        </div>
                     </button>
                 </div>
             )}
