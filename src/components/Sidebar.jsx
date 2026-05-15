@@ -68,10 +68,8 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     if (isBetaClub) {
         primaryColor = '#8B5CF6'; // Attractive violet icon
         activeBg = '#F5F3FF'; // Soft lavender background hover/open states
-        if (!isActive) {
-            activeText = '#7C3AED'; // Violet label text when inactive
-            darkTextColor = '#6D28D9'; // Rich deep violet for subheader labels
-        }
+        activeText = '#7C3AED'; // Beautiful violet text color for active/inactive state
+        darkTextColor = '#6D28D9'; // Rich deep violet for subheader labels
     }
 
     let backgroundStyle = 'transparent';
@@ -81,7 +79,9 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         } else if (isAdmin) {
             backgroundStyle = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)';
         } else if (isBetaClub) {
-            backgroundStyle = 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)'; // Beautiful gradient for premium active BETA state
+            backgroundStyle = '#F5F3FF'; // Soft lavender background instead of solid dark gradient
+            primaryColor = '#7C3AED'; // Darken the icon when active
+            activeText = '#6D28D9'; // Darken the text to deep violet when active for extra readability and pop
         } else {
             backgroundStyle = '#1B6B3A';
         }
@@ -160,8 +160,8 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             }}
         >
             <div className="flex items-center gap-3">
-                <IconComp size={isChild ? 18 : 20} style={{ color: isActive ? '#ffffff' : primaryColor }} />
-                <span className="sidebar-label" style={{ fontWeight: isActive ? '750' : 'inherit' }}>{item.label}</span>
+                <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub) ? '#ffffff' : primaryColor }} />
+                <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{item.label}</span>
             </div>
         </button>
     );

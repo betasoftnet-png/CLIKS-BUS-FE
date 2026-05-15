@@ -170,47 +170,47 @@ const BusinessMeetup = () => {
     };
 
     return (
-        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1rem 1.75rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
             
             {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '1.5rem' }}>
 
             {/* Header Presentation Board */}
             <div style={{
-                background: 'linear-gradient(135deg, #064E3B 0%, #14532D 100%)',
-                borderRadius: '30px',
-                padding: '3.5rem 3rem',
+                background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
+                borderRadius: '16px',
+                padding: '1.25rem 1.75rem',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: '0 20px 40px -10px rgba(6, 78, 59, 0.3)',
-                marginBottom: '2.5rem'
+                boxShadow: '0 8px 24px rgba(6, 78, 59, 0.08)',
+                marginBottom: '1.25rem'
             }}>
                 {/* Animated Background Accents */}
-                <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '400px', height: '400px', borderRadius: '50%', background: 'rgba(22, 163, 74, 0.15)', filter: 'blur(80px)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: '-20%', left: '-5%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', filter: 'blur(60px)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(22, 163, 74, 0.2)', filter: 'blur(70px)', pointerEvents: 'none' }} />
 
-                <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ maxWidth: '650px' }}>
-                        <span style={{
-                            background: 'rgba(255, 255, 255, 0.15)',
-                            backdropFilter: 'blur(10px)',
-                            padding: '0.6rem 1.1rem',
-                            borderRadius: '100px',
-                            fontSize: '0.72rem',
-                            fontWeight: '800',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.08em',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            marginBottom: '1.5rem'
-                        }}>
-                            <Globe size={13} /> Business Networking Hub
-                        </span>
-                        <h1 style={{ fontSize: '2.25rem', fontWeight: '950', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '1rem' }}>
-                            Founders Meetup <br />& Executive Events
+                <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                            <span style={{
+                                background: 'rgba(255, 255, 255, 0.12)',
+                                backdropFilter: 'blur(10px)',
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '8px',
+                                fontSize: '0.62rem',
+                                fontWeight: '800',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                            }}>
+                                <Globe size={12} /> Business Networking Hub
+                            </span>
+                        </div>
+                        <h1 style={{ fontSize: '1.6rem', fontWeight: '950', letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
+                            Founders Meetup & Executive Events
                         </h1>
                     </div>
                     <button 
@@ -219,36 +219,36 @@ const BusinessMeetup = () => {
                             background: 'white',
                             color: '#064E3B',
                             border: 'none',
-                            padding: '1.1rem 2rem',
-                            borderRadius: '16px',
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '10px',
                             fontWeight: '900',
-                            fontSize: '1.05rem',
+                            fontSize: '0.88rem',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.6rem',
-                            boxShadow: '0 15px 30px -5px rgba(0,0,0,0.15)',
+                            gap: '0.5rem',
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
                             transition: 'transform 0.2s ease'
                         }}
-                        onMouseOver={e => e.currentTarget.style.transform = 'translateY(-3px)'}
-                        onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
                     >
-                        <Plus size={20} strokeWidth={3} /> Schedule Board
+                        <Plus size={16} strokeWidth={3} /> Schedule Board
                     </button>
                 </div>
             </div>
 
             {/* Search and Control Panel */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', gap: '0.6rem', background: 'white', padding: '0.4rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '0.35rem', background: 'white', padding: '0.3rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
                     {['All Events', 'Upcoming', 'Workshops', 'Webinars', 'My Events'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setFilter(tab)}
                             style={{
-                                padding: '0.7rem 1.3rem',
-                                borderRadius: '12px',
-                                fontSize: '0.85rem',
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '8px',
+                                fontSize: '0.78rem',
                                 fontWeight: '800',
                                 cursor: 'pointer',
                                 border: 'none',
@@ -262,8 +262,8 @@ const BusinessMeetup = () => {
                     ))}
                 </div>
 
-                <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                     <input 
                         type="text"
                         value={searchTerm}
@@ -271,11 +271,11 @@ const BusinessMeetup = () => {
                         placeholder="Search events..."
                         style={{
                             width: '100%',
-                            padding: '0.85rem 1rem 0.85rem 2.75rem',
-                            borderRadius: '16px',
+                            padding: '0.55rem 1rem 0.55rem 2.3rem',
+                            borderRadius: '10px',
                             border: '1px solid #E2E8F0',
                             outline: 'none',
-                            fontSize: '0.9rem',
+                            fontSize: '0.82rem',
                             fontWeight: '600',
                             color: '#1E293B',
                             boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
@@ -301,7 +301,7 @@ const BusinessMeetup = () => {
                     </p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
                     {filteredEvents.map((event) => {
                         const isHost = event.user_id === currentUser.id;
                         const hasJoined = event.has_joined === 1;
@@ -312,22 +312,30 @@ const BusinessMeetup = () => {
                         return (
                             <div key={event.id} style={{
                                 background: 'white',
-                                borderRadius: '24px',
+                                borderRadius: '16px',
                                 overflow: 'hidden',
                                 border: '1px solid #E2E8F0',
-                                boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                transition: 'transform 0.25s ease, box-shadow 0.25s ease'
+                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                cursor: 'default'
+                            }}
+                            onMouseOver={e => {
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.05)';
+                            }}
+                            onMouseOut={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.02)';
                             }}>
-                                {/* Card Art Cover */}
+                                {/* Sleek Condensed Card Art Cover */}
                                 <div style={{
-                                    height: '160px',
-                                    background: event.gradient || 'linear-gradient(135deg, #16A34A 0%, #22C55E 100%)',
+                                    height: '75px',
+                                    background: event.gradient || 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                                     position: 'relative',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
                                     color: 'white'
                                 }}>
                                     {event.image_url && (
@@ -335,94 +343,93 @@ const BusinessMeetup = () => {
                                             position: 'absolute', inset: 0,
                                             backgroundImage: `url(${event.image_url})`,
                                             backgroundSize: 'cover', backgroundPosition: 'center',
-                                            opacity: 0.3, filter: 'grayscale(30%)'
+                                            opacity: 0.25
                                         }} />
                                     )}
                                     
                                     {/* Category Label */}
-                                    <div style={{ position: 'absolute', top: '1rem', left: '1rem', background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.75rem', borderRadius: '8px', backdropFilter: 'blur(6px)', fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <div style={{ position: 'absolute', top: '0.75rem', left: '1rem', background: 'rgba(0,0,0,0.25)', padding: '0.3rem 0.6rem', borderRadius: '6px', backdropFilter: 'blur(4px)', fontSize: '0.62rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         {event.category || 'Networking'}
                                     </div>
 
                                     {/* Price Tag */}
-                                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'white', color: '#064E3B', padding: '0.4rem 0.75rem', borderRadius: '8px', fontWeight: '900', fontSize: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                                    <div style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'white', color: '#064E3B', padding: '0.3rem 0.6rem', borderRadius: '6px', fontWeight: '900', fontSize: '0.7rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                                         {event.price || 'Free'}
-                                    </div>
-
-                                    <div style={{ position: 'relative', zIndex: 2, width: '48px', height: '48px', borderRadius: '16px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>
-                                        <Users size={24} />
                                     </div>
                                 </div>
 
                                 {/* Card Detail Panel */}
-                                <div style={{ padding: '1.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
                                         <span style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                            padding: '0.35rem 0.6rem', borderRadius: '6px',
-                                            background: '#DCF2E4', color: '#059669', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase'
+                                            display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                            padding: '0.25rem 0.5rem', borderRadius: '6px',
+                                            background: '#DCF2E4', color: '#059669', fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase'
                                         }}>
                                             {event.type || 'Offline'}
                                         </span>
                                         
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#64748B', fontSize: '0.78rem', fontWeight: '700' }}>
-                                            <Calendar size={13} /> {formatDate(event.date)}
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748B', fontSize: '0.75rem', fontWeight: '750' }}>
+                                            <Calendar size={12} /> {formatDate(event.date)}
                                         </span>
                                     </div>
 
-                                    <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginBottom: '0.4rem', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
                                         {event.title}
                                     </h3>
 
                                     {event.description && (
-                                        <p style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: '500', lineHeight: 1.5 }}>
+                                        <p style={{ fontSize: '0.82rem', color: '#64748B', marginBottom: '0.75rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: '500', lineHeight: 1.45 }}>
                                             {event.description}
                                         </p>
                                     )}
 
-                                    <div style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #F1F5F9', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                    {/* Compact Details Box */}
+                                    <div style={{ background: '#F8FAFC', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1px solid #F1F5F9', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#475569', fontWeight: '650' }}>
-                                            <MapPin size={13} style={{ color: '#94A3B8' }} />
+                                            <MapPin size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location}</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#475569', fontWeight: '650' }}>
-                                            <Clock size={13} style={{ color: '#94A3B8' }} />
+                                            <Clock size={12} style={{ color: '#94A3B8', flexShrink: 0 }} />
                                             <span>{event.time}</span>
                                         </div>
                                         {/* Capacity visualizer */}
-                                        <div style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem', fontSize: '0.72rem' }}>
-                                            <span style={{ fontWeight: '800', color: '#64748B' }}>Seating Allocation:</span>
+                                        <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.35rem', fontSize: '0.68rem' }}>
+                                            <span style={{ fontWeight: '800', color: '#64748B' }}>Seats:</span>
                                             <span style={{ fontWeight: '900', color: isSoldOut ? '#DC2626' : '#059669' }}>
-                                                {currentAttendees} / {maxSeats} Booked {isSoldOut && '(FULL)'}
+                                                {currentAttendees}/{maxSeats} Booked {isSoldOut && '(FULL)'}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Footer Workspace Controls */}
-                                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
-                                        {/* Attendees stacking */}
+                                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9' }}>
+                                        {/* Attendees stacking with elegant gradients instead of cartoon SVGs */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                            <div style={{ display: 'flex', paddingLeft: '6px' }}>
-                                                {Array.from({ length: Math.min(currentAttendees || 1, 3) }).map((_, i) => (
+                                            <div style={{ display: 'flex', paddingLeft: '4px' }}>
+                                                {['#10B981', '#3B82F6', '#EC4899'].slice(0, Math.min(currentAttendees || 1, 3)).map((color, i) => (
                                                     <div key={i} style={{
-                                                        width: '24px', height: '24px', borderRadius: '50%',
-                                                        background: '#E2E8F0', border: '2px solid white',
-                                                        marginLeft: '-6px', backgroundImage: `url(https://api.dicebear.com/7.x/adventurer/svg?seed=Person${i + event.id})`,
-                                                        backgroundSize: 'cover'
-                                                    }} />
+                                                        width: '22px', height: '22px', borderRadius: '50%',
+                                                        background: `linear-gradient(135deg, ${color}88, ${color})`, border: '2px solid white',
+                                                        marginLeft: '-6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: '0.55rem', fontWeight: '900', color: 'white'
+                                                    }}>
+                                                        {String.fromCharCode(65 + (i + event.id) % 26)} {/* Dynamic sleek letter placeholder */}
+                                                    </div>
                                                 ))}
                                                 {currentAttendees > 3 && (
                                                     <div style={{
-                                                        width: '24px', height: '24px', borderRadius: '50%',
+                                                        width: '22px', height: '22px', borderRadius: '50%',
                                                         background: '#064E3B', border: '2px solid white', marginLeft: '-6px',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        fontSize: '0.6rem', color: 'white', fontWeight: '800'
+                                                        fontSize: '0.55rem', color: 'white', fontWeight: '900'
                                                     }}>
                                                         +{currentAttendees - 3}
                                                     </div>
                                                 )}
                                             </div>
-                                            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Joined</span>
+                                            <span style={{ fontSize: '0.62rem', color: '#94A3B8', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Joined</span>
                                         </div>
 
                                         {/* Dynamic Controls Action Gates */}
