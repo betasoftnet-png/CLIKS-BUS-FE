@@ -21,7 +21,7 @@ const BusinessSubscription = () => {
         {
             name: 'Starter Plan',
             priceAnnually: 2999,
-            originalPrice: 3999,
+            originalPrice: 4599,
             desc: 'Ideal for small retail & emerging SMBs.',
             icon: ShieldCheck,
             color: '#1B6B3A',
@@ -37,7 +37,7 @@ const BusinessSubscription = () => {
         {
             name: 'Growth Plan',
             priceAnnually: 6999,
-            originalPrice: 8999,
+            originalPrice: 9999,
             desc: 'Built for scaling businesses and multi-site operations.',
             icon: Zap,
             color: '#064E3B',
@@ -54,7 +54,7 @@ const BusinessSubscription = () => {
         {
             name: 'Elite Suite',
             priceAnnually: 8999,
-            originalPrice: 11999,
+            originalPrice: 15999,
             desc: 'Absolute control for national distribution networks.',
             icon: Crown,
             color: '#0D9488',
