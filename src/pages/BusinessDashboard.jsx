@@ -81,6 +81,12 @@ const BusinessDashboard = () => {
         queryFn: stockService.getStockStats
     });
 
+    // Fetch top performing products by sales volume
+    const { data: topProducts } = useQuery({
+        queryKey: ['dashboardTopProducts'],
+        queryFn: reportsService.getSalesByProduct
+    });
+
     // Compile Live Operations Log chronologically from multiple datasets
     const { data: recentOps } = useQuery({
         queryKey: ['dashboardRecentOps'],
@@ -145,7 +151,16 @@ const BusinessDashboard = () => {
         { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? `₹${(summary.total_sales).toLocaleString()}` : '₹0', change: 'Live', icon: DollarSign, color: '#1B6B3A' },
         { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? `₹${(summary.total_purchases).toLocaleString()}` : '₹0', change: 'Live', icon: Briefcase, color: '#064E3B' },
         { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? `₹${(summary.total_expenses).toLocaleString()}` : '₹0', change: 'Live', icon: TrendingUp, color: '#059669' },
-        { label: 'System Health', value: summary?.status ? summary.status.toUpperCase() : 'HEALTHY', change: 'Live', icon: Users, color: '#10B981' }
+        { 
+            label: 'Est. Net Profit', 
+            value: (() => {
+                const profit = (summary?.total_sales || 0) - (summary?.total_purchases || 0) - (summary?.total_expenses || 0);
+                return profit >= 0 ? `₹${profit.toLocaleString()}` : `-₹${Math.abs(profit).toLocaleString()}`;
+            })(), 
+            change: 'Live', 
+            icon: ArrowUpRight, 
+            color: '#10B981' 
+        }
     ];
 
     return (
@@ -329,29 +344,34 @@ const BusinessDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Inventory Health */}
+                    {/* Top Performing Products */}
                     <div className="dashboard-chart-card">
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', marginBottom: '1.5rem' }}>Inventory Health</h2>
-                        <div className="inventory-health-grid">
-                            {(() => {
-                                const inStock = stockStats?.inStockCount || 0;
-                                const lowStock = stockStats?.lowStockCount || 0;
-                                const outStock = stockStats?.outOfStockCount || 0;
-                                const total = inStock + lowStock + outStock || 1;
-                                return [
-                                    { label: 'In Stock', count: inStock, color: '#1B6B3A', pct: Math.round((inStock / total) * 100) },
-                                    { label: 'Low Stock', count: lowStock, color: '#F59E0B', pct: Math.round((lowStock / total) * 100) },
-                                    { label: 'Out of Stock', count: outStock, color: '#EF4444', pct: Math.round((outStock / total) * 100) }
-                                ];
-                            })().map((item, i) => (
-                                <div key={i} style={{ padding: '1.25rem', borderRadius: '20px', background: `${item.color}08`, border: `1px solid ${item.color}20` }}>
-                                    <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{item.label}</p>
-                                    <h4 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.75rem' }}>{item.count}</h4>
-                                    <div style={{ height: '6px', width: '100%', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
-                                        <div style={{ height: '100%', width: `${item.pct}%`, background: item.color }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', margin: 0 }}>Top Performing Products</h2>
+                            <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase' }}>Volume Matrix</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {topProducts && topProducts.length > 0 ? (
+                                (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4' }}>
+                                            #{idx + 1}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0' }}>{prod.name || 'Active Item'}</h4>
+                                            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, fontWeight: '650' }}>Sold: <span style={{ color: '#064E3B', fontWeight: '800' }}>{prod.total_quantity || prod.sold || 0} pcs</span></p>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>₹{(prod.total_sales || 0).toLocaleString()}</div>
+                                            <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Revenue Driver</span>
+                                        </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #CBD5E1', borderRadius: '16px' }}>
+                                    No product sales analytics logged yet.
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
