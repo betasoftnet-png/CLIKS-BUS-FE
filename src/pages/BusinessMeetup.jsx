@@ -209,7 +209,7 @@ const BusinessMeetup = () => {
                         }}>
                             <Globe size={13} /> Business Networking Hub
                         </span>
-                        <h1 style={{ fontSize: '3rem', fontWeight: '950', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '1rem' }}>
+                        <h1 style={{ fontSize: '2.25rem', fontWeight: '950', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '1rem' }}>
                             Founders Meetup <br />& Executive Events
                         </h1>
                     </div>
