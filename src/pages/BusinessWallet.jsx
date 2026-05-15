@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, X, Search, IndianRupee, Loader } from 'lucide-react';
 import { load } from '@cashfreepayments/cashfree-js';
+import { useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import '../App.css';
 
@@ -24,6 +25,15 @@ const BusinessWallet = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [addForm, setAddForm] = useState({ amount: '', description: '' });
     const [searchTerm, setSearchTerm] = useState('');
+    const location = useLocation();
+
+    // Auto-open Add Money modal if navigated from sidebar button
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('addMoney') === 'true') {
+            setIsModalOpen(true);
+        }
+    }, [location.search]);
 
     // Update persisted storage on mutation
     useEffect(() => {
