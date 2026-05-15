@@ -113,50 +113,50 @@ const BusinessMeetup = () => {
     });
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
             {/* Top Hero Area */}
             <div style={{
                 background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
-                borderRadius: '32px',
-                padding: '3.5rem',
+                borderRadius: '20px',
+                padding: '2rem 2.5rem',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: '0 20px 30px -10px rgba(6, 78, 59, 0.25)',
-                marginBottom: '3rem'
+                boxShadow: '0 12px 32px -8px rgba(6, 78, 59, 0.15)',
+                marginBottom: '1.75rem'
             }}>
                 <div style={{ position: 'relative', zIndex: 2 }}>
                     <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 1rem',
+                        gap: '0.4rem',
+                        padding: '0.35rem 0.85rem',
                         background: 'rgba(255, 255, 255, 0.12)',
                         borderRadius: '999px',
                         backdropFilter: 'blur(12px)',
-                        marginBottom: '1.25rem',
-                        fontSize: '0.85rem',
-                        fontWeight: '700',
+                        marginBottom: '1rem',
+                        fontSize: '0.7rem',
+                        fontWeight: '800',
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
-                        border: '1px solid rgba(255, 255, 255, 0.2)'
+                        border: '1px solid rgba(255, 255, 255, 0.15)'
                     }}>
-                        <Briefcase size={14} />
+                        <Briefcase size={13} />
                         <span>Business Networking HUB</span>
                     </div>
-                    <h1 style={{ fontSize: '2.75rem', fontWeight: '900', marginBottom: '1rem', lineHeight: 1.15, letterSpacing: '-0.03em' }}>
+                    <h1 style={{ fontSize: '2.25rem', fontWeight: '900', marginBottom: '0.75rem', lineHeight: 1.15, letterSpacing: '-0.03em' }}>
                         Founders Meetup <br />& Executive Events
                     </h1>
                     <p style={{
-                        fontSize: '1.15rem',
+                        fontSize: '0.98rem',
                         color: '#D1FAE5',
-                        maxWidth: '520px',
+                        maxWidth: '500px',
                         lineHeight: 1.6,
                         margin: 0,
-                        opacity: 0.9
+                        opacity: 0.85
                     }}>
                         Build synergy with regional builders, organize custom corporate panels, and fast-track strategic ventures through structured network channels.
                     </p>
@@ -179,44 +179,45 @@ const BusinessMeetup = () => {
                     style={{
                         position: 'relative',
                         zIndex: 2,
-                        padding: '1.1rem 2.25rem',
+                        padding: '0.75rem 1.5rem',
                         background: 'white',
                         color: '#064E3B',
                         border: 'none',
-                        borderRadius: '16px',
+                        borderRadius: '10px',
                         fontWeight: '800',
-                        fontSize: '1.05rem',
+                        fontSize: '0.88rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.75rem',
-                        boxShadow: '0 12px 24px rgba(0, 0, 0, 0.15)',
+                        gap: '0.5rem',
+                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
                         transition: 'transform 0.2s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     Schedule Board
                 </button>
             </div>
 
+
             {/* Toolbar Filters & Search */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', gap: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1.25rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
                     {['All Events', 'Upcoming', 'Workshops', 'Webinars', 'My Events'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setFilter(tab)}
                             style={{
-                                padding: '0.75rem 1.5rem',
+                                padding: '0.6rem 1.1rem',
                                 borderRadius: '999px',
                                 background: filter === tab ? '#064E3B' : 'white',
                                 color: filter === tab ? 'white' : '#64748B',
                                 fontWeight: '750',
                                 cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                boxShadow: filter === tab ? '0 8px 16px rgba(6, 78, 59, 0.12)' : '0 2px 4px rgba(0,0,0,0.02)',
+                                fontSize: '0.82rem',
+                                boxShadow: filter === tab ? '0 6px 12px rgba(6, 78, 59, 0.1)' : '0 2px 4px rgba(0,0,0,0.02)',
                                 border: '1px solid',
                                 borderColor: filter === tab ? '#064E3B' : '#E2E8F0',
                                 transition: 'all 0.2s'
@@ -227,21 +228,21 @@ const BusinessMeetup = () => {
                     ))}
                 </div>
 
-                <div style={{ position: 'relative', width: '320px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ position: 'relative', width: '280px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                     <input 
                         type="text" 
-                        placeholder="Search specific events..." 
+                        placeholder="Search events..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{
                             width: '100%',
-                            padding: '0.8rem 1rem 0.8rem 3.2rem',
-                            borderRadius: '16px',
+                            padding: '0.65rem 1rem 0.65rem 2.75rem',
+                            borderRadius: '12px',
                             border: '1px solid #E2E8F0',
                             outline: 'none',
                             background: 'white',
-                            fontSize: '0.95rem'
+                            fontSize: '0.9rem'
                         }}
                     />
                 </div>
@@ -290,35 +291,35 @@ const BusinessMeetup = () => {
                     </button>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '1.25rem' }}>
                     {filteredEvents.map((event, idx) => (
                         <div
                             key={idx}
                             style={{
                                 background: 'white',
-                                borderRadius: '24px',
+                                borderRadius: '16px',
                                 border: '1px solid #E2E8F0',
                                 overflow: 'hidden',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 transition: 'all 0.25s',
-                                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
                             }}
                             className="event-hover-card"
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-6px)';
-                                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0,0,0,0.06)';
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.boxShadow = '0 16px 24px -8px rgba(0,0,0,0.04)';
                                 e.currentTarget.style.borderColor = '#A7F3D0';
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.01)';
+                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.01)';
                                 e.currentTarget.style.borderColor = '#E2E8F0';
                             }}
                         >
                             {/* Header Graphic Cover */}
                             <div style={{
-                                height: '180px',
+                                height: '120px',
                                 background: event.image_url ? `url(${event.image_url})` : 'linear-gradient(135deg, #1B6B3A 0%, #22C55E 100%)',
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
@@ -329,31 +330,31 @@ const BusinessMeetup = () => {
                             }}>
                                 {!event.image_url && (
                                     <div style={{
-                                        width: '64px',
-                                        height: '64px',
+                                        width: '44px',
+                                        height: '44px',
                                         background: 'rgba(255,255,255,0.22)',
                                         backdropFilter: 'blur(12px)',
-                                        borderRadius: '20px',
+                                        borderRadius: '14px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         color: 'white',
-                                        boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                                         border: '1.5px solid rgba(255,255,255,0.2)'
                                     }}>
-                                        {renderIcon(event.icon)}
+                                        {React.cloneElement(renderIcon(event.icon), { size: 20 })}
                                     </div>
                                 )}
 
                                 <div style={{
                                     position: 'absolute',
-                                    top: '1.25rem',
-                                    left: '1.25rem',
-                                    padding: '0.35rem 0.85rem',
+                                    top: '0.85rem',
+                                    left: '0.85rem',
+                                    padding: '0.25rem 0.65rem',
                                     background: 'rgba(6, 78, 59, 0.88)',
                                     color: 'white',
                                     borderRadius: '999px',
-                                    fontSize: '0.72rem',
+                                    fontSize: '0.65rem',
                                     fontWeight: '800',
                                     backdropFilter: 'blur(4px)',
                                     textTransform: 'uppercase',
@@ -364,91 +365,91 @@ const BusinessMeetup = () => {
 
                                 <span style={{
                                     position: 'absolute',
-                                    top: '1.25rem',
-                                    right: '1.25rem',
-                                    padding: '0.35rem 0.85rem',
+                                    top: '0.85rem',
+                                    right: '0.85rem',
+                                    padding: '0.25rem 0.65rem',
                                     background: 'white',
                                     color: '#064E3B',
                                     borderRadius: '999px',
-                                    fontSize: '0.8rem',
+                                    fontSize: '0.72rem',
                                     fontWeight: '900',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
                                 }}>
                                     {event.price}
                                 </span>
                             </div>
 
                             {/* Context details */}
-                            <div style={{ padding: '1.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                                     <span style={{
-                                        fontSize: '0.75rem',
+                                        fontSize: '0.68rem',
                                         fontWeight: '850',
                                         color: event.type === 'Online' ? '#9333EA' : '#059669',
                                         background: event.type === 'Online' ? '#F3E8FF' : '#ECFDF5',
-                                        padding: '0.3rem 0.75rem',
-                                        borderRadius: '8px',
+                                        padding: '0.25rem 0.6rem',
+                                        borderRadius: '6px',
                                         textTransform: 'uppercase',
                                         border: '1px solid',
                                         borderColor: event.type === 'Online' ? '#E9D5FF' : '#A7F3D0'
                                     }}>
                                         {event.type}
                                     </span>
-                                    <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <Calendar size={12} /> {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                    <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <Calendar size={11} /> {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                                     </span>
                                 </div>
 
-                                <h3 style={{ fontSize: '1.3rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.6rem', lineHeight: 1.3 }}>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.4rem', lineHeight: 1.3, letterSpacing: '-0.01em' }}>
                                     {event.title}
                                 </h3>
 
                                 {event.description && (
-                                    <p style={{ fontSize: '0.9rem', color: '#64748B', marginBottom: '1.5rem', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: '500' }}>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B', marginBottom: '1rem', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: '500' }}>
                                         {event.description}
                                     </p>
                                 )}
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: '#475569', fontSize: '0.85rem', marginBottom: '1.75rem', background: '#F8FAFC', padding: '1rem', borderRadius: '14px', border: '1px solid #F1F5F9' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '650' }}>
-                                        <MapPin size={14} style={{ color: '#94A3B8' }} />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', color: '#475569', fontSize: '0.8rem', marginBottom: '1.25rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '650' }}>
+                                        <MapPin size={13} style={{ color: '#94A3B8' }} />
                                         <span>{event.location}</span>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '650' }}>
-                                        <Clock size={14} style={{ color: '#94A3B8' }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '650' }}>
+                                        <Clock size={13} style={{ color: '#94A3B8' }} />
                                         <span>{event.time}</span>
                                     </div>
                                 </div>
 
                                 {/* Footer Action bar */}
-                                <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.85rem', borderTop: '1px solid #F1F5F9' }}>
                                     {/* Stacked Attendees */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ display: 'flex', paddingLeft: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <div style={{ display: 'flex', paddingLeft: '6px' }}>
                                             {Array.from({ length: Math.min(event.attendees || 1, 3) }).map((_, i) => (
                                                 <div key={i} style={{
-                                                    width: '28px',
-                                                    height: '28px',
+                                                    width: '24px',
+                                                    height: '24px',
                                                     borderRadius: '50%',
                                                     background: '#E2E8F0',
                                                     border: '2px solid white',
-                                                    marginLeft: '-8px',
+                                                    marginLeft: '-6px',
                                                     backgroundImage: `url(https://api.dicebear.com/7.x/adventurer/svg?seed=Person${i + (event.id || 0)})`,
                                                     backgroundSize: 'cover'
                                                 }} />
                                             ))}
                                             {(event.attendees || 1) > 3 && (
                                                 <div style={{
-                                                    width: '28px',
-                                                    height: '28px',
+                                                    width: '24px',
+                                                    height: '24px',
                                                     borderRadius: '50%',
                                                     background: '#064E3B',
                                                     border: '2px solid white',
-                                                    marginLeft: '-8px',
+                                                    marginLeft: '-6px',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    fontSize: '0.65rem',
+                                                    fontSize: '0.6rem',
                                                     color: 'white',
                                                     fontWeight: '800'
                                                 }}>
@@ -456,22 +457,22 @@ const BusinessMeetup = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Builders Joined</span>
+                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Builders Joined</span>
                                     </div>
 
                                     <button 
                                         onClick={() => joinMutation.mutate(event.id)}
                                         disabled={joinMutation.isPending}
                                         style={{
-                                            padding: '0.65rem 1.5rem',
+                                            padding: '0.55rem 1.25rem',
                                             border: 'none',
-                                            borderRadius: '12px',
+                                            borderRadius: '8px',
                                             color: 'white',
                                             background: '#1B6B3A',
                                             fontWeight: '800',
                                             cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)'
+                                            fontSize: '0.82rem',
+                                            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.12)'
                                         }}
                                     >
                                         Reserve Entry
@@ -481,6 +482,7 @@ const BusinessMeetup = () => {
                         </div>
                     ))}
                 </div>
+
             )}
 
             {/* Create Meetup Event Modal */}
