@@ -818,18 +818,32 @@ export function CalculatorPopover() {
 
                         {/* Scientific Mode Buttons */}
                         {sciMode && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', padding: '8px 16px 0 16px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px', padding: '8px 16px 0 16px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
                                 {[
                                     { label: 'sin', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.sin(v * Math.PI / 180) * 1e10) / 1e10)); }},
                                     { label: 'cos', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.cos(v * Math.PI / 180) * 1e10) / 1e10)); }},
                                     { label: 'tan', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.tan(v * Math.PI / 180) * 1e10) / 1e10)); }},
-                                    { label: 'log', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.log10(v) * 1e10) / 1e10)); }},
-                                    { label: '√', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.sqrt(v) * 1e10) / 1e10)); }},
+                                    { label: 'log', fn: () => { const v = parseFloat(activeInput); setActiveInput(v > 0 ? String(Math.round(Math.log10(v) * 1e10) / 1e10) : 'Err'); }},
+
+                                    { label: 'asin', fn: () => { const v = parseFloat(activeInput); setActiveInput(v >= -1 && v <= 1 ? String(Math.round(Math.asin(v) * 180 / Math.PI * 1e8) / 1e8) : 'Err'); }},
+                                    { label: 'acos', fn: () => { const v = parseFloat(activeInput); setActiveInput(v >= -1 && v <= 1 ? String(Math.round(Math.acos(v) * 180 / Math.PI * 1e8) / 1e8) : 'Err'); }},
+                                    { label: 'atan', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.atan(v) * 180 / Math.PI * 1e8) / 1e8)); }},
+                                    { label: 'ln', fn: () => { const v = parseFloat(activeInput); setActiveInput(v > 0 ? String(Math.round(Math.log(v) * 1e10) / 1e10) : 'Err'); }},
+
+                                    { label: '√', fn: () => { const v = parseFloat(activeInput); setActiveInput(v >= 0 ? String(Math.round(Math.sqrt(v) * 1e10) / 1e10) : 'Err'); }},
                                     { label: 'x²', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(v * v)); }},
+                                    { label: 'x³', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(v * v * v)); }},
+                                    { label: '10ˣ', fn: () => { const v = parseFloat(activeInput); setActiveInput(Math.abs(v) < 100 ? String(Math.pow(10, v)) : 'Too Big'); }},
+
                                     { label: 'π', fn: () => setActiveInput(String(Math.PI.toFixed(8))) },
+                                    { label: 'e', fn: () => setActiveInput(String(Math.E.toFixed(8))) },
+                                    { label: '|x|', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.abs(v))); }},
                                     { label: '1/x', fn: () => { const v = parseFloat(activeInput); setActiveInput(v ? String(Math.round((1/v) * 1e10) / 1e10) : '0'); }},
                                 ].map(({ label, fn }) => (
-                                    <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: '36px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '12px', fontWeight: '800', borderRadius: '8px' }}>
+                                    <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: '30px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '11px', fontWeight: '850', borderRadius: '6px', border: '1px solid #E0E7FF', transition: 'background-color 0.2s' }}
+                                        onMouseOver={e => e.currentTarget.style.backgroundColor = '#E0E7FF'}
+                                        onMouseOut={e => e.currentTarget.style.backgroundColor = '#EEF2FF'}
+                                    >
                                         {label}
                                     </button>
                                 ))}
