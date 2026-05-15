@@ -235,10 +235,59 @@ export function CalculatorPopover() {
     }
 
     function handleCalculate() {
-        // Pressing equals commits the final typed number
-        if (parseFloat(activeInput) !== 0 || activeInput !== "0") {
-            commitActiveToTape(null);
+        let finalTapeState = tape;
+        
+        // If there's an uncommitted value, push it synchronously to simulate what will happen
+        const val = parseFloat(activeInput);
+        if (!isNaN(val) && activeInput !== "0") {
+            const newStep = {
+                id: String(idCounter.current++),
+                type: tape.length === 0 ? 'base' : (activeOp || '+'),
+                value: val,
+                label: activeLabel || ""
+            };
+            finalTapeState = [...tape, newStep];
+            
+            // Actually commit to real state
+            setTape(finalTapeState);
+            setActiveInput("0");
+            setActiveOp(null);
+            setActiveLabel("");
+            setShowSmartOptions(null);
         }
+
+        if (finalTapeState.length === 0) return;
+
+        // Compute the static final total for this snapshot log
+        let runningTotal = 0;
+        finalTapeState.forEach((step) => {
+            const v = parseFloat(step.value || 0);
+            if (step.type === 'base') {
+                runningTotal = v;
+            } else if (step.type === '+') {
+                runningTotal += v;
+            } else if (step.type === '-') {
+                runningTotal -= v;
+            } else if (step.type === '*') {
+                runningTotal *= v;
+            } else if (step.type === '/') {
+                runningTotal = v !== 0 ? runningTotal / v : 0;
+            } else if (step.type === 'gst') {
+                runningTotal += runningTotal * (v / 100);
+            } else if (step.type === 'discount') {
+                runningTotal -= runningTotal * (v / 100);
+            }
+        });
+
+        // Save static history snapshot (limit to latest 30 records)
+        const newHistoryLog = {
+            id: Date.now(),
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            tape: finalTapeState,
+            total: runningTotal
+        };
+
+        setCalcHistory(prev => [newHistoryLog, ...prev.slice(0, 29)]);
     }
 
     // Smart Presets logic
@@ -513,110 +562,221 @@ export function CalculatorPopover() {
                             </div>
                         </div>
 
-                        {/* Requirement 1: The Live Tape History list */}
-                        <div style={styles.tapeArea} className="custom-scrollbar">
-                            {steps.length === 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '20px' }}>
-                                    <RotateCcw size={24} style={{ opacity: 0.5, marginBottom: '8px' }} />
-                                    <span style={{ fontSize: '12px', fontWeight: '600' }}>Start typing below to record Tape</span>
+                        {/* Requirement 1 & 2: Toggle between Archive History Log or Live Interactive Tape */}
+                        {showHistory ? (
+                            <div style={{
+                                flex: 1,
+                                maxHeight: '290px',
+                                minHeight: '210px',
+                                overflowY: 'auto',
+                                padding: '16px',
+                                backgroundColor: '#F8FAFC',
+                                borderBottom: '1px solid #E2E8F0',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px'
+                            }} className="custom-scrollbar">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tape Archives</span>
+                                    {calcHistory.length > 0 && (
+                                        <button 
+                                            onClick={() => { if(window.confirm("Clear calculation history?")) setCalcHistory([]); }} 
+                                            style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: 0 }}
+                                        >
+                                            CLEAR ALL
+                                        </button>
+                                    )}
                                 </div>
-                            ) : (
-                                steps.map((step) => (
-                                    <div key={step.id} className="tape-group" style={styles.tapeRow}>
-                                        {/* Row Meta & Delete */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                {/* Op Tag */}
-                                                <span style={{
-                                                    fontSize: '9px',
-                                                    fontWeight: '900',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px',
-                                                    color: 'white',
-                                                    background: step.type === 'base' ? '#6366F1' : 
-                                                                step.type === 'gst' ? '#10B981' : 
-                                                                step.type === 'discount' ? '#F59E0B' : '#64748B'
-                                                }}>
-                                                    {step.type.toUpperCase()}
+                                
+                                {calcHistory.length === 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '20px', textAlign: 'center' }}>
+                                        <History size={24} style={{ opacity: 0.4, marginBottom: '8px' }} />
+                                        <span style={{ fontSize: '12px', fontWeight: '750', color: '#64748B' }}>No archives available</span>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#94A3B8', fontWeight: '500', lineHeight: 1.3 }}>Type numbers and press the '=' key to log calculations into memory.</p>
+                                    </div>
+                                ) : (
+                                    calcHistory.map((hist) => (
+                                        <div key={hist.id} style={{
+                                            background: 'white',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '14px',
+                                            padding: '12px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '6px',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+                                            transition: 'transform 0.1s ease'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '9px', fontWeight: '800', color: '#64748B' }}>⏰ {hist.timestamp}</span>
+                                                <span style={{ fontSize: '9px', fontWeight: '900', background: '#EFF6FF', color: '#3B82F6', padding: '2px 6px', borderRadius: '5px' }}>
+                                                    {hist.tape.length} Item{hist.tape.length > 1 ? 's' : ''}
                                                 </span>
-                                                {/* Label Editor */}
-                                                <input 
-                                                    type="text"
-                                                    value={step.label}
-                                                    placeholder="Add label..."
-                                                    onChange={(e) => updateTapeStepLabel(step.id, e.target.value)}
-                                                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '10px', fontWeight: '600', color: '#64748B', width: '90px' }}
-                                                />
-                                            </div>
-                                            <button 
-                                                onClick={() => removeTapeStep(step.id)}
-                                                style={{ background: 'transparent', border: 'none', padding: '2px', cursor: 'pointer', opacity: 0.6, color: '#EF4444' }}
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                        </div>
-
-                                        {/* Requirement 3: Live Click-to-Edit input */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#334155' }}>
-                                                    {step.type === 'gst' || step.type === 'discount' ? '%' : step.type === 'base' ? '=' : step.type}
-                                                </span>
-                                                <input 
-                                                    type="number"
-                                                    value={step.value}
-                                                    onChange={(e) => updateTapeStepValue(step.id, parseFloat(e.target.value) || 0)}
-                                                    style={{
-                                                        border: '1px solid transparent',
-                                                        background: 'transparent',
-                                                        outline: 'none',
-                                                        fontSize: '16px',
-                                                        fontWeight: '850',
-                                                        color: '#0F172A',
-                                                        width: '80px',
-                                                        borderRadius: '4px',
-                                                        padding: '2px 4px',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                    onFocus={(e) => e.target.style.borderColor = '#cbd5e1'}
-                                                    onBlur={(e) => e.target.style.borderColor = 'transparent'}
-                                                />
                                             </div>
                                             
-                                            {/* Numerical evaluation after this step */}
-                                            <div style={{ textAlign: 'right' }}>
-                                                <span style={{ fontSize: '13px', fontWeight: '750', color: '#10B981' }}>
-                                                    ₹{step.runningAfter.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                                </span>
-                                                {/* Subtext context (Tax or discount values) */}
-                                                {(step.type === 'gst' || step.type === 'discount') && (
-                                                    <div style={{ fontSize: '9px', fontWeight: '700', color: step.type === 'gst' ? '#10B981' : '#D97706', marginTop: '1px' }}>
-                                                        {step.type === 'gst' ? '+' : '-'}₹{step.contribution.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                                                    </div>
-                                                )}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2px' }}>
+                                                <div>
+                                                    <span style={{ display: 'block', fontSize: '8px', fontWeight: '850', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Calculated Log</span>
+                                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#059669' }}>
+                                                        ₹{hist.total.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div style={{ display: 'flex', gap: '5px' }}>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setTape(hist.tape);
+                                                            setActiveInput("0");
+                                                            setActiveOp(null);
+                                                            setShowHistory(false);
+                                                        }}
+                                                        style={{ 
+                                                            padding: '6px 12px', 
+                                                            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', 
+                                                            border: 'none', 
+                                                            borderRadius: '8px', 
+                                                            color: 'white', 
+                                                            fontSize: '9px', 
+                                                            fontWeight: '900', 
+                                                            cursor: 'pointer',
+                                                            boxShadow: '0 2px 4px rgba(16,185,129,0.15)'
+                                                        }}
+                                                    >
+                                                        RESTORE
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setCalcHistory(prev => prev.filter(x => x.id !== hist.id));
+                                                        }}
+                                                        style={{ 
+                                                            width: '26px',
+                                                            height: '26px',
+                                                            background: '#FEF2F2', 
+                                                            border: '1px solid #FECACA', 
+                                                            borderRadius: '8px', 
+                                                            color: '#EF4444', 
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
-                            <div ref={tapeEndRef} />
-                        </div>
+                                    ))
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Requirement 1: The Live Tape History list */}
+                                <div style={styles.tapeArea} className="custom-scrollbar">
+                                    {steps.length === 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '20px' }}>
+                                            <RotateCcw size={24} style={{ opacity: 0.5, marginBottom: '8px' }} />
+                                            <span style={{ fontSize: '12px', fontWeight: '600' }}>Start typing below to record Tape</span>
+                                        </div>
+                                    ) : (
+                                        steps.map((step) => (
+                                            <div key={step.id} className="tape-group" style={styles.tapeRow}>
+                                                {/* Row Meta & Delete */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        {/* Op Tag */}
+                                                        <span style={{
+                                                            fontSize: '9px',
+                                                            fontWeight: '900',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            color: 'white',
+                                                            background: step.type === 'base' ? '#6366F1' : 
+                                                                        step.type === 'gst' ? '#10B981' : 
+                                                                        step.type === 'discount' ? '#F59E0B' : '#64748B'
+                                                        }}>
+                                                            {step.type.toUpperCase()}
+                                                        </span>
+                                                        {/* Label Editor */}
+                                                        <input 
+                                                            type="text"
+                                                            value={step.label}
+                                                            placeholder="Add label..."
+                                                            onChange={(e) => updateTapeStepLabel(step.id, e.target.value)}
+                                                            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '10px', fontWeight: '600', color: '#64748B', width: '90px' }}
+                                                        />
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => removeTapeStep(step.id)}
+                                                        style={{ background: 'transparent', border: 'none', padding: '2px', cursor: 'pointer', opacity: 0.6, color: '#EF4444' }}
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
 
-                        {/* Middle Section: The Active Line (typing zone) */}
-                        <div style={styles.activeLine}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    {activeOp ? `Next Op: ${activeOp}` : tape.length === 0 ? 'Set Base' : 'Continue'}
-                                    {activeLabel && <span style={{ background: '#E2E8F0', borderRadius: '4px', padding: '1px 5px', fontSize: '9px', color: '#475569' }}>🏷️ {activeLabel}</span>}
-                                </span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                <span style={{ fontSize: '14px', fontWeight: '800', color: '#475569' }}>{activeOp || (tape.length === 0 ? "" : "+")}</span>
-                                <span style={{ fontSize: '28px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.5px' }}>
-                                    {activeInput}
-                                </span>
-                            </div>
-                        </div>
+                                                {/* Requirement 3: Live Click-to-Edit input */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#334155' }}>
+                                                            {step.type === 'gst' || step.type === 'discount' ? '%' : step.type === 'base' ? '=' : step.type}
+                                                        </span>
+                                                        <input 
+                                                            type="number"
+                                                            value={step.value}
+                                                            onChange={(e) => updateTapeStepValue(step.id, parseFloat(e.target.value) || 0)}
+                                                            style={{
+                                                                border: '1px solid transparent',
+                                                                background: 'transparent',
+                                                                outline: 'none',
+                                                                fontSize: '16px',
+                                                                fontWeight: '850',
+                                                                color: '#0F172A',
+                                                                width: '80px',
+                                                                borderRadius: '4px',
+                                                                padding: '2px 4px',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                            onFocus={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                                            onBlur={(e) => e.target.style.borderColor = 'transparent'}
+                                                        />
+                                                    </div>
+                                                    
+                                                    {/* Numerical evaluation after this step */}
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <span style={{ fontSize: '13px', fontWeight: '750', color: '#10B981' }}>
+                                                            ₹{step.runningAfter.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                        </span>
+                                                        {/* Subtext context (Tax or discount values) */}
+                                                        {(step.type === 'gst' || step.type === 'discount') && (
+                                                            <div style={{ fontSize: '9px', fontWeight: '700', color: step.type === 'gst' ? '#10B981' : '#D97706', marginTop: '1px' }}>
+                                                                {step.type === 'gst' ? '+' : '-'}₹{step.contribution.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    <div ref={tapeEndRef} />
+                                </div>
+
+                                {/* Middle Section: The Active Line (typing zone) */}
+                                <div style={styles.activeLine}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            {activeOp ? `Next Op: ${activeOp}` : tape.length === 0 ? 'Set Base' : 'Continue'}
+                                            {activeLabel && <span style={{ background: '#E2E8F0', borderRadius: '4px', padding: '1px 5px', fontSize: '9px', color: '#475569' }}>🏷️ {activeLabel}</span>}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#475569' }}>{activeOp || (tape.length === 0 ? "" : "+")}</span>
+                                        <span style={{ fontSize: '28px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.5px' }}>
+                                            {activeInput}
+                                        </span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {/* Requirement 2: Smart Bar with GST, Discount & Labels */}
                         <div style={{ display: 'flex', flexDirection: 'column', background: '#FFFFFF', flexShrink: 0 }}>
