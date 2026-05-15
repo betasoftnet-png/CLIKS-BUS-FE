@@ -8,7 +8,8 @@ import {
     suppliersService, 
     gstService, 
     returnsService, 
-    expensesService 
+    expensesService,
+    purchasesService 
 } from '../services';
 import { 
     BarChart3, 
@@ -32,7 +33,9 @@ import {
     Award,
     RefreshCw,
     Zap,
-    CheckCircle2
+    CheckCircle2,
+    ShoppingBag,
+    CreditCard
 } from 'lucide-react';
 import '../App.css';
 
@@ -142,6 +145,44 @@ const BusinessReports = () => {
                     const re = await returnsService.getReturns();
                     return re?.data || re || [];
                 }
+
+                // Purchases & Procurement Module
+                if (id === 24) {
+                    try {
+                        const res = await purchasesService.getPurchases();
+                        return res?.data || res || [];
+                    } catch {
+                        return [];
+                    }
+                }
+                if (id === 25) {
+                    try {
+                        const res = await purchasesService.getSupplierReport();
+                        return res?.data || res || [];
+                    } catch {
+                        const res = await suppliersService.getSuppliers();
+                        return res?.data || res || [];
+                    }
+                }
+                if (id === 26) {
+                    try {
+                        const res = await purchasesService.getPaymentReport();
+                        return res?.data || res || [];
+                    } catch {
+                        const res = await purchasesService.getPurchases();
+                        return res?.data || res || [];
+                    }
+                }
+                if (id === 27) {
+                    try {
+                        const res = await purchasesService.getPendingReport();
+                        return res?.data || res || [];
+                    } catch {
+                        const res = await purchasesService.getPurchases();
+                        const raw = res?.data || res || [];
+                        return raw.filter(p => p.payment_status === 'unpaid' || p.payment_status === 'partial' || (p.balance_due || 0) > 0);
+                    }
+                }
             } catch (err) {
                 console.error('[Report Linker] Pipeline fetch failed:', err);
                 return [];
@@ -155,6 +196,7 @@ const BusinessReports = () => {
     const reportCategories = [
         { id: 'all', label: 'All Reports', icon: BarChart3 },
         { id: 'sales', label: 'Sales & Revenue', icon: TrendingUp },
+        { id: 'purchase', label: 'Purchases (Procurement)', icon: ShoppingBag },
         { id: 'inventory', label: 'Stock & Inventory', icon: Package },
         { id: 'parties', label: 'Parties (CRM)', icon: Users },
         { id: 'accounting', label: 'Financial Statements', icon: FileText }
@@ -168,6 +210,12 @@ const BusinessReports = () => {
         { id: 13, title: 'Sales Agent Commissions', desc: 'Track performance and payouts for agents.', category: 'sales', icon: ArrowUpRight },
         { id: 14, title: 'Sales Returns Analysis', desc: 'Audit of product returns and refund ratios.', category: 'sales', icon: ArrowDownRight },
         
+        // Purchase Reports
+        { id: 24, title: 'Purchases Register', desc: 'Daily and monthly outward buying totals.', category: 'purchase', icon: ShoppingBag },
+        { id: 25, title: 'Vendor-wise Procurement', desc: 'Breakdown of totals sourced per supplier.', category: 'purchase', icon: Building2 },
+        { id: 26, title: 'Procurement Payout Registry', desc: 'Audit of disbursed procurement transactions.', category: 'purchase', icon: CreditCard },
+        { id: 27, title: 'Pending Vendor Dues', desc: 'Statement of unbalanced purchase credit accounts.', category: 'purchase', icon: Calendar },
+
         // Inventory Reports
         { id: 4, title: 'Stock Summary', desc: 'Current stock levels and valuation.', category: 'inventory', icon: Package },
         { id: 5, title: 'Low Stock Report', desc: 'List of items below threshold levels.', category: 'inventory', icon: ArrowDownRight },
@@ -673,6 +721,118 @@ const BusinessReports = () => {
                                         </table>
                                     )}
 
+                                    {/* Purchases Register Module */}
+                                    {selectedReport.id === 24 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Bill / Purchase #</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Purchase Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || row.bill_no || `PUR-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.supplier_name || row.Supplier?.company_name || 'Primary Sourced Distributor'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_amount || row.total || 0).toLocaleString()}</td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No purchase register entries found.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {/* Vendor-wise Procurement Module */}
+                                    {selectedReport.id === 25 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Vendor / Supplier Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Detail</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Aggregate Cost Sourced</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name || 'Trade Vendor'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || row.email || 'N/A'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#2563EB', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_purchases || row.outstanding_balance || 0).toLocaleString()}</td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No procurement history traced to vendors.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {/* Procurement Payout Tracing Module */}
+                                    {selectedReport.id === 26 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Purchase Order</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Payout Standing</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Settled Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `PUR-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
+                                                            <span style={{ 
+                                                                background: row.payment_status === 'paid' ? '#DCFCE7' : '#FFFBEB', 
+                                                                color: row.payment_status === 'paid' ? '#16A34A' : '#D97706', 
+                                                                padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: '800', fontSize: '0.7rem', textTransform: 'uppercase'
+                                                            }}>
+                                                                {row.payment_status || 'Settle-Sync'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.paid_amount || row.total_amount || row.total || 0).toLocaleString()}</td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No procurement payout transactions.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {/* Pending Vendor Dues Module */}
+                                    {selectedReport.id === 27 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Order Reference</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Outstanding Dues</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `DUE-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#EF4444', fontWeight: '750', textTransform: 'uppercase' }}>PENDING CREDIT</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.balance_due || row.due_amount || row.total_amount || 0).toLocaleString()}</td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No pending unpaid procurement bills located.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
                                     {/* Returns Module */}
                                     {selectedReport.id === 14 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -798,7 +958,7 @@ const BusinessReports = () => {
                                     )}
 
                                     {/* Global Intelligent Fallback */}
-                                    {![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].includes(selectedReport.id) && (
+                                    {![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27].includes(selectedReport.id) && (
                                         <div style={{ padding: '3.5rem 2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #E2E8F0' }}>
                                             <div style={{ marginBottom: '0.5rem', fontWeight: '850', color: '#0F172A' }}>Live Engine Connection Acknowledged</div>
                                             <div style={{ fontSize: '0.82rem', color: '#64748B', maxWidth: '400px', margin: '0 auto', lineHeight: '1.5' }}>
