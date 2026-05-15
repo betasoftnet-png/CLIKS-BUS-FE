@@ -411,7 +411,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
                             style={{
                                 width: 'calc(100% - 2rem)',
-                                margin: '0.5rem 1rem 0.25rem 1rem',
+                                margin: '0.5rem 1rem 0.75rem 1rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
