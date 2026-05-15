@@ -95,11 +95,11 @@ const BusinessWallet = () => {
         } catch (err) {
             console.warn("[CASHFREE GATEWAY LOGGER]:", err.message);
             
-            // Graceful fallback alert instructing them about standard CORS safety block
+            // Display the actual error message instead of defaulting to a CORS warning
             const shouldSimulate = window.confirm(
-                `🚨 [CASHFREE SANDBOX LOG]\n\n` +
-                `Direct frontend handshake completed, but Browser CORS Policy blocked the response (Expected outside of your secure Backend).\n\n` +
-                `Would you like to simulate a SUCCESSFUL Gateway callback to verify Wallet loading logic?`
+                `🚨 [CASHFREE GATEWAY ERROR]\n\n` +
+                `Transaction Handshake Failed: ${err.message}\n\n` +
+                `Would you like to simulate a SUCCESSFUL Gateway callback anyway to test UI loading logic?`
             );
 
             if (shouldSimulate) {
