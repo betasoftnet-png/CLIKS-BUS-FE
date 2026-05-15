@@ -438,7 +438,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
             {/* Refer & Earn Block (Moved outside the white footer box as requested) */}
             {(isFinanceMode || isSocialMode) && (
-                <div style={{ padding: '0.5rem 1rem 1rem 1rem', flexShrink: 0 }}>
+                <div style={{ padding: '1.25rem 1rem 1rem 1rem', flexShrink: 0 }}>
                     <button
                         onClick={() => {
                             if (onReferralClick) onReferralClick();
@@ -452,7 +452,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             gap: '0.65rem',
                             padding: '0.65rem 1rem',
                             background: 'transparent',
-                            color: '#6B7280',
+                            color: '#0F172A',
                             borderRadius: '12px',
                             border: '1px solid transparent',
                             cursor: 'pointer',
@@ -460,7 +460,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             fontSize: '0.875rem',
                             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                             outline: 'none',
-                            marginTop: '0.35rem'
+                            marginTop: '0.6rem'
                         }}
                         onMouseOver={(e) => {
                             e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
