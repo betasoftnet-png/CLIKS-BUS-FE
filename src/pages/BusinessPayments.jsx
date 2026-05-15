@@ -232,72 +232,77 @@ const BusinessPayments = () => {
                 ))}
             </div>
 
-            {/* Tabs Row */}
-            <div style={{ flexShrink: 0, display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                {[
-                    { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
-                    { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
-                    { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet },
-                    { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock }
-                ].map(tab => (
-                    <button 
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{ 
-                            padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                            background: activeTab === tab.id ? '#064E3B' : 'white', 
-                            color: activeTab === tab.id ? 'white' : '#475569',
-                            border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
-                        }}
-                    >
-                        <tab.icon size={18} /> {tab.label}
-                    </button>
-                ))}
+            {/* Tabs Row & Global Search */}
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {[
+                        { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
+                        { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
+                        { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet },
+                        { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock }
+                    ].map(tab => (
+                        <button 
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{ 
+                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                                background: activeTab === tab.id ? '#064E3B' : 'white', 
+                                color: activeTab === tab.id ? 'white' : '#475569',
+                                border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
+                            }}
+                        >
+                            <tab.icon size={18} /> {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Global Search Icon Outside Table */}
+                {(activeTab === 'receivables' || activeTab === 'payables') && (
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        background: '#FFF', 
+                        border: '1px solid #E2E8F0', 
+                        borderRadius: '12px', 
+                        padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                        width: showSearch ? '280px' : '40px', 
+                        height: '40px',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                    }}>
+                        <Search 
+                            size={18} 
+                            style={{ color: '#64748B', cursor: 'pointer', flexShrink: 0 }} 
+                            onClick={() => setShowSearch(!showSearch)} 
+                        />
+                        <input 
+                            type="text" 
+                            placeholder="Search records..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ 
+                                border: 'none', 
+                                outline: 'none', 
+                                background: 'transparent', 
+                                marginLeft: '0.75rem', 
+                                width: '100%', 
+                                fontSize: '0.9rem', 
+                                color: '#1E293B',
+                                display: showSearch ? 'block' : 'none'
+                            }}
+                            autoFocus={showSearch}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Tab 1: Customer Receivables */}
             {activeTab === 'receivables' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#F8FAFC', flexShrink: 0 }}>
-                        <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            background: '#FFF', 
-                            border: '1px solid #E2E8F0', 
-                            borderRadius: '12px', 
-                            padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                            width: showSearch ? '280px' : '38px', 
-                            height: '38px',
-                            boxSizing: 'border-box',
-                            overflow: 'hidden'
-                        }}>
-                            <Search 
-                                size={18} 
-                                style={{ color: '#64748B', cursor: 'pointer', flexShrink: 0 }} 
-                                onClick={() => setShowSearch(!showSearch)} 
-                            />
-                            <input 
-                                type="text" 
-                                placeholder="Search records..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ 
-                                    border: 'none', 
-                                    outline: 'none', 
-                                    background: 'transparent', 
-                                    marginLeft: '0.75rem', 
-                                    width: '100%', 
-                                    fontSize: '0.9rem', 
-                                    color: '#1E293B',
-                                    display: showSearch ? 'block' : 'none'
-                                }}
-                                autoFocus={showSearch}
-                            />
-                        </div>
-                    </div>
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -341,44 +346,6 @@ const BusinessPayments = () => {
             {/* Tab 2: Supplier Payables */}
             {activeTab === 'payables' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#F8FAFC', flexShrink: 0 }}>
-                        <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            background: '#FFF', 
-                            border: '1px solid #E2E8F0', 
-                            borderRadius: '12px', 
-                            padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                            width: showSearch ? '280px' : '38px', 
-                            height: '38px',
-                            boxSizing: 'border-box',
-                            overflow: 'hidden'
-                        }}>
-                            <Search 
-                                size={18} 
-                                style={{ color: '#64748B', cursor: 'pointer', flexShrink: 0 }} 
-                                onClick={() => setShowSearch(!showSearch)} 
-                            />
-                            <input 
-                                type="text" 
-                                placeholder="Search records..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ 
-                                    border: 'none', 
-                                    outline: 'none', 
-                                    background: 'transparent', 
-                                    marginLeft: '0.75rem', 
-                                    width: '100%', 
-                                    fontSize: '0.9rem', 
-                                    color: '#1E293B',
-                                    display: showSearch ? 'block' : 'none'
-                                }}
-                                autoFocus={showSearch}
-                            />
-                        </div>
-                    </div>
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

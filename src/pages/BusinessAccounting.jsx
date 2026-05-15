@@ -188,6 +188,11 @@ const BusinessAccounting = () => {
         return acc;
     }, {});
 
+    dbExpenses.forEach(item => {
+        const cat = item.category || item.category_name || 'Operational Expense';
+        pAndLExpenseGroups[cat] = (pAndLExpenseGroups[cat] || 0) + (parseFloat(item.amount || item.expense_amount) || 0);
+    });
+
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
 

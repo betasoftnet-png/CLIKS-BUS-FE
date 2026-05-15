@@ -312,35 +312,33 @@ const BusinessPeople = () => {
                 ))}
             </div>
 
-            {/* Tabs Row */}
-            <div style={{ flexShrink: 0, display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                {[
-                    { id: 'contacts', label: 'Active Directory', icon: Users },
-                    { id: 'transactions', label: 'Global Ledger Ledger', icon: ArrowLeftRight },
-                    { id: 'reminders', label: 'Repayment Alerts', icon: Bell }
-                ].map(tab => (
-                    <button 
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{ 
-                            padding: '0.85rem 1.75rem', borderRadius: '14px', 
-                            background: activeTab === tab.id ? '#064E3B' : 'white', 
-                            color: activeTab === tab.id ? 'white' : '#475569',
-                            border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.6rem',
-                            boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        <tab.icon size={18} /> {tab.label}
-                    </button>
-                ))}
-            </div>
+            {/* Tabs Row & Global Tools */}
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {[
+                        { id: 'contacts', label: 'Active Directory', icon: Users },
+                        { id: 'transactions', label: 'Global Ledger Ledger', icon: ArrowLeftRight },
+                        { id: 'reminders', label: 'Repayment Alerts', icon: Bell }
+                    ].map(tab => (
+                        <button 
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{ 
+                                padding: '0.85rem 1.75rem', borderRadius: '14px', 
+                                background: activeTab === tab.id ? '#064E3B' : 'white', 
+                                color: activeTab === tab.id ? 'white' : '#475569',
+                                border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <tab.icon size={18} /> {tab.label}
+                        </button>
+                    ))}
+                </div>
 
-            {/* Main Dynamic Content */}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                {/* Shared Toolbar */}
-                <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#F8FAFC', flexShrink: 0, gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -349,10 +347,11 @@ const BusinessPeople = () => {
                         borderRadius: '12px', 
                         padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                        width: showSearch ? '280px' : '38px', 
-                        height: '38px',
+                        width: showSearch ? '280px' : '40px', 
+                        height: '40px',
                         boxSizing: 'border-box',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
                     }}>
                         <Search 
                             size={18} 
@@ -386,7 +385,10 @@ const BusinessPeople = () => {
                         </button>
                     )}
                 </div>
+            </div>
 
+            {/* Main Dynamic Content */}
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                     {/* TAB 1: Contacts List */}
                     {activeTab === 'contacts' && (

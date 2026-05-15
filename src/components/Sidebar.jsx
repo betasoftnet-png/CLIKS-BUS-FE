@@ -198,7 +198,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
         if (path.includes('/marketing')) return 'Marketing';
-        if (path.includes('/social/investors')) return 'Investors';
+        if (path.includes('/social/investors')) return 'Beta Club';
         if (path.includes('/social/meetup')) return 'Meetup';
         if (path.includes('/social/trading')) return 'Social Trading';
         if (path.includes('/subscription')) return 'Subscription';
@@ -307,7 +307,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
         ],
         social: [
-            { label: 'Investors', icon: UsersRound, path: '/social/investors' },
+            { label: 'Beta Club', icon: UsersRound, path: '/social/investors' },
             { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
             { label: 'Social Trading', icon: LineChart, path: '/social/trading' }
         ],
