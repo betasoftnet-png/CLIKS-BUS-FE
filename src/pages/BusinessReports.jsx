@@ -60,21 +60,29 @@ const BusinessReports = () => {
         { id: 1, title: 'Sales Summary', desc: 'Daily, monthly and yearly sales performance.', category: 'sales', icon: TrendingUp },
         { id: 2, title: 'Item-wise Sales', desc: 'Breakdown of sales by individual products.', category: 'sales', icon: Package },
         { id: 3, title: 'Party-wise Sales', desc: 'Total sales attributed to each customer.', category: 'sales', icon: Users },
+        { id: 13, title: 'Sales Agent Commissions', desc: 'Track performance and payouts for agents.', category: 'sales', icon: ArrowUpRight },
+        { id: 14, title: 'Sales Returns Analysis', desc: 'Audit of product returns and refund ratios.', category: 'sales', icon: ArrowDownRight },
         
         // Inventory Reports
         { id: 4, title: 'Stock Summary', desc: 'Current stock levels and valuation.', category: 'inventory', icon: Package },
         { id: 5, title: 'Low Stock Report', desc: 'List of items below threshold levels.', category: 'inventory', icon: ArrowDownRight },
         { id: 6, title: 'Stock Movement', desc: 'History of stock induction and depletion.', category: 'inventory', icon: PieChart },
+        { id: 15, title: 'Warehouse Capacity', desc: 'Space utilization mapping across warehouses.', category: 'inventory', icon: Building2 },
+        { id: 16, title: 'Dead Stock Register', desc: 'Track items with zero rotation over 90 days.', category: 'inventory', icon: X },
 
         // Party Reports
         { id: 7, title: 'Customer Statements', desc: 'Detailed transaction history for customers.', category: 'parties', icon: Users },
         { id: 8, title: 'Supplier Statements', desc: 'Detailed transaction history for suppliers.', category: 'parties', icon: Building2 },
         { id: 9, title: 'Aging Report', desc: 'Outstanding receivables by overdue days.', category: 'parties', icon: Calendar },
+        { id: 17, title: 'Top Supplier Scorecard', desc: 'Reliability rating and lead time analysis.', category: 'parties', icon: BarChart3 },
+        { id: 18, title: 'Party Ledgers (All)', desc: 'Consolidated account ledger for all traders.', category: 'parties', icon: FileText },
 
         // Financial Reports
         { id: 10, title: 'Profit & Loss', desc: 'Net income vs expenses analysis.', category: 'accounting', icon: PieChart },
         { id: 11, title: 'Balance Sheet', desc: 'Business assets and liabilities snapshot.', category: 'accounting', icon: Briefcase },
-        { id: 12, title: 'GST Reports', desc: 'GSTR-1 and GSTR-3B filing summaries.', category: 'accounting', icon: ShieldCheck }
+        { id: 12, title: 'GST Reports', desc: 'GSTR-1 and GSTR-3B filing summaries.', category: 'accounting', icon: ShieldCheck },
+        { id: 19, title: 'Expense Category Audit', desc: 'Category-wise breakdown of overhead costs.', category: 'accounting', icon: DollarSign },
+        { id: 20, title: 'Cash Flow Statement', desc: 'Tracking inward & outward liquidity flow.', category: 'accounting', icon: TrendingUp }
     ];
 
     const filteredReports = activeCategory === 'all' 
