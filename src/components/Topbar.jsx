@@ -9,7 +9,7 @@ import logoPng from '../assets/cliks5.png'; // Final branding
 import { ProfileDropdown } from './ProfileDropdown';
 import { CalculatorPopover } from './common/CalculatorPopover';
 
-const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
+const Topbar = ({ onToggleSidebar, isSidebarOpen, onReferralClick }) => {
     const { logout, user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -155,7 +155,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
                 {!isAdminOrSales && (
                     <button 
-                        onClick={() => navigate('/referral')}
+                        onClick={() => onReferralClick ? onReferralClick() : navigate('/referral')}
                         title="Refer & Earn Premium Points"
                         style={{
                             display: 'flex',

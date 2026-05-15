@@ -154,7 +154,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     );
 };
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -520,7 +520,10 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {/* Refer & Earn Block */}
                 {(isFinanceMode || isSocialMode) && (
                     <button
-                        onClick={() => handleItemClick('Refer & Earn', '/referral')}
+                        onClick={() => {
+                            if (onReferralClick) onReferralClick();
+                            if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
+                        }}
                         style={{
                             width: '100%',
                             display: 'flex',
