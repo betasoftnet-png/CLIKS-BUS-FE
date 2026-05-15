@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-// import logo from '../../assets/cliks5.png'
 import { 
     Calculator, X, RotateCcw, Delete, Share2, Trash2, 
     Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown
@@ -257,10 +256,8 @@ export function CalculatorPopover() {
     const handleShareText = () => {
         const { steps, finalTotal } = getTapeCalculations();
         if (steps.length === 0) return;
-        const logo = "https://cliksbusiness.com/assets/cliks5-CRM59gZ0.png"
 
-        let text = `Beta Calculator\n`;
-        text += `Logo: ${logo}\n`; 
+        let text = "🧮 BETA Calculator \n";
         text += "=============================\n";
         
         steps.forEach((s) => {
