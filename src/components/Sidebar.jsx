@@ -492,7 +492,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.65rem',
-                            padding: '0.65rem 1rem',
+                            padding: '0.60rem',
                             background: 'transparent',
                             color: '#0F172A',
                             borderRadius: '12px',
