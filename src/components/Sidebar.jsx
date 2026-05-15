@@ -480,7 +480,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
             {/* Refer & Earn Block (Moved outside the white footer box as requested) */}
             {(isFinanceMode || isSocialMode) && (
-                <div style={{ padding: '1.25rem 1rem 1rem 1rem', flexShrink: 0 }}>
+                <div style={{ padding: '0rem 1rem', flexShrink: 0 }}>
                     <button
                         onClick={() => {
                             if (onReferralClick) onReferralClick();
