@@ -574,11 +574,301 @@ const CURRICULUM_PHASES = [
     }
 ];
 
-// Quick lookup dictionary to find a module based on global flat index
-const ALL_MODULES_FLAT = CURRICULUM_PHASES.flatMap(phase => phase.modules);
+
+// Comprehensive new Curriculum Blocks for Additional Asset Learning Paths
+const SIP_CURRICULUM = [
+    {
+        name: 'Phase 1 — SIP Fundamentals',
+        icon: Target,
+        modules: [
+            {
+                id: 'sip-1',
+                title: 'Module 1: The Compounding Engine',
+                level: 'Beginner', duration: '15 Mins',
+                icon: BookOpen,
+                topics: [
+                    {
+                        title: 'Power of Systematic Investing',
+                        content: `A Systematic Investment Plan (SIP) is a structured vehicle that allows you to invest a fixed, recurring amount regularly into capital market securities.
+                        
+### ⏳ The Eighth Wonder: Compounding
+                        
+* **Time Over Money**: Starting early with smaller amounts generates vastly superior results compared to starting with large amounts later in life due to the time horizon multiplier.
+* **Automated Discipline**: Eliminates the emotional and psychological barrier of "timing the market" by systematically investing regardless of ongoing market highs or lows.
+* **Rupee Cost Averaging**: When the markets crash, your SIP automatically acquires more units at cheaper NAVs. When the markets rally, it buys fewer units. Over a 10-year horizon, your average acquisition cost becomes statistically optimized.
+
+### 🏛️ The Math Foundations: Rule of 72, 114, & 144
+* **Rule of 72**: Divide 72 by your expected annualized interest rate to calculate the approximate number of years required to Double your capital.
+* **Rule of 114**: Calculates the time required to Triple your initial capital amount.
+* **Rule of 144**: Tells you exactly when your cumulative wealth will Quadruple in nominal terms.`
+                    }
+                ]
+            },
+            {
+                id: 'sip-2',
+                title: 'Module 2: Product Architectures',
+                level: 'Intermediate', duration: '20 Mins',
+                icon: Layers,
+                topics: [
+                    {
+                        title: 'Step-Up & Flexible Deployments',
+                        content: `Standard fixed SIPs are powerful, but advanced wealth compounders use dynamic variations to significantly speed up financial freedom timelines.
+                        
+### 🚀 The Step-Up (Top-Up) Strategy
+                        
+* **Income Alignment**: Systematically increase your monthly contribution annually (e.g., by 10% or 20%) to match your yearly professional salary appraisal.
+* **Compound Acceleration**: An flat ₹10k monthly SIP for 20 years at a 12% CAGR yields ₹98.9 Lakhs. A mere 10% annual Step-Up SIP over the exact same period yields over ₹2.05 Crores! You more than double the ultimate terminal wealth with negligible incremental strain.
+
+### ⚙️ Flexible, Trigger & Perpetual Configurations
+1. **Flexible SIP**: Grants the investor rights to temporarily reduce or scale up monthly installments depending on seasonal business cash flow, without pausing the overall compound engine.
+2. **Trigger SIP**: Integrates programmatic logic. For example, setting a trigger to "Automatically deploy an extra 50% capital if the Nifty 50 Index corrects by more than 4%."
+3. **Perpetual Mode**: An SIP without an end date, utilizing maximum time exposure until manual retirement overrides are initiated.`
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        name: 'Phase 2 — Planning & Tax Alpha',
+        icon: Compass,
+        modules: [
+            {
+                id: 'sip-3',
+                title: 'Module 3: Lifecycle Goal Structuring',
+                level: 'Advanced', duration: '25 Mins',
+                icon: ShieldCheck,
+                topics: [
+                    {
+                        title: 'Objective Based Portfolio Alignment',
+                        content: `Random investing leads to random results. Pro-level financial planning dictates anchoring SIPs to definitive real-world objectives.
+                        
+### 🎯 Asset Correlation Framework
+                        
+* **Short-Term (< 3 Years)**: Map goals to Low-Duration Debt or Liquid Funds. Zero equity exposure eliminates short-term principal depletion risk.
+* **Medium-Term (3 to 7 Years)**: Deploy in Conservative Hybrid or Balanced Advantage Funds which buffer market volatility via dynamic equity arbitrage.
+* **Long-Term (> 7 Years)**: Aggressive allocations into Pure Equity (Flexi Cap, Mid Cap, and Small Cap) to capture maximum corporate economic expansions.
+
+### 💸 The ELSS Wealth + Tax Hack
+* **Under Section 80C**: Equity Linked Savings Schemes (ELSS) provide up to ₹1.5 Lakhs annual tax deduction.
+* **Lowest Lock-In**: ELSS holds a mandatory 3-year lock-in, which is the shortest tax-saving lock-in among Indian financial instruments (compared to 5 years for Tax FDs or 15 years for PPF).`
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+const MUTUAL_FUNDS_CURRICULUM = [
+    {
+        name: 'Phase 1 — Ecosystem & Fund Mechanics',
+        icon: Database,
+        modules: [
+            {
+                id: 'mf-1',
+                title: 'Module 1: The Engine Under the Hood',
+                level: 'Beginner', duration: '20 Mins',
+                icon: BookOpen,
+                topics: [
+                    {
+                        title: 'Asset Management, NAV & Expense Ratio',
+                        content: `Mutual funds pool capital from millions of investors and deploy it across institutional securities, managed by licensed fund management teams.
+                        
+### 🏗️ The Key Pillars
+                        
+* **AMC (Asset Management Company)**: The regulated corporate entity (e.g., SBI MF, Parag Parikh) designed to configure and issue individual mutual schemes.
+* **NAV (Net Asset Value)**: The market price per unit calculated daily at the close of trade: *(Total Portfolio Value - Administrative Liabilities) / Outstanding Units*.
+* **AUM (Assets Under Management)**: The aggregate capital managed by a fund. Exceptionally large AUMs in small-cap sectors can sometimes drag on alpha generation potential.
+
+### 🕵️ Deciphering Expense Ratio Drag
+1. **TER (Total Expense Ratio)**: The annual operational fee charged directly from NAV. A 1% difference in TER over 25 years can consume nearly 15-20% of total accumulated portfolio value!
+2. **Direct vs Regular Plans**: Direct plans eliminate distributor/brokerage commissions. They offer the exact same underlying assets but carry a 0.6% to 1.2% higher annual return compounding advantage.`
+                    }
+                ]
+            },
+            {
+                id: 'mf-2',
+                title: 'Module 2: Equities & Cap Allocation',
+                level: 'Intermediate', duration: '25 Mins',
+                icon: PieChart,
+                topics: [
+                    {
+                        title: 'Bluechip to Multibagger Classifications',
+                        content: `SEBI mandates specific allocation bounds for funds based on market capitalization parameters to protect investor risk profiles.
+                        
+### 📊 Market Cap Category Grid
+                        
+* **Large-Cap Funds**: Minimum 80% allocation into India's top 100 bluechip enterprises. Lowest equity volatility, high defensive resilience.
+* **Mid-Cap Funds**: Targets companies ranked 101 to 250. High growth potential but prone to heavy corrections during macro bear phases.
+* **Small-Cap Funds**: Deploys in companies from the 251st position onwards. Extreme explosive multibagger alpha capacity but possesses drawdowns exceeding 45%.
+* **Flexi-Cap / Multi-Cap**: The fund manager holds dynamic mandate overrides, shifting capital across caps dynamically based on valuation comfort.`
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        name: 'Phase 2 — Passives, Debt & Advanced Ratios',
+        icon: Award,
+        modules: [
+            {
+                id: 'mf-3',
+                title: 'Module 3: The Passive Alpha Paradigm',
+                level: 'Advanced', duration: '25 Mins',
+                icon: LineChart,
+                topics: [
+                    {
+                        title: 'Index Funds and ETFs vs Active Management',
+                        content: `Passive funds simply duplicate a major benchmark index (like Nifty 50 or Sensex) instead of paying managers to pick individual stocks.
+                        
+### 🧭 Passive Core Benefits
+                        
+* **Negligible Cost**: Many index funds have expense ratios as low as 0.05% to 0.15%, minimizing fee friction.
+* **Elimination of Human Error**: Zero risk of a fund manager making highly concentrated, emotionally biased bad stock bets.
+* **SPIVA Data Reality**: Globally, S&P Indices Versus Active (SPIVA) scorecards show that over 70% of large-cap active managers fail to outperform a basic low-cost Index Fund over a 10-year cycle!
+
+### 📉 Tracking Metrics to Inspect
+* **Tracking Error**: Measures the statistical variance between the index performance and fund performance. Lower is infinitely better.
+* **Tracking Difference**: The absolute gap in yields primarily caused by expense drag.`
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+const WEALTH_CURRICULUM = [
+    {
+        name: 'Phase 1 — Sovereign Assets & Bonds',
+        icon: Gem,
+        modules: [
+            {
+                id: 'w-1',
+                title: 'Module 1: The Gold Standard & Sovereign Debt',
+                level: 'Beginner', duration: '20 Mins',
+                icon: Scale,
+                topics: [
+                    {
+                        title: 'Sovereign Gold Bonds (SGB) vs Hard Metal',
+                        content: `Diversifying into safe haven assets builds anti-fragility into portfolios during periods of systemic inflation, currency devaluation, or war.
+                        
+### 🏅 The Sovereign Gold Bond (SGB) Dominance
+                        
+* **RBI Backed Security**: Issued by the Reserve Bank on behalf of the central government. The ultimate institutional way to secure digital gold.
+* **Dual Yield Mechanics**: Investors capture pure gold spot price appreciation PLUS a guaranteed **2.50% annual coupon interest** paid out semi-annually!
+* **Zero Tax Burden**: Unlike physical gold, if you hold an SGB until maturity (8 years), the entire long-term capital gains (LTCG) are **100% Tax-Exempt**.
+
+### 📊 Non-Metal Alternatives
+1. **Gold ETFs**: Units representing 99.5% pure gold trading in real-time on BSE/NSE. Highly liquid, instant exit.
+2. **Digital Gold**: Offered by custodial vaults. Higher buy-sell spreads, suitable only for extreme micro-savings.`
+                    }
+                ]
+            },
+            {
+                id: 'w-2',
+                title: 'Module 2: Corporate Debt & Fixed Income',
+                level: 'Intermediate', duration: '25 Mins',
+                icon: ShieldCheck,
+                topics: [
+                    {
+                        title: 'Yield Curves & Credit Rating Protocols',
+                        content: `Debt investing is not about hitting home runs; it is about secure capital preservation and steady income predictable streams.
+                        
+### 🛡️ Debt Evaluation Matrix
+                        
+* **Credit Risk Filter**: Strictly inspect SEBI-approved ratings (CRISIL, ICRA, CARE). Deploy capital into AAA, AA+, or Sovereign (SOV) grade instruments. Never touch speculative B-rated debt.
+* **T-Bills & G-Secs**: Directly lending money to the Central Government. Maximum safety in the country.
+* **Corporate Fixed Deposits**: Unsecured NCDs issued by bluechip NBFCs, typically providing 1.5% - 2% yield spreads above typical public bank fixed deposits.`
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        name: 'Phase 2 — Yield Generation Real Estate',
+        icon: Compass,
+        modules: [
+            {
+                id: 'w-3',
+                title: 'Module 3: REITs & Asset Tokenization',
+                level: 'Advanced', duration: '30 Mins',
+                icon: Layers,
+                topics: [
+                    {
+                        title: 'Real Estate Investment Trusts (REITs)',
+                        content: `REITs represent mutual funds for premium commercial real estate, enabling small-scale retail participation in high-yield tech parks.
+                        
+### 🏢 Commercial REIT Infrastructure
+                        
+* **Grade-A Real Estate**: Gain fractional ownership of trophy assets (commercial buildings, office IT parks) leased to Fortune 500 conglomerates.
+* **Statutory Dividend Payout**: Under Indian SEBI regulations, REIT structures are legally mandated to distribute a minimum of **90% of Net Distributable Cash Flows** back to unit holders.
+* **Liquidity Advantage**: Eliminates the high-friction traditional property sale cycle (which can take months). REIT units can be bought and liquidated in seconds via the stock market.`
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+// Config Registry for Integrated Wealth Academies
+const ACADEMIES = {
+    trading: {
+        title: 'Enterprise Trading Academy',
+        subtitle: 'Master the absolute spectrum of stock market operations—covering raw matching infrastructure, balance sheet evaluations, indicator strategies, and advanced Options Greeks.',
+        gradient: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)',
+        shadow: 'rgba(6, 78, 59, 0.2)',
+        icon: LineChart,
+        curriculum: CURRICULUM_PHASES,
+        tag: 'Stocks, F&O & Technicals',
+        desc: 'Comprehensive 25-module curriculum covering micro-structure, fundamental balance sheet analysis, technical price action, and derivative strategies.'
+    },
+    sip: {
+        title: 'SIP Wealth Builder',
+        subtitle: 'Harness the unstoppable force of compounding, automated discipline, and Step-Up systematic architectures for secure financial freedom.',
+        gradient: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+        shadow: 'rgba(30, 58, 138, 0.2)',
+        icon: TrendingUp,
+        curriculum: SIP_CURRICULUM,
+        tag: 'Compounding & Goal Planning',
+        desc: 'Learn tactical Step-Up, flexible, and trigger SIPs to structure an automated wealth machine utilizing optimal Rupee Cost Averaging.'
+    },
+    mutual_funds: {
+        title: 'Mutual Funds Masterclass',
+        subtitle: 'Navigate active versus passive vehicles, analyze capitalization boundaries, and master direct plan compounding advantages.',
+        gradient: 'linear-gradient(135deg, #5B21B6 0%, #8B5CF6 100%)',
+        shadow: 'rgba(91, 33, 182, 0.2)',
+        icon: PieChart,
+        curriculum: MUTUAL_FUNDS_CURRICULUM,
+        tag: 'Portfolio Diversification',
+        desc: 'Deep dive into Asset Management Companies, Net Asset Values, Large, Mid & Small caps, Index fund passives, and Expense Ratio optimizations.'
+    },
+    more: {
+        title: 'Alternative Assets & Debt',
+        subtitle: 'Diversify beyond standard equities into inflation-beating Sovereign Gold Bonds (SGB), AAA corporate debt, and commercial REITs.',
+        gradient: 'linear-gradient(135deg, #92400E 0%, #D97706 100%)',
+        shadow: 'rgba(146, 64, 14, 0.2)',
+        icon: Gem,
+        curriculum: WEALTH_CURRICULUM,
+        tag: 'Bonds, Gold & REITs',
+        desc: 'Master stable yield generation, tax-free gold maturity strategies, credit rating due diligence, and commercial real-estate cash flows.'
+    }
+};
 
 const BusinessTrading = () => {
-    const [activeModule, setActiveModule] = useState(ALL_MODULES_FLAT[0]);
+    const [selectedTrack, setSelectedTrack] = useState(null); // Tracks Academy category. If null, shows selection Hub.
+    
+    const activeAcademy = useMemo(() => {
+        return selectedTrack ? ACADEMIES[selectedTrack] : null;
+    }, [selectedTrack]);
+    
+    const CURRICULUM_DATA = useMemo(() => {
+        return activeAcademy ? activeAcademy.curriculum : [];
+    }, [activeAcademy]);
+    
+    const trackModulesFlat = useMemo(() => {
+        return CURRICULUM_DATA.flatMap(phase => phase.modules);
+    }, [CURRICULUM_DATA]);
+
+    const [activeModule, setActiveModule] = useState(null);
     const [activeTopicIdx, setActiveTopicIdx] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [bookmarkList, setBookmarkList] = useState(() => {
@@ -587,10 +877,27 @@ const BusinessTrading = () => {
     });
 
     // Track open/collapsed state for Phase accordions
-    const [openPhases, setOpenPhases] = useState(() => {
+    const [openPhases, setOpenPhases] = useState([]);
+
+    const handleTrackSelect = (trackKey) => {
+        setSelectedTrack(trackKey);
+        const academy = ACADEMIES[trackKey];
+        const firstMod = academy.curriculum[0].modules[0];
+        setActiveModule(firstMod);
+        setActiveTopicIdx(0);
+        setSearchQuery('');
         // Start with all phases expanded by default for visibility
-        return CURRICULUM_PHASES.map((_, idx) => idx);
-    });
+        setOpenPhases(academy.curriculum.map((_, idx) => idx));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleBackToCampus = () => {
+        setSelectedTrack(null);
+        setActiveModule(null);
+        setActiveTopicIdx(0);
+        setSearchQuery('');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const togglePhase = (phaseIdx) => {
         if (openPhases.includes(phaseIdx)) {
@@ -616,27 +923,29 @@ const BusinessTrading = () => {
         setActiveTopicIdx(0);
     };
 
-    const currentTopic = activeModule.topics[activeTopicIdx];
+    const currentTopic = activeModule ? activeModule.topics[activeTopicIdx] : null;
 
     // Helper to find which Phase an active module belongs to
     const activePhaseName = useMemo(() => {
-        const found = CURRICULUM_PHASES.find(phase => 
+        if (!activeModule || !CURRICULUM_DATA) return '';
+        const found = CURRICULUM_DATA.find(phase => 
             phase.modules.some(m => m.id === activeModule.id)
         );
         return found ? found.name : '';
-    }, [activeModule]);
+    }, [activeModule, CURRICULUM_DATA]);
 
-    // Filtering logic spanning all 25 modules
+    // Filtering logic spanning current track
     const filteredPhases = useMemo(() => {
-        if (!searchQuery) return CURRICULUM_PHASES;
+        if (!CURRICULUM_DATA) return [];
+        if (!searchQuery) return CURRICULUM_DATA;
         
-        return CURRICULUM_PHASES.map(phase => {
+        return CURRICULUM_DATA.map(phase => {
             const matchingModules = phase.modules.filter(mod => 
                 mod.title.toLowerCase().includes(searchQuery.toLowerCase())
             );
             return { ...phase, modules: matchingModules };
         }).filter(phase => phase.modules.length > 0);
-    }, [searchQuery]);
+    }, [searchQuery, CURRICULUM_DATA]);
 
     // Inline Markdown Bold Processing Engine
     const renderInlineMarkdown = (lineText) => {
@@ -652,6 +961,7 @@ const BusinessTrading = () => {
 
     // Rich Text Parser
     const formatContent = (text) => {
+        if (!text) return null;
         return text.split('\n\n').map((paragraph, index) => {
             // Custom Blockquotes
             if (paragraph.startsWith('> ')) {
@@ -663,7 +973,7 @@ const BusinessTrading = () => {
                 );
             }
             // Main headers
-            if (paragraph.startsWith('### ')) {
+            if (paragraph.trim().startsWith('### ')) {
                 const cleaned = paragraph.replace('### ', '');
                 return (
                     <h3 key={index} style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', marginTop: '2.25rem', marginBottom: '1rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>
@@ -672,9 +982,9 @@ const BusinessTrading = () => {
                 );
             }
             // List builders
-            if (paragraph.startsWith('* ') || paragraph.startsWith('1. ') || paragraph.startsWith('2. ') || paragraph.startsWith('3. ') || paragraph.startsWith('4. ')) {
+            if (paragraph.trim().startsWith('* ') || paragraph.trim().startsWith('1. ') || paragraph.trim().startsWith('2. ') || paragraph.trim().startsWith('3. ') || paragraph.trim().startsWith('4. ')) {
                 return (
-                    <ul key={index} style={{ paddingLeft: '1.5rem', margin: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem', listStyleType: paragraph.startsWith('*') ? 'disc' : 'decimal' }}>
+                    <ul key={index} style={{ paddingLeft: '1.5rem', margin: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem', listStyleType: paragraph.trim().startsWith('*') ? 'disc' : 'decimal' }}>
                         {paragraph.split('\n').map((li, liIdx) => {
                             const bulletCleaned = li.replace(/^\s*(\*|\d+\.)\s+/, '');
                             return (
@@ -697,42 +1007,158 @@ const BusinessTrading = () => {
 
     // Linear navigation controls
     const handleNextModuleStep = () => {
-        const currentFlatIdx = ALL_MODULES_FLAT.findIndex(m => m.id === activeModule.id);
+        const currentFlatIdx = trackModulesFlat.findIndex(m => m.id === activeModule.id);
         
         if (activeTopicIdx < activeModule.topics.length - 1) {
             setActiveTopicIdx(activeTopicIdx + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (currentFlatIdx < ALL_MODULES_FLAT.length - 1) {
+        } else if (currentFlatIdx < trackModulesFlat.length - 1) {
             // Advance to next module in database
-            const nextModule = ALL_MODULES_FLAT[currentFlatIdx + 1];
+            const nextModule = trackModulesFlat[currentFlatIdx + 1];
             setActiveModule(nextModule);
             setActiveTopicIdx(0);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            alert("🎓 Extraordinary Achievement! You have fully navigated, studied, and reviewed our absolute complete 25-Module professional syllabus!");
+            alert("🎓 Outstanding Achievement! You have fully reviewed and completed our complete syllabus for the " + activeAcademy.title + "!");
         }
     };
+
+    // Rendering the Campus Hub selection screen if no track is selected
+    if (!selectedTrack) {
+        return (
+            <div style={{ padding: '2.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
+                
+                {/* Campus Hub Top Banner */}
+                <div style={{ 
+                    background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)', 
+                    borderRadius: '28px', padding: '3rem', color: 'white', 
+                    marginBottom: '3rem', boxShadow: '0 20px 45px -12px rgba(49, 46, 129, 0.3)',
+                    position: 'relative', overflow: 'hidden'
+                }}>
+                    <div style={{ position: 'absolute', right: '-60px', top: '-60px', width: '260px', height: '260px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
+                    <div style={{ position: 'absolute', right: '60px', bottom: '-90px', width: '190px', height: '190px', background: 'rgba(255,255,255,0.02)', borderRadius: '50%' }} />
+                    
+                    <div style={{ maxWidth: '750px', position: 'relative', zIndex: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.1)', width: 'fit-content', padding: '0.45rem 1rem', borderRadius: '99px', marginBottom: '1.5rem', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <Award size={16} style={{ color: '#FBBF24' }} />
+                            <span style={{ fontSize: '0.75rem', fontWeight: '900', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#FBBF24' }}>Integrated Wealth Campus</span>
+                        </div>
+                        <h1 style={{ fontSize: '3rem', fontWeight: '950', letterSpacing: '-0.03em', margin: '0 0 1rem 0', lineHeight: 1.1 }}>Social Trading & Finance Academies</h1>
+                        <p style={{ opacity: 0.9, fontSize: '1.15rem', lineHeight: '1.65', fontWeight: '500', margin: 0 }}>Empower your capital and secure financial literacy. Select one of our professional-tier courses covering stock market dynamics, compounding via SIP, Mutual Funds strategies, and Alternative Fixed Assets.</p>
+                    </div>
+                </div>
+
+                {/* Dynamic Academy Choice Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem' }}>
+                    {Object.keys(ACADEMIES).map((key) => {
+                        const academy = ACADEMIES[key];
+                        const AcademyIcon = academy.icon;
+                        return (
+                            <div 
+                                key={key}
+                                onClick={() => handleTrackSelect(key)}
+                                style={{
+                                    background: 'white',
+                                    borderRadius: '24px',
+                                    border: '1px solid #E2E8F0',
+                                    padding: '2.5rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-5px)';
+                                    e.currentTarget.style.boxShadow = '0 20px 30px -10px rgba(0,0,0,0.05)';
+                                    e.currentTarget.style.borderColor = '#CBD5E1';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.02)';
+                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                }}
+                            >
+                                {/* Card Heading Elements */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                                    <div style={{ 
+                                        width: '62px', height: '62px', borderRadius: '18px', 
+                                        background: academy.gradient, display: 'flex', 
+                                        alignItems: 'center', justifyContent: 'center', color: 'white',
+                                        boxShadow: `0 8px 20px ${academy.shadow}`
+                                    }}>
+                                        <AcademyIcon size={28} />
+                                    </div>
+                                    <span style={{ 
+                                        fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase', 
+                                        letterSpacing: '0.06em', background: '#F1F5F9', color: '#475569', 
+                                        padding: '6px 12px', borderRadius: '8px' 
+                                    }}>
+                                        {academy.tag}
+                                    </span>
+                                </div>
+
+                                {/* Title & Summary */}
+                                <h2 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', margin: '0 0 0.75rem 0', letterSpacing: '-0.02em' }}>
+                                    {academy.title}
+                                </h2>
+                                <p style={{ color: '#64748B', fontSize: '0.95rem', lineHeight: '1.65', margin: '0 0 2.25rem 0', flex: 1 }}>
+                                    {academy.desc}
+                                </p>
+
+                                {/* Launch Indicator */}
+                                <div style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                    fontSize: '0.92rem', fontWeight: '900', color: '#1E293B'
+                                }}>
+                                    <span>Launch Learning Track</span>
+                                    <ArrowRight size={16} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+
+    // The visual reader interface for an active Selected Track
+    const AcademyIcon = activeAcademy.icon;
 
     return (
         <div style={{ padding: '2.5rem', background: '#F8FAFC', minHeight: '100vh', fontFamily: "'Inter', sans-serif", color: '#1E293B' }}>
             
-            {/* Main Header Boarding */}
+            {/* Main Header Banner for Active Academy */}
             <div style={{ 
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)', 
+                background: activeAcademy.gradient, 
                 borderRadius: '28px', padding: '2.5rem 3rem', color: 'white', 
-                marginBottom: '2.5rem', boxShadow: '0 15px 40px -10px rgba(6, 78, 59, 0.2)' 
+                marginBottom: '2.5rem', boxShadow: `0 15px 40px -10px ${activeAcademy.shadow}`,
+                position: 'relative'
             }}>
-                <div style={{ maxWidth: '65%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.15)', width: 'fit-content', padding: '0.4rem 0.9rem', borderRadius: '999px', marginBottom: '1.25rem', backdropFilter: 'blur(4px)' }}>
-                        <Award size={15} className="text-yellow-300" />
-                        <span style={{ fontSize: '0.72rem', fontWeight: '900', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Complete 25-Module Professional Syllabus</span>
-                    </div>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: '950', letterSpacing: '-0.03em', margin: '0 0 0.5rem 0' }}>Enterprise Trading Academy</h1>
-                    <p style={{ opacity: 0.9, fontSize: '1.05rem', lineHeight: '1.6', fontWeight: '500', margin: 0 }}>Master the absolute spectrum of stock market operations—covering raw matching infrastructure, balance sheet evaluations, indicator strategies, advanced Options Greeks, and direct Indian ITR compliance.</p>
+                <div style={{ maxWidth: '70%' }}>
+                    <button 
+                        onClick={handleBackToCampus}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            background: 'rgba(255,255,255,0.15)', color: 'white', 
+                            border: 'none', padding: '0.55rem 1.1rem', borderRadius: '10px', 
+                            fontSize: '0.78rem', fontWeight: '900', cursor: 'pointer', 
+                            marginBottom: '1.25rem', backdropFilter: 'blur(4px)',
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                    >
+                        ← Back to Academy Hub
+                    </button>
+                    <h1 style={{ fontSize: '2.5rem', fontWeight: '950', letterSpacing: '-0.03em', margin: '0 0 0.5rem 0' }}>{activeAcademy.title}</h1>
+                    <p style={{ opacity: 0.9, fontSize: '1.05rem', lineHeight: '1.6', fontWeight: '500', margin: 0 }}>{activeAcademy.subtitle}</p>
                 </div>
-                <div style={{ width: '190px', height: '190px', background: 'rgba(255, 255, 255, 0.07)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <BookMarked size={90} style={{ color: 'white', opacity: 0.3 }} />
+                <div style={{ width: '160px', height: '160px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AcademyIcon size={80} style={{ color: 'white', opacity: 0.35 }} />
                 </div>
             </div>
 
@@ -761,8 +1187,8 @@ const BusinessTrading = () => {
                         maxHeight: '70vh', display: 'flex', flexDirection: 'column' 
                     }}>
                         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B' }}>Syllabus Spectrum</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: '850', color: '#1B6B3A', background: '#DCF2E4', padding: '3px 8px', borderRadius: '6px' }}>25 Modules</span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B' }}>Course Syllabus</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '850', color: '#1B6B3A', background: '#DCF2E4', padding: '3px 8px', borderRadius: '6px' }}>{trackModulesFlat.length} Modules</span>
                         </div>
 
                         <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -794,7 +1220,7 @@ const BusinessTrading = () => {
                                             <div style={{ display: 'flex', flexDirection: 'column', background: 'white' }}>
                                                 {phase.modules.map((module) => {
                                                     const Icon = module.icon;
-                                                    const isActive = activeModule.id === module.id;
+                                                    const isActive = activeModule && activeModule.id === module.id;
                                                     return (
                                                         <div 
                                                             key={module.id}
@@ -844,7 +1270,7 @@ const BusinessTrading = () => {
                     {/* Top Topic Controller & Bookmark Header */}
                     <div style={{ padding: '1.25rem 2.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ display: 'flex', gap: '0.6rem' }}>
-                            {activeModule.topics.map((topic, idx) => (
+                            {activeModule && activeModule.topics.map((topic, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => setActiveTopicIdx(idx)}
@@ -862,68 +1288,74 @@ const BusinessTrading = () => {
                             ))}
                         </div>
 
-                        <button 
-                            onClick={() => toggleBookmark(currentTopic.title)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: bookmarkList.includes(currentTopic.title) ? '#F59E0B' : '#94A3B8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                        >
-                            <Bookmark size={18} fill={bookmarkList.includes(currentTopic.title) ? '#F59E0B' : 'none'} />
-                            <span style={{ fontSize: '0.8rem', fontWeight: '850', color: '#64748B' }}>{bookmarkList.includes(currentTopic.title) ? 'Bookmarked' : 'Save'}</span>
-                        </button>
+                        {currentTopic && (
+                            <button 
+                                onClick={() => toggleBookmark(currentTopic.title)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: bookmarkList.includes(currentTopic.title) ? '#F59E0B' : '#94A3B8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                            >
+                                <Bookmark size={18} fill={bookmarkList.includes(currentTopic.title) ? '#F59E0B' : 'none'} />
+                                <span style={{ fontSize: '0.8rem', fontWeight: '850', color: '#64748B' }}>{bookmarkList.includes(currentTopic.title) ? 'Bookmarked' : 'Save'}</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Content Presentation Panel */}
                     <div style={{ padding: '3.5rem' }} className="animate-in fade-in duration-300">
                         
-                        {/* Header Metadata Info */}
-                        <div style={{ marginBottom: '2.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', fontSize: '0.82rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                                <span>{activePhaseName}</span>
-                                <ChevronRight size={14} />
-                                <span>Module Selection</span>
-                            </div>
-                            <h1 style={{ fontSize: '2.25rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', lineHeight: '1.25', margin: '0 0 1.25rem 0' }}>
-                                {activeModule.title}
-                            </h1>
-                            <div style={{ display: 'flex', gap: '1.5rem', color: '#64748B', fontSize: '0.82rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.75rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Clock size={15} />
-                                    <span style={{ fontWeight: '650' }}>System Estimation: ~12-15 mins</span>
+                        {activeModule && (
+                            <>
+                                {/* Header Metadata Info */}
+                                <div style={{ marginBottom: '2.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', fontSize: '0.82rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                                        <span>{activePhaseName}</span>
+                                        <ChevronRight size={14} />
+                                        <span>Module Selection</span>
+                                    </div>
+                                    <h1 style={{ fontSize: '2.25rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', lineHeight: '1.25', margin: '0 0 1.25rem 0' }}>
+                                        {activeModule.title}
+                                    </h1>
+                                    <div style={{ display: 'flex', gap: '1.5rem', color: '#64748B', fontSize: '0.82rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.75rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Clock size={15} />
+                                            <span style={{ fontWeight: '650' }}>System Estimation: ~15 mins</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <CheckCircle2 size={15} color="#10B981" />
+                                            <span style={{ fontWeight: '650' }}>Institutional Training Framework</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <CheckCircle2 size={15} color="#10B981" />
-                                    <span style={{ fontWeight: '650' }}>SEBI Compliant Training Framework</span>
+
+                                {/* Dynamic Content Rich Text Rendering */}
+                                <article style={{ fontSize: '1.02rem', color: '#334155' }}>
+                                    {currentTopic && formatContent(currentTopic.content)}
+                                </article>
+
+                                {/* Footer Navigation Guide */}
+                                <div style={{ marginTop: '4.5rem', borderTop: '1px solid #E2E8F0', paddingTop: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.35rem 0' }}>Module Completion State</p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
+                                            <span style={{ fontSize: '0.88rem', fontWeight: '850', color: '#0F172A' }}>Finished this section! Ready to unlock next chapter?</span>
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={handleNextModuleStep}
+                                        style={{ 
+                                            display: 'flex', alignItems: 'center', gap: '0.6rem', background: activeAcademy.gradient, 
+                                            color: 'white', border: 'none', padding: '0.9rem 2rem', borderRadius: '14px', fontWeight: '900', fontSize: '0.95rem', cursor: 'pointer',
+                                            boxShadow: `0 8px 25px ${activeAcademy.shadow}`, transition: 'transform 0.2s'
+                                        }}
+                                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                    >
+                                        Next Curriculum Stage <ArrowRight size={18} />
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Dynamic Content Rich Text Rendering */}
-                        <article style={{ fontSize: '1.02rem', color: '#334155' }}>
-                            {formatContent(currentTopic.content)}
-                        </article>
-
-                        {/* Footer Navigation Guide */}
-                        <div style={{ marginTop: '4.5rem', borderTop: '1px solid #E2E8F0', paddingTop: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.35rem 0' }}>Module Completion State</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
-                                    <span style={{ fontSize: '0.88rem', fontWeight: '850', color: '#0F172A' }}>Finished this section! Ready to unlock next chapter?</span>
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={handleNextModuleStep}
-                                style={{ 
-                                    display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
-                                    color: 'white', border: 'none', padding: '0.9rem 2rem', borderRadius: '14px', fontWeight: '900', fontSize: '0.95rem', cursor: 'pointer',
-                                    boxShadow: '0 8px 25px rgba(27, 107, 58, 0.22)', transition: 'transform 0.2s'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                            >
-                                Next Curriculum Stage <ArrowRight size={18} />
-                            </button>
-                        </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -935,7 +1367,7 @@ const BusinessTrading = () => {
                         <Zap size={20} />
                         <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Principle of Capital</h4>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Wealth is built by maximizing asymmetry. Restrict your losses to 1% on ANY individual setup to survive macro market volatility cycles mathematically.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Wealth is built by maximizing compounding asymmetry. Restrict speculative risks on individual setups to survive macro market volatility cycles mathematically.</p>
                 </div>
 
                 <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
@@ -943,7 +1375,7 @@ const BusinessTrading = () => {
                         <HelpCircle size={20} />
                         <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Practice Environments</h4>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Pair this academic data with interactive simulator sandboxes. Backtest strategy conditions on 2 years of historical daily stock data before deploying live capital.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>Pair this academic theoretical data with interactive simulators. Inspect 10-year rolling CAGR performance parameters across asset buckets before deploying live capital.</p>
                 </div>
 
                 <div style={{ background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
@@ -951,7 +1383,7 @@ const BusinessTrading = () => {
                         <ShieldAlert size={20} />
                         <h4 style={{ fontWeight: '900', fontSize: '1rem', margin: 0 }}>Legal Risk Advisory</h4>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>This educational hub is strictly instructional. Leveraged derivative trades possess high default risk. SEBI reports show over 9 out of 10 retail traders incur net losses in F&O.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', lineHeight: '1.6', margin: 0 }}>This integrated campus is strictly informational. Markets are subject to investment risks. Always evaluate detailed statutory scheme offer documents before deploying capital.</p>
                 </div>
             </div>
         </div>
@@ -959,3 +1391,4 @@ const BusinessTrading = () => {
 };
 
 export default BusinessTrading;
+
