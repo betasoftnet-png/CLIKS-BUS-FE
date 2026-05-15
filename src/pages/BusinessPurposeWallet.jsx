@@ -128,8 +128,8 @@ const BusinessPurposeWallet = () => {
     // Derived Statistics
     const wallets = Array.isArray(responseData) ? responseData : [];
     const activeWallets = wallets.filter(w => w.status !== 'completed').length;
-    const totalAllocated = wallets.reduce((sum, w) => sum + (w.current_amount || 0), 0);
-    const totalTarget = wallets.reduce((sum, w) => sum + (w.target_amount || 0), 0);
+    const totalAllocated = wallets.reduce((sum, w) => sum + parseFloat(w.current_amount || 0), 0);
+    const totalTarget = wallets.reduce((sum, w) => sum + parseFloat(w.target_amount || 0), 0);
     const globalProgress = totalTarget > 0 ? Math.round((totalAllocated / totalTarget) * 100) : 0;
 
     return (
@@ -249,8 +249,8 @@ const BusinessPurposeWallet = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>
                     {wallets.map((wallet) => {
                         const isCompleted = wallet.status === 'completed';
-                        const current = wallet.current_amount || 0;
-                        const target = wallet.target_amount || 1;
+                        const current = parseFloat(wallet.current_amount || 0);
+                        const target = parseFloat(wallet.target_amount || 1);
                         const pct = Math.min(Math.round((current / target) * 100), 100);
                         const canClaim = current >= target && !isCompleted;
 
@@ -579,7 +579,7 @@ const BusinessPurposeWallet = () => {
                                     <div style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{historyWallet.name}</div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                                         <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Total Isolated</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#059669' }}>₹{(historyWallet.current_amount || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#059669' }}>₹{parseFloat(historyWallet.current_amount || 0).toLocaleString('en-IN')}</span>
                                     </div>
                                 </div>
 
@@ -617,7 +617,7 @@ const BusinessPurposeWallet = () => {
                                                         </div>
                                                     </div>
                                                     <div style={{ fontSize: '0.95rem', fontWeight: '900', color: tx.type === 'debit' ? '#DC2626' : '#0F172A' }}>
-                                                        {tx.type === 'debit' ? '-' : '+'} ₹{(tx.amount || 0).toLocaleString('en-IN')}
+                                                        {tx.type === 'debit' ? '-' : '+'} ₹{parseFloat(tx.amount || 0).toLocaleString('en-IN')}
                                                     </div>
                                                 </div>
                                             ))
