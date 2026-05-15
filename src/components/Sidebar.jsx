@@ -404,35 +404,33 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 ) : isFinanceMode ? (
                     <>
                         {/* No "Finance" title - removed per user request */}
-                        {/* Add Money CTA - shows only when Wallet is the active page */}
-                        {activeItem === 'Wallet' && (
-                            <button
-                                onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
-                                style={{
-                                    width: 'calc(100% - 2rem)',
-                                    margin: '0.5rem 1rem 0.25rem 1rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.65rem 1rem',
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
-                                    color: '#FFFFFF',
-                                    borderRadius: '10px',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontWeight: '800',
-                                    fontSize: '0.82rem',
-                                    boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
-                                    transition: 'all 0.2s ease',
-                                    flexShrink: 0
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                            >
-                                <Plus size={15} strokeWidth={3} /> Add Money
-                            </button>
-                        )}
+                        {/* Add Money CTA - shows on all Finance mode pages */}
+                        <button
+                            onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
+                            style={{
+                                width: 'calc(100% - 2rem)',
+                                margin: '0.5rem 1rem 0.25rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                padding: '0.65rem 1rem',
+                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                color: '#FFFFFF',
+                                borderRadius: '10px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: '800',
+                                fontSize: '0.82rem',
+                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
+                                transition: 'all 0.2s ease',
+                                flexShrink: 0
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            <Plus size={15} strokeWidth={3} /> Add Money
+                        </button>
                         {navigationConfig.financeMode.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
                     </>
                 ) : (

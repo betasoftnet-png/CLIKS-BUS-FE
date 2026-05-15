@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
     Calculator, X, RotateCcw, Delete, Share2, Trash2, 
-    Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown
+    Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown, History
 } from "lucide-react";
 
 export function CalculatorPopover() {
@@ -19,10 +19,12 @@ export function CalculatorPopover() {
     const [activeLabel, setActiveLabel] = useState("");
 
     // Smart Bar UI States
-    const [showSmartOptions, setShowSmartOptions] = useState(null); // 'gst' | 'discount' | 'label' | null
-    const [isConverted, setIsConverted] = useState(false); // INR to USD Toggle
-    const [compareMode, setCompareMode] = useState(false); // Side-by-side Compare Mode
-    const [sciMode, setSciMode] = useState(false); // Scientific Calculator Mode
+    const [showSmartOptions, setShowSmartOptions] = useState(null);
+    const [isConverted, setIsConverted] = useState(false);
+    const [compareMode, setCompareMode] = useState(false);
+    const [showHistory, setShowHistory] = useState(false); // History panel toggle
+    const [calcHistory, setCalcHistory] = useState([]); // Saved tape snapshots
+    const [sciMode, setSciMode] = useState(false);
 
     // Compare Mode dual-tape state
     const [cmpLeft, setCmpLeft] = useState({ entries: [], input: '' });  // { entries: [{id, val}], input: string }
@@ -482,6 +484,13 @@ export function CalculatorPopover() {
                             </div>
                             <div style={{ display: 'flex', gap: '6px' }}>
                                 <button 
+                                    onClick={() => { setShowHistory(h => !h); }}
+                                    title="Calculation History"
+                                    style={{ background: showHistory ? '#EEF2FF' : '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: showHistory ? '#6366F1' : '#475569', transition: 'all 0.2s' }}
+                                >
+                                    <History size={15} />
+                                </button>
+                                <button 
                                     onClick={handleShareText} 
                                     title="Copy process summary"
                                     style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#475569' }}
@@ -698,88 +707,106 @@ export function CalculatorPopover() {
                                     const diff = Math.abs(leftTotal - rightTotal);
                                     const winner = leftTotal > rightTotal ? 'A' : leftTotal < rightTotal ? 'B' : '=';
 
-                                    // Shared mini tape column renderer
-                                    const TapeCol = ({ side, state, setState }) => (
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <div style={{ fontSize: '10px', fontWeight: '900', color: side === 'L' ? '#2563EB' : '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>
-                                                Side {side === 'L' ? 'A' : 'B'}
-                                            </div>
-
-                                            {/* Entries tape */}
-                                            <div style={{ minHeight: '60px', maxHeight: '100px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                {state.entries.length === 0 ? (
-                                                    <div style={{ fontSize: '10px', color: '#94A3B8', fontStyle: 'italic', padding: '4px 0' }}>e.g. 8 + 3 + 9</div>
-                                                ) : state.entries.map((e, idx) => (
-                                                    <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', borderRadius: '5px', padding: '3px 6px', border: '1px solid #E2E8F0' }}>
-                                                        <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '700' }}>{idx === 0 ? '' : '+'} {e.val.toLocaleString('en-IN')}</span>
-                                                        <button onClick={() => cmpRemoveEntry(side, e.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#EF4444', padding: '0', lineHeight: 1, fontSize: '12px', fontWeight: '900' }}>×</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* Divider + total */}
-                                            {state.entries.length > 0 && (
-                                                <div style={{ borderTop: '1.5px dashed ' + (side === 'L' ? '#BFDBFE' : '#DDD6FE'), paddingTop: '3px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '10px', fontWeight: '800', color: side === 'L' ? '#1D4ED8' : '#7C3AED' }}>Total</span>
-                                                    <span style={{ fontSize: '13px', fontWeight: '900', color: side === 'L' ? '#1D4ED8' : '#7C3AED' }}>₹{cmpTotal(state.entries).toLocaleString('en-IN')}</span>
+                                    const TapeCol = ({ side, state, setState }) => {
+                                        const isLeft = side === 'L';
+                                        const accentColor = isLeft ? '#3B82F6' : '#8B5CF6';
+                                        const lightBg = isLeft ? '#EFF6FF' : '#F5F3FF';
+                                        const borderCol = isLeft ? '#BFDBFE' : '#DDD6FE';
+                                        return (
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '14px', border: `1.5px solid ${borderCol}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                                {/* Column header */}
+                                                <div style={{ background: `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)`, borderBottom: `1px solid ${borderCol}`, padding: '7px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '11px', fontWeight: '900', color: accentColor, letterSpacing: '0.5px' }}>SIDE {isLeft ? 'A' : 'B'}</span>
+                                                    <button onClick={() => cmpClear(side)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: '#94A3B8', fontWeight: '700', padding: 0 }}>CLEAR</button>
                                                 </div>
-                                            )}
 
-                                            {/* Input + Add */}
-                                            <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Amount"
-                                                    value={state.input}
-                                                    onChange={(e) => setState(prev => ({ ...prev, input: e.target.value }))}
-                                                    onKeyDown={(e) => cmpHandleKeyDown(e, side)}
-                                                    style={{ flex: 1, padding: '5px 8px', borderRadius: '7px', border: '1px solid ' + (side === 'L' ? '#BFDBFE' : '#DDD6FE'), fontSize: '13px', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
-                                                />
-                                                <button
-                                                    onClick={() => cmpAddEntry(side)}
-                                                    style={{ background: side === 'L' ? '#2563EB' : '#7C3AED', color: 'white', border: 'none', borderRadius: '7px', padding: '0 10px', fontWeight: '900', fontSize: '14px', cursor: 'pointer' }}
-                                                >+</button>
+                                                {/* Tape entries */}
+                                                <div style={{ minHeight: '64px', maxHeight: '96px', overflowY: 'auto', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                    {state.entries.length === 0 ? (
+                                                        <div style={{ fontSize: '10px', color: '#CBD5E1', fontStyle: 'italic', padding: '8px 0', textAlign: 'center' }}>e.g. 8 + 3 + 9</div>
+                                                    ) : state.entries.map((e, idx) => (
+                                                        <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: lightBg, borderRadius: '6px', padding: '4px 7px' }}>
+                                                            <span style={{ fontSize: '10px', color: accentColor, fontWeight: '800', fontFamily: 'monospace' }}>
+                                                                {idx === 0 ? '  ' : '+'}&nbsp;{e.val.toLocaleString('en-IN')}
+                                                            </span>
+                                                            <button onClick={() => cmpRemoveEntry(side, e.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '0 2px', lineHeight: 1, fontSize: '13px', fontWeight: '900', transition: 'color 0.15s' }}
+                                                                onMouseOver={ev => ev.currentTarget.style.color = '#EF4444'}
+                                                                onMouseOut={ev => ev.currentTarget.style.color = '#CBD5E1'}
+                                                            >×</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Total bar */}
+                                                {state.entries.length > 0 && (
+                                                    <div style={{ borderTop: `1.5px dashed ${borderCol}`, margin: '0 8px', padding: '5px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '9px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total</span>
+                                                        <span style={{ fontSize: '14px', fontWeight: '950', color: accentColor, fontFamily: 'monospace' }}>₹{cmpTotal(state.entries).toLocaleString('en-IN')}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Input row */}
+                                                <div style={{ display: 'flex', gap: '4px', padding: '6px 8px', borderTop: `1px solid ${borderCol}`, background: '#FAFAFE' }}>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Add number..."
+                                                        value={state.input}
+                                                        onChange={(ev) => setState(prev => ({ ...prev, input: ev.target.value }))}
+                                                        onKeyDown={(ev) => cmpHandleKeyDown(ev, side)}
+                                                        style={{ flex: 1, padding: '5px 8px', borderRadius: '8px', border: `1px solid ${borderCol}`, fontSize: '12px', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
+                                                    />
+                                                    <button
+                                                        onClick={() => cmpAddEntry(side)}
+                                                        style={{ background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}CC 100%)`, color: 'white', border: 'none', borderRadius: '8px', padding: '0 11px', fontWeight: '900', fontSize: '16px', cursor: 'pointer', boxShadow: `0 2px 6px ${accentColor}40` }}
+                                                    >+</button>
+                                                </div>
                                             </div>
-                                            <button onClick={() => cmpClear(side)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: '#94A3B8', fontWeight: '700', textAlign: 'left', padding: 0 }}>Clear</button>
-                                        </div>
-                                    );
+                                        );
+                                    };
 
                                     return (
                                         <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
-                                            style={{ background: '#F0F9FF', padding: '12px 14px 10px 14px', borderBottom: '1px solid #BFDBFE', overflow: 'hidden' }}
+                                            style={{ background: 'linear-gradient(180deg, #F8FAFF 0%, #F0F4FF 100%)', padding: '12px 12px 10px 12px', borderBottom: '1px solid #E0E7FF', overflow: 'hidden' }}
                                         >
-                                            <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563EB', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>⚖️ Side-by-Side Compare</div>
-                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                            {/* Panel header */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <span style={{ fontSize: '10px', fontWeight: '900', color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.8px' }}>⚖️ Side-by-Side Compare</span>
+                                                {hasData && (
+                                                    <span style={{
+                                                        fontSize: '11px', fontWeight: '900', padding: '2px 10px', borderRadius: '20px',
+                                                        background: winner === '=' ? '#F1F5F9' : (winner === 'A' ? 'linear-gradient(90deg,#ECFDF5,#D1FAE5)' : 'linear-gradient(90deg,#FEF2F2,#FEE2E2)'),
+                                                        color: winner === '=' ? '#64748B' : (winner === 'A' ? '#059669' : '#DC2626'),
+                                                        border: `1px solid ${winner === '=' ? '#E2E8F0' : (winner === 'A' ? '#A7F3D0' : '#FECACA')}`
+                                                    }}>
+                                                        {winner === '=' ? 'Tied ⚖️' : winner === 'A' ? 'A Wins ▲' : 'B Wins ▲'}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Dual tape columns */}
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
                                                 <TapeCol side="L" state={cmpLeft} setState={setCmpLeft} />
 
-                                                {/* VS Divider */}
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, paddingTop: '22px' }}>
-                                                    <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748B' }}>VS</span>
-                                                    {hasData && (
-                                                        <span style={{
-                                                            fontSize: '12px', fontWeight: '900', padding: '2px 6px', borderRadius: '6px',
-                                                            background: winner === '=' ? '#F1F5F9' : (winner === 'A' ? '#ECFDF5' : '#FEF2F2'),
-                                                            color: winner === '=' ? '#64748B' : (winner === 'A' ? '#059669' : '#DC2626')
-                                                        }}>
-                                                            {winner === '=' ? '=' : winner === 'A' ? 'A▲' : 'B▲'}
-                                                        </span>
-                                                    )}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0, minWidth: '28px' }}>
+                                                    <div style={{ width: '1px', flex: 1, background: 'linear-gradient(180deg, transparent, #CBD5E1, transparent)' }} />
+                                                    <span style={{ fontSize: '10px', fontWeight: '900', color: '#94A3B8', background: 'white', border: '1px solid #E2E8F0', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>VS</span>
+                                                    <div style={{ width: '1px', flex: 1, background: 'linear-gradient(180deg, transparent, #CBD5E1, transparent)' }} />
                                                 </div>
 
                                                 <TapeCol side="R" state={cmpRight} setState={setCmpRight} />
                                             </div>
 
-                                            {/* Summary bar */}
+                                            {/* Summary pills */}
                                             {hasData && (
                                                 <div style={{ marginTop: '10px', display: 'flex', gap: '6px' }}>
-                                                    <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '5px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE', textAlign: 'center' }}>
-                                                        Diff&nbsp;<span style={{ color: '#3B82F6', fontWeight: '900' }}>₹{diff.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                    <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '6px 10px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #E0E7FF', textAlign: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.06)' }}>
+                                                        Diff&nbsp;<span style={{ color: '#6366F1', fontWeight: '900' }}>₹{diff.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                                                     </div>
-                                                    <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '5px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE', textAlign: 'center' }}>
-                                                        Ratio&nbsp;<span style={{ color: '#3B82F6', fontWeight: '900' }}>{rightTotal ? (leftTotal / rightTotal).toFixed(2) : '-'}x</span>
+                                                    <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '6px 10px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #E0E7FF', textAlign: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.06)' }}>
+                                                        Ratio&nbsp;<span style={{ color: '#6366F1', fontWeight: '900' }}>{rightTotal ? (leftTotal / rightTotal).toFixed(2) : '-'}x</span>
                                                     </div>
                                                 </div>
                                             )}
