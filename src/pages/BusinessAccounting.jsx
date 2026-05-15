@@ -31,6 +31,14 @@ import * as XLSX from 'xlsx';
 const BusinessAccounting = () => {
     const [activeTab, setActiveTab] = useState('p&l'); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportFromDate, setExportFromDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d.toISOString().split('T')[0];
+    });
+    const [exportToDate, setExportToDate] = useState(new Date().toISOString().split('T')[0]);
+    const [exportFormat, setExportFormat] = useState('xlsx');
 
     const queryClient = useQueryClient();
 
@@ -79,54 +87,66 @@ const BusinessAccounting = () => {
         }
     });
 
-    const handleExportForCA = () => {
+    const handleExecuteExport = () => {
         if (!dbLedger || dbLedger.length === 0) {
-            alert('No accounting data available to export.');
+            alert('No accounting ledger data found in database to export.');
             return;
         }
 
-        const caData = dbLedger.map((item, index) => {
-            const isIncome = item.entry_type === 'income';
-            return {
-                'Date': item.date ? item.date.split('T')[0] : '',
-                'Voucher Type': isIncome ? 'Receipt' : (item.entry_type === 'transfer' ? 'Contra' : 'Payment'),
-                'Voucher No': item.id || (index + 1),
-                'Particulars (Category)': item.category || '',
-                'Payment Mode / Account': item.mode || '',
-                'Reference / Notes': item.notes || '',
-                'Debit (Expense)': !isIncome && item.entry_type !== 'transfer' ? parseFloat(item.amount || 0) : '',
-                'Credit (Income)': isIncome ? parseFloat(item.amount || 0) : '',
-                'Amount': parseFloat(item.amount || 0)
-            };
+        // Filter logic for accounting records between specific dates
+        const filteredLedger = dbLedger.filter(item => {
+            if (!item.date) return false;
+            const itemDateStr = item.date.split('T')[0];
+            return itemDateStr >= exportFromDate && itemDateStr <= exportToDate;
         });
 
-        const ws = XLSX.utils.json_to_sheet(caData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Ledger_For_CA');
-        XLSX.writeFile(wb, `Accounting_Ledger_CA_${new Date().toISOString().split('T')[0]}.xlsx`);
-    };
-
-    const handleExportCSV = () => {
-        if (!dbLedger || dbLedger.length === 0) {
-            alert('No accounting data available to export.');
+        if (filteredLedger.length === 0) {
+            alert(`No entries recorded between ${exportFromDate} and ${exportToDate}. Please adjust the date limits.`);
             return;
         }
 
-        const csvData = dbLedger.map((item, index) => ({
-            'ID': item.id || index + 1,
-            'Date': item.date ? item.date.split('T')[0] : '',
-            'Entry Type': item.entry_type,
-            'Category': item.category || '',
-            'Payment Mode': item.mode || '',
-            'Amount': parseFloat(item.amount || 0),
-            'Notes': item.notes || '',
-            'Created At': item.created_at || ''
-        }));
+        let exportPayload = [];
+        if (exportFormat === 'xlsx') {
+            // Structured precisely for professional CA (Chartered Accountant) Audits
+            exportPayload = filteredLedger.map((item, index) => {
+                const isIncome = item.entry_type === 'income';
+                return {
+                    'Voucher Date': item.date ? item.date.split('T')[0] : '',
+                    'Voucher Type': isIncome ? 'Receipt' : (item.entry_type === 'transfer' ? 'Contra' : 'Payment'),
+                    'Voucher Reference': item.id || (index + 1),
+                    'Account Particulars': item.category || 'General Ledger',
+                    'Transaction Mode': item.mode || 'Other',
+                    'Notes / Memo': item.notes || '',
+                    'Debit (Expenses) - INR': !isIncome && item.entry_type !== 'transfer' ? parseFloat(item.amount || 0) : 0,
+                    'Credit (Incomes) - INR': isIncome ? parseFloat(item.amount || 0) : 0,
+                    'Total Net Amount': parseFloat(item.amount || 0)
+                };
+            });
+        } else {
+            // Clean raw CSV dump
+            exportPayload = filteredLedger.map((item, index) => ({
+                'Record_ID': item.id || index + 1,
+                'Date': item.date ? item.date.split('T')[0] : '',
+                'Type': item.entry_type,
+                'Category': item.category || '',
+                'Mode': item.mode || '',
+                'Amount_INR': parseFloat(item.amount || 0),
+                'Notes': item.notes || ''
+            }));
+        }
 
-        const ws = XLSX.utils.json_to_sheet(csvData);
+        const ws = XLSX.utils.json_to_sheet(exportPayload);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Ledger');
-        XLSX.writeFile(wb, `Accounting_Ledger_${new Date().toISOString().split('T')[0]}.csv`, { bookType: 'csv' });
+        XLSX.utils.book_append_sheet(wb, ws, 'CA_Audit_Ledger');
+        
+        const fileName = `CLIKS_CA_Audit_${exportFromDate}_to_${exportToDate}.${exportFormat}`;
+        if (exportFormat === 'xlsx') {
+            XLSX.writeFile(wb, fileName);
+        } else {
+            XLSX.writeFile(wb, fileName, { bookType: 'csv' });
+        }
+
+        setIsExportModalOpen(false);
     };
 
     // Form inputs state
@@ -276,18 +296,11 @@ const BusinessAccounting = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
-                        onClick={handleExportForCA}
+                        onClick={() => setIsExportModalOpen(true)}
                         className="crm-btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3', fontWeight: '850', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(190,24,93,0.03)' }}
                     >
-                        <Download size={15} /> Export for CA
-                    </button>
-                    <button 
-                        onClick={handleExportCSV}
-                        className="crm-btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                    >
-                        <Download size={15} /> Export for CSV
+                        <Download size={15} /> Secure CA Export
                     </button>
                     <button 
                         onClick={() => setIsEntryModalOpen(true)}
@@ -715,6 +728,110 @@ const BusinessAccounting = () => {
                                 Save Financial Entry
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Unified CA Export Limits Console */}
+            {isExportModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
+                        
+                        {/* Decorative Branding Bar */}
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #EC4899 0%, #7C3AED 100%)' }} />
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFF1F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D' }}>
+                                    <Download size={20} />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Secure CA Audit Export</h2>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600', margin: 0 }}>Select your timeline and format options.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsExportModalOpen(false)} style={{ border: 'none', background: '#F8FAFC', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            
+                            {/* Set Date Range Limits */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Set Date Limits</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+                                    <div>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                            <Calendar size={11} color="#EC4899" /> From
+                                        </label>
+                                        <input 
+                                            type="date" 
+                                            value={exportFromDate} 
+                                            onChange={(e) => setExportFromDate(e.target.value)} 
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '750', background: 'white', boxSizing: 'border-box' }} 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                            <Calendar size={11} color="#7C3AED" /> To
+                                        </label>
+                                        <input 
+                                            type="date" 
+                                            value={exportToDate} 
+                                            onChange={(e) => setExportToDate(e.target.value)} 
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '750', background: 'white', boxSizing: 'border-box' }} 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Format Selector */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Select File Format</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    {[
+                                        { id: 'xlsx', label: 'Tally/Excel Doc', sub: '.xlsx Spreadsheet', color: '#10B981' },
+                                        { id: 'csv', label: 'Raw Flat Data', sub: '.csv File', color: '#3B82F6' }
+                                    ].map((fmt) => (
+                                        <div 
+                                            key={fmt.id}
+                                            onClick={() => setExportFormat(fmt.id)}
+                                            style={{ 
+                                                padding: '0.85rem 1rem', borderRadius: '12px', border: '2px solid', 
+                                                borderColor: exportFormat === fmt.id ? fmt.color : '#F1F5F9',
+                                                background: exportFormat === fmt.id ? `${fmt.color}05` : '#FFFFFF',
+                                                cursor: 'pointer', transition: 'all 0.2s', position: 'relative',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '850', color: exportFormat === fmt.id ? '#0F172A' : '#475569' }}>{fmt.label}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#94A3B8', fontWeight: '650', marginTop: '0.15rem' }}>{fmt.sub}</div>
+                                            {exportFormat === fmt.id && (
+                                                <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', borderRadius: '50%', background: fmt.color }} />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Compliance Footer */}
+                            <div style={{ display: 'flex', gap: '0.5rem', background: '#ECFDF5', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #D1FAE5', alignItems: 'center', boxSizing: 'border-box' }}>
+                                <ShieldCheck size={15} color="#059669" />
+                                <span style={{ fontSize: '0.7rem', color: '#065F46', fontWeight: '700' }}>Audit ready structures generated according to accounting principles.</span>
+                            </div>
+
+                            <button 
+                                onClick={handleExecuteExport}
+                                style={{ 
+                                    width: '100%', padding: '0.9rem', borderRadius: '14px', 
+                                    background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', 
+                                    color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', 
+                                    cursor: 'pointer', boxShadow: '0 6px 15px rgba(190, 24, 93, 0.12)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem'
+                                }}
+                            >
+                                <Download size={15} /> EXPORT LEDGER NOW
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
