@@ -13,6 +13,7 @@ import {
     Filter, 
     Receipt, 
     ChevronRight,
+    Edit,
     X,
     Check,
     Printer,
@@ -317,9 +318,16 @@ const BusinessPOS = () => {
 
     const holdCart = () => {
         if (cart.length === 0) return;
+        
+        const suggestedName = customerName ? `Cart - ${customerName}` : `Cart #${holdCounter}`;
+        const customName = prompt('Assign a name/label to identify this held cart:', suggestedName);
+        
+        if (customName === null) return;
+
         setHeldCarts(prev => [...prev, {
             id: Date.now(),
             displayId: holdCounter,
+            customName: customName.trim() || suggestedName,
             cart: [...cart],
             customerName,
             customerEmail,
@@ -334,6 +342,22 @@ const BusinessPOS = () => {
         setCustomerEmail('');
         setSelectedCustomerObj(null);
         setDiscountVal(0);
+    };
+
+    const renameHeldCart = (holdId) => {
+        const held = heldCarts.find(h => h.id === holdId);
+        if (!held) return;
+        const defaultName = held.customName || held.customerName || `Cart #${held.displayId}`;
+        const newName = prompt('Enter a new name/label for this held cart:', defaultName);
+        if (newName && newName.trim() !== '') {
+            setHeldCarts(prev => prev.map(h => h.id === holdId ? { ...h, customName: newName.trim() } : h));
+        }
+    };
+
+    const deleteHeldCart = (holdId) => {
+        if (window.confirm('Discard this held cart entirely?')) {
+            setHeldCarts(prev => prev.filter(h => h.id !== holdId));
+        }
     };
 
     const restoreCart = (holdId) => {
@@ -609,13 +633,44 @@ const BusinessPOS = () => {
                     <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>HELD CARTS:</span>
                         {heldCarts.map(hc => (
-                            <button
+                            <div
                                 key={hc.id}
-                                onClick={() => restoreCart(hc.id)}
-                                style={{ background: 'white', border: '1px solid #FCD34D', padding: '0.3rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#92400E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                style={{ 
+                                    background: '#FFFFFF', 
+                                    border: '1px solid #FCD34D', 
+                                    padding: '0.3rem 0.6rem', 
+                                    borderRadius: '8px', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.5rem',
+                                    fontSize: '0.75rem', 
+                                    fontWeight: '750', 
+                                    color: '#92400E', 
+                                    whiteSpace: 'nowrap' 
+                                }}
                             >
-                                {hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
-                            </button>
+                                <span 
+                                    onClick={() => restoreCart(hc.id)}
+                                    style={{ cursor: 'pointer' }}
+                                    title="Click to restore cart"
+                                >
+                                    {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: '1px solid #FEF3C7', paddingLeft: '6px' }}>
+                                    <Edit 
+                                        size={12} 
+                                        style={{ cursor: 'pointer', color: '#D97706' }} 
+                                        onClick={() => renameHeldCart(hc.id)} 
+                                        title="Rename Cart"
+                                    />
+                                    <Trash2 
+                                        size={12} 
+                                        style={{ cursor: 'pointer', color: '#EF4444' }} 
+                                        onClick={() => deleteHeldCart(hc.id)} 
+                                        title="Discard Cart"
+                                    />
+                                </div>
+                            </div>
                         ))}
                     </div>
                 )}
