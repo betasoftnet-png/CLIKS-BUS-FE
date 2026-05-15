@@ -264,9 +264,9 @@ const BusinessPeople = () => {
     );
 
     return (
-        <div style={{ padding: '2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>
@@ -293,7 +293,7 @@ const BusinessPeople = () => {
             </div>
 
             {/* Quick Metrics Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2.5rem' }}>
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2.5rem' }}>
                 {[
                     { label: 'Total Contacts', value: summary.totalContacts, icon: Users, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Net Receivables', value: formatCurr(summary.totalReceivables), icon: TrendingUp, color: '#1B6B3A', bg: '#DCF2E4' },
@@ -312,7 +312,7 @@ const BusinessPeople = () => {
             </div>
 
             {/* Tabs Row */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
                 {[
                     { id: 'contacts', label: 'Active Directory', icon: Users },
                     { id: 'transactions', label: 'Global Ledger Ledger', icon: ArrowLeftRight },

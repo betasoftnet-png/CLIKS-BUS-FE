@@ -71,8 +71,8 @@ const BusinessPayments = () => {
         payment_status: 'completed',
         customer_name: rec.party_name || 'General Client',
         invoice_id: rec.invoice_id || `INV-REF-${rec.id}`,
-        total_amount: rec.amount || 0,
-        paid_amount: rec.amount || 0,
+        total_amount: parseFloat(rec.amount) || 0,
+        paid_amount: parseFloat(rec.amount) || 0,
         pending_amount: 0,
         payment_mode: rec.payment_mode || 'Other',
         transaction_reference: rec.reference_number || `REF-${rec.id}`,
@@ -88,8 +88,8 @@ const BusinessPayments = () => {
         payment_status: 'completed',
         supplier_name: rec.party_name || 'General Vendor',
         purchase_id: rec.invoice_id || `BILL-REF-${rec.id}`,
-        total_amount: rec.amount || 0,
-        paid_amount: rec.amount || 0,
+        total_amount: parseFloat(rec.amount) || 0,
+        paid_amount: parseFloat(rec.amount) || 0,
         pending_amount: 0,
         payment_mode: rec.payment_mode || 'Other',
         cheque_number: rec.reference_number || `CHQ-${rec.id}`,
@@ -211,11 +211,8 @@ const BusinessPayments = () => {
                 </div>
             </div>
 
-            {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-
             {/* Quick Metrics Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
                     { label: 'Outstanding Receivables', value: `₹${totalOutstandingReceivables.toLocaleString()}`, icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
                     { label: 'Daily Collections', value: `₹${totalDailyCollections.toLocaleString()}`, icon: ArrowDownRight, color: '#1B6B3A', bg: '#DCF2E4' },
@@ -235,7 +232,7 @@ const BusinessPayments = () => {
             </div>
 
             {/* Tabs Row */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
                 {[
                     { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
                     { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
@@ -258,6 +255,9 @@ const BusinessPayments = () => {
                     </button>
                 ))}
             </div>
+
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Tab 1: Customer Receivables */}
             {activeTab === 'receivables' && (

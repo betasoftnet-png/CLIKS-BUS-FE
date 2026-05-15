@@ -273,11 +273,8 @@ const BusinessSplitCollect = () => {
                 </button>
             </div>
 
-            {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-
             {/* Metric Cards Panel */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
                     <div>
                         <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>Cumulative Receivable</p>
@@ -318,7 +315,7 @@ const BusinessSplitCollect = () => {
             </div>
 
             {/* Tab Bar and Subsearch Overlay */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '2rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', gap: '2.5rem' }}>
                     {['ALL PARTNERS', 'HISTORY'].map(tab => (
                         <button
@@ -355,6 +352,9 @@ const BusinessSplitCollect = () => {
                     />
                 </div>
             </div>
+
+            {/* Scrollable Main Content Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Interactive Dynamic Render */}
             <div>
