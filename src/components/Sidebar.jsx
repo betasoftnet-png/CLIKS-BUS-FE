@@ -161,7 +161,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         >
             <div className="flex items-center gap-3">
                 <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub) ? '#ffffff' : primaryColor }} />
-                <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit', color: activeText }}>{item.label}</span>
+                <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{item.label}</span>
             </div>
         </button>
     );
@@ -504,7 +504,13 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             outline: 'none',
                             marginTop: '1.2rem'
                         }}
-
+                        onMouseOver={(e) => {
+                            // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+                            // e.currentTarget.style.color = '#7C3AED';
+                            // e.currentTarget.style.borderColor = '#DDD6FE';
+                            // e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
+                            // e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
                         onMouseOut={(e) => {
                             e.currentTarget.style.background = 'transparent';
                             e.currentTarget.style.color = '#6B7280';
