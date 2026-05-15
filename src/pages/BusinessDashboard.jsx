@@ -35,7 +35,7 @@ const MASTER_SHORTCUTS = [
     { id: 'expenses', label: 'Add Expense', path: '/finance/expenses?create=true', icon: TrendingUp, color: '#DC2626' },
     { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
     { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
-    { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts?create=true', icon: Briefcase, color: '#4F46E5' },
+    // { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts?create=true', icon: Briefcase, color: '#4F46E5' }, // Will do in future
     
     // 🚀 Brand New Expansion Triggers
     { id: 'new_customer', label: 'Add Customer', path: '/sales/customers?create=true', icon: UserPlus, color: '#EC4899' },

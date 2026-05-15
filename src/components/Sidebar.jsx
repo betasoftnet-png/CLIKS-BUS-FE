@@ -315,7 +315,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
             { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
             { label: 'Segregation', icon: Target, path: '/payments/segregation' },
-            { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' },
+            // { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' }, // Will do in future
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
             { label: 'People', icon: Users, path: '/payments/people' }
         ]

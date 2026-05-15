@@ -157,7 +157,7 @@ function AppContent() {
                     <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
                     <Route path="/payments/wallet" element={<BusinessWallet />} />
                     <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
-                    <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} />
+                    {/* <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} /> */} {/* Will do in future */}
                     <Route path="/payments/people" element={<BusinessPeople />} />
 
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
