@@ -12,7 +12,7 @@ export function CalculatorPopover() {
     const tapeEndRef = useRef(null);
     const idCounter = useRef(0);
 
-    // Core State for Process Tape Calculator
+    // Core State for BETA Calculator
     const [tape, setTape] = useState([]); // { id, type: 'base' | '+' | '-' | '*' | '/' | 'gst' | 'discount', value, label }
     const [activeInput, setActiveInput] = useState("0");
     const [activeOp, setActiveOp] = useState(null); // The pending operator for the active line
@@ -424,7 +424,7 @@ export function CalculatorPopover() {
                     ...styles.triggerButton,
                     backgroundColor: open ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)'
                 }}
-                title="Process Live Tape Calculator"
+                title="BETA Calculator"
             >
                 <Calculator size={18} />
             </button>
@@ -442,7 +442,7 @@ export function CalculatorPopover() {
                         <div style={styles.header}>
                             <div style={styles.title}>
                                 <Hash size={16} color="#10B981" />
-                                <span>PROCESS TAPE CALC</span>
+                                <span>BETA CALCULATOR</span>
                             </div>
                             <div style={{ display: 'flex', gap: '6px' }}>
                                 <button 
