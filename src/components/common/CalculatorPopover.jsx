@@ -1,36 +1,157 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, X, RotateCcw, Delete } from "lucide-react";
+import { 
+    Calculator, X, RotateCcw, Delete, Share2, Trash2, 
+    Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown
+} from "lucide-react";
 
 export function CalculatorPopover() {
     const [open, setOpen] = useState(false);
-    const [display, setDisplay] = useState("0");
-    const [equation, setEquation] = useState("");
     const popoverRef = useRef(null);
-    const [calcMode, setCalcMode] = useState('main'); // 'main', 'gst', 'discount'
-    const [gstType, setGstType] = useState('add'); // 'add', 'remove'
-    const [customRate, setCustomRate] = useState("");
-    const [showCustomField, setShowCustomField] = useState(false);
+    const tapeEndRef = useRef(null);
+    const idCounter = useRef(0);
 
-    const changeMode = (mode) => {
-        setCalcMode(mode);
-        setShowCustomField(false);
-        setCustomRate("");
+    // Core State for Process Tape Calculator
+    const [tape, setTape] = useState([]); // { id, type: 'base' | '+' | '-' | '*' | '/' | 'gst' | 'discount', value, label }
+    const [activeInput, setActiveInput] = useState("0");
+    const [activeOp, setActiveOp] = useState(null); // The pending operator for the active line
+    const [activeLabel, setActiveLabel] = useState("");
+
+    // Smart Bar UI States
+    const [showSmartOptions, setShowSmartOptions] = useState(null); // 'gst' | 'discount' | 'label' | null
+    const [isConverted, setIsConverted] = useState(false); // INR to USD Toggle
+
+    // Constants
+    const CONVERSION_RATE = 83.5; // 1 USD = 83.5 INR (Simulated placeholder)
+
+    // Recalculate entire tape
+    const getTapeCalculations = () => {
+        let running = 0;
+        const steps = [];
+
+        tape.forEach((step) => {
+            const prevRunning = running;
+            let computedValue = 0;
+
+            if (step.type === 'base') {
+                running = parseFloat(step.value || 0);
+                computedValue = running;
+            } else if (step.type === '+') {
+                computedValue = parseFloat(step.value || 0);
+                running += computedValue;
+            } else if (step.type === '-') {
+                computedValue = parseFloat(step.value || 0);
+                running -= computedValue;
+            } else if (step.type === '*') {
+                computedValue = parseFloat(step.value || 0);
+                running *= computedValue;
+            } else if (step.type === '/') {
+                const val = parseFloat(step.value || 0);
+                computedValue = val;
+                running = val !== 0 ? running / val : 0;
+            } else if (step.type === 'gst') {
+                const pct = parseFloat(step.value || 0);
+                computedValue = prevRunning * (pct / 100);
+                running += computedValue;
+            } else if (step.type === 'discount') {
+                const pct = parseFloat(step.value || 0);
+                computedValue = prevRunning * (pct / 100);
+                running -= computedValue;
+            }
+
+            steps.push({
+                ...step,
+                runningBefore: prevRunning,
+                runningAfter: running,
+                contribution: computedValue
+            });
+        });
+
+        return { steps, finalTotal: running };
     };
 
-    const handleClose = () => {
-        setOpen(false);
-        setCalcMode('main');
-        setShowCustomField(false);
-        setCustomRate("");
+    const { steps, finalTotal } = getTapeCalculations();
+
+    // Handles committing current activeInput and operator to the tape
+    const commitActiveToTape = (nextOp = null) => {
+        const val = parseFloat(activeInput);
+        if (isNaN(val)) return;
+
+        // If tape is empty, this is the Base step
+        if (tape.length === 0) {
+            setTape([
+                {
+                    id: String(idCounter.current++),
+                    type: 'base',
+                    value: val,
+                    label: activeLabel || "Base Amount"
+                }
+            ]);
+        } else {
+            // Commit current number with existing activeOp (default + if none selected)
+            setTape(prev => [
+                ...prev,
+                {
+                    id: String(idCounter.current++),
+                    type: activeOp || '+',
+                    value: val,
+                    label: activeLabel || ""
+                }
+            ]);
+        }
+
+        // Set the next active operator, clear active input
+        setActiveOp(nextOp);
+        setActiveInput("0");
+        setActiveLabel("");
+        setShowSmartOptions(null);
     };
 
-    // Close on click outside
+    // Keyboard Bindings
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!open) return;
+            
+            // Prevent processing inputs if user is typing in active inputs on the tape
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') {
+                if (e.key === 'Escape') {
+                    document.activeElement.blur();
+                }
+                return; 
+            }
+
+            if (e.key >= '0' && e.key <= '9') {
+                handleNumber(e.key);
+            } else if (e.key === '.') {
+                handleDecimal();
+            } else if (e.key === 'Backspace') {
+                handleDelete();
+            } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+                handleOperator(e.key);
+            } else if (e.key === 'Enter' || e.key === '=') {
+                handleCalculate();
+            } else if (e.key === 'Escape') {
+                setOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, activeInput, activeOp, tape, activeLabel]);
+
+    // Auto Scroll to Tape Bottom
+    useEffect(() => {
+        if (tapeEndRef.current) {
+            tapeEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [tape, activeInput, activeOp]);
+
+    // Auto Close Popover outside click
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (popoverRef.current && !popoverRef.current.contains(event.target)) {
-                handleClose();
+                setOpen(false);
             }
         };
         if (open) {
@@ -39,83 +160,131 @@ export function CalculatorPopover() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [open]);
 
-    const handleNumber = (num) => {
-        setDisplay(prev => (prev === "0" || prev === "Error" ? String(num) : prev + num));
-    };
+    // Grid Actions
+    function handleNumber(num) {
+        setActiveInput(prev => prev === "0" ? String(num) : prev + String(num));
+    }
 
-    const handleOperator = (op) => {
-        setEquation(display + " " + op + " ");
-        setDisplay("0");
-    };
-
-    const handleClear = () => {
-        setDisplay("0");
-        setEquation("");
-    };
-
-    const handleDelete = () => {
-        if (display === "Error") {
-            setDisplay("0");
-            return;
+    function handleDecimal() {
+        if (!activeInput.includes(".")) {
+            setActiveInput(activeInput + ".");
         }
-        if (display.length === 1) {
-            setDisplay("0");
+    }
+
+    function handleDelete() {
+        if (activeInput.length === 1) {
+            setActiveInput("0");
         } else {
-            setDisplay(display.slice(0, -1));
+            setActiveInput(activeInput.slice(0, -1));
         }
-    };
+    }
 
-    const handleDecimal = () => {
-        if (display === "Error") {
-            setDisplay("0.");
+    function handleClearAll() {
+        setTape([]);
+        setActiveInput("0");
+        setActiveOp(null);
+        setActiveLabel("");
+        setShowSmartOptions(null);
+    }
+
+    function handleOperator(op) {
+        if (tape.length === 0 && activeInput === "0") {
+            // Prevent base operator without base value
             return;
         }
-        if (!display.includes(".")) {
-            setDisplay(display + ".");
+        // Commit current number and set operator for next line
+        commitActiveToTape(op);
+    }
+
+    function handleCalculate() {
+        // Pressing equals commits the final typed number
+        if (parseFloat(activeInput) !== 0 || activeInput !== "0") {
+            commitActiveToTape(null);
         }
+    }
+
+    // Smart Presets logic
+    const applySmartPreset = (type, percentage) => {
+        // If there is an active input, commit it first to ensure the tape has the right base value
+        let currentTape = tape;
+        if (parseFloat(activeInput) !== 0 && activeInput !== "0") {
+            const val = parseFloat(activeInput);
+            const newStep = {
+                id: String(idCounter.current++),
+                type: currentTape.length === 0 ? 'base' : (activeOp || '+'),
+                value: val,
+                label: activeLabel || ""
+            };
+            currentTape = [...currentTape, newStep];
+            setTape(currentTape);
+            setActiveInput("0");
+            setActiveOp(null);
+            setActiveLabel("");
+        }
+
+        if (currentTape.length === 0) {
+            alert("Please enter a base amount first.");
+            return;
+        }
+
+        // Now apply the GST or Discount
+        const smartStep = {
+            id: String(idCounter.current++),
+            type: type, // 'gst' or 'discount'
+            value: percentage,
+            label: type === 'gst' ? `${percentage}% GST` : `${percentage}% Disc`
+        };
+
+        setTape([...currentTape, smartStep]);
+        setShowSmartOptions(null);
     };
 
-    const handleCalculate = () => {
-        if (!equation || equation.includes("=") || equation.includes("GST") || equation.includes("Disc")) return;
-        try {
-            const fullExp = equation + display;
-            const sanitized = fullExp.replace(/[^-()\d/*+. ]/g, '');
-            const result = Function('"use strict";return (' + sanitized + ')')();
-            
-            if (isNaN(result) || !isFinite(result)) {
-                setDisplay("Error");
-                return;
+    // In-Tape Modification / Edit Handlers
+    const updateTapeStepValue = (id, newValue) => {
+        setTape(prev => prev.map(s => s.id === id ? { ...s, value: newValue } : s));
+    };
+
+    const updateTapeStepLabel = (id, newLabel) => {
+        setTape(prev => prev.map(s => s.id === id ? { ...s, label: newLabel } : s));
+    };
+
+    const removeTapeStep = (id) => {
+        setTape(prev => prev.filter(s => s.id !== id));
+    };
+
+    // Export text flow
+    const handleShareText = () => {
+        const { steps, finalTotal } = getTapeCalculations();
+        if (steps.length === 0) return;
+
+        let text = "📊 Business Process Calculator Tape\n";
+        text += "=============================\n";
+        
+        steps.forEach((s) => {
+            const lbl = s.label ? ` [${s.label}]` : "";
+            if (s.type === 'base') {
+                text += `Base: ₹${s.value.toLocaleString('en-IN')}${lbl}\n`;
+            } else if (s.type === 'gst') {
+                text += `(+) ${s.value}% GST: ₹${s.contribution.toLocaleString('en-IN', {maximumFractionDigits: 2})}${lbl}\n`;
+            } else if (s.type === 'discount') {
+                text += `(-) ${s.value}% Discount: ₹${s.contribution.toLocaleString('en-IN', {maximumFractionDigits: 2})}${lbl}\n`;
+            } else {
+                text += `${s.type} ${s.value.toLocaleString('en-IN')}${lbl}\n`;
             }
-
-            setEquation(fullExp + " =");
-            setDisplay(String(result));
-        } catch {
-            setDisplay("Error");
+        });
+        
+        text += "-----------------------------\n";
+        text += `TOTAL: ₹${finalTotal.toLocaleString('en-IN', {maximumFractionDigits: 2})}\n`;
+        if (isConverted) {
+            text += `TOTAL (USD): $${(finalTotal / CONVERSION_RATE).toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
         }
+        text += "=============================\n";
+
+        navigator.clipboard.writeText(text);
+        alert("Process summary copied to clipboard successfully!");
     };
 
-    const handleGST = (rate, mode) => {
-        const current = parseFloat(display);
-        if (isNaN(current) || current === 0) return;
-        let result;
-        if (mode === 'add') {
-            result = current * (1 + rate / 100);
-            setEquation(`${current} + ${rate}% GST`);
-        } else {
-            result = current / (1 + rate / 100);
-            setEquation(`${current} w/o ${rate}% GST`);
-        }
-        setDisplay(String(Number(result.toFixed(2))));
-    };
-
-    const handleDiscount = (rate) => {
-        const current = parseFloat(display);
-        if (isNaN(current) || current === 0) return;
-        const result = current * (1 - rate / 100);
-        setEquation(`${current} - ${rate}% Disc`);
-        setDisplay(String(Number(result.toFixed(2))));
-    };
-
+    // Styles configuration
     const styles = {
         container: {
             position: 'relative',
@@ -127,170 +296,132 @@ export function CalculatorPopover() {
             justifyContent: 'center',
             width: '36px',
             height: '36px',
-            borderRadius: '10px',
+            borderRadius: '11px',
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
             color: '#FFFFFF',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             outline: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
         },
         popover: {
             position: 'absolute',
             right: 0,
-            top: 'calc(100% + 10px)',
-            zIndex: 1000,
-            width: '320px',
-            borderRadius: '16px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid #e5e7eb',
+            top: 'calc(100% + 12px)',
+            zIndex: 2000,
+            width: '360px',
+            maxHeight: '650px',
+            borderRadius: '24px',
+            backgroundColor: '#FFFFFF',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
+            border: '1px solid #E2E8F0',
             overflow: 'hidden',
-            padding: '16px',
-        },
-        displayArea: {
-            backgroundColor: '#f8fafc',
-            borderRadius: '12px',
-            padding: '12px',
-            textAlign: 'right',
-            marginBottom: '12px',
-            border: '1px solid #e2e8f0',
-        },
-        eqText: {
-            fontSize: '12px',
-            color: '#64748b',
-            minHeight: '18px',
-            wordBreak: 'break-all',
-            marginBottom: '4px',
-        },
-        resultText: {
-            fontSize: '24px',
-            fontWeight: '700',
-            color: '#0f172a',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-        },
-        bizSection: {
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
-            marginBottom: '14px',
-            padding: '8px 10px',
-            background: '#f8fafc',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            minHeight: '52px',
-            justifyContent: 'center',
+            fontFamily: "'Inter', sans-serif"
         },
-        modeBtn: {
-            flex: 1,
-            padding: '8px 0',
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0',
-            background: '#ffffff',
-            fontSize: '12px',
+        header: {
+            padding: '16px 20px',
+            borderBottom: '1px solid #F1F5F9',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#FAFBFC'
+        },
+        title: {
+            fontSize: '14px',
             fontWeight: '800',
-            color: '#334155',
-            cursor: 'pointer',
+            color: '#1E293B',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            gap: '8px'
         },
-        gstTypeBtn: {
+        tapeArea: {
             flex: 1,
-            padding: '5px 0',
-            border: 'none',
-            borderRadius: '6px',
+            maxHeight: '220px',
+            minHeight: '140px',
+            overflowY: 'auto',
+            padding: '16px',
+            backgroundColor: '#FAFAFB',
+            borderBottom: '1px solid #EDF2F7',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+        },
+        tapeRow: {
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'white',
+            border: '1px solid #E2E8F0',
+            borderRadius: '12px',
+            padding: '8px 12px',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.01)'
+        },
+        activeLine: {
+            padding: '14px 20px',
+            background: 'linear-gradient(to right, #F8FAFC, #F1F5F9)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            minHeight: '70px',
+            borderBottom: '1px solid #E2E8F0'
+        },
+        smartBar: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '8px 14px',
+            background: '#FFFFFF',
+            borderBottom: '1px solid #F1F5F9',
+            gap: '8px'
+        },
+        smartBtn: {
+            flex: 1,
+            padding: '8px 0',
+            borderRadius: '10px',
+            border: '1px solid #E2E8F0',
             fontSize: '11px',
             fontWeight: '800',
             cursor: 'pointer',
-            transition: 'all 0.2s',
-        },
-        backBtn: {
-            padding: '4px 8px',
-            borderRadius: '6px',
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            fontSize: '10px',
-            fontWeight: '800',
-            color: '#475569',
-            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease'
         },
         grid: {
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '8px',
+            padding: '16px',
+            background: '#FFFFFF'
         },
-        btn: {
-            height: '44px',
-            borderRadius: '8px',
+        keyBtn: {
+            height: '48px',
+            borderRadius: '12px',
             border: 'none',
             fontSize: '16px',
-            fontWeight: '600',
+            fontWeight: '700',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.15s ease',
-        },
-        numBtn: {
-            backgroundColor: '#f1f5f9',
-            color: '#334155',
-        },
-        opBtn: {
-            backgroundColor: '#eff6ff',
-            color: '#2563eb',
-        },
-        actionBtn: {
-            backgroundColor: '#fef2f2',
-            color: '#ef4444',
-        },
-        eqBtn: {
-            backgroundColor: '#135029',
-            color: '#ffffff',
-            gridColumn: 'span 2',
+            transition: 'all 0.15s ease'
         }
-    };
-
-    const renderButton = (label, action, styleType) => {
-        let style = { ...styles.btn };
-        if (styleType === 'num') style = { ...style, ...styles.numBtn };
-        else if (styleType === 'op') style = { ...style, ...styles.opBtn };
-        else if (styleType === 'action') style = { ...style, ...styles.actionBtn };
-        else if (styleType === 'eq') style = { ...style, ...styles.eqBtn };
-
-        return (
-            <button
-                type="button"
-                onClick={action}
-                style={style}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-                {label}
-            </button>
-        );
     };
 
     return (
         <div style={styles.container} ref={popoverRef}>
             <button
                 type="button"
-                onClick={() => open ? handleClose() : setOpen(true)}
+                onClick={() => setOpen(!open)}
                 style={{
                     ...styles.triggerButton,
                     backgroundColor: open ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)'
                 }}
-                onMouseEnter={(e) => {if(!open) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}}
-                onMouseLeave={(e) => {if(!open) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}}
-                title="Calculator"
+                title="Process Live Tape Calculator"
             >
                 <Calculator size={18} />
             </button>
@@ -301,458 +432,301 @@ export function CalculatorPopover() {
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                         style={styles.popover}
                     >
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                            <span style={{fontWeight: '700', fontSize: '14px', color: '#334155'}}>Quick Calc</span>
-                            <button onClick={handleClose} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8'}}><X size={16} /></button>
+                        {/* Header Section */}
+                        <div style={styles.header}>
+                            <div style={styles.title}>
+                                <Hash size={16} color="#10B981" />
+                                <span>PROCESS TAPE CALC</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                                <button 
+                                    onClick={handleShareText} 
+                                    title="Copy process summary"
+                                    style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#475569' }}
+                                >
+                                    <Share2 size={15} />
+                                </button>
+                                <button 
+                                    onClick={handleClearAll} 
+                                    title="Clear Entire Tape"
+                                    style={{ background: '#FEF2F2', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#EF4444' }}
+                                >
+                                    <Trash2 size={15} />
+                                </button>
+                                <button 
+                                    onClick={() => setOpen(false)} 
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '6px' }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
                         </div>
 
-                        <div style={styles.displayArea}>
-                            <div style={styles.eqText}>{equation}</div>
-                            <div style={styles.resultText}>{display}</div>
-                        </div>
-
-                        {/* Dynamic Single-Row Business Extensions */}
-                        <div style={styles.bizSection}>
-                            <AnimatePresence mode="wait">
-                                {calcMode === 'main' && (
-                                    <motion.div
-                                        key="main"
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -5 }}
-                                        transition={{ duration: 0.15 }}
-                                        style={{ display: 'flex', gap: '8px', width: '100%' }}
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={() => changeMode('gst')}
-                                            style={{
-                                                ...styles.modeBtn,
-                                                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.borderColor = '#135029';
-                                                e.currentTarget.style.color = '#135029';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.borderColor = '#e2e8f0';
-                                                e.currentTarget.style.color = '#334155';
-                                            }}
-                                        >
-                                            💰 GST Tax
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => changeMode('discount')}
-                                            style={{
-                                                ...styles.modeBtn,
-                                                background: 'linear-gradient(135deg, #ffffff 0%, #fff5f5 100%)',
-                                                borderColor: '#fee2e2',
-                                                color: '#b91c1c',
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = '#fef2f2';
-                                                e.currentTarget.style.borderColor = '#dc2626';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #fff5f5 100%)';
-                                                e.currentTarget.style.borderColor = '#fee2e2';
-                                            }}
-                                        >
-                                            🏷️ Discount
-                                        </button>
-                                    </motion.div>
-                                )}
-
-                                {calcMode === 'gst' && (
-                                    <motion.div
-                                        key="gst"
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        transition={{ duration: 0.2 }}
-                                        style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => changeMode('main')}
-                                                style={styles.backBtn}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                                                onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                        {/* Requirement 1: The Live Tape History list */}
+                        <div style={styles.tapeArea} className="custom-scrollbar">
+                            {steps.length === 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '20px' }}>
+                                    <RotateCcw size={24} style={{ opacity: 0.5, marginBottom: '8px' }} />
+                                    <span style={{ fontSize: '12px', fontWeight: '600' }}>Start typing below to record Tape</span>
+                                </div>
+                            ) : (
+                                steps.map((step) => (
+                                    <div key={step.id} className="tape-group" style={styles.tapeRow}>
+                                        {/* Row Meta & Delete */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                {/* Op Tag */}
+                                                <span style={{
+                                                    fontSize: '9px',
+                                                    fontWeight: '900',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    color: 'white',
+                                                    background: step.type === 'base' ? '#6366F1' : 
+                                                                step.type === 'gst' ? '#10B981' : 
+                                                                step.type === 'discount' ? '#F59E0B' : '#64748B'
+                                                }}>
+                                                    {step.type.toUpperCase()}
+                                                </span>
+                                                {/* Label Editor */}
+                                                <input 
+                                                    type="text"
+                                                    value={step.label}
+                                                    placeholder="Add label..."
+                                                    onChange={(e) => updateTapeStepLabel(step.id, e.target.value)}
+                                                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '10px', fontWeight: '600', color: '#64748B', width: '90px' }}
+                                                />
+                                            </div>
+                                            <button 
+                                                onClick={() => removeTapeStep(step.id)}
+                                                style={{ background: 'transparent', border: 'none', padding: '2px', cursor: 'pointer', opacity: 0.6, color: '#EF4444' }}
                                             >
-                                                ← Back
+                                                <X size={12} />
                                             </button>
-                                            <div style={{ flex: 1, display: 'flex', background: '#e2e8f0', padding: '3px', borderRadius: '8px' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setGstType('add'); setShowCustomField(false); }}
+                                        </div>
+
+                                        {/* Requirement 3: Live Click-to-Edit input */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#334155' }}>
+                                                    {step.type === 'gst' || step.type === 'discount' ? '%' : step.type === 'base' ? '=' : step.type}
+                                                </span>
+                                                <input 
+                                                    type="number"
+                                                    value={step.value}
+                                                    onChange={(e) => updateTapeStepValue(step.id, parseFloat(e.target.value) || 0)}
                                                     style={{
-                                                        ...styles.gstTypeBtn,
-                                                        background: gstType === 'add' ? '#135029' : 'transparent',
-                                                        color: gstType === 'add' ? '#ffffff' : '#475569',
-                                                        boxShadow: gstType === 'add' ? '0 2px 4px rgba(19,80,41,0.2)' : 'none'
+                                                        border: '1px solid transparent',
+                                                        background: 'transparent',
+                                                        outline: 'none',
+                                                        fontSize: '16px',
+                                                        fontWeight: '850',
+                                                        color: '#0F172A',
+                                                        width: '80px',
+                                                        borderRadius: '4px',
+                                                        padding: '2px 4px',
+                                                        transition: 'all 0.2s'
                                                     }}
-                                                >
-                                                    Add (+)
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setGstType('remove'); setShowCustomField(false); }}
-                                                    style={{
-                                                        ...styles.gstTypeBtn,
-                                                        background: gstType === 'remove' ? '#dc2626' : 'transparent',
-                                                        color: gstType === 'remove' ? '#ffffff' : '#475569',
-                                                        boxShadow: gstType === 'remove' ? '0 2px 4px rgba(220,38,38,0.2)' : 'none'
-                                                    }}
-                                                >
-                                                    Remove (-)
-                                                </button>
+                                                    onFocus={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                                    onBlur={(e) => e.target.style.borderColor = 'transparent'}
+                                                />
+                                            </div>
+                                            
+                                            {/* Numerical evaluation after this step */}
+                                            <div style={{ textAlign: 'right' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: '750', color: '#10B981' }}>
+                                                    ₹{step.runningAfter.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                </span>
+                                                {/* Subtext context (Tax or discount values) */}
+                                                {(step.type === 'gst' || step.type === 'discount') && (
+                                                    <div style={{ fontSize: '9px', fontWeight: '700', color: step.type === 'gst' ? '#10B981' : '#D97706', marginTop: '1px' }}>
+                                                        {step.type === 'gst' ? '+' : '-'}₹{step.contribution.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                        
-                                        <AnimatePresence mode="wait">
-                                            {!showCustomField ? (
-                                                <motion.div 
-                                                    key="gst-pills"
-                                                    initial={{ opacity: 0, y: 5 }} 
-                                                    animate={{ opacity: 1, y: 0 }} 
-                                                    exit={{ opacity: 0, y: -5 }}
-                                                    style={{ display: 'flex', gap: '4px' }}
-                                                >
-                                                    {[5, 12, 18].map(rate => (
-                                                        <button
-                                                            key={rate}
-                                                            type="button"
-                                                            onClick={() => handleGST(rate, gstType)}
-                                                            style={{
-                                                                flex: 1,
-                                                                padding: '6px 0',
-                                                                borderRadius: '6px',
-                                                                border: '1px solid #cbd5e1',
-                                                                background: '#ffffff',
-                                                                color: '#0f172a',
-                                                                fontWeight: '800',
-                                                                fontSize: '11px',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.15s ease'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                                e.currentTarget.style.borderColor = gstType === 'add' ? '#135029' : '#dc2626';
-                                                                e.currentTarget.style.background = gstType === 'add' ? '#f0fdf4' : '#fef2f2';
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.borderColor = '#cbd5e1';
-                                                                e.currentTarget.style.background = '#ffffff';
-                                                            }}
-                                                        >
-                                                            {gstType === 'add' ? '+' : '-'}{rate}%
-                                                        </button>
-                                                    ))}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => { setShowCustomField(true); setCustomRate(""); }}
-                                                        style={{
-                                                            flex: 1.2,
-                                                            padding: '6px 0',
-                                                            borderRadius: '6px',
-                                                            border: '1px dashed #94a3b8',
-                                                            background: '#f8fafc',
-                                                            color: '#475569',
-                                                            fontWeight: '800',
-                                                            fontSize: '10.5px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s ease',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '2px'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = '#f1f5f9';
-                                                            e.currentTarget.style.borderColor = '#64748b';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = '#f8fafc';
-                                                            e.currentTarget.style.borderColor = '#94a3b8';
-                                                        }}
-                                                    >
-                                                        ✏️ Custom
-                                                    </button>
-                                                </motion.div>
-                                            ) : (
-                                                <motion.div 
-                                                    key="gst-input"
-                                                    initial={{ opacity: 0, scale: 0.96 }} 
-                                                    animate={{ opacity: 1, scale: 1 }} 
-                                                    exit={{ opacity: 0, scale: 0.96 }}
-                                                    style={{ display: 'flex', gap: '4px', width: '100%' }}
-                                                >
-                                                    <div style={{ flex: 1, display: 'flex', border: `1.5px solid ${gstType === 'add' ? '#135029' : '#dc2626'}`, borderRadius: '6px', background: '#ffffff', padding: '1px 2px', alignItems: 'center', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}>
-                                                        <input
-                                                            type="number"
-                                                            value={customRate}
-                                                            onChange={(e) => setCustomRate(e.target.value)}
-                                                            placeholder="Enter Custom %"
-                                                            autoFocus
-                                                            style={{ width: '100%', border: 'none', outline: 'none', padding: '0 6px', fontSize: '11.5px', fontWeight: '700', color: '#0f172a', background: 'transparent' }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    const val = parseFloat(customRate);
-                                                                    if (!isNaN(val)) {
-                                                                        handleGST(val, gstType);
-                                                                        setShowCustomField(false);
-                                                                        setCustomRate("");
-                                                                    }
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const val = parseFloat(customRate);
-                                                            if (!isNaN(val)) {
-                                                                handleGST(val, gstType);
-                                                                setShowCustomField(false);
-                                                                setCustomRate("");
-                                                            }
-                                                        }}
-                                                        style={{
-                                                            padding: '6px 12px', 
-                                                            background: gstType === 'add' ? '#135029' : '#dc2626', 
-                                                            color: '#ffffff',
-                                                            border: 'none', 
-                                                            borderRadius: '6px', 
-                                                            fontSize: '11px', 
-                                                            fontWeight: '800', 
-                                                            cursor: 'pointer',
-                                                            transition: 'opacity 0.15s'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                                                    >
-                                                        Apply
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowCustomField(false)}
-                                                        style={{
-                                                            padding: '6px 8px', 
-                                                            background: '#ffffff', 
-                                                            border: '1px solid #cbd5e1',
-                                                            borderRadius: '6px', 
-                                                            fontSize: '10px', 
-                                                            fontWeight: '800', 
-                                                            color: '#64748b', 
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </motion.div>
-                                )}
+                                    </div>
+                                ))
+                            )}
+                            <div ref={tapeEndRef} />
+                        </div>
 
-                                {calcMode === 'discount' && (
+                        {/* Middle Section: The Active Line (typing zone) */}
+                        <div style={styles.activeLine}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    {activeOp ? `Next Op: ${activeOp}` : tape.length === 0 ? 'Set Base' : 'Continue'}
+                                    {activeLabel && <span style={{ background: '#E2E8F0', borderRadius: '4px', padding: '1px 5px', fontSize: '9px', color: '#475569' }}>🏷️ {activeLabel}</span>}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                <span style={{ fontSize: '14px', fontWeight: '800', color: '#475569' }}>{activeOp || (tape.length === 0 ? "" : "+")}</span>
+                                <span style={{ fontSize: '28px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.5px' }}>
+                                    {activeInput}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Requirement 2: Smart Bar with GST, Discount & Labels */}
+                        <div style={{ display: 'flex', flexDirection: 'column', background: '#FFFFFF' }}>
+                            <div style={styles.smartBar}>
+                                <button 
+                                    onClick={() => setShowSmartOptions(showSmartOptions === 'gst' ? null : 'gst')}
+                                    style={{ 
+                                        ...styles.smartBtn, 
+                                        background: showSmartOptions === 'gst' ? '#ECFDF5' : '#FFFFFF',
+                                        color: '#10B981',
+                                        borderColor: showSmartOptions === 'gst' ? '#10B981' : '#E2E8F0'
+                                    }}
+                                >
+                                    <Percent size={13} /> GST
+                                </button>
+                                <button 
+                                    onClick={() => setShowSmartOptions(showSmartOptions === 'discount' ? null : 'discount')}
+                                    style={{ 
+                                        ...styles.smartBtn, 
+                                        background: showSmartOptions === 'discount' ? '#FFFBEB' : '#FFFFFF',
+                                        color: '#F59E0B',
+                                        borderColor: showSmartOptions === 'discount' ? '#F59E0B' : '#E2E8F0'
+                                    }}
+                                >
+                                    <Tag size={13} /> Discount
+                                </button>
+                                <button 
+                                    onClick={() => setShowSmartOptions(showSmartOptions === 'label' ? null : 'label')}
+                                    style={{ 
+                                        ...styles.smartBtn, 
+                                        background: showSmartOptions === 'label' ? '#EEF2FF' : '#FFFFFF',
+                                        color: '#6366F1',
+                                        borderColor: showSmartOptions === 'label' ? '#6366F1' : '#E2E8F0'
+                                    }}
+                                >
+                                    <Plus size={13} /> Label
+                                </button>
+                                <button 
+                                    onClick={() => setIsConverted(!isConverted)}
+                                    style={{ 
+                                        ...styles.smartBtn, 
+                                        background: isConverted ? '#F8FAFC' : '#FFFFFF',
+                                        color: isConverted ? '#64748B' : '#475569',
+                                        borderColor: isConverted ? '#94A3B8' : '#E2E8F0'
+                                    }}
+                                >
+                                    <Globe size={13} /> {isConverted ? 'USD' : 'INR'}
+                                </button>
+                            </div>
+
+                            {/* Sub-menu row for smart options */}
+                            <AnimatePresence>
+                                {showSmartOptions && (
                                     <motion.div
-                                        key="discount"
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        transition={{ duration: 0.2 }}
-                                        style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        style={{ background: '#F8FAFC', padding: '8px 16px', borderBottom: '1px solid #E2E8F0', overflow: 'hidden' }}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => changeMode('main')}
-                                                style={styles.backBtn}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                                                onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
-                                            >
-                                                ← Back
-                                            </button>
-                                            <span style={{ fontSize: '10px', fontWeight: '900', color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                Apply Discount
-                                            </span>
-                                        </div>
-                                        
-                                        <AnimatePresence mode="wait">
-                                            {!showCustomField ? (
-                                                <motion.div 
-                                                    key="disc-pills"
-                                                    initial={{ opacity: 0, y: 5 }} 
-                                                    animate={{ opacity: 1, y: 0 }} 
-                                                    exit={{ opacity: 0, y: -5 }}
-                                                    style={{ display: 'flex', gap: '4px' }}
+                                        {showSmartOptions === 'gst' && (
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                {[5, 12, 18, 28].map(rate => (
+                                                    <button key={rate} onClick={() => applySmartPreset('gst', rate)} style={{ flex: 1, border: '1px solid #D1FAE5', background: 'white', padding: '6px 0', borderRadius: '8px', fontSize: '11px', fontWeight: '800', color: '#10B981', cursor: 'pointer' }}>
+                                                        +{rate}%
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {showSmartOptions === 'discount' && (
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                {[5, 10, 20, 50].map(rate => (
+                                                    <button key={rate} onClick={() => applySmartPreset('discount', rate)} style={{ flex: 1, border: '1px solid #FEF3C7', background: 'white', padding: '6px 0', borderRadius: '8px', fontSize: '11px', fontWeight: '800', color: '#F59E0B', cursor: 'pointer' }}>
+                                                        -{rate}%
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {showSmartOptions === 'label' && (
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                <input 
+                                                    type="text"
+                                                    value={activeLabel}
+                                                    onChange={(e) => setActiveLabel(e.target.value)}
+                                                    placeholder="Enter Active Line Label (e.g., Rent)"
+                                                    style={{ flex: 1, border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', outline: 'none' }}
+                                                />
+                                                <button 
+                                                    onClick={() => setShowSmartOptions(null)}
+                                                    style={{ background: '#6366F1', border: 'none', borderRadius: '8px', padding: '0 12px', color: 'white', fontSize: '11px', fontWeight: '800', cursor: 'pointer' }}
                                                 >
-                                                    {[5, 10, 20].map(pct => (
-                                                        <button
-                                                            key={pct}
-                                                            type="button"
-                                                            onClick={() => handleDiscount(pct)}
-                                                            style={{
-                                                                flex: 1,
-                                                                padding: '6px 0',
-                                                                borderRadius: '6px',
-                                                                border: '1px solid #fecaca',
-                                                                background: '#ffffff',
-                                                                color: '#dc2626',
-                                                                fontWeight: '800',
-                                                                fontSize: '11px',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.15s ease'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                                e.currentTarget.style.background = '#fef2f2';
-                                                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.background = '#ffffff';
-                                                                e.currentTarget.style.transform = 'translateY(0)';
-                                                            }}
-                                                        >
-                                                            -{pct}%
-                                                        </button>
-                                                    ))}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => { setShowCustomField(true); setCustomRate(""); }}
-                                                        style={{
-                                                            flex: 1.2,
-                                                            padding: '6px 0',
-                                                            borderRadius: '6px',
-                                                            border: '1px dashed #fca5a5',
-                                                            background: '#fff5f5',
-                                                            color: '#b91c1c',
-                                                            fontWeight: '800',
-                                                            fontSize: '10.5px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s ease',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '2px'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = '#fee2e2';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = '#fff5f5';
-                                                        }}
-                                                    >
-                                                        ✏️ Custom
-                                                    </button>
-                                                </motion.div>
-                                            ) : (
-                                                <motion.div 
-                                                    key="disc-input"
-                                                    initial={{ opacity: 0, scale: 0.96 }} 
-                                                    animate={{ opacity: 1, scale: 1 }} 
-                                                    exit={{ opacity: 0, scale: 0.96 }}
-                                                    style={{ display: 'flex', gap: '4px', width: '100%' }}
-                                                >
-                                                    <div style={{ flex: 1, display: 'flex', border: '1.5px solid #dc2626', borderRadius: '6px', background: '#ffffff', padding: '1px 2px', alignItems: 'center', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}>
-                                                        <input
-                                                            type="number"
-                                                            value={customRate}
-                                                            onChange={(e) => setCustomRate(e.target.value)}
-                                                            placeholder="Enter Discount %"
-                                                            autoFocus
-                                                            style={{ width: '100%', border: 'none', outline: 'none', padding: '0 6px', fontSize: '11.5px', fontWeight: '700', color: '#b91c1c', background: 'transparent' }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    const val = parseFloat(customRate);
-                                                                    if (!isNaN(val)) {
-                                                                        handleDiscount(val);
-                                                                        setShowCustomField(false);
-                                                                        setCustomRate("");
-                                                                    }
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const val = parseFloat(customRate);
-                                                            if (!isNaN(val)) {
-                                                                handleDiscount(val);
-                                                                setShowCustomField(false);
-                                                                setCustomRate("");
-                                                            }
-                                                        }}
-                                                        style={{
-                                                            padding: '6px 12px', 
-                                                            background: '#dc2626', 
-                                                            color: '#ffffff',
-                                                            border: 'none', 
-                                                            borderRadius: '6px', 
-                                                            fontSize: '11px', 
-                                                            fontWeight: '800', 
-                                                            cursor: 'pointer',
-                                                            transition: 'opacity 0.15s'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                                                    >
-                                                        Apply
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowCustomField(false)}
-                                                        style={{
-                                                            padding: '6px 8px', 
-                                                            background: '#ffffff', 
-                                                            border: '1px solid #fecaca',
-                                                            borderRadius: '6px', 
-                                                            fontSize: '10px', 
-                                                            fontWeight: '800', 
-                                                            color: '#dc2626', 
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                                    Set
+                                                </button>
+                                            </div>
+                                        )}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
 
+                        {/* Standard Keypad */}
                         <div style={styles.grid}>
-                            {renderButton(<RotateCcw size={16} />, handleClear, 'action')}
-                            {renderButton(<Delete size={16} />, handleDelete, 'action')}
-                            {renderButton("%", () => setDisplay(String(parseFloat(display)/100)), 'op')}
-                            {renderButton("/", () => handleOperator("/"), 'op')}
+                            <button onClick={handleClearAll} style={{ ...styles.keyBtn, backgroundColor: '#FEF2F2', color: '#EF4444' }}><RotateCcw size={16} /></button>
+                            <button onClick={handleDelete} style={{ ...styles.keyBtn, backgroundColor: '#F1F5F9', color: '#475569' }}><Delete size={16} /></button>
+                            <button onClick={() => handleOperator('/')} style={{ ...styles.keyBtn, backgroundColor: '#ECFDF5', color: '#10B981' }}>/</button>
+                            <button onClick={() => handleOperator('*')} style={{ ...styles.keyBtn, backgroundColor: '#ECFDF5', color: '#10B981' }}>x</button>
 
-                            {renderButton("7", () => handleNumber(7), 'num')}
-                            {renderButton("8", () => handleNumber(8), 'num')}
-                            {renderButton("9", () => handleNumber(9), 'num')}
-                            {renderButton("x", () => handleOperator("*"), 'op')}
+                            {[7, 8, 9].map(n => (
+                                <button key={n} onClick={() => handleNumber(n)} style={{ ...styles.keyBtn, backgroundColor: '#F8FAFC', color: '#334155' }}>{n}</button>
+                            ))}
+                            <button onClick={() => handleOperator('-')} style={{ ...styles.keyBtn, backgroundColor: '#ECFDF5', color: '#10B981' }}>-</button>
 
-                            {renderButton("4", () => handleNumber(4), 'num')}
-                            {renderButton("5", () => handleNumber(5), 'num')}
-                            {renderButton("6", () => handleNumber(6), 'num')}
-                            {renderButton("-", () => handleOperator("-"), 'op')}
+                            {[4, 5, 6].map(n => (
+                                <button key={n} onClick={() => handleNumber(n)} style={{ ...styles.keyBtn, backgroundColor: '#F8FAFC', color: '#334155' }}>{n}</button>
+                            ))}
+                            <button onClick={() => handleOperator('+')} style={{ ...styles.keyBtn, backgroundColor: '#ECFDF5', color: '#10B981' }}>+</button>
 
-                            {renderButton("1", () => handleNumber(1), 'num')}
-                            {renderButton("2", () => handleNumber(2), 'num')}
-                            {renderButton("3", () => handleNumber(3), 'num')}
-                            {renderButton("+", () => handleOperator("+"), 'op')}
+                            {[1, 2, 3].map(n => (
+                                <button key={n} onClick={() => handleNumber(n)} style={{ ...styles.keyBtn, backgroundColor: '#F8FAFC', color: '#334155' }}>{n}</button>
+                            ))}
+                            {/* Equal commits typing to the tape */}
+                            <button onClick={handleCalculate} style={{ ...styles.keyBtn, gridRow: 'span 2', height: 'auto', backgroundColor: '#10B981', color: 'white' }}>
+                                =
+                            </button>
 
-                            {renderButton("0", () => handleNumber(0), 'num')}
-                            {renderButton(".", handleDecimal, 'num')}
-                            {renderButton("=", handleCalculate, 'eq')}
+                            <button onClick={() => handleNumber(0)} style={{ ...styles.keyBtn, gridColumn: 'span 2', backgroundColor: '#F8FAFC', color: '#334155' }}>0</button>
+                            <button onClick={handleDecimal} style={{ ...styles.keyBtn, backgroundColor: '#F8FAFC', color: '#334155' }}>.</button>
                         </div>
+
+                        {/* Final Total Display */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+                            padding: '16px 20px',
+                            color: 'white',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <div>
+                                <span style={{ fontSize: '10px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {isConverted ? 'Total (Simulated USD)' : 'Tape Running Total'}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                    <h2 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-0.5px', color: '#10B981', margin: 0 }}>
+                                        {isConverted ? '$' : '₹'}{
+                                            (isConverted ? (finalTotal / CONVERSION_RATE) : finalTotal)
+                                            .toLocaleString(isConverted ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                        }
+                                    </h2>
+                                </div>
+                            </div>
+                            {isConverted && (
+                                <div style={{ textAlign: 'right', opacity: 0.8 }}>
+                                    <span style={{ fontSize: '9px', fontWeight: '700', color: '#94A3B8' }}>Base Value</span>
+                                    <div style={{ fontSize: '12px', fontWeight: '800' }}>₹{finalTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                                </div>
+                            )}
+                        </div>
+
                     </motion.div>
                 )}
             </AnimatePresence>

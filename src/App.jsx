@@ -67,6 +67,7 @@ import BusinessTrading from './pages/BusinessTrading';
 import BusinessPeople from './pages/BusinessPeople';
 import BusinessMeetup from './pages/BusinessMeetup';
 import BusinessPitches from './pages/BusinessPitches';
+import VerifyPass from './pages/VerifyPass';
 
 import './App.css';
 
@@ -101,6 +102,9 @@ function AppContent() {
             <SalesLogin />
           </Suspense>
         } />
+
+        {/* Public Pass Verification Gate */}
+        <Route path="/verify-pass" element={<VerifyPass />} />
         
         {/* Protected Routes - All routes within MainLayout require authentication */}
         <Route path="*" element={

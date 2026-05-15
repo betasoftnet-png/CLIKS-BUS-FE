@@ -588,7 +588,7 @@ const BusinessMeetup = () => {
                                 <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
                                         <QRCodeCanvas 
-                                            value={`CLIKS-MEETUP | Pass: TXN-PASS-${selectedTicketMeetup.id || 'MUP'}-${currentUser.id || 'USR'} | Title: ${selectedTicketMeetup.title || ''} | Date: ${selectedTicketMeetup.date || ''}`} 
+                                            value={`${window.location.origin}/verify-pass?m=${selectedTicketMeetup.id}&u=${currentUser.id}`} 
                                             size={110}
                                             bgColor={"#ffffff"}
                                             fgColor={"#064E3B"}
