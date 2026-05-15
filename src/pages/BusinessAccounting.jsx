@@ -25,6 +25,7 @@ import {
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingService } from '../services/accountingService';
+import * as XLSX from 'xlsx';
 
 const BusinessAccounting = () => {
     const [activeTab, setActiveTab] = useState('p&l'); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
@@ -71,6 +72,56 @@ const BusinessAccounting = () => {
             alert('Financial Entry registered and saved successfully!');
         }
     });
+
+    const handleExportForCA = () => {
+        if (!dbLedger || dbLedger.length === 0) {
+            alert('No accounting data available to export.');
+            return;
+        }
+
+        const caData = dbLedger.map((item, index) => {
+            const isIncome = item.entry_type === 'income';
+            return {
+                'Date': item.date ? item.date.split('T')[0] : '',
+                'Voucher Type': isIncome ? 'Receipt' : (item.entry_type === 'transfer' ? 'Contra' : 'Payment'),
+                'Voucher No': item.id || (index + 1),
+                'Particulars (Category)': item.category || '',
+                'Payment Mode / Account': item.mode || '',
+                'Reference / Notes': item.notes || '',
+                'Debit (Expense)': !isIncome && item.entry_type !== 'transfer' ? parseFloat(item.amount || 0) : '',
+                'Credit (Income)': isIncome ? parseFloat(item.amount || 0) : '',
+                'Amount': parseFloat(item.amount || 0)
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(caData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Ledger_For_CA');
+        XLSX.writeFile(wb, `Accounting_Ledger_CA_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const handleExportCSV = () => {
+        if (!dbLedger || dbLedger.length === 0) {
+            alert('No accounting data available to export.');
+            return;
+        }
+
+        const csvData = dbLedger.map((item, index) => ({
+            'ID': item.id || index + 1,
+            'Date': item.date ? item.date.split('T')[0] : '',
+            'Entry Type': item.entry_type,
+            'Category': item.category || '',
+            'Payment Mode': item.mode || '',
+            'Amount': parseFloat(item.amount || 0),
+            'Notes': item.notes || '',
+            'Created At': item.created_at || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(csvData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Ledger');
+        XLSX.writeFile(wb, `Accounting_Ledger_${new Date().toISOString().split('T')[0]}.csv`, { bookType: 'csv' });
+    };
 
     // Form inputs state
     const [entryForm, setEntryForm] = useState({
@@ -209,10 +260,18 @@ const BusinessAccounting = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
+                        onClick={handleExportForCA}
                         className="crm-btn-secondary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Download size={15} /> Export for CA
+                    </button>
+                    <button 
+                        onClick={handleExportCSV}
+                        className="crm-btn-secondary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                    >
+                        <Download size={15} /> Export for CSV
                     </button>
                     <button 
                         onClick={() => setIsEntryModalOpen(true)}
