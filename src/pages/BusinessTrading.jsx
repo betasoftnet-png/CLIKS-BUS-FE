@@ -44,43 +44,43 @@ import {
 const ACADEMIES = {
     trading: {
         title: 'Enterprise Trading Academy',
-        subtitle: 'Master the absolute spectrum of stock market operations—covering raw matching infrastructure, balance sheet evaluations, indicator strategies, and advanced Options Greeks.',
+        subtitle: 'Learn how to trade and invest in the stock market with confidence using simple, practical step-by-step guides.',
         gradient: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)',
         shadow: 'rgba(6, 78, 59, 0.2)',
         icon: LineChart,
         curriculum: CURRICULUM_PHASES,
-        tag: 'Stocks, F&O & Technicals',
-        desc: 'Comprehensive 25-module curriculum covering micro-structure, fundamental balance sheet analysis, technical price action, and derivative strategies.'
+        tag: 'Stock Trading',
+        desc: 'A complete 25-lesson course to master reading stock charts, analyzing company financials, and learning easy trading strategies.'
     },
     sip: {
         title: 'SIP Wealth Builder',
-        subtitle: 'Harness the unstoppable force of compounding, automated discipline, and Step-Up systematic architectures for secure financial freedom.',
+        subtitle: 'Grow your wealth automatically and consistently over time using disciplined investment plans.',
         gradient: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
         shadow: 'rgba(30, 58, 138, 0.2)',
         icon: TrendingUp,
         curriculum: SIP_CURRICULUM,
-        tag: 'Compounding & Goal Planning',
-        desc: 'Learn tactical Step-Up, flexible, and trigger SIPs to structure an automated wealth machine utilizing optimal Rupee Cost Averaging.'
+        tag: 'SIP & Compounding',
+        desc: 'Discover how to set up systematic plans, automatically increase your savings monthly, and use compounding to reach your goals.'
     },
     mutual_funds: {
         title: 'Mutual Funds Masterclass',
-        subtitle: 'Navigate active versus passive vehicles, analyze capitalization boundaries, and master direct plan compounding advantages.',
+        subtitle: 'Learn how to choose the best mutual funds to safely grow your money and beat inflation.',
         gradient: 'linear-gradient(135deg, #5B21B6 0%, #8B5CF6 100%)',
         shadow: 'rgba(91, 33, 182, 0.2)',
         icon: PieChart,
         curriculum: MUTUAL_FUNDS_CURRICULUM,
-        tag: 'Portfolio Diversification',
-        desc: 'Deep dive into Asset Management Companies, Net Asset Values, Large, Mid & Small caps, Index fund passives, and Expense Ratio optimizations.'
+        tag: 'Mutual Funds',
+        desc: 'An easy-to-follow masterclass on picking top-performing funds, understanding index funds, and reducing investment fees.'
     },
     more: {
         title: 'Alternative Assets & Debt',
-        subtitle: 'Diversify beyond standard equities into inflation-beating Sovereign Gold Bonds (SGB), AAA corporate debt, and commercial REITs.',
+        subtitle: 'Explore safe ways to invest in gold, government bonds, and commercial property for steady income.',
         gradient: 'linear-gradient(135deg, #92400E 0%, #D97706 100%)',
         shadow: 'rgba(146, 64, 14, 0.2)',
         icon: Gem,
         curriculum: WEALTH_CURRICULUM,
-        tag: 'Bonds, Gold & REITs',
-        desc: 'Master stable yield generation, tax-free gold maturity strategies, credit rating due diligence, and commercial real-estate cash flows.'
+        tag: 'Gold & Safe Bonds',
+        desc: 'A professional guide to earning stable returns from secure government schemes, gold bonds, and rental real estate.'
     }
 };
 
@@ -275,7 +275,7 @@ const BusinessTrading = () => {
                             <span style={{ fontSize: '0.68rem', fontWeight: '900', letterSpacing: '0.05em', textTransform: 'uppercase', color: '#FBBF24' }}>Integrated Wealth Campus</span>
                         </div>
                         <h1 style={{ fontSize: '2.25rem', fontWeight: '950', letterSpacing: '-0.03em', margin: '0 0 0.75rem 0', lineHeight: 1.15 }}>Social Trading & Finance Academies</h1>
-                        <p style={{ opacity: 0.85, fontSize: '0.98rem', lineHeight: '1.6', fontWeight: '500', margin: 0 }}>Empower your capital and secure financial literacy. Select a professional-tier track covering stock market dynamics, compounding SIPs, Mutual Funds, and alternative wealth instruments.</p>
+                        <p style={{ opacity: 0.85, fontSize: '0.98rem', lineHeight: '1.6', fontWeight: '500', margin: 0 }}>Start your financial learning journey today. Select a course below to master stock trading, automated investments, mutual funds, or safe gold bonds with simple, step-by-step lessons.</p>
                     </div>
                 </div>
 
