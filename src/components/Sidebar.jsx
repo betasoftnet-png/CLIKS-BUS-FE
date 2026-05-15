@@ -449,65 +449,38 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '0.6rem 0.75rem 0.6rem 0.85rem',
-                            background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
-                            color: '#FFFFFF',
-                            borderRadius: '12px',
+                            padding: '0.6rem 0.8rem',
+                            background: 'transparent',
+                            color: '#475569',
+                            borderRadius: '10px',
                             border: 'none',
-                            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.25)',
                             cursor: 'pointer',
-                            fontWeight: '800',
-                            fontSize: '0.85rem',
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            minHeight: '48px'
+                            fontWeight: '750',
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
                         }}
                         onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 6px 18px rgba(139, 92, 246, 0.35)';
+                            e.currentTarget.style.background = '#F8FAFC';
+                            e.currentTarget.style.color = '#8B5CF6';
                         }}
                         onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.25)';
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#475569';
                         }}
                     >
-                        {/* Background ambient accent circle */}
-                        <div style={{
-                            position: 'absolute',
-                            right: '-10px',
-                            bottom: '-10px',
-                            width: '50px',
-                            height: '50px',
-                            borderRadius: '50%',
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            zIndex: 0
-                        }} />
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 1 }}>
-                            <div style={{ 
-                                background: 'rgba(255, 255, 255, 0.2)', 
-                                padding: '6px', 
-                                borderRadius: '8px', 
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: '1px solid rgba(255, 255, 255, 0.1)'
-                            }}>
-                                <Gift size={18} strokeWidth={2.5} color="#FFFFFF" />
-                            </div>
-                            <span style={{ fontWeight: '800', letterSpacing: '0.2px', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>Refer & Earn</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Gift size={20} color="#8B5CF6" />
+                            <span>Refer & Earn</span>
                         </div>
                         
                         <div style={{ 
-                            background: '#FFFFFF', 
+                            background: '#EDE9FE', 
                             color: '#6366F1', 
                             padding: '2px 8px', 
                             borderRadius: '20px', 
-                            fontSize: '0.7rem', 
+                            fontSize: '0.65rem', 
                             fontWeight: '900',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            zIndex: 1,
                             textTransform: 'uppercase',
                             letterSpacing: '0.5px'
                         }}>
