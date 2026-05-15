@@ -50,7 +50,7 @@ const BusinessMeetup = () => {
     const createMutation = useMutation({
         mutationFn: meetupsService.createMeetup,
         onSuccess: () => {
-            queryClient.invalidateQueries(['meetups-list']);
+            queryClient.invalidateQueries({ queryKey: ['meetups-list'] });
             setIsCreateModalOpen(false);
             setNewEvent({ 
                 title: '', 
@@ -73,7 +73,7 @@ const BusinessMeetup = () => {
     const joinMutation = useMutation({
         mutationFn: meetupsService.joinMeetup,
         onSuccess: () => {
-            queryClient.invalidateQueries(['meetups-list']);
+            queryClient.invalidateQueries({ queryKey: ['meetups-list'] });
             alert('Successfully joined the event! See you there.');
         },
         onError: (err) => {
