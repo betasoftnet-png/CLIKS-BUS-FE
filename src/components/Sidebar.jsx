@@ -331,8 +331,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Segregation', icon: Target, path: '/payments/segregation' },
             // { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' }, // Will do in future
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
-            { label: 'Rewards & Offers', icon: Gift, path: '/payments/rewards' },
-            { label: 'People', icon: Users, path: '/payments/people' }
+            { label: 'People', icon: Users, path: '/payments/people' },
+            { label: 'Rewards & Offers', icon: Gift, path: '/payments/rewards' }
         ]
 
     };

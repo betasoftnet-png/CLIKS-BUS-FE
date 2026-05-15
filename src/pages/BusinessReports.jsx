@@ -49,7 +49,7 @@ const BusinessReports = () => {
 
     const [selectedReport, setSelectedReport] = useState(null);
 
-    const { data: reportDetails, isLoading: isReportLoading } = useQuery({
+    const { data: rawReportDetails, isLoading: isReportLoading } = useQuery({
         queryKey: ['reportDetails', selectedReport?.id],
         queryFn: async () => {
             if (!selectedReport) return null;
@@ -193,6 +193,66 @@ const BusinessReports = () => {
         enabled: !!selectedReport
     });
 
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    const handleSelectReport = (report) => {
+        setSelectedReport(report);
+        setStartDate('');
+        setEndDate('');
+    };
+
+    const getFilteredDetails = () => {
+        if (!rawReportDetails) return null;
+        if (!startDate && !endDate) return rawReportDetails;
+
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(23, 59, 59, 999);
+
+        if (Array.isArray(rawReportDetails)) {
+            return rawReportDetails.filter(item => {
+                // Robust check for standard transactional date stamps
+                const dateStr = item.date || item.created_at || item.invoice_date || item.bill_date || item.createdAt || item.voucher_date || item.date_added;
+                if (!dateStr) return true;
+                const itemDate = new Date(dateStr);
+                if (isNaN(itemDate.getTime())) return true; 
+                if (start && itemDate < start) return false;
+                if (end && itemDate > end) return false;
+                return true;
+            });
+        }
+
+        // Special case for Liquid Cash Flow statement aggregations (ID 20)
+        if (selectedReport?.id === 20 && rawReportDetails) {
+            const flIn = (rawReportDetails.inflow || []).filter(item => {
+                const dStr = item.date || item.created_at || item.invoice_date || item.bill_date || item.createdAt;
+                if (!dStr) return true;
+                const iD = new Date(dStr);
+                if (isNaN(iD.getTime())) return true;
+                if (start && iD < start) return false;
+                if (end && iD > end) return false;
+                return true;
+            });
+            const flOut = (rawReportDetails.outflow || []).filter(item => {
+                const dStr = item.date || item.created_at || item.invoice_date || item.bill_date || item.createdAt;
+                if (!dStr) return true;
+                const iD = new Date(dStr);
+                if (isNaN(iD.getTime())) return true;
+                if (start && iD < start) return false;
+                if (end && iD > end) return false;
+                return true;
+            });
+            return { ...rawReportDetails, inflow: flIn, outflow: flOut };
+        }
+
+        return rawReportDetails;
+    };
+
+    // Transparently map downsteam queries to filtered subsets
+    const reportDetails = getFilteredDetails();
+
     const reportCategories = [
         { id: 'all', label: 'All Reports', icon: BarChart3 },
         { id: 'sales', label: 'Sales & Revenue', icon: TrendingUp },
@@ -308,7 +368,7 @@ const BusinessReports = () => {
                 {filteredReports.map(report => (
                     <div 
                         key={report.id} 
-                        onClick={() => setSelectedReport(report)}
+                        onClick={() => handleSelectReport(report)}
                         style={{ 
                             background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
                             transition: 'all 0.3s', cursor: 'pointer', position: 'relative', overflow: 'hidden'
@@ -350,9 +410,43 @@ const BusinessReports = () => {
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>{selectedReport.title}</h2>
                                 <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '500', margin: 0 }}>{selectedReport.desc}</p>
                             </div>
-                            <button onClick={() => setSelectedReport(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>
+                            <button onClick={() => handleSelectReport(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>
                                 <X size={20} />
                             </button>
+                        </div>
+
+                        {/* Advanced Date Range Control Ribbon */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#F8FAFC', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1rem', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                <Calendar size={13} color="#EC4899" /> Bounding Range:
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                                <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+                                    <input 
+                                        type="date" 
+                                        value={startDate} 
+                                        onChange={(e) => setStartDate(e.target.value)} 
+                                        style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
+                                    />
+                                </div>
+                                <span style={{ fontSize: '0.65rem', color: '#94A3B8', alignSelf: 'center', fontWeight: '850' }}>TO</span>
+                                <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+                                    <input 
+                                        type="date" 
+                                        value={endDate} 
+                                        onChange={(e) => setEndDate(e.target.value)} 
+                                        style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
+                                    />
+                                </div>
+                            </div>
+                            {(startDate || endDate) && (
+                                <button 
+                                    onClick={() => { setStartDate(''); setEndDate(''); }}
+                                    style={{ padding: '0.4rem 0.75rem', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: '6px', fontWeight: '900', fontSize: '0.68rem', cursor: 'pointer', textTransform: 'uppercase' }}
+                                >
+                                    RESET
+                                </button>
+                            )}
                         </div>
 
                         <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
@@ -971,7 +1065,7 @@ const BusinessReports = () => {
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                            <button onClick={() => setSelectedReport(null)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <button onClick={() => handleSelectReport(null)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
                                 Close
                             </button>
                             <button onClick={() => { alert('Exporting report...'); }} style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
