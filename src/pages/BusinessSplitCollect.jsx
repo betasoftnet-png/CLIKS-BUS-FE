@@ -379,8 +379,22 @@ const BusinessSplitCollect = () => {
                                     gap: '2rem',
                                     boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                                 }}>
-                                    <div style={{ width: '60px', height: '60px', borderRadius: '20px', overflow: 'hidden', border: '2px solid #F1F5F9', flexShrink: 0 }}>
-                                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.name}&backgroundColor=f1f5f9`} alt="partner" />
+                                    <div style={{ 
+                                        width: '60px', 
+                                        height: '60px', 
+                                        borderRadius: '20px', 
+                                        background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        fontSize: '1.6rem', 
+                                        fontWeight: '850', 
+                                        color: 'white',
+                                        flexShrink: 0,
+                                        boxShadow: '0 4px 12px rgba(6, 78, 59, 0.15)',
+                                        fontFamily: '"Outfit", sans-serif'
+                                    }}>
+                                        {partner.name && partner.name.trim().length > 0 ? partner.name.trim().charAt(0).toUpperCase() : 'P'}
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.2rem', fontWeight: '850', color: '#1F2937' }}>{partner.name}</h4>
@@ -517,8 +531,21 @@ const BusinessSplitCollect = () => {
                                     <h4 style={{ margin: 0, fontSize: '0.75rem', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member Breakdown</h4>
                                     {selectedExpense.participants?.map(p => (
                                         <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '12px 16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', overflow: 'hidden', background: '#EEF2FF', flexShrink: 0 }}>
-                                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`} alt="" />
+                                            <div style={{ 
+                                                width: '40px', 
+                                                height: '40px', 
+                                                borderRadius: '12px', 
+                                                background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                fontSize: '1.15rem', 
+                                                fontWeight: '850', 
+                                                color: 'white',
+                                                flexShrink: 0,
+                                                boxShadow: '0 2px 6px rgba(6, 78, 59, 0.1)'
+                                            }}>
+                                                {p.name && p.name.trim().length > 0 ? p.name.trim().charAt(0).toUpperCase() : 'P'}
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: '850', fontSize: '0.95rem', color: '#1E293B' }}>{p.name}</div>
@@ -659,8 +686,21 @@ const BusinessSplitCollect = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                             {formData.participants.map((p, index) => (
                                                 <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '12px 16px', background: 'white', borderRadius: '18px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
-                                                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', overflow: 'hidden', background: '#F1F5F9', flexShrink: 0 }}>
-                                                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name || 'x'}`} alt="" />
+                                                    <div style={{ 
+                                                        width: '38px', 
+                                                        height: '38px', 
+                                                        borderRadius: '10px', 
+                                                        background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center', 
+                                                        fontSize: '1.1rem', 
+                                                        fontWeight: '850', 
+                                                        color: 'white',
+                                                        flexShrink: 0,
+                                                        boxShadow: '0 2px 6px rgba(6, 78, 59, 0.1)'
+                                                    }}>
+                                                        {p.name && p.name.trim().length > 0 ? p.name.trim().charAt(0).toUpperCase() : '?'}
                                                     </div>
                                                     <input 
                                                         required
