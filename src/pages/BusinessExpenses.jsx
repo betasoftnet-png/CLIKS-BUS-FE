@@ -541,8 +541,8 @@ const BusinessExpenses = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                Settle & Post Expense
+                            <button type="submit" disabled={createExpenseMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createExpenseMutation.isPending ? 'not-allowed' : 'pointer', opacity: createExpenseMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
+                                {createExpenseMutation.isPending ? 'Posting...' : 'Settle & Post Expense'}
                             </button>
                         </form>
                     </div>
@@ -568,8 +568,8 @@ const BusinessExpenses = () => {
                                 <input required type="number" value={newBudget.budget_limit} onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                Settle Budget Target
+                            <button type="submit" disabled={createBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createBudgetMutation.isPending ? 'not-allowed' : 'pointer', opacity: createBudgetMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
+                                {createBudgetMutation.isPending ? 'Setting...' : 'Settle Budget Target'}
                             </button>
                         </form>
                     </div>
@@ -599,8 +599,8 @@ const BusinessExpenses = () => {
                                 <input required type="number" value={newClaim.claim_amount} onChange={(e) => setNewClaim({ ...newClaim, claim_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                Lodge Reimbursement Claim
+                            <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
+                                {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
                             </button>
                         </form>
                     </div>
