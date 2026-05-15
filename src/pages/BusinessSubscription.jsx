@@ -15,66 +15,62 @@ import {
 import '../App.css';
 
 const BusinessSubscription = () => {
-    const [selectedTier, setSelectedTier] = useState('Growth Plan'); // 'Growth Plan', 'Enterprise Pro', 'Unlimited'
-    const [billingCycle, setBillingCycle] = useState('annually'); // 'monthly', 'annually'
+    const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
 
     const tiers = [
         {
-            name: 'Growth Plan',
-            priceMonthly: 1499,
-            priceAnnually: 1199,
-            desc: 'Ideal for rapidly scaling retail & wholesale SMBs.',
-            icon: Award,
+            name: 'Starter Plan',
+            priceAnnually: 2999,
+            desc: 'Ideal for small retail & emerging SMBs.',
+            icon: ShieldCheck,
             color: '#1B6B3A',
-            badge: 'Most Popular',
+            badge: 'Basic',
             features: [
                 'Unlimited Accounting & Day Book Logs',
                 'Live GST Filings & ITC Auto-Matching',
-                'Advanced Smart Warehousing (up to 3 sites)',
+                'Basic Warehousing (1 site)',
                 'Automated Payroll & Attendance Systems',
-                'Daily CA Data Exporting (CSV/Excel)',
-                'Email & Live Chat Payout Support'
+                'Email Support'
             ]
         },
         {
-            name: 'Enterprise Pro',
-            priceMonthly: 4499,
-            priceAnnually: 3599,
-            desc: 'Built for complex, multi-site manufacturers & enterprises.',
+            name: 'Growth Plan',
+            priceAnnually: 6999,
+            desc: 'Built for scaling businesses and multi-site operations.',
             icon: Zap,
             color: '#064E3B',
-            badge: 'Best Value',
+            badge: 'Most Popular',
             features: [
-                'All features in Growth Plan',
-                'Infinite Multi-warehouse Routing',
-                'Dedicated Bill of Materials (BOM) Planners',
-                'Advanced Machine Downtime Analytics',
+                'All features in Starter Plan',
+                'Multi-warehouse Routing (up to 3 sites)',
+                'Dedicated Bill of Materials (BOM)',
                 'API Webhook Access & ERP Syncing',
-                'Dedicated CA Account Manager assistance'
+                'Daily CA Data Exporting (CSV/Excel)',
+                'Priority Email & Live Chat Support'
             ]
         },
         {
-            name: 'Unlimited Suite',
-            priceMonthly: 9999,
-            priceAnnually: 7999,
+            name: 'Elite Suite',
+            priceAnnually: 8999,
             desc: 'Absolute control for national distribution networks.',
             icon: Crown,
             color: '#0D9488',
-            badge: 'Ultimate Power',
+            badge: 'Ultimate Value',
             features: [
+                'All features in Growth Plan',
                 'Uncapped active staff profiles',
                 'Custom White-Label Invoicing Layouts',
                 'Unlimited manufacturing batches & QC logs',
                 'Guaranteed 99.99% uptime SLA service',
-                'Quarterly ERP business audit assistance',
+                'Dedicated CA Account Manager assistance',
                 'Priority 24/7/365 Direct VIP Phone Support'
             ]
         }
     ];
 
     const invoices = [
-        { id: 'INV-2026-041', date: '2026-05-01', tier: 'Growth Plan (Annual)', amount: '₹14,388', status: 'Paid', method: 'UPI (Razorpay)' },
-        { id: 'INV-2026-029', date: '2025-05-01', tier: 'Growth Plan (Annual)', amount: '₹14,388', status: 'Paid', method: 'Bank Transfer' }
+        { id: 'INV-2026-041', date: '2026-05-01', tier: 'Growth Plan', amount: '₹6,999', status: 'Paid', method: 'UPI (Razorpay)' },
+        { id: 'INV-2026-029', date: '2025-05-01', tier: 'Growth Plan', amount: '₹6,999', status: 'Paid', method: 'Bank Transfer' }
     ];
 
     return (
@@ -91,20 +87,10 @@ const BusinessSubscription = () => {
                     <p style={{ color: '#475569', fontWeight: '500' }}>Manage your active workspace tier, features access, and transaction statements.</p>
                 </div>
                 
-                {/* Billing Cycle Toggle */}
-                <div style={{ display: 'flex', background: '#DCF2E4', padding: '0.4rem', borderRadius: '14px', gap: '0.5rem' }}>
-                    <button 
-                        onClick={() => setBillingCycle('monthly')}
-                        style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: 'none', background: billingCycle === 'monthly' ? 'white' : 'transparent', color: '#064E3B', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.8rem' }}
-                    >
-                        Monthly
-                    </button>
-                    <button 
-                        onClick={() => setBillingCycle('annually')}
-                        style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: 'none', background: billingCycle === 'annually' ? 'white' : 'transparent', color: '#064E3B', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                    >
-                        Annually <span style={{ background: '#1B6B3A', color: 'white', fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: '6px' }}>Save 20%</span>
-                    </button>
+                {/* Billing Badge */}
+                <div style={{ display: 'flex', background: '#DCF2E4', padding: '0.6rem 1.25rem', borderRadius: '14px', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#064E3B', fontWeight: '800', fontSize: '0.85rem' }}>Annual Billing Cycle</span>
+                    <span style={{ background: '#1B6B3A', color: 'white', fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: '6px', fontWeight: '800' }}>ACTIVE</span>
                 </div>
             </div>
 
@@ -119,13 +105,13 @@ const BusinessSubscription = () => {
                         <span style={{ background: 'rgba(255,255,255,0.15)', padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem' }}>
                             <Sparkles size={14} /> Active Subscription Plan
                         </span>
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem' }}>Growth Plan (Annual)</h2>
+                        <h2 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem' }}>Growth Plan</h2>
                         <p style={{ color: '#DCF2E4', fontWeight: '600', maxWidth: '500px' }}>Your workspace is configured with high-performance ERP pipelines. All accounting, manufacturing, and HR modules are fully active.</p>
                     </div>
                     <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '1.75rem 2.25rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', minWidth: '240px', textAlign: 'center' }}>
                         <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Next Automatic Renewal</p>
                         <h3 style={{ fontSize: '1.75rem', fontWeight: '900', marginBottom: '0.25rem' }}>01 May, 2027</h3>
-                        <p style={{ fontSize: '0.8rem', color: '#DCF2E4', fontWeight: '600' }}>Amount: ₹14,388 + GST</p>
+                        <p style={{ fontSize: '0.8rem', color: '#DCF2E4', fontWeight: '600' }}>Amount: ₹6,999 + GST</p>
                     </div>
                 </div>
             </div>
@@ -134,7 +120,7 @@ const BusinessSubscription = () => {
             <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Upgrade Workspace Tier</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '4rem' }}>
                 {tiers.map((tier, idx) => {
-                    const price = billingCycle === 'annually' ? tier.priceAnnually : tier.priceMonthly;
+                    const price = tier.priceAnnually;
                     const isActive = tier.name === selectedTier;
                     const TierIcon = tier.icon;
                     return (
@@ -166,7 +152,7 @@ const BusinessSubscription = () => {
                             
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '2rem' }}>
                                 <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>₹{price.toLocaleString()}</span>
-                                <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>/ month</span>
+                                <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>/ year</span>
                             </div>
 
                             <button style={{ 
