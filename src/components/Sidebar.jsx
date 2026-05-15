@@ -187,6 +187,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (path.includes('/payments/wallet')) return 'Wallet';
         if (path.includes('/payments/segregation')) return 'Segregation';
         if (path.includes('/payments/split-collect')) return 'Split & Collect';
+        if (path.includes('/payments/people')) return 'People';
 
         if (path.includes('/referral')) return 'Refer & Earn';
         if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
@@ -315,7 +316,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
             { label: 'Segregation', icon: Target, path: '/payments/segregation' },
             { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' },
-            { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' }
+            { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
+            { label: 'People', icon: Users, path: '/payments/people' }
         ]
 
     };

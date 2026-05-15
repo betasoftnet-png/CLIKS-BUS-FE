@@ -64,6 +64,7 @@ import BusinessPOS from './pages/BusinessPOS';
 import BusinessPurposeWallet from './pages/BusinessPurposeWallet';
 import BusinessReferral from './pages/BusinessReferral';
 import BusinessTrading from './pages/BusinessTrading';
+import BusinessPeople from './pages/BusinessPeople';
 
 import './App.css';
 
@@ -151,6 +152,7 @@ function AppContent() {
                     <Route path="/payments/wallet" element={<BusinessWallet />} />
                     <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
                     <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} />
+                    <Route path="/payments/people" element={<BusinessPeople />} />
 
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
                     <Route path="/inventory/warehouse" element={<BusinessWarehouse />} />
