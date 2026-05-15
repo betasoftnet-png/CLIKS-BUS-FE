@@ -39,6 +39,12 @@ import {
     WEALTH_CURRICULUM 
 } from './BusinessTradingData';
 
+import {
+    CRYPTO_CURRICULUM,
+    BITCOIN_CURRICULUM,
+    BitcoinIcon
+} from './BusinessCryptoData';
+
 
 // Config Registry for Integrated Wealth Academies
 const ACADEMIES = {
@@ -81,6 +87,26 @@ const ACADEMIES = {
         curriculum: WEALTH_CURRICULUM,
         tag: 'Gold & Safe Bonds',
         desc: 'A professional guide to earning stable returns from secure government schemes, gold bonds, and rental real estate.'
+    },
+    crypto: {
+        title: 'Crypto & Web3 Essentials',
+        subtitle: 'Master the basics of blockchain, DeFi lending, and digital currencies with direct step-by-step modules.',
+        gradient: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+        shadow: 'rgba(79, 70, 229, 0.2)',
+        icon: Activity,
+        curriculum: CRYPTO_CURRICULUM,
+        tag: 'Crypto & Web3',
+        desc: 'An actionable 25-lesson course explaining Smart Contracts, Decentralized Exchanges, and Indian crypto tax rules.'
+    },
+    bitcoin: {
+        title: 'Bitcoin Masterclass',
+        subtitle: 'A foundational guide to Bitcoin security, self-custody, and macroeconomics for long-term capital.',
+        gradient: 'linear-gradient(135deg, #D97706 0%, #EA580C 100%)',
+        shadow: 'rgba(217, 119, 6, 0.2)',
+        icon: BitcoinIcon,
+        curriculum: BITCOIN_CURRICULUM,
+        tag: 'Bitcoin Hard Money',
+        desc: 'A professional 25-lesson curriculum detailing Bitcoin Mining, the 21M Hard Cap, and cold storage wallets.'
     }
 };
 
@@ -280,7 +306,7 @@ const BusinessTrading = () => {
                 </div>
 
                 {/* Dynamic Academy Choice Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
                     {Object.keys(ACADEMIES).map((key) => {
                         const academy = ACADEMIES[key];
                         const AcademyIcon = academy.icon;
