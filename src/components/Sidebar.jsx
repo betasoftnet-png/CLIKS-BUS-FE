@@ -66,10 +66,10 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     let darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : '#135029');
     
     if (isBetaClub) {
-        primaryColor = '#D97706'; // Attractive gold/amber icon
-        activeBg = '#FFFBEB'; // Soft gold background hover/open states
-        activeText = '#D97706'; // Beautiful gold text color for active/inactive state
-        darkTextColor = '#92400E'; // Rich deep gold for subheader labels
+        primaryColor = '#FFD700'; // Vibrant gold icon (#FFD700)
+        activeBg = '#FFFDF0'; // Soft golden background hover states
+        activeText = '#FFD700'; // Set text color explicitly to gold
+        darkTextColor = '#D97706'; // Warm golden amber for subheader labels
     }
 
     let backgroundStyle = 'transparent';
@@ -79,9 +79,9 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         } else if (isAdmin) {
             backgroundStyle = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)';
         } else if (isBetaClub) {
-            backgroundStyle = '#FFFBEB'; // Soft gold background instead of solid dark gradient
-            primaryColor = '#D97706'; // Darken the icon when active
-            activeText = '#B45309'; // Rich deep gold text when active for extra readability and pop
+            backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient
+            primaryColor = '#FFD700'; // Keep the icon vibrant gold when active
+            activeText = '#FFD700'; // Pure gold text when active as requested
         } else {
             backgroundStyle = '#1B6B3A';
         }
@@ -323,7 +323,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         social: [
             { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
             { label: 'Trading docs', icon: LineChart, path: '/social/trading' },
-            { label: 'BETA Club', icon: UsersRound, path: '/social/investors' }
+            { label: 'BETA Club', icon: UsersRound, path: '/social/investors' , color: '#FFD700' }
         ],
         financeMode: [
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
