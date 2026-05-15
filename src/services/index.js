@@ -32,5 +32,4 @@ export * from './posService';
 export * from './goalWalletService';
 export * from './splitExpenseService';
 export * from './peopleService';
-
-
+export * from './meetupsService';
