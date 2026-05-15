@@ -21,6 +21,10 @@ export function CalculatorPopover() {
     // Smart Bar UI States
     const [showSmartOptions, setShowSmartOptions] = useState(null); // 'gst' | 'discount' | 'label' | null
     const [isConverted, setIsConverted] = useState(false); // INR to USD Toggle
+    const [compareMode, setCompareMode] = useState(false); // Side-by-side Compare Mode
+    const [compareLeft, setCompareLeft] = useState(''); // Left compare input
+    const [compareRight, setCompareRight] = useState(''); // Right compare input
+    const [sciMode, setSciMode] = useState(false); // Scientific Calculator Mode
 
     // Constants
     const CONVERSION_RATE = 83.5; // 1 USD = 83.5 INR (Simulated placeholder)
@@ -609,6 +613,17 @@ export function CalculatorPopover() {
                                 >
                                     <Globe size={13} /> {isConverted ? 'USD' : 'INR'}
                                 </button>
+                                <button 
+                                    onClick={() => { setCompareMode(!compareMode); setSciMode(false); }}
+                                    style={{ 
+                                        ...styles.smartBtn, 
+                                        background: compareMode ? '#EFF6FF' : '#FFFFFF',
+                                        color: compareMode ? '#3B82F6' : '#475569',
+                                        borderColor: compareMode ? '#3B82F6' : '#E2E8F0'
+                                    }}
+                                >
+                                    <ArrowUpDown size={13} /> Compare
+                                </button>
                             </div>
 
                             {/* Sub-menu row for smart options */}
@@ -641,7 +656,75 @@ export function CalculatorPopover() {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+
+                            {/* Compare Panel */}
+                            <AnimatePresence>
+                                {compareMode && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        style={{ background: '#EFF6FF', padding: '10px 16px', borderBottom: '1px solid #BFDBFE', overflow: 'hidden' }}
+                                    >
+                                        <div style={{ fontSize: '10px', fontWeight: '800', color: '#3B82F6', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Compare Values</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="number"
+                                                placeholder="Value A"
+                                                value={compareLeft}
+                                                onChange={(e) => setCompareLeft(e.target.value)}
+                                                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #BFDBFE', background: 'white', fontSize: '14px', fontWeight: '700', color: '#1E3A8A', outline: 'none', textAlign: 'center' }}
+                                            />
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+                                                <span style={{ fontSize: '9px', fontWeight: '900', color: '#3B82F6' }}>VS</span>
+                                                {compareLeft && compareRight && (
+                                                    <span style={{ fontSize: '9px', fontWeight: '800', color: parseFloat(compareLeft) > parseFloat(compareRight) ? '#10B981' : parseFloat(compareLeft) < parseFloat(compareRight) ? '#EF4444' : '#64748B' }}>
+                                                        {parseFloat(compareLeft) > parseFloat(compareRight) ? 'A▲' : parseFloat(compareLeft) < parseFloat(compareRight) ? 'B▲' : '='}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <input
+                                                type="number"
+                                                placeholder="Value B"
+                                                value={compareRight}
+                                                onChange={(e) => setCompareRight(e.target.value)}
+                                                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #BFDBFE', background: 'white', fontSize: '14px', fontWeight: '700', color: '#1E3A8A', outline: 'none', textAlign: 'center' }}
+                                            />
+                                        </div>
+                                        {compareLeft && compareRight && (
+                                            <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
+                                                <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '4px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE' }}>
+                                                    Diff: <span style={{ color: '#3B82F6' }}>₹{Math.abs(parseFloat(compareLeft || 0) - parseFloat(compareRight || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                </div>
+                                                <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '4px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE' }}>
+                                                    Ratio: <span style={{ color: '#3B82F6' }}>{parseFloat(compareRight) ? (parseFloat(compareLeft || 0) / parseFloat(compareRight)).toFixed(2) : '-'}x</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
+
+                        {/* Scientific Mode Buttons */}
+                        {sciMode && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', padding: '8px 16px 0 16px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+                                {[
+                                    { label: 'sin', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.sin(v * Math.PI / 180) * 1e10) / 1e10)); }},
+                                    { label: 'cos', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.cos(v * Math.PI / 180) * 1e10) / 1e10)); }},
+                                    { label: 'tan', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.tan(v * Math.PI / 180) * 1e10) / 1e10)); }},
+                                    { label: 'log', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.log10(v) * 1e10) / 1e10)); }},
+                                    { label: '√', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.round(Math.sqrt(v) * 1e10) / 1e10)); }},
+                                    { label: 'x²', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(v * v)); }},
+                                    { label: 'π', fn: () => setActiveInput(String(Math.PI.toFixed(8))) },
+                                    { label: '1/x', fn: () => { const v = parseFloat(activeInput); setActiveInput(v ? String(Math.round((1/v) * 1e10) / 1e10) : '0'); }},
+                                ].map(({ label, fn }) => (
+                                    <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: '36px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '12px', fontWeight: '800', borderRadius: '8px' }}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Standard Keypad */}
                         <div style={styles.grid}>
@@ -668,7 +751,14 @@ export function CalculatorPopover() {
                                 =
                             </button>
 
-                            <button onClick={() => handleNumber(0)} style={{ ...styles.keyBtn, gridColumn: 'span 2', backgroundColor: '#F8FAFC', color: '#334155' }}>0</button>
+                            {/* SCI button left of 0 */}
+                            <button
+                                onClick={() => { setSciMode(!sciMode); setCompareMode(false); }}
+                                style={{ ...styles.keyBtn, backgroundColor: sciMode ? '#EEF2FF' : '#F1F5F9', color: sciMode ? '#4F46E5' : '#334155', fontSize: '12px', fontWeight: '800' }}
+                            >
+                                SCI
+                            </button>
+                            <button onClick={() => handleNumber(0)} style={{ ...styles.keyBtn, backgroundColor: '#F8FAFC', color: '#334155' }}>0</button>
                             <button onClick={handleDecimal} style={{ ...styles.keyBtn, backgroundColor: '#F8FAFC', color: '#334155' }}>.</button>
                         </div>
 
