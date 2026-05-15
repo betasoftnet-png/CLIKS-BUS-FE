@@ -159,11 +159,9 @@ const BusinessWallet = () => {
                 </div>
             </div>
 
-            {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-
             {/* Interactive Balance Dashboard Card */}
             <div style={{ 
+                flexShrink: 0,
                 background: 'white', 
                 borderRadius: '24px', 
                 padding: '2.5rem', 
@@ -209,10 +207,10 @@ const BusinessWallet = () => {
             </div>
 
             {/* Action Table Container */}
-            <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden', marginBottom: '1.5rem' }}>
                 
                 {/* Table Toolbar header */}
-                <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexShrink: 0 }}>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>Wallet History</h3>
                     
                     <div style={{ position: 'relative', width: '320px' }}>
@@ -235,15 +233,15 @@ const BusinessWallet = () => {
                 </div>
 
                 {/* History Display Grid/Table */}
-                <div style={{ overflowX: 'auto' }}>
+                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '1px solid #F1F5F9', background: '#FAFAFA' }}>
-                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Transaction ID</th>
-                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date & Time</th>
-                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Description</th>
-                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Direction</th>
-                                <th style={{ padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
+                            <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Transaction ID</th>
+                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date & Time</th>
+                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Description</th>
+                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Direction</th>
+                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -289,7 +287,6 @@ const BusinessWallet = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
             </div>
 
             {/* Simplistic Beautiful Modal for Add Money */}
