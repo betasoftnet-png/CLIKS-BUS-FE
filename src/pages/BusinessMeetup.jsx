@@ -212,9 +212,6 @@ const BusinessMeetup = () => {
                         <h1 style={{ fontSize: '3rem', fontWeight: '950', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '1rem' }}>
                             Founders Meetup <br />& Executive Events
                         </h1>
-                        <p style={{ fontSize: '1.05rem', color: '#A7F3D0', fontWeight: '500', lineHeight: 1.6, maxWidth: '550px' }}>
-                            Build synergy with regional builders, organize custom corporate panels, and fast-track strategic ventures through structured network channels.
-                        </p>
                     </div>
                     <button 
                         onClick={() => setIsCreateModalOpen(true)}

@@ -57,18 +57,31 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const isOpen = !!openMenus[item.label];
     const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
 
+    const isBetaClub = item.label === 'BETA Club';
+
     // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange
-    const primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : '#1B6B3A');
-    const activeBg = isSales ? '#FFF7ED' : (isAdmin ? '#EEF2FF' : '#DCF2E4');
-    const activeText = isActive ? '#ffffff' : (isSales ? '#EA580C' : (isAdmin ? '#1E293B' : '#111827'));
-    const darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : '#135029');
+    let primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : '#1B6B3A');
+    let activeBg = isSales ? '#FFF7ED' : (isAdmin ? '#EEF2FF' : '#DCF2E4');
+    let activeText = isActive ? '#ffffff' : (isSales ? '#EA580C' : (isAdmin ? '#1E293B' : '#111827'));
+    let darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : '#135029');
     
+    if (isBetaClub) {
+        primaryColor = '#8B5CF6'; // Attractive violet icon
+        activeBg = '#F5F3FF'; // Soft lavender background hover/open states
+        if (!isActive) {
+            activeText = '#7C3AED'; // Violet label text when inactive
+            darkTextColor = '#6D28D9'; // Rich deep violet for subheader labels
+        }
+    }
+
     let backgroundStyle = 'transparent';
     if (isActive) {
         if (isSales) {
             backgroundStyle = 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)';
         } else if (isAdmin) {
             backgroundStyle = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)';
+        } else if (isBetaClub) {
+            backgroundStyle = 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)'; // Beautiful gradient for premium active BETA state
         } else {
             backgroundStyle = '#1B6B3A';
         }
@@ -199,9 +212,9 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
         if (path.includes('/marketing')) return 'Marketing';
-        if (path.includes('/social/investors')) return 'Beta Club';
+        if (path.includes('/social/investors')) return 'BETA Club';
         if (path.includes('/social/meetup')) return 'Meetup';
-        if (path.includes('/social/trading')) return 'Social Trading';
+        if (path.includes('/social/trading')) return 'Trading docs';
         if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
         if (path.includes('/faq')) return 'Help & Support';
@@ -308,9 +321,9 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
         ],
         social: [
-            { label: 'Beta Club', icon: UsersRound, path: '/social/investors' },
             { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
-            { label: 'Social Trading', icon: LineChart, path: '/social/trading' }
+            { label: 'Trading docs', icon: LineChart, path: '/social/trading' },
+            { label: 'BETA Club', icon: UsersRound, path: '/social/investors' }
         ],
         financeMode: [
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
@@ -411,7 +424,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
                             style={{
                                 width: 'calc(100% - 2rem)',
-                                margin: '0.5rem 1rem 0.75rem 1rem',
+                                margin: '0.5rem 1rem 1.5rem 1rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
