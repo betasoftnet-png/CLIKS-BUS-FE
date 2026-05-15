@@ -3,7 +3,7 @@ import {
     ArrowLeft, Save, Sliders, FileText, RefreshCw, Building2, 
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
     Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, Edit,
-    Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase
+    Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
@@ -59,10 +59,10 @@ const BusinessCustomization = () => {
         { id: 'transaction', label: 'Transaction', icon: FileText, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'print', label: 'Print', icon: Printer, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadow: 'rgba(139, 92, 246, 0.2)' },
         { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', shadow: 'rgba(16, 185, 129, 0.2)' },
-        { id: 'message', label: 'Message', icon: MessageSquare, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadow: 'rgba(245, 158, 11, 0.2)' },
         { id: 'party', label: 'Party', icon: Users, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadow: 'rgba(236, 72, 153, 0.2)' },
         { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #0F172A 0%, #020617 100%)', shadow: 'rgba(15, 23, 42, 0.2)' },
-        { id: 'reminders', label: 'Reminders', icon: Bell, gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', shadow: 'rgba(239, 68, 68, 0.2)' }
+        { id: 'reminders', label: 'Reminders', icon: Bell, gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', shadow: 'rgba(239, 68, 68, 0.2)' },
+        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #F59E0B 0%, #B45309 100%)', shadow: 'rgba(245, 158, 11, 0.2)' }
     ];
 
     const renderContent = () => {
@@ -72,10 +72,10 @@ const BusinessCustomization = () => {
             case 'transaction': return renderTransaction();
             case 'print': return renderPrint();
             case 'gst': return renderGst();
-            case 'message': return renderMessage();
             case 'party': return renderParty();
             case 'accounting': return renderAccounting();
             case 'reminders': return renderReminders();
+            case 'betaClub': return renderBetaClub();
             default: return null;
         }
     };
@@ -347,20 +347,22 @@ const BusinessCustomization = () => {
         </CustomizationCard>
     );
 
-    const renderMessage = () => (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }}>
-            <CustomizationCard title="Notification Setup" icon={MessageSquare}>
-                <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                    <div onClick={() => setConfig(p => ({...p, msgMethod: 'Vyapar'}))} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: config.msgMethod === 'Vyapar' ? '2px solid #F59E0B' : '1px solid #E2E8F0', cursor: 'pointer' }}>SMS Dispatch</div>
-                    <div onClick={() => setConfig(p => ({...p, msgMethod: 'WhatsApp'}))} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: config.msgMethod === 'WhatsApp' ? '2px solid #10B981' : '1px solid #E2E8F0', cursor: 'pointer' }}>WhatsApp Link</div>
+    const renderBetaClub = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', padding: '2rem 0' }}>
+            <div style={{ width: '100%', background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', borderRadius: '16px', padding: '3.5rem', textAlign: 'center', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                <div style={{ position: 'absolute', right: '-50px', top: '-50px', width: '300px', height: '300px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '50%', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', left: '-50px', bottom: '-50px', width: '200px', height: '200px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '50%', pointerEvents: 'none' }} />
+                
+                <Crown size={64} color="#F59E0B" style={{ marginBottom: '1.5rem', filter: 'drop-shadow(0 0 15px rgba(245,158,11,0.5))' }} />
+                <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', color: '#FCD34D', letterSpacing: '-0.02em' }}>Join the Beta Club</h2>
+                <p style={{ margin: '1.5rem auto', fontSize: '1.1rem', color: '#94A3B8', maxWidth: '650px', lineHeight: '1.7', fontWeight: '500' }}>
+                    Gain exclusive early access to experimental features, AI-powered insights, and advanced integrations before they roll out to the public.
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }}>
+                    <button style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', border: 'none', padding: '1rem 2.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 10px 25px rgba(245, 158, 11, 0.3)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Crown size={18} /> APPLY FOR ACCESS
+                    </button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <CheckboxWithLabel label="Notify Client Party on Create" checked={config.msgToParty} onChange={() => handleToggle('msgToParty')} />
-                    <CheckboxWithLabel label="Automatic Invoices Notification" checked={config.autoSendSales} onChange={() => handleToggle('autoSendSales')} />
-                </div>
-            </CustomizationCard>
-            <div style={{ background: '#E5DDD5', borderRadius: '16px', padding: '1rem', height: '300px' }}>
-                <div style={{ background: '#DCF8C6', padding: '0.75rem', borderRadius: '8px', fontSize: '0.75rem', maxWidth: '85%' }}>Hello! Transaction complete successfully!</div>
             </div>
         </div>
     );
