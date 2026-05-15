@@ -28,6 +28,7 @@ import '../App.css';
 const BusinessPayments = () => {
     const [activeTab, setActiveTab] = useState('receivables'); // 'receivables', 'payables', 'bank', 'reminders'
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -256,37 +257,60 @@ const BusinessPayments = () => {
                 ))}
             </div>
 
-            {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-
             {/* Tab 1: Customer Receivables */}
             {activeTab === 'receivables' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#F8FAFC', flexShrink: 0 }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            background: '#FFF', 
+                            border: '1px solid #E2E8F0', 
+                            borderRadius: '12px', 
+                            padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                            width: showSearch ? '280px' : '38px', 
+                            height: '38px',
+                            boxSizing: 'border-box',
+                            overflow: 'hidden'
+                        }}>
+                            <Search 
+                                size={18} 
+                                style={{ color: '#64748B', cursor: 'pointer', flexShrink: 0 }} 
+                                onClick={() => setShowSearch(!showSearch)} 
+                            />
                             <input 
                                 type="text" 
-                                placeholder="Search customer payments..." 
+                                placeholder="Search records..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                style={{ 
+                                    border: 'none', 
+                                    outline: 'none', 
+                                    background: 'transparent', 
+                                    marginLeft: '0.75rem', 
+                                    width: '100%', 
+                                    fontSize: '0.9rem', 
+                                    color: '#1E293B',
+                                    display: showSearch ? 'block' : 'none'
+                                }}
+                                autoFocus={showSearch}
                             />
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt ID</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice Linked</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Original</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reconciliation</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt ID</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice Linked</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Original</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reconciliation</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -316,32 +340,58 @@ const BusinessPayments = () => {
 
             {/* Tab 2: Supplier Payables */}
             {activeTab === 'payables' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#F8FAFC', flexShrink: 0 }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            background: '#FFF', 
+                            border: '1px solid #E2E8F0', 
+                            borderRadius: '12px', 
+                            padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                            width: showSearch ? '280px' : '38px', 
+                            height: '38px',
+                            boxSizing: 'border-box',
+                            overflow: 'hidden'
+                        }}>
+                            <Search 
+                                size={18} 
+                                style={{ color: '#64748B', cursor: 'pointer', flexShrink: 0 }} 
+                                onClick={() => setShowSearch(!showSearch)} 
+                            />
                             <input 
                                 type="text" 
-                                placeholder="Search supplier disbursements..." 
+                                placeholder="Search records..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                style={{ 
+                                    border: 'none', 
+                                    outline: 'none', 
+                                    background: 'transparent', 
+                                    marginLeft: '0.75rem', 
+                                    width: '100%', 
+                                    fontSize: '0.9rem', 
+                                    color: '#1E293B',
+                                    display: showSearch ? 'block' : 'none'
+                                }}
+                                autoFocus={showSearch}
                             />
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Voucher No</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Name</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Purchase Linked</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Due</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Number</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Voucher No</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Name</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Purchase Linked</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Due</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Number</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -369,7 +419,7 @@ const BusinessPayments = () => {
 
             {/* Tab 3: Bank registers */}
             {activeTab === 'bank' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', paddingBottom: '1.5rem' }}>
                     {accounts.map(acc => (
                         <div key={acc.bank_account_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -396,20 +446,21 @@ const BusinessPayments = () => {
 
             {/* Tab 4: Overdue reminders */}
             {activeTab === 'reminders' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Overdue Customer Accounts Reminders (myBillBook flow)</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Customer Profile</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Linked Invoice</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Amount Overdue</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Due Date</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Delay Days</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reminder Status</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>WhatsApp Alert</th>
-                            </tr>
-                        </thead>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2rem 2.5rem 2.5rem 2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <h3 style={{ flexShrink: 0, fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Overdue Customer Accounts Reminders (myBillBook flow)</h3>
+                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Profile</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Linked Invoice</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount Overdue</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Delay Days</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reminder Status</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right', textTransform: 'uppercase' }}>WhatsApp Alert</th>
+                                </tr>
+                            </thead>
                         <tbody>
                             {overdues.map((ov) => (
                                 <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -433,9 +484,9 @@ const BusinessPayments = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
-            </div>
 
             {/* Inward Customer Payment Modal */}
             {isPaymentModalOpen && (

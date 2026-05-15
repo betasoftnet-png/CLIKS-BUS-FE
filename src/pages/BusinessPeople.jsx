@@ -26,6 +26,7 @@ import '../App.css';
 const BusinessPeople = () => {
     const [activeTab, setActiveTab] = useState('contacts'); // 'contacts', 'transactions', 'reminders'
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
     const queryClient = useQueryClient();
 
     // Modals states
@@ -339,28 +340,54 @@ const BusinessPeople = () => {
             {/* Main Dynamic Content */}
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
                 {/* Shared Toolbar */}
-                <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                    <div style={{ position: 'relative', width: '400px' }}>
-                        <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', background: '#F8FAFC', flexShrink: 0, gap: '1rem' }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        background: '#FFF', 
+                        border: '1px solid #E2E8F0', 
+                        borderRadius: '12px', 
+                        padding: showSearch ? '0.5rem 1rem' : '0.5rem', 
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                        width: showSearch ? '280px' : '38px', 
+                        height: '38px',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden'
+                    }}>
+                        <Search 
+                            size={18} 
+                            style={{ color: '#64748B', cursor: 'pointer', flexShrink: 0 }} 
+                            onClick={() => setShowSearch(!showSearch)} 
+                        />
                         <input 
                             type="text" 
                             placeholder={`Lookup ${activeTab === 'contacts' ? 'contacts...' : activeTab === 'transactions' ? 'transactions...' : 'reminders...'}`} 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem' }}
+                            style={{ 
+                                border: 'none', 
+                                outline: 'none', 
+                                background: 'transparent', 
+                                marginLeft: '0.75rem', 
+                                width: '100%', 
+                                fontSize: '0.9rem', 
+                                color: '#1E293B',
+                                display: showSearch ? 'block' : 'none'
+                            }}
+                            autoFocus={showSearch}
                         />
                     </div>
                     {activeTab === 'reminders' && (
                         <button 
                             onClick={() => setIsReminderModalOpen(true)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: '12px', background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', fontWeight: '750', cursor: 'pointer' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.15rem', borderRadius: '12px', background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', fontWeight: '750', cursor: 'pointer', flexShrink: 0 }}
                         >
                             <Bell size={16} /> Dispatch Alert
                         </button>
                     )}
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '1rem' }}>
+                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                     {/* TAB 1: Contacts List */}
                     {activeTab === 'contacts' && (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
