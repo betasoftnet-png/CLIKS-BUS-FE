@@ -37,8 +37,8 @@ const BusinessWallet = () => {
     const handleAddMoney = async (e) => {
         e.preventDefault();
         const amt = parseFloat(addForm.amount);
-        if (isNaN(amt) || amt <= 0) {
-            alert('Please input a valid number to load.');
+        if (isNaN(amt) || amt < 500) {
+            alert('Minimum load amount is ₹500.');
             return;
         }
 
@@ -308,7 +308,8 @@ const BusinessWallet = () => {
                                         required 
                                         autoFocus
                                         type="number" 
-                                        placeholder="5000.00"
+                                        min="500"
+                                        placeholder="500.00"
                                         value={addForm.amount} 
                                         onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} 
                                         style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 2.2rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '750', color: '#0F172A' }} 

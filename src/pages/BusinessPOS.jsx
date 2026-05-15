@@ -40,6 +40,9 @@ const BusinessPOS = () => {
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
     const [, setSelectedCustomerObj] = useState(null);
     
+    // Hold Cart State
+    const [heldCarts, setHeldCarts] = useState([]);
+    
     const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(0);
     const [taxRate, setTaxRate] = useState(18); // Default GST
@@ -311,6 +314,43 @@ const BusinessPOS = () => {
         }
     };
 
+    const holdCart = () => {
+        if (cart.length === 0) return;
+        setHeldCarts(prev => [...prev, {
+            id: Date.now(),
+            cart: [...cart],
+            customerName,
+            customerEmail,
+            discountVal,
+            discountType,
+            taxRate
+        }]);
+        // Clear current workspace
+        setCart([]);
+        setCustomerName('');
+        setCustomerEmail('');
+        setSelectedCustomerObj(null);
+        setDiscountVal(0);
+    };
+
+    const restoreCart = (holdId) => {
+        if (cart.length > 0) {
+            if (!window.confirm('Current cart has items. Overwrite with held cart?')) return;
+        }
+        const held = heldCarts.find(h => h.id === holdId);
+        if (!held) return;
+        
+        setCart(held.cart);
+        setCustomerName(held.customerName);
+        setCustomerEmail(held.customerEmail);
+        setDiscountVal(held.discountVal);
+        setDiscountType(held.discountType);
+        setTaxRate(held.taxRate);
+        
+        // Remove from held
+        setHeldCarts(prev => prev.filter(h => h.id !== holdId));
+    };
+
     const printReceipt = () => {
         const printContents = document.getElementById('thermal-receipt-pane').innerHTML;
         document.body.innerHTML = `
@@ -561,6 +601,22 @@ const BusinessPOS = () => {
                     </div>
                 </div>
 
+                {/* Held Carts Row */}
+                {heldCarts.length > 0 && (
+                    <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>HELD CARTS:</span>
+                        {heldCarts.map(hc => (
+                            <button
+                                key={hc.id}
+                                onClick={() => restoreCart(hc.id)}
+                                style={{ background: 'white', border: '1px solid #FCD34D', padding: '0.3rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#92400E', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                                {hc.customerName || `Cart #${hc.id.toString().slice(-4)}`} ({hc.cart.length} items)
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 {/* Live Cart Items Area */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
                     {cart.length === 0 ? (
@@ -575,7 +631,10 @@ const BusinessPOS = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Cart List ({cart.length})</span>
-                                <button onClick={clearCart} style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}>Clear All</button>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={holdCart} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.2rem 0.5rem', borderRadius: '6px', color: '#334155', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}>Hold Cart</button>
+                                    <button onClick={clearCart} style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}>Clear All</button>
+                                </div>
                             </div>
                             
                             <AnimatePresence initial={false}>
