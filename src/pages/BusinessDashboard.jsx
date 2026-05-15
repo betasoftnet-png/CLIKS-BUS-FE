@@ -24,7 +24,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import { useQuery } from '@tanstack/react-query';
-import { reportsService } from '../services';
+import { reportsService, stockService, expensesService, purchasesService } from '../services';
 
 const MASTER_SHORTCUTS = [
     { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: DollarSign, color: '#1B6B3A' },
@@ -74,6 +74,72 @@ const BusinessDashboard = () => {
         queryKey: ['dashboardChartSales'],
         queryFn: reportsService.getChartSales
     });
+
+    // Fetch live stock metrics for Inventory Health
+    const { data: stockStats } = useQuery({
+        queryKey: ['dashboardStockStats'],
+        queryFn: stockService.getStockStats
+    });
+
+    // Compile Live Operations Log chronologically from multiple datasets
+    const { data: recentOps } = useQuery({
+        queryKey: ['dashboardRecentOps'],
+        queryFn: async () => {
+            try {
+                const [sales, purchases, expenses] = await Promise.all([
+                    reportsService.getSales().catch(() => []),
+                    purchasesService.getPurchases().catch(() => []),
+                    expensesService.getExpenses().catch(() => [])
+                ]);
+                
+                const sList = (sales?.data || sales || []).slice(0, 5).map(s => ({
+                    title: `Sales: #${s.order_number || s.id}`,
+                    date: s.created_at || s.date,
+                    status: 'Completed',
+                    color: '#10B981'
+                }));
+                
+                const pList = (purchases?.data || purchases || []).slice(0, 5).map(p => ({
+                    title: `Purchase: #${p.id}`,
+                    date: p.created_at || p.bill_date,
+                    status: p.status === 'received' ? 'Received' : (p.status || 'Processed'),
+                    color: '#2563EB'
+                }));
+                
+                const eList = (expenses?.data || expenses || []).slice(0, 5).map(e => ({
+                    title: `Expense: ${e.category || 'Operating'}`,
+                    date: e.created_at || e.date,
+                    status: 'Settled',
+                    color: '#EF4444'
+                }));
+                
+                return [...sList, ...pList, ...eList]
+                    .filter(item => item.date)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 3); // Only top 3 most recent operations
+            } catch (err) {
+                console.warn('[Ops Compiler] Dynamic aggregation failed:', err);
+                return [];
+            }
+        }
+    });
+
+    const formatTimeAgo = (dateStr) => {
+        if (!dateStr) return 'Recent';
+        try {
+            const diffMs = new Date() - new Date(dateStr);
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays === 1) return 'Yesterday';
+            return `${diffDays}d ago`;
+        } catch {
+            return 'Recent';
+        }
+    };
 
     const stats = [
         { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? `₹${(summary.total_sales).toLocaleString()}` : '₹0', change: 'Live', icon: DollarSign, color: '#1B6B3A' },
@@ -267,11 +333,17 @@ const BusinessDashboard = () => {
                     <div className="dashboard-chart-card">
                         <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', marginBottom: '1.5rem' }}>Inventory Health</h2>
                         <div className="inventory-health-grid">
-                            {[
-                                { label: 'Fast Moving', count: 142, color: '#1B6B3A', pct: 65 },
-                                { label: 'Slow Moving', count: 48, color: '#F59E0B', pct: 22 },
-                                { label: 'Dead Stock', count: 24, color: '#EF4444', pct: 13 }
-                            ].map((item, i) => (
+                            {(() => {
+                                const inStock = stockStats?.inStockCount || 0;
+                                const lowStock = stockStats?.lowStockCount || 0;
+                                const outStock = stockStats?.outOfStockCount || 0;
+                                const total = inStock + lowStock + outStock || 1;
+                                return [
+                                    { label: 'In Stock', count: inStock, color: '#1B6B3A', pct: Math.round((inStock / total) * 100) },
+                                    { label: 'Low Stock', count: lowStock, color: '#F59E0B', pct: Math.round((lowStock / total) * 100) },
+                                    { label: 'Out of Stock', count: outStock, color: '#EF4444', pct: Math.round((outStock / total) * 100) }
+                                ];
+                            })().map((item, i) => (
                                 <div key={i} style={{ padding: '1.25rem', borderRadius: '20px', background: `${item.color}08`, border: `1px solid ${item.color}20` }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{item.label}</p>
                                     <h4 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.75rem' }}>{item.count}</h4>
@@ -306,20 +378,20 @@ const BusinessDashboard = () => {
                             <Clock size={18} color="#94A3B8" />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            {[
-                                { title: 'GST Filing', time: '2h ago', status: 'Completed', color: '#10B981' },
-                                { title: 'Inventory Sync', time: '5h ago', status: 'Pending', color: '#F59E0B' },
-                                { title: 'Payroll Run', time: 'Yesterday', status: 'Completed', color: '#10B981' }
-                            ].map((op, i) => (
+                            {recentOps && recentOps.length > 0 ? recentOps.map((op, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: op.color }} />
                                     <div style={{ flex: 1 }}>
                                         <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#334155' }}>{op.title}</p>
-                                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{op.time}</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{formatTimeAgo(op.date)}</span>
                                     </div>
                                     <span style={{ fontSize: '0.75rem', fontWeight: '800', color: op.color }}>{op.status}</span>
                                 </div>
-                            ))}
+                            )) : (
+                                <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
+                                    No live operations recorded.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
