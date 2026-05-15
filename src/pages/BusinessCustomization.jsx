@@ -3,7 +3,8 @@ import {
     ArrowLeft, Save, Sliders, FileText, RefreshCw, Building2, 
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
     Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, Edit,
-    Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X
+    Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X,
+    Settings as SettingsIcon, Globe, Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
@@ -78,7 +79,15 @@ const BusinessCustomization = () => {
 
         // ACCOUNTING & REMINDERS
         accountingModule: false,
-        serviceReminders: false
+        serviceReminders: false,
+
+        // SYSTEM PREFERENCES (INTEGRATED FROM SETTINGS PAGE)
+        darkMode: false,
+        notifications: true,
+        emailDigest: false,
+        publicProfile: true,
+        twoFactor: true,
+        dataSharing: false
     });
 
     // ── Load Cloud Sync Configuration ───────────────────────────────
@@ -138,7 +147,8 @@ const BusinessCustomization = () => {
         { id: 'party', label: 'Party', icon: Users, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadow: 'rgba(236, 72, 153, 0.2)' },
         { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #0F172A 0%, #020617 100%)', shadow: 'rgba(15, 23, 42, 0.2)' },
         { id: 'reminders', label: 'Reminders', icon: Bell, gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', shadow: 'rgba(239, 68, 68, 0.2)' },
-        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #F59E0B 0%, #B45309 100%)', shadow: 'rgba(245, 158, 11, 0.2)' }
+        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #F59E0B 0%, #B45309 100%)', shadow: 'rgba(245, 158, 11, 0.2)' },
+        { id: 'settings', label: 'Settings', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #64748B 0%, #334155 100%)', shadow: 'rgba(100, 116, 139, 0.2)' }
     ];
 
     const renderContent = () => {
@@ -152,6 +162,7 @@ const BusinessCustomization = () => {
             case 'accounting': return renderAccounting();
             case 'reminders': return renderReminders();
             case 'betaClub': return renderBetaClub();
+            case 'settings': return renderSettings();
             default: return null;
         }
     };
@@ -607,6 +618,76 @@ const BusinessCustomization = () => {
                 </div>
             </div>
         </CustomizationCard>
+    );
+
+    const renderSettings = () => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
+            <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <CustomizationCard title="Preferences" icon={Globe}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Dark Mode" 
+                            desc="Use a dark theme for the application interface." 
+                            active={config.darkMode} 
+                            onToggle={() => handleToggle('darkMode')} 
+                        />
+                        <Divider />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#334155' }}>Language</h4>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Current system language: English (US)</p>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', background: '#F1F5F9', borderRadius: '6px', fontWeight: '750', color: '#475569' }}>EN-US</div>
+                        </div>
+                    </div>
+                </CustomizationCard>
+                
+                <CustomizationCard title="Notifications" icon={Bell}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Push Notifications" 
+                            desc="Receive real-time alerts for updates and activities." 
+                            active={config.notifications} 
+                            onToggle={() => handleToggle('notifications')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Email Digest" 
+                            desc="Receive a weekly summary of your financial activity." 
+                            active={config.emailDigest} 
+                            onToggle={() => handleToggle('emailDigest')} 
+                        />
+                    </div>
+                </CustomizationCard>
+            </div>
+            
+            <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <CustomizationCard title="Privacy & Security" icon={Shield}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Public Profile" 
+                            desc="Allow other users on the platform to find you." 
+                            active={config.publicProfile} 
+                            onToggle={() => handleToggle('publicProfile')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Two-Factor Authentication" 
+                            desc="Add an extra layer of security to your account." 
+                            active={config.twoFactor} 
+                            onToggle={() => handleToggle('twoFactor')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Data & Analytics" 
+                            desc="Allow usage data to be collected to improve experience." 
+                            active={config.dataSharing} 
+                            onToggle={() => handleToggle('dataSharing')} 
+                        />
+                    </div>
+                </CustomizationCard>
+            </div>
+        </div>
     );
 
     return (
