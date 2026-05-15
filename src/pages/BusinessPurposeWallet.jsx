@@ -13,7 +13,8 @@ import {
     AlertCircle,
     ArrowRight,
     Sparkles,
-    Lock
+    Lock,
+    History
 } from 'lucide-react';
 import { goalWalletService } from '../services';
 import '../App.css';
@@ -29,6 +30,17 @@ const BusinessPurposeWallet = () => {
         target_amount: '',
         description: ''
     });
+
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [historyWalletId, setHistoryWalletId] = useState(null);
+
+    // Fetch Singular Wallet Details & History
+    const { data: historyWalletRes, isLoading: isHistoryLoading } = useQuery({
+        queryKey: ['purpose-wallet-detail', historyWalletId],
+        queryFn: () => goalWalletService.getWallet(historyWalletId),
+        enabled: !!historyWalletId
+    });
+    const historyWallet = historyWalletRes?.data || historyWalletRes || {};
 
     // Fetch all Purpose Wallets
     const { data: responseData = [], isLoading } = useQuery({
@@ -280,14 +292,25 @@ const BusinessPurposeWallet = () => {
                                                 {isCompleted ? '🎉 FULLY CLAIMED' : pct >= 100 ? '🎯 TARGET MET' : '🌱 GROWING'}
                                             </span>
                                         </div>
-                                        <button 
-                                            onClick={() => { if(window.confirm("Erase this segregation container forever? Accumulated funds tracking will resolve.")) deleteMutation.mutate(wallet.id); }}
-                                            style={{ border: 'none', background: 'transparent', color: '#EF4444', opacity: 0.4, cursor: 'pointer', padding: '4px' }}
-                                            onMouseOver={(e) => e.currentTarget.style.opacity = 1}
-                                            onMouseOut={(e) => e.currentTarget.style.opacity = 0.4}
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <button 
+                                                onClick={() => { setHistoryWalletId(wallet.id); setIsHistoryModalOpen(true); }}
+                                                style={{ border: 'none', background: 'transparent', color: '#059669', opacity: 0.6, cursor: 'pointer', padding: '4px', transition: 'opacity 0.2s' }}
+                                                onMouseOver={(e) => e.currentTarget.style.opacity = 1}
+                                                onMouseOut={(e) => e.currentTarget.style.opacity = 0.6}
+                                                title="View Allocation Log"
+                                            >
+                                                <History size={17} />
+                                            </button>
+                                            <button 
+                                                onClick={() => { if(window.confirm("Erase this segregation container forever? Accumulated funds tracking will resolve.")) deleteMutation.mutate(wallet.id); }}
+                                                style={{ border: 'none', background: 'transparent', color: '#EF4444', opacity: 0.4, cursor: 'pointer', padding: '4px', transition: 'opacity 0.2s' }}
+                                                onMouseOver={(e) => e.currentTarget.style.opacity = 1}
+                                                onMouseOut={(e) => e.currentTarget.style.opacity = 0.4}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Description */}
@@ -526,6 +549,83 @@ const BusinessPurposeWallet = () => {
                                 )}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ALLOCATION HISTORY MODAL */}
+            {isHistoryModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '28px', padding: '2.5rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#064E3B' }}>
+                                <History size={20} />
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>Allocation Ledger</h3>
+                            </div>
+                            <button onClick={() => { setIsHistoryModalOpen(false); setHistoryWalletId(null); }} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {isHistoryLoading ? (
+                            <div style={{ padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#059669' }}>
+                                <Loader2 className="animate-spin" size={32} strokeWidth={2.5} />
+                                <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>Compiling transfer logs...</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <div style={{ padding: '1rem 1.25rem', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9', marginBottom: '1.75rem' }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '0.25rem' }}>Selected Wallet</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{historyWallet.name}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Total Isolated</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#059669' }}>₹{(historyWallet.current_amount || 0).toLocaleString('en-IN')}</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <h4 style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Allocation History</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
+                                        {!historyWallet.transactions || historyWallet.transactions.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: '#94A3B8', border: '2px dashed #F1F5F9', borderRadius: '14px' }}>
+                                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '600' }}>No money transfers recorded yet.</p>
+                                            </div>
+                                        ) : (
+                                            historyWallet.transactions.map((tx, idx) => (
+                                                <div key={tx.id || idx} style={{ 
+                                                    display: 'flex', 
+                                                    justifyContent: 'space-between', 
+                                                    alignItems: 'center', 
+                                                    padding: '0.85rem 1rem', 
+                                                    background: 'white', 
+                                                    border: '1px solid #E2E8F0', 
+                                                    borderRadius: '12px'
+                                                }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                                        <div style={{ fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.03em', color: tx.type === 'debit' ? '#DC2626' : '#059669' }}>
+                                                            {tx.type === 'debit' ? '🔻 OUT / DEBIT' : '🔹 IN / CREDIT'}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
+                                                            {tx.created_at ? new Date(tx.created_at).toLocaleString('en-IN', {
+                                                                day: '2-digit',
+                                                                month: 'short',
+                                                                year: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                                hour12: true
+                                                            }) : 'Record Date missing'}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.95rem', fontWeight: '900', color: tx.type === 'debit' ? '#DC2626' : '#0F172A' }}>
+                                                        {tx.type === 'debit' ? '-' : '+'} ₹{(tx.amount || 0).toLocaleString('en-IN')}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
