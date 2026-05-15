@@ -14,7 +14,6 @@ import {
     ArrowUpRight,
     ArrowDownRight,
     Search,
-    Bell,
     Plus,
     X,
     Settings,
@@ -100,9 +99,7 @@ const BusinessDashboard = () => {
                             className="dashboard-search-input"
                         />
                     </div>
-                    <button style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B' }}>
-                        <Bell size={20} />
-                    </button>
+
                     <button 
                         onClick={() => setIsModalOpen(true)}
                         style={{ 
