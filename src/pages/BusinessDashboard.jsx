@@ -22,9 +22,9 @@ import {
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import '../App.css';
 import { useQuery } from '@tanstack/react-query';
-import { reportsService, stockService, expensesService, purchasesService } from '../services';
+import { reportsService, expensesService, purchasesService } from '../services';
+import '../App.css';
 
 const MASTER_SHORTCUTS = [
     { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: DollarSign, color: '#1B6B3A' },
@@ -73,12 +73,6 @@ const BusinessDashboard = () => {
     const { data: chartSales } = useQuery({
         queryKey: ['dashboardChartSales'],
         queryFn: reportsService.getChartSales
-    });
-
-    // Fetch live stock metrics for Inventory Health
-    const { data: stockStats } = useQuery({
-        queryKey: ['dashboardStockStats'],
-        queryFn: stockService.getStockStats
     });
 
     // Fetch top performing products by sales volume
