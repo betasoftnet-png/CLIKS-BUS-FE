@@ -21,6 +21,7 @@ const BusinessSubscription = () => {
         {
             name: 'Starter Plan',
             priceAnnually: 2999,
+            originalPrice: 3999,
             desc: 'Ideal for small retail & emerging SMBs.',
             icon: ShieldCheck,
             color: '#1B6B3A',
@@ -36,6 +37,7 @@ const BusinessSubscription = () => {
         {
             name: 'Growth Plan',
             priceAnnually: 6999,
+            originalPrice: 8999,
             desc: 'Built for scaling businesses and multi-site operations.',
             icon: Zap,
             color: '#064E3B',
@@ -52,6 +54,7 @@ const BusinessSubscription = () => {
         {
             name: 'Elite Suite',
             priceAnnually: 8999,
+            originalPrice: 11999,
             desc: 'Absolute control for national distribution networks.',
             icon: Crown,
             color: '#0D9488',
@@ -150,9 +153,18 @@ const BusinessSubscription = () => {
                             <h4 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{tier.name}</h4>
                             <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', marginBottom: '2rem', minHeight: '40px' }}>{tier.desc}</p>
                             
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', marginBottom: '2rem' }}>
-                                <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>₹{price.toLocaleString()}</span>
-                                <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>/ year</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>₹{tier.originalPrice.toLocaleString()}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save ₹{(tier.originalPrice - price).toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
+                                    <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>₹{price.toLocaleString()}</span>
+                                    <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>/ year</span>
+                                </div>
+                                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B' }}>
+                                    (Equivalent to ₹{Math.round(price / 12).toLocaleString()} per month)
+                                </span>
                             </div>
 
                             <button style={{ 
