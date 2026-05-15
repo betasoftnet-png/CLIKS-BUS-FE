@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
+import logo from '../../assets/cliks5.png'
 import { 
     Calculator, X, RotateCcw, Delete, Share2, Trash2, 
     Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown
@@ -257,7 +258,8 @@ export function CalculatorPopover() {
         const { steps, finalTotal } = getTapeCalculations();
         if (steps.length === 0) return;
 
-        let text = "📊 Business Process Calculator Tape\n";
+        let text = `<img src="${logo}" alt="cliks" />`;
+        text += `Beta Calculator\n`;
         text += "=============================\n";
         
         steps.forEach((s) => {
