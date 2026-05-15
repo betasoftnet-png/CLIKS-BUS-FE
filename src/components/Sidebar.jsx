@@ -448,7 +448,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             width: '100%',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
+                            justifyContent: 'center',
                             padding: '0.6rem 0.8rem',
                             background: 'transparent',
                             color: '#475569',
