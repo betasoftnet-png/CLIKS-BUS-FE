@@ -502,10 +502,10 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             fontSize: '0.875rem',
                             transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                             outline: 'none',
-                            marginTop: '0.6rem'
+                            marginTop: '0.8rem'
                         }}
                         onMouseOver={(e) => {
-                            e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+                            // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
                             e.currentTarget.style.color = '#7C3AED';
                             e.currentTarget.style.borderColor = '#DDD6FE';
                             e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
