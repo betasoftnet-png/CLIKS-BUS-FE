@@ -22,9 +22,41 @@ export function CalculatorPopover() {
     const [showSmartOptions, setShowSmartOptions] = useState(null); // 'gst' | 'discount' | 'label' | null
     const [isConverted, setIsConverted] = useState(false); // INR to USD Toggle
     const [compareMode, setCompareMode] = useState(false); // Side-by-side Compare Mode
-    const [compareLeft, setCompareLeft] = useState(''); // Left compare input
-    const [compareRight, setCompareRight] = useState(''); // Right compare input
     const [sciMode, setSciMode] = useState(false); // Scientific Calculator Mode
+
+    // Compare Mode dual-tape state
+    const [cmpLeft, setCmpLeft] = useState({ entries: [], input: '' });  // { entries: [{id, val}], input: string }
+    const [cmpRight, setCmpRight] = useState({ entries: [], input: '' });
+    const cmpIdRef = useRef(0);
+
+    // Helpers for compare tape
+    const cmpTotal = (entries) => entries.reduce((s, e) => s + e.val, 0);
+
+    const cmpAddEntry = (side) => {
+        const setter = side === 'L' ? setCmpLeft : setCmpRight;
+        setter(prev => {
+            const val = parseFloat(prev.input);
+            if (isNaN(val)) return prev;
+            return { entries: [...prev.entries, { id: cmpIdRef.current++, val }], input: '' };
+        });
+    };
+
+    const cmpRemoveEntry = (side, id) => {
+        const setter = side === 'L' ? setCmpLeft : setCmpRight;
+        setter(prev => ({ ...prev, entries: prev.entries.filter(e => e.id !== id) }));
+    };
+
+    const cmpClear = (side) => {
+        const setter = side === 'L' ? setCmpLeft : setCmpRight;
+        setter({ entries: [], input: '' });
+    };
+
+    const cmpHandleKeyDown = (e, side) => {
+        if (e.key === 'Enter' || e.key === '+') {
+            e.preventDefault();
+            cmpAddEntry(side);
+        }
+    };
 
     // Constants
     const CONVERSION_RATE = 83.5; // 1 USD = 83.5 INR (Simulated placeholder)
@@ -659,50 +691,101 @@ export function CalculatorPopover() {
 
                             {/* Compare Panel */}
                             <AnimatePresence>
-                                {compareMode && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        style={{ background: '#EFF6FF', padding: '10px 16px', borderBottom: '1px solid #BFDBFE', overflow: 'hidden' }}
-                                    >
-                                        <div style={{ fontSize: '10px', fontWeight: '800', color: '#3B82F6', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>Compare Values</div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <input
-                                                type="number"
-                                                placeholder="Value A"
-                                                value={compareLeft}
-                                                onChange={(e) => setCompareLeft(e.target.value)}
-                                                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #BFDBFE', background: 'white', fontSize: '14px', fontWeight: '700', color: '#1E3A8A', outline: 'none', textAlign: 'center' }}
-                                            />
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
-                                                <span style={{ fontSize: '9px', fontWeight: '900', color: '#3B82F6' }}>VS</span>
-                                                {compareLeft && compareRight && (
-                                                    <span style={{ fontSize: '9px', fontWeight: '800', color: parseFloat(compareLeft) > parseFloat(compareRight) ? '#10B981' : parseFloat(compareLeft) < parseFloat(compareRight) ? '#EF4444' : '#64748B' }}>
-                                                        {parseFloat(compareLeft) > parseFloat(compareRight) ? 'A▲' : parseFloat(compareLeft) < parseFloat(compareRight) ? 'B▲' : '='}
-                                                    </span>
-                                                )}
+                                {compareMode && (() => {
+                                    const leftTotal = cmpTotal(cmpLeft.entries);
+                                    const rightTotal = cmpTotal(cmpRight.entries);
+                                    const hasData = cmpLeft.entries.length > 0 || cmpRight.entries.length > 0;
+                                    const diff = Math.abs(leftTotal - rightTotal);
+                                    const winner = leftTotal > rightTotal ? 'A' : leftTotal < rightTotal ? 'B' : '=';
+
+                                    // Shared mini tape column renderer
+                                    const TapeCol = ({ side, state, setState }) => (
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '900', color: side === 'L' ? '#2563EB' : '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>
+                                                Side {side === 'L' ? 'A' : 'B'}
                                             </div>
-                                            <input
-                                                type="number"
-                                                placeholder="Value B"
-                                                value={compareRight}
-                                                onChange={(e) => setCompareRight(e.target.value)}
-                                                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #BFDBFE', background: 'white', fontSize: '14px', fontWeight: '700', color: '#1E3A8A', outline: 'none', textAlign: 'center' }}
-                                            />
+
+                                            {/* Entries tape */}
+                                            <div style={{ minHeight: '60px', maxHeight: '100px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                {state.entries.length === 0 ? (
+                                                    <div style={{ fontSize: '10px', color: '#94A3B8', fontStyle: 'italic', padding: '4px 0' }}>e.g. 8 + 3 + 9</div>
+                                                ) : state.entries.map((e, idx) => (
+                                                    <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', borderRadius: '5px', padding: '3px 6px', border: '1px solid #E2E8F0' }}>
+                                                        <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '700' }}>{idx === 0 ? '' : '+'} {e.val.toLocaleString('en-IN')}</span>
+                                                        <button onClick={() => cmpRemoveEntry(side, e.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#EF4444', padding: '0', lineHeight: 1, fontSize: '12px', fontWeight: '900' }}>×</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Divider + total */}
+                                            {state.entries.length > 0 && (
+                                                <div style={{ borderTop: '1.5px dashed ' + (side === 'L' ? '#BFDBFE' : '#DDD6FE'), paddingTop: '3px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '10px', fontWeight: '800', color: side === 'L' ? '#1D4ED8' : '#7C3AED' }}>Total</span>
+                                                    <span style={{ fontSize: '13px', fontWeight: '900', color: side === 'L' ? '#1D4ED8' : '#7C3AED' }}>₹{cmpTotal(state.entries).toLocaleString('en-IN')}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Input + Add */}
+                                            <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                                                <input
+                                                    type="number"
+                                                    placeholder="Amount"
+                                                    value={state.input}
+                                                    onChange={(e) => setState(prev => ({ ...prev, input: e.target.value }))}
+                                                    onKeyDown={(e) => cmpHandleKeyDown(e, side)}
+                                                    style={{ flex: 1, padding: '5px 8px', borderRadius: '7px', border: '1px solid ' + (side === 'L' ? '#BFDBFE' : '#DDD6FE'), fontSize: '13px', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
+                                                />
+                                                <button
+                                                    onClick={() => cmpAddEntry(side)}
+                                                    style={{ background: side === 'L' ? '#2563EB' : '#7C3AED', color: 'white', border: 'none', borderRadius: '7px', padding: '0 10px', fontWeight: '900', fontSize: '14px', cursor: 'pointer' }}
+                                                >+</button>
+                                            </div>
+                                            <button onClick={() => cmpClear(side)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: '#94A3B8', fontWeight: '700', textAlign: 'left', padding: 0 }}>Clear</button>
                                         </div>
-                                        {compareLeft && compareRight && (
-                                            <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
-                                                <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '4px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE' }}>
-                                                    Diff: <span style={{ color: '#3B82F6' }}>₹{Math.abs(parseFloat(compareLeft || 0) - parseFloat(compareRight || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                    );
+
+                                    return (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            style={{ background: '#F0F9FF', padding: '12px 14px 10px 14px', borderBottom: '1px solid #BFDBFE', overflow: 'hidden' }}
+                                        >
+                                            <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563EB', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>⚖️ Side-by-Side Compare</div>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                                <TapeCol side="L" state={cmpLeft} setState={setCmpLeft} />
+
+                                                {/* VS Divider */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, paddingTop: '22px' }}>
+                                                    <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748B' }}>VS</span>
+                                                    {hasData && (
+                                                        <span style={{
+                                                            fontSize: '12px', fontWeight: '900', padding: '2px 6px', borderRadius: '6px',
+                                                            background: winner === '=' ? '#F1F5F9' : (winner === 'A' ? '#ECFDF5' : '#FEF2F2'),
+                                                            color: winner === '=' ? '#64748B' : (winner === 'A' ? '#059669' : '#DC2626')
+                                                        }}>
+                                                            {winner === '=' ? '=' : winner === 'A' ? 'A▲' : 'B▲'}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '4px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE' }}>
-                                                    Ratio: <span style={{ color: '#3B82F6' }}>{parseFloat(compareRight) ? (parseFloat(compareLeft || 0) / parseFloat(compareRight)).toFixed(2) : '-'}x</span>
-                                                </div>
+
+                                                <TapeCol side="R" state={cmpRight} setState={setCmpRight} />
                                             </div>
-                                        )}
-                                    </motion.div>
-                                )}
+
+                                            {/* Summary bar */}
+                                            {hasData && (
+                                                <div style={{ marginTop: '10px', display: 'flex', gap: '6px' }}>
+                                                    <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '5px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE', textAlign: 'center' }}>
+                                                        Diff&nbsp;<span style={{ color: '#3B82F6', fontWeight: '900' }}>₹{diff.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                    <div style={{ flex: 1, background: 'white', borderRadius: '6px', padding: '5px 8px', fontSize: '10px', fontWeight: '700', color: '#475569', border: '1px solid #BFDBFE', textAlign: 'center' }}>
+                                                        Ratio&nbsp;<span style={{ color: '#3B82F6', fontWeight: '900' }}>{rightTotal ? (leftTotal / rightTotal).toFixed(2) : '-'}x</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })()}
                             </AnimatePresence>
                         </div>
 
