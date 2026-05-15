@@ -118,7 +118,7 @@ const BusinessReports = () => {
                     try {
                         const res = await gstService.getGSTR3B();
                         return res?.data || res || null;
-                    } catch (e) {
+                    } catch {
                         return { outward_taxable: 0, outward_igst: 0, outward_cgst: 0, outward_sgst: 0, total_output_tax: 0, eligible_itc_igst: 0, eligible_itc_cgst: 0, eligible_itc_sgst: 0, total_eligible_itc: 0, net_payable_igst: 0, net_payable_cgst: 0, net_payable_sgst: 0 };
                     }
                 }
@@ -126,7 +126,7 @@ const BusinessReports = () => {
                     try {
                         const res = await gstService.getGSTR9();
                         return res?.data || res || null;
-                    } catch (e) {
+                    } catch {
                         return { consolidated_turnover: 0, total_tax_paid_outward: 0, total_itc_availed: 0, fiscal_year: 'FY 2025-26' };
                     }
                 }

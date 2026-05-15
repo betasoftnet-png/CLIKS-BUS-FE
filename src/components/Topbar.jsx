@@ -7,7 +7,7 @@ import { useAuth } from '../context';
 import logoPng from '../assets/cliks5.png'; // Final branding
 
 import { ProfileDropdown } from './ProfileDropdown';
-import { CalculatorPopover } from './common/CalculatorPopover';
+import { CalcPopover } from './common/CalcPopover';
 
 const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const { logout, user } = useAuth();
@@ -185,7 +185,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         </span>
                     </div>
                 )}
-                <CalculatorPopover />
+                <CalcPopover />
                 <ProfileDropdown
 
                     onAccount={() => navigate('/profile')}

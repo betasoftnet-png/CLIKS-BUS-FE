@@ -6,13 +6,13 @@ import {
     Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown, History
 } from "lucide-react";
 
-export function CalculatorPopover() {
+export function CalcPopover() {
     const [open, setOpen] = useState(false);
     const popoverRef = useRef(null);
     const tapeEndRef = useRef(null);
     const idCounter = useRef(0);
 
-    // Core State for BETA Calculator
+    // Core State for BETA Calc
     const [tape, setTape] = useState([]); // { id, type: 'base' | '+' | '-' | '*' | '/' | 'gst' | 'discount', value, label }
     const [activeInput, setActiveInput] = useState("0");
     const [activeOp, setActiveOp] = useState(null); // The pending operator for the active line
@@ -344,7 +344,7 @@ export function CalculatorPopover() {
         const { steps, finalTotal } = getTapeCalculations();
         if (steps.length === 0) return;
 
-        let text = "🧮 BETA Calculator \n";
+        let text = "🧮 BETA Calc \n";
         text += "=============================\n";
         
         steps.forEach((s) => {
@@ -511,7 +511,7 @@ export function CalculatorPopover() {
                     ...styles.triggerButton,
                     backgroundColor: open ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)'
                 }}
-                title="BETA Calculator"
+                title="BETA Calc"
             >
                 <Calculator size={18} />
             </button>
@@ -529,7 +529,7 @@ export function CalculatorPopover() {
                         <div style={styles.header}>
                             <div style={styles.title}>
                                 <Hash size={16} color="#10B981" />
-                                <span>BETA CALCULATOR</span>
+                                <span>BETA CALC</span>
                             </div>
                             <div style={{ display: 'flex', gap: '6px' }}>
                                 <button 
