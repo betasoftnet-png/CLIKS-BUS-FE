@@ -214,7 +214,7 @@ const BusinessMarketing = () => {
     const [isComposeOpen, setIsComposeOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [typeFilter, setTypeFilter] = useState('All');
+    const [typeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
 
     // New Campaign Form State with all required fields

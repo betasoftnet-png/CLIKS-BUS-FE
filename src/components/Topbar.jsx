@@ -155,7 +155,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
                 {!isAdminOrSales && (
                     <div 
-                        title="Your Premium Points Balance"
+                        title="View Rewards & Offers"
+                        onClick={() => navigate('/payments/rewards')}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -164,9 +165,18 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             border: '1px solid #FCD34D',
                             padding: '6px 12px',
                             borderRadius: '99px',
-                            cursor: 'default',
-                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.1)',
-                            outline: 'none'
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.15)',
+                            outline: 'none',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(217, 119, 6, 0.25)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(217, 119, 6, 0.15)';
                         }}
                     >
                         <Coins size={15} color="#B45309" style={{ flexShrink: 0 }} />

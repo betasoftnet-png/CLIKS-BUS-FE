@@ -504,7 +504,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             outline: 'none',
                             marginTop: '1.2rem'
                         }}
-                        onMouseOver={(e) => {
+                        onMouseOver={() => {
                             // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
                             // e.currentTarget.style.color = '#7C3AED';
                             // e.currentTarget.style.borderColor = '#DDD6FE';
