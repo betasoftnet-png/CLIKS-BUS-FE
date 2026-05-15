@@ -311,7 +311,7 @@ export function CalculatorPopover() {
             top: 'calc(100% + 12px)',
             zIndex: 2000,
             width: '360px',
-            maxHeight: '650px',
+            maxHeight: '750px',
             borderRadius: '24px',
             backgroundColor: '#FFFFFF',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',

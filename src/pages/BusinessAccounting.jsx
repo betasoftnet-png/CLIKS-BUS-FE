@@ -25,6 +25,7 @@ import {
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingService } from '../services/accountingService';
+import { gstService } from '../services';
 import * as XLSX from 'xlsx';
 
 const BusinessAccounting = () => {
@@ -47,6 +48,11 @@ const BusinessAccounting = () => {
     const { data: dbExpenses = [] } = useQuery({
         queryKey: ['expenses'],
         queryFn: () => accountingService.getExpenses()
+    });
+
+    const { data: dbReconciliations = [] } = useQuery({
+        queryKey: ['gstReconciliationsData'],
+        queryFn: () => gstService.getReconciliations()
     });
 
     const { data: dbBalanceSheet } = useQuery({
@@ -191,6 +197,11 @@ const BusinessAccounting = () => {
     dbExpenses.forEach(item => {
         const cat = item.category || item.category_name || 'Operational Expense';
         pAndLExpenseGroups[cat] = (pAndLExpenseGroups[cat] || 0) + (parseFloat(item.amount || item.expense_amount) || 0);
+    });
+
+    dbReconciliations.forEach(item => {
+        const cat = 'Vendor Purchase (GST)';
+        pAndLExpenseGroups[cat] = (pAndLExpenseGroups[cat] || 0) + (parseFloat(item.invoice_amount || 0) + parseFloat(item.eligible_itc || 0));
     });
 
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
