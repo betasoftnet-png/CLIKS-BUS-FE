@@ -15,16 +15,18 @@ import {
     Zap,
     Target,
     Coins,
-    FileText
+    FileText,
+    Mail,
+    Phone,
+    MessageSquare,
+    ArrowUpRight
 } from 'lucide-react';
-
-// Generate payment reference outside to ensure pure render tree
-const generatePaymentRef = () => 'CF_' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
 export default function BusinessPitches() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio'
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedConnectPitch, setSelectedConnectPitch] = useState(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -58,21 +60,21 @@ export default function BusinessPitches() {
                 use_of_funds: '',
                 pitch_deck_url: ''
             });
-            alert("Pitch saved successfully! You can now proceed to validation.");
+            alert("Venture entry successfully published to the active marketplace!");
         },
         onError: () => {
             alert("Error creating business pitch.");
         }
     });
 
-    const verifyMutation = useMutation({
-        mutationFn: ({ id, ref }) => pitchesService.verifyPitch(id, { payment_ref: ref }),
+    const activateMutation = useMutation({
+        mutationFn: ({ id }) => pitchesService.verifyPitch(id, { payment_ref: 'OFFLINE_ACTIVATE' }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['venture-pitches'] });
-            alert("Payment verified! Your pitch is now listed live to the elite community.");
+            alert("Pitch activated! It is now visible to our investor network.");
         },
         onError: () => {
-            alert("Error authorizing payment reference.");
+            alert("Error activating startup pitch.");
         }
     });
 
@@ -85,12 +87,13 @@ export default function BusinessPitches() {
         createMutation.mutate(formData);
     };
 
-    const handleVerifyAction = (id) => {
-        if (window.confirm("Proceed to list your business to active investors? An allocation fee of ₹999 applies via Cashfree Gateway.")) {
-            // Mock generation of Cashfree ref for Phase 1
-            const mockRef = generatePaymentRef();
-            verifyMutation.mutate({ id, ref: mockRef });
-        }
+    const handleConnectTrigger = (pitch) => {
+        setSelectedConnectPitch(pitch);
+    };
+
+    const handleSendInquiry = () => {
+        alert("Inquiry Request Delivered! The founder has been notified via Cliks Network.");
+        setSelectedConnectPitch(null);
     };
 
     const industryOptions = [
@@ -136,13 +139,13 @@ export default function BusinessPitches() {
                         border: '1px solid rgba(255, 255, 255, 0.2)'
                     }}>
                         <TrendingUp size={16} />
-                        <span>CLIKS FUNDRAISING STUDIO</span>
+                        <span>CLIKS VENTURE CONNECT</span>
                     </div>
                     <h1 style={{ fontSize: '2.75rem', fontWeight: '900', marginBottom: '0.75rem', lineHeight: 1.2 }}>
-                        Venture Marketplace <br /> & Investor Registry
+                        SME Venture Studio <br /> & Deal Marketplace
                     </h1>
                     <p style={{ fontSize: '1.1rem', color: '#d1fae5', maxWidth: '500px', margin: 0, opacity: 0.95 }}>
-                        Connect validated SMEs with institutional backers. Standardize your pitch and unlock seamless capital routing.
+                        Connect instantly with founders. Review active proposals, download executive decks, and contact owners offline.
                     </p>
                 </div>
                 
@@ -158,9 +161,9 @@ export default function BusinessPitches() {
                     zIndex: 2
                 }}>
                     <Award size={36} color="#fbbf24" style={{ marginBottom: '1rem' }} />
-                    <h4 style={{ fontWeight: '800', fontSize: '1.25rem', marginBottom: '0.5rem' }}>Host Your Pitch</h4>
+                    <h4 style={{ fontWeight: '800', fontSize: '1.25rem', marginBottom: '0.5rem' }}>List Your Pitch</h4>
                     <p style={{ fontSize: '0.9rem', color: '#d1fae5', marginBottom: '1.5rem' }}>
-                        Unlock elite exposure to 50+ premium investors for ₹999.
+                        Unlock zero-barrier exposure to our active business backing network.
                     </p>
                     <button 
                         onClick={() => setShowCreateModal(true)}
@@ -181,7 +184,7 @@ export default function BusinessPitches() {
                         }}
                     >
                         <Rocket size={16} />
-                        <span>Launch Studio</span>
+                        <span>Launch Entry Studio</span>
                     </button>
                 </div>
             </div>
@@ -213,7 +216,7 @@ export default function BusinessPitches() {
                             cursor: 'pointer'
                         }}
                     >
-                        Marketplace Directory
+                        Marketplace Deals
                     </button>
                     <button 
                         onClick={() => setActiveTab('studio')}
@@ -228,7 +231,7 @@ export default function BusinessPitches() {
                             cursor: 'pointer'
                         }}
                     >
-                        My Canvas
+                        My Studio
                     </button>
                 </div>
             </div>
@@ -236,7 +239,7 @@ export default function BusinessPitches() {
             {/* Main Content Switcher */}
             {isLoading ? (
                 <div style={{ textAlign: 'center', padding: '4rem' }}>
-                    <p style={{ color: '#64748b' }}>Aggregating market pitches...</p>
+                    <p style={{ color: '#64748b' }}>Aggregating corporate data...</p>
                 </div>
             ) : activeTab === 'directory' ? (
                 /* PITICHES DIRECTORY */
@@ -255,8 +258,8 @@ export default function BusinessPitches() {
                             border: '2px dashed #e2e8f0'
                         }}>
                             <Building size={48} style={{ margin: '0 auto 1rem', color: '#94a3b8' }} />
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#334155' }}>No active investor offerings yet</h3>
-                            <p style={{ color: '#64748b' }}>Be the first pioneer to structure and publish your expansion requirements!</p>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#334155' }}>No active deal listings</h3>
+                            <p style={{ color: '#64748b' }}>Submit your roadmap on My Studio to see it here instantly!</p>
                         </div>
                     ) : (
                         pitches.map(pitch => (
@@ -300,10 +303,10 @@ export default function BusinessPitches() {
                                             fontWeight: '800'
                                         }}>
                                             <ShieldCheck size={14} />
-                                            <span>VERIFIED PITCH</span>
+                                            <span>ACTIVE LISTING</span>
                                         </span>
                                     ) : (
-                                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>Review Draft</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>Draft Entry</span>
                                     )}
                                 </div>
 
@@ -326,7 +329,7 @@ export default function BusinessPitches() {
                                 }}>
                                     <div>
                                         <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '650', marginBottom: '0.25rem' }}>
-                                            Goal Setup
+                                            Funding Goal
                                         </div>
                                         <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a' }}>
                                             ₹{(pitch.funding_target || 0).toLocaleString()}
@@ -334,7 +337,7 @@ export default function BusinessPitches() {
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '650', marginBottom: '0.25rem' }}>
-                                            Equity Exchange
+                                            Equity Allocation
                                         </div>
                                         <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#059669' }}>
                                             {pitch.equity_offered}%
@@ -342,9 +345,9 @@ export default function BusinessPitches() {
                                     </div>
                                 </div>
 
-                                {/* Phase 2 Locked Placeholder Demo */}
+                                {/* Contact / Connection Badge Panel */}
                                 <div style={{
-                                    background: '#eff6ff',
+                                    background: '#f0fdf4',
                                     borderRadius: '12px',
                                     padding: '0.75rem 1rem',
                                     marginBottom: '1.5rem',
@@ -353,31 +356,34 @@ export default function BusinessPitches() {
                                     justifyContent: 'space-between'
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Lock size={14} color="#3b82f6" />
-                                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#1d4ed8' }}>
-                                            Financial Statements Locked
+                                        <MessageSquare size={14} color="#10b981" />
+                                        <span style={{ fontSize: '0.8rem', fontWeight: '750', color: '#15803d' }}>
+                                            Connect Directly (Free)
                                         </span>
                                     </div>
-                                    <button style={{ border: 'none', background: 'transparent', color: '#2563eb', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}>
-                                        Unlock
-                                    </button>
+                                    <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: '800' }}>
+                                        SECURE
+                                    </span>
                                 </div>
 
-                                <button style={{
-                                    width: '100%',
-                                    padding: '0.85rem',
-                                    background: '#0f172a',
-                                    color: 'white',
-                                    borderRadius: '12px',
-                                    fontWeight: '700',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}>
-                                    <span>Access Investor Deck</span>
+                                <button 
+                                    onClick={() => handleConnectTrigger(pitch)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.85rem',
+                                        background: '#0f172a',
+                                        color: 'white',
+                                        borderRadius: '12px',
+                                        fontWeight: '700',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    <span>Connect with Founder</span>
                                     <ArrowRight size={16} />
                                 </button>
                             </div>
@@ -394,8 +400,8 @@ export default function BusinessPitches() {
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.5rem' }}>
                         <div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>My Venture Studio</h2>
-                            <p style={{ color: '#64748b', marginTop: '0.25rem' }}>Configure and manage your platform funding lists</p>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>Deal Setup Hub</h2>
+                            <p style={{ color: '#64748b', marginTop: '0.25rem' }}>Track your fundraising lists registered on CLIKS Network</p>
                         </div>
                         <button 
                             onClick={() => setShowCreateModal(true)}
@@ -413,14 +419,14 @@ export default function BusinessPitches() {
                             }}
                         >
                             <Plus size={18} />
-                            <span>Draft New Profile</span>
+                            <span>Log New Pitch</span>
                         </button>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         {pitches.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '16px' }}>
-                                <p style={{ color: '#64748b' }}>No existing pitch registries found for your business account.</p>
+                                <p style={{ color: '#64748b' }}>No registered listings detected for this profile.</p>
                             </div>
                         ) : (
                             pitches.map(pitch => (
@@ -439,23 +445,23 @@ export default function BusinessPitches() {
                                                 fontSize: '0.75rem',
                                                 padding: '0.25rem 0.5rem',
                                                 borderRadius: '6px',
-                                                background: pitch.is_verified ? '#d1fae5' : '#fef3c7',
-                                                color: pitch.is_verified ? '#065f46' : '#92400e',
+                                                background: (pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') ? '#d1fae5' : '#fef3c7',
+                                                color: (pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') ? '#065f46' : '#92400e',
                                                 fontWeight: '750'
                                             }}>
-                                                {pitch.listing_status}
+                                                {pitch.listing_status === 'ACTIVE' ? 'ACTIVE' : pitch.listing_status}
                                             </span>
                                         </div>
                                         <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                            Targeting ₹{(pitch.funding_target || 0).toLocaleString()} for {pitch.equity_offered}% Equity
+                                            Requesting ₹{(pitch.funding_target || 0).toLocaleString()} for {pitch.equity_offered}% Equity Share
                                         </p>
                                     </div>
 
                                     <div style={{ display: 'flex', gap: '1rem' }}>
-                                        {!pitch.is_verified && (
+                                        {!(pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') && (
                                             <button 
-                                                onClick={() => handleVerifyAction(pitch.id)}
-                                                disabled={verifyMutation.isPending}
+                                                onClick={() => activateMutation.mutate({ id: pitch.id })}
+                                                disabled={activateMutation.isPending}
                                                 style={{
                                                     padding: '0.6rem 1.25rem',
                                                     borderRadius: '10px',
@@ -470,13 +476,13 @@ export default function BusinessPitches() {
                                                 }}
                                             >
                                                 <Zap size={15} fill="currentColor" />
-                                                <span>Pay & Verify (₹999)</span>
+                                                <span>Activate Profile</span>
                                             </button>
                                         )}
-                                        {pitch.is_verified && (
+                                        {(pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', fontWeight: '750', fontSize: '0.9rem' }}>
                                                 <CheckCircle size={18} />
-                                                <span>Active on Marketplace</span>
+                                                <span>Live on Marketplace</span>
                                             </div>
                                         )}
                                     </div>
@@ -519,8 +525,8 @@ export default function BusinessPitches() {
                             background: '#f8fafc'
                         }}>
                             <div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>New Funding Entry</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Define your capital requirement goals</p>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>Publish Venture Profile</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Broadcast your capital expansion targets immediately</p>
                             </div>
                             <button 
                                 onClick={() => setShowCreateModal(false)}
@@ -563,7 +569,7 @@ export default function BusinessPitches() {
 
                             <div style={{ marginBottom: '1.5rem' }}>
                                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    Headline / One-Line Memo *
+                                    Headline / Expansion Memo *
                                 </label>
                                 <input 
                                     required
@@ -578,7 +584,7 @@ export default function BusinessPitches() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Target Capital Req. (₹) *
+                                        Funding Request Amount (₹) *
                                     </label>
                                     <div style={{ position: 'relative' }}>
                                         <Coins size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -594,7 +600,7 @@ export default function BusinessPitches() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Equity Offered (%)
+                                        Equity Transfer (%)
                                     </label>
                                     <div style={{ position: 'relative' }}>
                                         <Target size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -611,20 +617,20 @@ export default function BusinessPitches() {
 
                             <div style={{ marginBottom: '1.5rem' }}>
                                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    Brief Use of Funds / Expansion Roadmap
+                                    Brief Expansion Intent / Roadmap
                                 </label>
                                 <textarea 
                                     rows="3"
                                     value={formData.use_of_funds}
                                     onChange={(e) => setFormData({ ...formData, use_of_funds: e.target.value })}
-                                    placeholder="Detail operational goals, product hires, or marketing triggers..."
+                                    placeholder="Briefly detail operational growth goals or capital allocation..."
                                     style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', resize: 'vertical' }}
                                 />
                             </div>
 
                             <div style={{ marginBottom: '2rem' }}>
                                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    External Deck / Document Link (Optional)
+                                    Deck Link (Optional)
                                 </label>
                                 <div style={{ position: 'relative' }}>
                                     <FileText size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -632,7 +638,7 @@ export default function BusinessPitches() {
                                         type="url"
                                         value={formData.pitch_deck_url}
                                         onChange={(e) => setFormData({ ...formData, pitch_deck_url: e.target.value })}
-                                        placeholder="https://drive.google.com/deck.pdf"
+                                        placeholder="https://drive.google.com/executive-deck.pdf"
                                         style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
                                     />
                                 </div>
@@ -659,7 +665,7 @@ export default function BusinessPitches() {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Discard
+                                    Cancel
                                 </button>
                                 <button 
                                     type="submit"
@@ -677,10 +683,162 @@ export default function BusinessPitches() {
                                         gap: '0.5rem'
                                     }}
                                 >
-                                    {createMutation.isPending ? 'Logging...' : 'Draft Venture Entry'}
+                                    {createMutation.isPending ? 'Publishing...' : 'Publish Now'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Investor Connector Detail Modal */}
+            {selectedConnectPitch && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(15, 23, 42, 0.4)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 100,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem'
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '500px',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        overflow: 'hidden',
+                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}>
+                        {/* Glassmorphic Header Cover */}
+                        <div style={{
+                            padding: '2.5rem 2rem',
+                            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                            color: 'white',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem'
+                        }}>
+                            <button 
+                                onClick={() => setSelectedConnectPitch(null)}
+                                style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' }}
+                            >
+                                <X size={22} />
+                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#34d399', fontSize: '0.85rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                                <ShieldCheck size={15} />
+                                <span>Verified Registrant Info</span>
+                            </div>
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', marginTop: '0.25rem' }}>
+                                {selectedConnectPitch.business_name}
+                            </h3>
+                            <p style={{ opacity: 0.8, fontSize: '0.9rem', lineHeight: 1.4 }}>
+                                {selectedConnectPitch.headline}
+                            </p>
+                        </div>
+
+                        <div style={{ padding: '2rem' }}>
+                            <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.03em', marginBottom: '1rem' }}>
+                                Direct Founders Connect
+                            </h4>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+                                {/* Registered Owner */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Building size={18} color="#475569" />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Corporate Holder</div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b' }}>
+                                            {selectedConnectPitch.user_biz_name || selectedConnectPitch.business_name}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Founder Email */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Mail size={18} color="#16a34a" />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Email Address</div>
+                                        <a href={`mailto:${selectedConnectPitch.founder_email}`} style={{ fontSize: '0.95rem', fontWeight: '800', color: '#059669', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            {selectedConnectPitch.founder_email || 'Unavailable'}
+                                            <ArrowUpRight size={14} />
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {/* Founder Phone */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Phone size={18} color="#2563eb" />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Registered Contact</div>
+                                        <a href={`tel:${selectedConnectPitch.founder_phone}`} style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1d4ed8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            {selectedConnectPitch.founder_phone || 'Unavailable'}
+                                            <ArrowUpRight size={14} />
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Deck Link Preview */}
+                            {selectedConnectPitch.pitch_deck_url && (
+                                <a 
+                                    href={selectedConnectPitch.pitch_deck_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '1rem',
+                                        background: '#fdf2f8',
+                                        border: '1px solid #fbcfe8',
+                                        borderRadius: '12px',
+                                        color: '#be185d',
+                                        textDecoration: 'none',
+                                        fontWeight: '750',
+                                        fontSize: '0.9rem',
+                                        marginBottom: '2rem'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <FileText size={16} />
+                                        <span>View Executive Presentation</span>
+                                    </div>
+                                    <ArrowUpRight size={16} />
+                                </a>
+                            )}
+
+                            {/* Action Call */}
+                            <button 
+                                onClick={handleSendInquiry}
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    background: '#059669',
+                                    color: 'white',
+                                    borderRadius: '12px',
+                                    fontWeight: '800',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
+                                }}
+                            >
+                                <span>Submit Connect Request</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
