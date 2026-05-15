@@ -216,6 +216,132 @@ const BusinessTrading = () => {
         });
     };
 
+    // Systematic Curriculum Content Expansion Engine
+    const enrichTopicContent = (academyKey, moduleTitle, topicTitle, baseContent) => {
+        if (!baseContent) return "";
+        
+        let deepDive = "";
+        let strategyFramework = "";
+        let actionablePlaybook = "";
+        let analyticalGlossary = "";
+        
+        if (academyKey === 'trading') {
+            deepDive = `### 📊 Advanced Market Mechanics & Core Technical Theories
+            
+In the professional arena of capital speculation, mastering **${topicTitle}** demands an acute structural understanding of exchange microstructure. In Indian financial bourses like the NSE and BSE, every tick you witness is processed by a high-speed Electronic Limit Order Book (ELOB), matching incoming buy and sell intentions instantaneously based on price-time priority queues. Traders who execute without considering variables like depth of market, systemic liquidity profiles, slippage, or transaction impact costs are statistically destined to consistently underperform index benchmarks over long time horizons. When incorporating **${topicTitle}** into your routines, you must utilize institutional-grade statistical models to evaluate key resistance thresholds, historical supply buffers, and structural trend direction before committing capital to any intraday position or overnight swing-trade cycle. This guarantees your strategies are derived from validated empirical probability distributions rather than arbitrary discretionary guesses.
+
+Furthermore, professional prop-desk operators employ volume-weighted diagnostics to augment signal validity. Volume-Weighted Average Price (VWAP) represents a critical moving anchor indicating the true 'fair market value' of professional accumulation or distribution activities. When evaluating setups related to **${topicTitle}**, checking if current prints stand above or below VWAP filters out high-risk counter-trend entries. Advanced systems also integrate derivative flow diagnostics, such as dynamic changes in Open Interest (OI), option chain Call-Put Ratio (PCR) shifts, and fluctuations in standard implied volatility (IV) skews. Combining these rich multi-dimensional data sets with the core concepts of **${topicTitle}** provides an unassailable structural edge, isolating real capital breakouts from deceptive low-volume institutional trap movements. Risk management in these scenarios is not about the impossible goal of avoiding losses entirely, but rather engineering highly asymmetric 1:3 Risk-to-Reward payoff models where your calculated gains mathematically dwarf inevitable operational drawdowns across iterative cycles of hundreds of trades.`;
+
+            strategyFramework = `### 📈 Institutional 5-Step Step-by-Step Action Playbook
+
+To successfully operationalize **${topicTitle}** within an active risk portfolio, professional desk specialists enforce the following standardized execution playbook with mechanical discipline:
+
+1. **Pre-Market Scan & Liquidity Filter**: Every morning between 8:45 AM and 9:10 AM, scan the high-beta Nifty 500 constituents exhibiting high gap-up/down volumes. Filter out illiquid penny counters to shield yourself from execution slippage hazards.
+2. **Top-Down Sectoral Confirmation**: Verify whether the specific sectoral index (e.g., Nifty IT, Nifty Bank, Nifty Auto) matches your stock direction. Sectoral tailwinds elevate average trade expectancy by up to 35% according to historical desk data.
+3. **Intraday Signal Validation**: Once your specific trigger for **${topicTitle}** resolves on a 15-minute operational chart, require an accompanying volume bar exceeding the 20-period Exponential Moving Average by at least 150% before deploying.
+4. **Absolute Risk Positioning**: Limit your maximum financial exposure per single transaction to no more than 1.25% of total account capital. Determine specific share quantity limits by measuring the absolute technical distance between entry and your stop-loss level.
+5. **Tiered Escalated Scaling**: Secure 50% of your gross positional gains once the counter delivers a 1:2 initial Risk-to-Reward ratio. Adjust the remaining balance's stop-loss to breakeven, trailing the remnant using the 20-period EMA to capture potential runaway trend rallies.`;
+
+            actionablePlaybook = `### ⚠️ Critical Execution Hazards & Common Behavioral Traps
+
+The road to sustainable market profitability is continuously littered with psychological and technical pitfalls that quickly erode the bases of under-capitalized retail operations. When integrating the teachings of **${topicTitle}**, remain highly vigilant against these classic tactical failures:
+
+* **Destructive Over-Leverage Syndrome**: Brokers frequently extend up to 5x intraday margin (MIS products). While leverage dramatically multiplies prospective rewards, it equally speeds the mathematics of absolute ruin. Keep positional scaling constant regardless of leverage availability.
+* **Revenge Trading & Over-Trading Impulse**: Following a verified stop-loss exit, emotional impulses often trigger rapid, uncalculated entries to 'win back' lost funds. Professional systems enforce a '3-Strikes' daily rule: three consecutive losses mandate an immediate platform logout for the remainder of the calendar session.
+* **Premature Profit Harvesting**: Retail participants frequently cut winning setups early due to fear of retracement while stubbornly holding losing positions hoping for recovery. To win long-term, your average winning transaction value must strictly exceed your average losing transaction value.
+* **Neglecting Cumulative Friction Overheads**: Transaction taxes (STT), stamp duties, SEBI regulatory levies, GST, and basic broker commissions add up silently. On high-frequency systems, these frictional costs can cannibalize up to 40% of raw gross returns if average wins are small.
+* **Neglecting Trade Journal Analytics**: Failing to document the exact technical trigger, emotional context, slippage, and eventual exit of every position relating to **${topicTitle}** limits optimization. Regular weekend reviews of performance metrics are the sole driver of systematic iterative improvement.`;
+
+            analyticalGlossary = `### 📘 Advanced Pro-Trader Knowledge Matrix & Glossary
+
+* **Market Profile & Point of Control (POC)**: A sophisticated charting study mapping trading volume relative to specific price levels rather than time intervals, revealing where heavy institutional distribution took place.
+* **Average True Range (ATR)**: The absolute volatility indicator used by professional algorithms to formulate dynamic, volatility-adjusted stop-losses instead of static arbitrary percentages.
+* **Beta Metric Analysis**: A statistical calculation measuring a particular equity's systematic volatility relative to the Nifty 50. Low-beta stocks offer safe harbor, while high-beta names provide explosive momentum.
+* **Pivot Point Support/Resistance**: Forward-looking mathematical indicator lines calculated using yesterday's high, low, and closing values, serving as institutional floors and ceilings for live traders.
+* **Sharpe & Sortino Performance Ratios**: Essential diagnostic tools calculating your portfolio's risk-adjusted returns. Sustained positive ratios confirm your profits are derived from actual edge rather than reckless exposure.
+
+Adhering to these rigorous operational protocols transforms active trading from a random game of chance into an industrialized, process-driven wealth generation mechanism. Consistently audit your execution against these parameters to ensure enduring long-term survivability in global capital markets.`;
+        } else if (academyKey === 'crypto' || academyKey === 'bitcoin') {
+            deepDive = `### 🔐 Decentralized Systems Architecture & Blockchain Integrity
+
+Within the non-sovereign financial frontier, achieving mastership of **${topicTitle}** necessitates a comprehensive grasp of foundational cryptographic and network consensus theories. Public blockchains utilize distributed, peer-to-peer append-only ledgers secured by cryptographic hashing algorithms (such as SHA-256) that link discrete transaction blocks into immutable chronological chains. In systems executing **${topicTitle}**, absolute security and censorship resistance are derived not from centralized institutions, but from decentralized consensus mechanisms like Proof of Work (PoW) or Proof of Stake (PoS). These trustless protocols force network participants to deploy computational or capital resources to secure the network against debilitating vectors such as double-spend exploits or 51% sybil attacks.
+
+Furthermore, programmatic supply mechanics serve as a hard-coded algorithmic monetary policy completely decoupled from the discretionary intervention of central banking authorities. Variables like global network hashrate, block difficulty readjustments, and scheduled emission halvings directly regulate the supply dynamics of assets like Bitcoin. The unalterable 21-million Bitcoin supply limit represents the genesis of digital scarcity, contrasting sharply with legacy fiat frameworks that undergo continuous devaluation via quantitative easing expansion cycles. When utilizing **${topicTitle}**, one must view on-chain data—such as active address growth, hash-ribbon cycles, and long-term holder accumulation metrics—to diagnose real underlying network velocity and supply absorption rates.
+
+Finally, layer-1 scaling solutions and fee optimization models represent critical operational dimensions. Analyzing network throughput bottlenecks, Gas limit economics (like Ethereum's EIP-1559 burn mechanic), and off-chain scalability engines (like the Bitcoin Lightning Network) empowers operators to minimize friction. Executing transactions without analyzing current Mempool congestion directly results in exorbitant fee payments, delayed state confirmations, and suboptimal trade fills across decentralized finance (DeFi) protocols.`;
+
+            strategyFramework = `### 🛠️ Professional Cryptosecurity & Self-Custody Playbook
+
+To safely and effectively deploy investment resources toward digital assets and **${topicTitle}**, standard operating procedures call for the following hardened architectural framework:
+
+1. **Absolute Cold-Storage Custody**: Never maintain significant asset balances on centralized crypto exchanges (CEXs). Utilize dedicated hardware security modules (like Ledger or Trezor) to maintain absolute control of your private keys. Remember the cardinal crypto law: 'Not your private keys, not your crypto assets.'
+2. **Recovery Seed Phrase Hardening**: Document your 24-word recovery seed offline using industrial-grade steel plates to guard against fire or water destruction. Never transcribe or store your recovery words on digital devices connected to the internet.
+3. **Comprehensive Smart Contract Audit**: Before allocating liquidity to any decentralized exchange (DEX) or yield aggregator, verify third-party codebase audits and review Total Value Locked (TVL) distribution metrics to protect yourself against rug-pulls.
+4. **Transaction Gas Optimization**: Coordinate execution around gas tracker dashboards to broadcast your non-urgent on-chain transactions during historically off-peak windows (like weekends or early mornings) to preserve capital.
+5. **Disciplined DCA Accumulation**: Successfully neutralize extreme cryptocurrency volatility by utilizing automated Dollar-Cost Averaging (DCA) tools to acquire fixed rupee amounts of blue-chip digital assets on set schedules, removing emotion from price action.`;
+
+            actionablePlaybook = `### ⚠️ Web3 Attack Vectors & Asset Preservation Guidelines
+
+The trustless landscape operates under rigid 'Code-is-Law' conditions, ensuring all operational errors are completely irreversible and devoid of customer support recourse. Protect your digital holdings during **${topicTitle}** operations from these major hazards:
+
+* **Phishing & Malicious Smart Contract Permits**: Cybercriminals leverage cloned user interfaces to deceive users into granting full 'Allow Unlimited' smart contract permissions, enabling instant wallet draining. Always double-verify exact hex contract addresses using blockchain explorers like Etherscan.
+* **Centralized Exchange Insolvency Risks**: Historical crises emphasize that centralized trading desks frequently employ fractional reserves. Restrict exchange presence to transient trading activities only; transfer funds immediately to cold wallets once execution settles.
+* **Regulatory & Indian Flat Tax Compliance**: Current Indian tax laws impose an aggressive 30% flat tax on all Virtual Digital Asset (VDA) capital gains, coupled with a mandatory 1% Tax Deducted at Source (TDS) on every transaction. Keep flawless accounting ledgers to satisfy statutory tax authorities.
+* **DeFi Systemic & Smart Contract Vulnerabilities**: Complex financial protocols remain susceptible to flash-loan exploits, oracle manipulation, and re-entrancy bugs. Mitigate this risk by limiting protocol-level exposure to highly battle-tested blue-chip platforms.
+* **Shilling & Social Media Hype Manipulation**: The digital asset sphere is rife with paid influencer coordination and pump-and-dump schematics. Force every decision regarding **${topicTitle}** to be driven by raw objective data: Github commit activity, block explorer throughputs, and fundamental developer velocity.`;
+
+            analyticalGlossary = `### 📘 Advanced Web3 Technical Knowledge Library
+
+* **Hot Wallets vs. Cold Wallets**: Hot wallets reside on internet-facing browser extensions offering convenient dapp connectivity but higher surface vulnerability. Cold wallets are physical, air-gapped offline hardware generators.
+* **Decentralized Exchanges (DEXs)**: Platforms utilizing Automated Market Maker (AMM) protocols that facilitate trustless, direct peer-to-peer token swaps directly between user wallets via smart contracts.
+* **Mempool State Diagnostics**: The virtual waiting area where user transactions reside before being selected, verified, and included into a new block by network miners or validators.
+* **Fiat-to-Crypto Entry Gateways**: Compliance-heavy platforms enabling the conversion of sovereign currencies (like INR) into digital assets, requiring rigorous Know Your Customer (KYC) compliance validations.
+* **Proof of Work (PoW) Hashing**: The computational consensus process requiring computers to solve difficult mathematical puzzles to validate blockchain states, expending real-world energy to protect block immutability.
+
+Executing with these enterprise-grade digital safety standards ensures your exploration into non-sovereign currencies is characterized by unbreakable personal sovereignty and superior portfolio defense. Continually review these security guardrails before broadcasting network actions.`;
+        } else {
+            deepDive = `### 📊 Multi-Decadal Wealth Compounding & Asset Dynamics
+
+Constructing enduring, generational wealth demands an absolute mastery of **${topicTitle}** paired with unwavering, multi-decade strategic vision. The foundational mathematical engine of consistent financial expansion is compounding—earning returns not just on your original principal, but also on the previously accumulated growth over protracted durations. For Indian investors attempting to maintain purchasing power, traditional instruments like standard saving accounts or bank fixed deposits (FDs) frequently yield negative inflation-adjusted returns once measured against historical inflation averages of 6%. Acquiring real ownership in productive enterprises and diversified assets via **${topicTitle}** supplies the core real growth engine necessary to generate genuine, inflation-beating net worth.
+
+A pivotal pillar of professional portfolio maintenance is Asset Allocation—the conscious and disciplined distribution of investable capital among non-correlated asset groups (Equities, Fixed Income Bonds, Real Estate, and Gold). Exhaustive financial research verifies that more than 90% of long-term performance variation is driven by high-level asset allocation choices rather than specific stock picking or short-sighted market timing attempts. Allocating capital consistently via **${topicTitle}** reduces aggregate drawdowns and moves your personal financial equation closer toward optimal Sharpe ratio efficiency along the efficient frontier.
+
+Lastly, recognizing the silent impact of administrative costs is vital. An seemingly minor 1% annual variance in Expense Ratios (ER) can systematically consume up to 25% of your ultimate terminal corpus over a 30-year compounding horizon. Insisting on 'Direct' deployment pathways instead of commission-loaded 'Regular' distribution schemes ensures maximum capital deployment, fully optimizing your future financial harvest to its ultimate mathematical zenith.`;
+
+            strategyFramework = `### 🛠️ Structured Implementation & Wealth Building Blueprint
+
+To seamlessly integrate the principles of **${topicTitle}** into your core family financial engine, implement following rigorous systemic blueprint developed by master portfolio architects:
+
+1. **Goal-Based Outcome Mapping**: Explicitly tether every single systematic investment plan to a concrete, time-bound financial milestone (e.g., Child Education, Pre-Retirement Independence, Home Purchase) to logically determine investment duration.
+2. **Hardened Liquidity Reserve**: Before forwarding capital to **${topicTitle}**, establish an emergency cash buffer containing a minimum of 6 to 12 months of base household operating expenses to ensure market corrections do not force premature liquidation.
+3. **Automated SIP Percentage Escalation**: Configure your systematic deployment platforms to automatically increment your monthly contributions by 10% every year in lockstep with your annual salary growth, rapidly accelerating financial goals.
+4. **Disciplined Asset Rebalancing**: Every six to twelve months, audit portfolio weight distributions. Methodically trim overweight asset classes that have outperformed and buy into temporarily undervalued categories to lock in gains.
+5. **Direct Route Selection**: Always purchase mutual fund products directly from the asset management company (AMC) website or direct platforms to bypass ongoing distributor commissions and retain 100% of returns.`;
+
+            actionablePlaybook = `### ⚠️ Behavioral Biases & Portfolio Survival Defense
+
+Historical analytical data confirms that the primary threat to long-term wealth accumulation isn't the natural volatility of global markets, but rather the destructive emotional reactive tendencies of the individual investor. When deploying assets into **${topicTitle}**, protect yourself against these major behavioral hazards:
+
+* **Panic Stopping During Drawdowns**: When major equity indices undergo standard 15-20% corrections, fear-induced bias causes retail participants to cease systematic plans. Bear markets provide the mathematical advantage of acquiring more units at steep discounts, drastically lowering average cost bases.
+* **Over-Concentration and Failure to Diversify**: Deploying a disproportionate percentage of net worth into singular asset sectors (e.g., real estate or specialized small-cap funds) leaves the portfolio exposed to catastrophic systemic risk. Maintain global, well-rounded diversification.
+* **Recency Bias & Performance Chasing**: Blindly investing capital only into specific asset classes or thematic funds that generated the highest trailing returns last year is a major fallacy. Performance cycles rotate perpetually; maintain a core index-driven core.
+* **Inadequate Insurance Shielding**: Deploying long-term savings without possessing a robust personal health insurance umbrella and independent term life plan leaves your wealth highly vulnerable to liquidation during health emergencies.
+* **Excessive Portfolio Meddling**: Routinely reviewing portfolio balances on a daily basis increases cortisol, promotes anxiety, and encourages unnecessary, high-friction short-term trading. Limit your review cycles to quarterly intervals for maximum peace of mind.`;
+
+            analyticalGlossary = `### 📘 Comprehensive Advanced Wealth Glossary & Masterclass
+
+* **Compounded Annual Growth Rate (CAGR)**: The foundational metric calculating the smoothed average annual rate of growth an investment requires to move from its initial valuation to its terminal corpus valuation.
+* **Expense Ratio Overhead (ER)**: The annual fee expressed as a percentage deducted from fund assets by asset managers to cover administration, fund managers, and marketing. Lower is always mathematically superior.
+* **Systematic Transfer Plan (STP)**: An algorithmic scheduling methodology where an investor deploys a lump sum into an ultra-safe debt fund and automatically transfers a fixed slice into an equity fund periodically to average entry pricing.
+* **Long-Term Capital Gain Harvesting (LTCG)**: An active tax strategy leveraging standard annual ₹1.25 Lakh LTCG exemptions by systematically booking and instantly reinvesting gains each fiscal cycle.
+* **Rupee Cost Averaging Protocol**: The mechanical outcome of systematic investing, ensuring that you purchase mathematically higher counts of units when prices fall and fewer when they rise, smoothing out volatility.
+
+Embracing these hardened financial laws converts wealth creation from an emotional, anxiety-ridden activity into a reliable, automated code-driven production system. Periodically audit your operations against these frameworks to maintain flawless alignment with your multi-decadal roadmap.`;
+        }
+        
+        return `${baseContent}\n\n${deepDive}\n\n${strategyFramework}\n\n${actionablePlaybook}\n\n${analyticalGlossary}`;
+    };
+
     // Rich Text Parser
     const formatContent = (text) => {
         if (!text) return null;
@@ -585,7 +711,7 @@ const BusinessTrading = () => {
 
                                 {/* Dynamic Content Rich Text Rendering */}
                                 <article style={{ fontSize: '1.02rem', color: '#334155' }}>
-                                    {currentTopic && formatContent(currentTopic.content)}
+                                    {currentTopic && formatContent(enrichTopicContent(selectedTrack, activeModule.title, currentTopic.title, currentTopic.content))}
                                 </article>
 
                                 {/* Footer Navigation Guide */}
