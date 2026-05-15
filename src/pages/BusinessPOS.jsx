@@ -42,6 +42,7 @@ const BusinessPOS = () => {
     
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState([]);
+    const [holdCounter, setHoldCounter] = useState(1);
     
     const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(0);
@@ -318,6 +319,7 @@ const BusinessPOS = () => {
         if (cart.length === 0) return;
         setHeldCarts(prev => [...prev, {
             id: Date.now(),
+            displayId: holdCounter,
             cart: [...cart],
             customerName,
             customerEmail,
@@ -325,6 +327,7 @@ const BusinessPOS = () => {
             discountType,
             taxRate
         }]);
+        setHoldCounter(prev => prev + 1);
         // Clear current workspace
         setCart([]);
         setCustomerName('');
@@ -611,7 +614,7 @@ const BusinessPOS = () => {
                                 onClick={() => restoreCart(hc.id)}
                                 style={{ background: 'white', border: '1px solid #FCD34D', padding: '0.3rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#92400E', cursor: 'pointer', whiteSpace: 'nowrap' }}
                             >
-                                {hc.customerName || `Cart #${hc.id.toString().slice(-4)}`} ({hc.cart.length} items)
+                                {hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
                             </button>
                         ))}
                     </div>
