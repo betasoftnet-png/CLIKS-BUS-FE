@@ -33,6 +33,7 @@ const BusinessPeople = () => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+    const [selectedPersonId, setSelectedPersonId] = useState(null);
 
     // Forms input states
     const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '' });
@@ -53,6 +54,25 @@ const BusinessPeople = () => {
     const { data: remindersRes = [], isLoading: isRemindersLoading } = useQuery({
         queryKey: ['people-reminders-all'],
         queryFn: () => peopleService.getAllReminders(),
+    });
+
+    // ── Top-level person query detail hooks ─────────────────────────────────
+    const { data: personDetails, isLoading: isPersonDetailLoading } = useQuery({
+        queryKey: ['person-detail', selectedPersonId],
+        queryFn: () => peopleService.getPersonById(selectedPersonId),
+        enabled: !!selectedPersonId
+    });
+
+    const { data: personTx, isLoading: isPersonTxLoading } = useQuery({
+        queryKey: ['person-transactions', selectedPersonId],
+        queryFn: () => peopleService.getTransactions(selectedPersonId),
+        enabled: !!selectedPersonId
+    });
+
+    const { data: personReminders, isLoading: isPersonRemLoading } = useQuery({
+        queryKey: ['person-reminders', selectedPersonId],
+        queryFn: () => peopleService.getReminders(selectedPersonId),
+        enabled: !!selectedPersonId
     });
 
     const people = peopleRes.data || peopleRes || [];
@@ -279,7 +299,12 @@ const BusinessPeople = () => {
                                 ) : filteredPeople.length === 0 ? (
                                     <tr><td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Zero network contacts found. Start adding!</td></tr>
                                 ) : filteredPeople.map((p) => (
-                                    <tr key={p.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                    <tr key={p.id} 
+                                        style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
+                                        onClick={() => setSelectedPersonId(p.id)}
+                                        onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
+                                        onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
+                                    >
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                 <div style={{ width: '42px', height: '42px', borderRadius: '12px', overflow: 'hidden', background: '#F1F5F9' }}>
@@ -304,7 +329,7 @@ const BusinessPeople = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             <button 
-                                                onClick={() => handleDeleteContact(p.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteContact(p.id); }}
                                                 style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s' }}
                                                 onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
                                                 onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
@@ -545,6 +570,135 @@ const BusinessPeople = () => {
                                     Commit Reminder Flow
                                 </button>
                             </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Modal 4: Person Detail Profile Modal */}
+            <AnimatePresence>
+                {selectedPersonId && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '750px', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                            {/* Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '2rem', background: '#F0F9F4', borderBottom: '1px solid #DCF2E4' }}>
+                                {isPersonDetailLoading ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', height: '80px' }}>
+                                        <div className="premium-loader" style={{ width: '24px', height: '24px', border: '3px solid #DCF2E4', borderTopColor: '#1B6B3A', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                                        <p style={{ margin: 0, fontWeight: '700', color: '#064E3B' }}>Accessing network dossier...</p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                                        <div style={{ width: '80px', height: '80px', borderRadius: '24px', overflow: 'hidden', background: 'white', border: '3px solid #E2E8F0' }}>
+                                            <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${personDetails?.name || ''}`} alt="" />
+                                        </div>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                                                <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textTransform: 'uppercase' }}>{personDetails?.name}</h2>
+                                                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>{personDetails?.role_type}</span>
+                                            </div>
+                                            <div style={{ margin: 0, color: '#64748B', fontWeight: '600', display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
+                                                {personDetails?.company && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={14} /> {personDetails.company}</span>}
+                                                {personDetails?.phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Phone size={14} /> {personDetails.phone}</span>}
+                                                {personDetails?.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Mail size={14} /> {personDetails.email}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <button onClick={() => setSelectedPersonId(null)} style={{ border: 'none', background: 'white', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', color: '#475569' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Content Body */}
+                            <div style={{ padding: '2rem', overflowY: 'auto', flex: 1, background: '#FAFAF9' }}>
+                                {!isPersonDetailLoading && personDetails && (
+                                    <>
+                                        {/* Exposure Card */}
+                                        <div style={{ background: parseFloat(personDetails.net_balance || 0) >= 0 ? '#ECFDF5' : '#FEF2F2', padding: '1.75rem', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', border: '1.5px solid', borderColor: parseFloat(personDetails.net_balance || 0) >= 0 ? '#A7F3D0' : '#FCA5A5', boxShadow: '0 4px 10px -2px rgba(0,0,0,0.02)' }}>
+                                            <div>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '850', textTransform: 'uppercase', color: parseFloat(personDetails.net_balance || 0) >= 0 ? '#047857' : '#B91C1C', letterSpacing: '0.05em' }}>Consolidated Ledger Stand</p>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '2.25rem', fontWeight: '950', color: parseFloat(personDetails.net_balance || 0) >= 0 ? '#065F46' : '#991B1B', letterSpacing: '-0.03em' }}>
+                                                    {formatCurr(personDetails.net_balance)}
+                                                </h3>
+                                            </div>
+                                            <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: parseFloat(personDetails.net_balance || 0) >= 0 ? '#059669' : '#DC2626', boxShadow: '0 4px 6px rgba(0,0,0,0.04)' }}>
+                                                {parseFloat(personDetails.net_balance || 0) >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem' }}>
+                                            {/* Recent Ledger List */}
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                                    <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Direct Ledger Activity</h4>
+                                                    <ArrowLeftRight size={16} style={{ color: '#94A3B8' }} />
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    {isPersonTxLoading ? (
+                                                        <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Loading transactions...</p>
+                                                    ) : (!personTx || (personTx.data ? personTx.data.length === 0 : personTx.length === 0)) ? (
+                                                        <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
+                                                            <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>Zero financial assets logged.</p>
+                                                        </div>
+                                                    ) : (
+                                                        (personTx.data || personTx || []).slice(0, 6).map((t, i) => (
+                                                            <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#334155' }}>{t.description || 'Registry entry'}</p>
+                                                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>{new Date(t.date).toLocaleDateString('en-IN')}</p>
+                                                                </div>
+                                                                <div style={{ textAlign: 'right' }}>
+                                                                    <span style={{ fontSize: '1.05rem', fontWeight: '900', color: t.type === 'lent' ? '#059669' : '#DC2626' }}>
+                                                                        {t.type === 'lent' ? '+' : '-'}{formatCurr(t.amount)}
+                                                                    </span>
+                                                                    <div style={{ fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase', color: t.type === 'lent' ? '#10B981' : '#EF4444', marginTop: '2px' }}>{t.type}</div>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Specific Reminder Flows */}
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                                    <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Maturity Due Alerts</h4>
+                                                    <Bell size={16} style={{ color: '#94A3B8' }} />
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    {isPersonRemLoading ? (
+                                                        <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Fetching deadlines...</p>
+                                                    ) : (!personReminders || (personReminders.data ? personReminders.data.length === 0 : personReminders.length === 0)) ? (
+                                                        <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
+                                                            <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>All accounts cleared.</p>
+                                                        </div>
+                                                    ) : (
+                                                        (personReminders.data || personReminders || []).slice(0, 4).map((rem, i) => (
+                                                            <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
+                                                                    <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
+                                                                    <Calendar size={12} />
+                                                                    <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            {/* Footer */}
+                            <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #E2E8F0', background: 'white', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                                <button onClick={() => { setSelectedPersonId(null); setIsTxModalOpen(true); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#F1F5F9', border: 'none', color: '#475569', fontWeight: '750', cursor: 'pointer' }}>
+                                    Record Transaction
+                                </button>
+                                <button onClick={() => setSelectedPersonId(null)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#1B6B3A', border: 'none', color: 'white', fontWeight: '750', cursor: 'pointer' }}>
+                                    Dismiss Records
+                                </button>
+                            </div>
                         </Motion.div>
                     </div>
                 )}
