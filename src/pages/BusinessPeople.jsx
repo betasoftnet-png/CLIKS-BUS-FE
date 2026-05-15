@@ -95,7 +95,7 @@ const BusinessPeople = () => {
         }, 0);
     }, [personTx, personDetails]);
 
-    const people = peopleRes.data || peopleRes || [];
+    const people = useMemo(() => peopleRes.data || peopleRes || [], [peopleRes]);
     const transactions = transactionsRes.data || transactionsRes || [];
     const reminders = remindersRes.data || remindersRes || [];
 
