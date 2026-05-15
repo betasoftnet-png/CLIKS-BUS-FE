@@ -63,6 +63,7 @@ import BusinessCustomization from './pages/BusinessCustomization';
 import BusinessPOS from './pages/BusinessPOS';
 import BusinessPurposeWallet from './pages/BusinessPurposeWallet';
 import BusinessReferral from './pages/BusinessReferral';
+import BusinessRewards from './pages/BusinessRewards';
 import BusinessTrading from './pages/BusinessTrading';
 import BusinessPeople from './pages/BusinessPeople';
 import BusinessMeetup from './pages/BusinessMeetup';
@@ -157,6 +158,7 @@ function AppContent() {
                     <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
                     <Route path="/payments/wallet" element={<BusinessWallet />} />
                     <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
+                    <Route path="/payments/rewards" element={<BusinessRewards />} />
                     {/* <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} /> */} {/* Will do in future */}
                     <Route path="/payments/people" element={<BusinessPeople />} />
 
