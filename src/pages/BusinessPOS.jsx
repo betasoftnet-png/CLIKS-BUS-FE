@@ -29,6 +29,7 @@ import { productsService } from '../services/productsService';
 import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessPOS = () => {
     const queryClient = useQueryClient();
@@ -306,8 +307,8 @@ const BusinessPOS = () => {
         checkoutMutation.mutate(payload);
     };
 
-    const clearCart = () => {
-        if (window.confirm('Are you sure you want to clear the current cart?')) {
+    const clearCart = async () => {
+        if (await customConfirm('Are you sure you want to clear the current cart?')) {
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
@@ -354,15 +355,15 @@ const BusinessPOS = () => {
         }
     };
 
-    const deleteHeldCart = (holdId) => {
-        if (window.confirm('Discard this held cart entirely?')) {
+    const deleteHeldCart = async (holdId) => {
+        if (await customConfirm('Discard this held cart entirely?')) {
             setHeldCarts(prev => prev.filter(h => h.id !== holdId));
         }
     };
 
-    const restoreCart = (holdId) => {
+    const restoreCart = async (holdId) => {
         if (cart.length > 0) {
-            if (!window.confirm('Current cart has items. Overwrite with held cart?')) return;
+            if (!await customConfirm('Current cart has items. Overwrite with held cart?')) return;
         }
         const held = heldCarts.find(h => h.id === holdId);
         if (!held) return;

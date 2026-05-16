@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import '../../App.css';
+import { customConfirm } from '../../utils/customConfirm';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
@@ -59,7 +60,7 @@ const AdminDashboard = () => {
     };
 
     const handleFlushCache = async () => {
-        if (!window.confirm("CRITICAL ACTION: Instruct cluster to purge dynamic server cache layer?")) return;
+        if (!await customConfirm("CRITICAL ACTION: Instruct cluster to purge dynamic server cache layer?")) return;
         setActionLoading(true);
         try {
             const res = await adminService.flushCache();

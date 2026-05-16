@@ -18,6 +18,7 @@ import {
 import { adminService } from '../../services/adminService';
 import { useAuth } from '../../context';
 import '../../App.css';
+import { customConfirm } from '../../utils/customConfirm';
 
 const AdminUsers = () => {
     const { impersonateLogin } = useAuth();
@@ -72,7 +73,7 @@ const AdminUsers = () => {
 
     const handleToggleRole = async (client) => {
         const newRole = client.role === 'admin' ? 'user' : 'admin';
-        if (!window.confirm(`Toggle role for ${client.name} to ${newRole}?`)) return;
+        if (!await customConfirm(`Toggle role for ${client.name} to ${newRole}?`)) return;
         
         try {
             await adminService.updateUserRole(client.realId, newRole);
@@ -87,7 +88,7 @@ const AdminUsers = () => {
             alert("SuperAdmin impersonation cross-overs are blocked. You can only impersonate standard client tenants.");
             return;
         }
-        if (!window.confirm(`IMPERSONATION SHIELD WARNING!\n\nYou are opening a secure remote support tunnel into the Dashboard belonging to @${client.name} (${client.company}).\n\nDo you want to proceed?`)) return;
+        if (!await customConfirm(`IMPERSONATION SHIELD WARNING!\n\nYou are opening a secure remote support tunnel into the Dashboard belonging to @${client.name} (${client.company}).\n\nDo you want to proceed?`)) return;
 
         try {
             await impersonateLogin(client.realId);
@@ -99,7 +100,7 @@ const AdminUsers = () => {
     };
 
     const handleDelete = async (client) => {
-        if (!window.confirm(`CRITICAL: Purge all resources and delete account for ${client.name}?`)) return;
+        if (!await customConfirm(`CRITICAL: Purge all resources and delete account for ${client.name}?`)) return;
         
         try {
             await adminService.deleteUser(client.realId);

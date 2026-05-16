@@ -32,6 +32,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessInventory = () => {
     const queryClient = useQueryClient();
@@ -215,8 +216,8 @@ const BusinessInventory = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this product? All historical logs and stock information will be removed.')) {
+    const handleDelete = async (id) => {
+        if (await customConfirm('Are you sure you want to delete this product? All historical logs and stock information will be removed.')) {
             deleteMutation.mutate(id);
         }
     };

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import { crmService } from '../services/crmService';
+import { customConfirm } from '../utils/customConfirm';
 
 const AVATAR_COLORS = [
     { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue
@@ -177,7 +178,7 @@ const BusinessCRM = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this customer? All historical ledgers will be permanently removed.')) {
+        if (await customConfirm('Are you sure you want to delete this customer? All historical ledgers will be permanently removed.')) {
             try {
                 await crmService.deleteCustomer(id);
                 if (selectedParty && selectedParty.id === id) {

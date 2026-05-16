@@ -28,6 +28,7 @@ import {
     XCircle
 } from 'lucide-react';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSalesOrders = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -212,7 +213,7 @@ const BusinessSalesOrders = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this sales order?')) {
+        if (await customConfirm('Are you sure you want to delete this sales order?')) {
             try {
                 await ordersService.deleteOrder(id);
                 alert('Sales Order deleted successfully.');
@@ -225,7 +226,7 @@ const BusinessSalesOrders = () => {
     };
 
     const handleConvertInvoice = async (order) => {
-        if (window.confirm(`Convert Sales Order ${order.order_number} to a Sales Invoice?`)) {
+        if (await customConfirm(`Convert Sales Order ${order.order_number} to a Sales Invoice?`)) {
             try {
                 // Fully secure Backend Processing handled on server-side now
                 await ordersService.convertToInvoice(order.id);

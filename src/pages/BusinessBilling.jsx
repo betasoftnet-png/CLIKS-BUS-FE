@@ -39,6 +39,7 @@ import {
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessBilling = () => {
     const queryClient = useQueryClient();
@@ -565,8 +566,8 @@ const BusinessBilling = () => {
         window.open(whatsappUrl, '_blank');
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this invoice?')) {
+    const handleDelete = async (id) => {
+        if (await customConfirm('Are you sure you want to delete this invoice?')) {
             deleteMutation.mutate(id);
         }
     };

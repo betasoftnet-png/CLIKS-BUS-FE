@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import '../../App.css';
+import { customConfirm } from '../../utils/customConfirm';
 
 const AdminSettings = () => {
     const [activeTab, setActiveTab] = useState('features'); // 'features' | 'broadcast'
@@ -121,7 +122,7 @@ const AdminSettings = () => {
             ? "WARNING: This will instantly block ALL active client accounts and return 503 errors. Arm system shutdown?"
             : "Do you want to DE-ARM maintenance mode and restore public infrastructure availability?";
         
-        if (!window.confirm(message)) return;
+        if (!await customConfirm(message)) return;
 
         const updated = { ...features, maintenance_mode: newState };
         setFeatures(updated);
@@ -161,7 +162,7 @@ const AdminSettings = () => {
     };
 
     const dropAnnouncement = async (id) => {
-        if (!window.confirm("Permanently purge this alert broadcast from registry history?")) return;
+        if (!await customConfirm("Permanently purge this alert broadcast from registry history?")) return;
         try {
             await adminService.deleteAnnouncement(id);
             await loadAnnouncements();

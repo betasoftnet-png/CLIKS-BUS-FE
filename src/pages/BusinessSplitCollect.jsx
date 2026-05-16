@@ -24,6 +24,7 @@ import {
     X
 } from 'lucide-react';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSplitCollect = () => {
     const queryClient = useQueryClient();
@@ -561,7 +562,7 @@ const BusinessSplitCollect = () => {
                             </div>
                             <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', background: '#FAFAFA' }}>
                                 <button 
-                                    onClick={() => { if(window.confirm("Discard this whole split record?")) deleteMutation.mutate(selectedExpense.id); }}
+                                    onClick={async () => { if(await customConfirm("Discard this whole split record?")) deleteMutation.mutate(selectedExpense.id); }}
                                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontWeight: '800', fontSize: '0.85rem' }}
                                 >
                                     <Trash2 size={16} /> Discard Entry

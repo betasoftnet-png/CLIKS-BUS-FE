@@ -15,6 +15,7 @@ import {
 import { load } from '@cashfreepayments/cashfree-js';
 import { apiClient } from '../api/client';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSubscription = () => {
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
@@ -57,7 +58,7 @@ const BusinessSubscription = () => {
 
         } catch (err) {
             console.warn("[CASHFREE GATEWAY LOGGER]:", err.message);
-            const shouldSimulate = window.confirm(
+            const shouldSimulate = await customConfirm(
                 `🚨 [CASHFREE GATEWAY ERROR]\n\n` +
                 `Transaction Handshake Failed: ${err.message}\n\n` +
                 `Would you like to simulate a SUCCESSFUL Gateway callback anyway to test UI loading logic?`

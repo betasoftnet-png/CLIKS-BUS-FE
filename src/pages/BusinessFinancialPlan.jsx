@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { businessPlanService } from '../services';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessFinancialPlan = () => {
     const queryClient = useQueryClient();
@@ -65,8 +66,8 @@ const BusinessFinancialPlan = () => {
         setFormData({ name: '', description: '', total_budget: '', start_date: '', end_date: '', status: 'Draft' });
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this plan?')) {
+    const handleDelete = async (id) => {
+        if (await customConfirm('Are you sure you want to delete this plan?')) {
             deleteMutation.mutate(id);
         }
     };

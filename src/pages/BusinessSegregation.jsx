@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { businessSegregationService } from '../services';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSegregation = () => {
     const queryClient = useQueryClient();
@@ -203,7 +204,7 @@ const BusinessSegregation = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                <button onClick={() => { if(window.confirm('Delete this strategy?')) deleteMutation.mutate(seg.id); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                                <button onClick={async () => { if(await customConfirm('Delete this strategy?')) deleteMutation.mutate(seg.id); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
                                             </div>
                                         </td>
                                     </tr>

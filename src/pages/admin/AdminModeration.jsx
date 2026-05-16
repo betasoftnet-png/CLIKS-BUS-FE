@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import '../../App.css';
+import { customConfirm } from '../../utils/customConfirm';
 
 const AdminModeration = () => {
     const [posts, setPosts] = useState([]);
@@ -43,7 +44,7 @@ const AdminModeration = () => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to purge this public post from the network feed?")) return;
+        if (!await customConfirm("Are you sure you want to purge this public post from the network feed?")) return;
         
         setDeletingId(id);
         try {

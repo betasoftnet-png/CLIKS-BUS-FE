@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessPeople = () => {
     const [activeTab, setActiveTab] = useState('contacts'); // 'contacts', 'transactions', 'reminders'
@@ -181,8 +182,8 @@ const BusinessPeople = () => {
         createContactMutation.mutate(contactForm);
     };
 
-    const handleDeleteContact = (id) => {
-        if (window.confirm('Are you sure you want to delete this contact and all associated transactions?')) {
+    const handleDeleteContact = async (id) => {
+        if (await customConfirm('Are you sure you want to delete this contact and all associated transactions?')) {
             deleteContactMutation.mutate(id);
         }
     };

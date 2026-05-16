@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
+import { customConfirm } from '../../utils/customConfirm';
 import { 
     Calculator, X, RotateCcw, Delete, Share2, Trash2, 
     Tag, Globe, Plus, Percent, Hash, Check, ArrowUpDown, History
@@ -580,7 +581,7 @@ export function CalcPopover() {
                                     <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tape Archives</span>
                                     {calcHistory.length > 0 && (
                                         <button 
-                                            onClick={() => { if(window.confirm("Clear calculation history?")) setCalcHistory([]); }} 
+                                            onClick={async () => { if(await customConfirm("Clear calculation history?")) setCalcHistory([]); }} 
                                             style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: 0 }}
                                         >
                                             CLEAR ALL

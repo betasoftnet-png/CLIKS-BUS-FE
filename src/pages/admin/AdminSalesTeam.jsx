@@ -15,6 +15,7 @@ import {
     X
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
+import { customConfirm } from '../../utils/customConfirm';
 
 const AdminSalesTeam = () => {
     const [loading, setLoading] = useState(true);
@@ -73,7 +74,7 @@ const AdminSalesTeam = () => {
     };
 
     const handleToggleStatus = async (agent) => {
-        if (!window.confirm(`Are you certain you want to pivot clearance for rep "${agent.name}"?`)) return;
+        if (!await customConfirm(`Are you certain you want to pivot clearance for rep "${agent.name}"?`)) return;
         try {
             await adminService.toggleSalesAgent(agent.id);
             fetchTeam();

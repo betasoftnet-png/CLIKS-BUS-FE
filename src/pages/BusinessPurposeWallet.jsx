@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { goalWalletService } from '../services';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessPurposeWallet = () => {
     const queryClient = useQueryClient();
@@ -306,7 +307,7 @@ const BusinessPurposeWallet = () => {
                                                 <History size={17} />
                                             </button>
                                             <button 
-                                                onClick={() => { if(window.confirm("Erase this segregation container forever? Accumulated funds tracking will resolve.")) deleteMutation.mutate(wallet.id); }}
+                                                onClick={async () => { if(await customConfirm("Erase this segregation container forever? Accumulated funds tracking will resolve.")) deleteMutation.mutate(wallet.id); }}
                                                 style={{ border: 'none', background: 'transparent', color: '#EF4444', opacity: 0.4, cursor: 'pointer', padding: '4px', transition: 'opacity 0.2s' }}
                                                 onMouseOver={(e) => e.currentTarget.style.opacity = 1}
                                                 onMouseOut={(e) => e.currentTarget.style.opacity = 0.4}
@@ -375,7 +376,7 @@ const BusinessPurposeWallet = () => {
 
                                         <button
                                             disabled={!canClaim}
-                                            onClick={() => { if(window.confirm(`Extract ₹${current} accumulated for "${wallet.name}" into main reserves?`)) claimMutation.mutate(wallet.id); }}
+                                            onClick={async () => { if(await customConfirm(`Extract ₹${current} accumulated for "${wallet.name}" into main reserves?`)) claimMutation.mutate(wallet.id); }}
                                             style={{ 
                                                 padding: '0.85rem', 
                                                 borderRadius: '12px', 

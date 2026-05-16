@@ -32,6 +32,7 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
+import { customConfirm } from '../utils/customConfirm';
 
 const INITIAL_EMPLOYEES = [
     {
@@ -256,8 +257,8 @@ const BusinessStaffing = () => {
         }
     };
 
-    const handleDeleteEmployee = (empId) => {
-        if (window.confirm('Are you sure you want to terminate/deboard this employee profile?')) {
+    const handleDeleteEmployee = async (empId) => {
+        if (await customConfirm('Are you sure you want to terminate/deboard this employee profile?')) {
             deleteEmpMutation.mutate(empId);
         }
     };

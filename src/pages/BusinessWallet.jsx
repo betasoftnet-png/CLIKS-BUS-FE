@@ -4,6 +4,7 @@ import { load } from '@cashfreepayments/cashfree-js';
 import { useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessWallet = () => {
     // Persisted LocalState for the Wallet context
@@ -106,7 +107,7 @@ const BusinessWallet = () => {
             console.warn("[CASHFREE GATEWAY LOGGER]:", err.message);
             
             // Display the actual error message instead of defaulting to a CORS warning
-            const shouldSimulate = window.confirm(
+            const shouldSimulate = await customConfirm(
                 `🚨 [CASHFREE GATEWAY ERROR]\n\n` +
                 `Transaction Handshake Failed: ${err.message}\n\n` +
                 `Would you like to simulate a SUCCESSFUL Gateway callback anyway to test UI loading logic?`

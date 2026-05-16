@@ -33,6 +33,7 @@ import {
     Smartphone
 } from 'lucide-react';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSuppliers = () => {
     const queryClient = useQueryClient();
@@ -192,8 +193,8 @@ const BusinessSuppliers = () => {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to completely remove this vendor/supplier profile? All ledger records will be deleted.')) {
+    const handleDelete = async (id) => {
+        if (await customConfirm('Are you sure you want to completely remove this vendor/supplier profile? All ledger records will be deleted.')) {
             deleteMutation.mutate(id);
         }
     };
