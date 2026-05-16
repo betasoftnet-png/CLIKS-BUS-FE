@@ -20,7 +20,8 @@ import {
     TrendingUp,
     Calendar,
     Sparkles,
-    CircleAlert
+    CircleAlert,
+    History
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -65,6 +66,10 @@ const BusinessPOS = () => {
         tax_percentage: 18
     }));
     
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyDate, setHistoryDate] = useState('');
+    const [historyPaymentMode, setHistoryPaymentMode] = useState('All');
     const customerInputRef = useRef(null);
 
     // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products)
@@ -132,8 +137,15 @@ const BusinessPOS = () => {
             return res.data || [];
         }
     });
+    
+    // 4. Fetch Order History
+    const { data: orderHistory = [], isLoading: isHistoryLoading } = useQuery({
+        queryKey: ['pos-order-history'],
+        queryFn: () => posService.getOrders({ limit: 50 }),
+        enabled: showHistoryModal
+    });
 
-    // 4. Checkout Mutation
+    // 5. Checkout Mutation
     const checkoutMutation = useMutation({
         mutationFn: posService.checkout,
         onSuccess: (data) => {
@@ -187,12 +199,16 @@ const BusinessPOS = () => {
 
     // Filtered Products Catalog
     const filteredProducts = inventory.filter(prod => {
-        const lowerSearch = searchTerm.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase().trim();
+        if (!lowerSearch) {
+            return selectedCategory === 'All' || prod.category === selectedCategory;
+        }
+
         const matchesSearch = 
             (prod.name || '').toLowerCase().includes(lowerSearch) ||
             (prod.sku || '').toLowerCase().includes(lowerSearch) ||
             (prod.category || '').toLowerCase().includes(lowerSearch) ||
-            (prod.price || 0).toString().includes(searchTerm);
+            (prod.price || 0).toString().includes(lowerSearch);
         
         const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
         
@@ -463,6 +479,28 @@ const BusinessPOS = () => {
                                     </div>
                                 </div>
                             )}
+
+                            <button
+                                onClick={() => setShowHistoryModal(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: '#F8FAFC',
+                                    color: '#64748B',
+                                    border: '1px solid #E2E8F0',
+                                    padding: '0.5rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontWeight: '800',
+                                    fontSize: '0.78rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#64748B'; }}
+                            >
+                                <History size={15} strokeWidth={2.5} /> History
+                            </button>
                         </div>
                     </div>
 
@@ -1160,6 +1198,164 @@ const BusinessPOS = () => {
                                 {createProductMutation.isPending ? 'Registering...' : 'Add to POS & List'}
                             </button>
                         </form>
+                    </motion.div>
+                </div>
+            )}
+            {/* POS ORDER HISTORY MODAL */}
+            {showHistoryModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        style={{ background: 'white', width: '100%', maxWidth: '800px', height: '85vh', borderRadius: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E293B' }}>
+                                    <History size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>POS Barcode History</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Recent transactions and scanned items</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setShowHistoryModal(false)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Filter Bar */}
+                        <div style={{ padding: '0.75rem 2rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <div style={{ position: 'relative', flex: 1 }}>
+                                <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search Invoice or Client..." 
+                                    value={historySearch}
+                                    onChange={(e) => setHistorySearch(e.target.value)}
+                                    style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }}
+                                />
+                            </div>
+                            <input 
+                                type="date" 
+                                value={historyDate}
+                                onChange={(e) => setHistoryDate(e.target.value)}
+                                style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
+                            />
+                            <select 
+                                value={historyPaymentMode}
+                                onChange={(e) => setHistoryPaymentMode(e.target.value)}
+                                style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
+                            >
+                                <option value="All">All Payments</option>
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Card">Card</option>
+                                <option value="Credit">Credit</option>
+                            </select>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem', background: '#F8FAFC' }}>
+                            {isHistoryLoading ? (
+                                <div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#64748B' }}>
+                                    <span>Loading archive...</span>
+                                </div>
+                            ) : orderHistory.filter(order => {
+                                const matchesSearch = 
+                                    (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+                                    (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
+                                
+                                const matchesDate = !historyDate || order.created_at.startsWith(historyDate);
+                                const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
+                                
+                                return matchesSearch && matchesDate && matchesMode;
+                            }).length === 0 ? (
+                                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94A3B8', gap: '1rem' }}>
+                                    <History size={48} opacity={0.2} />
+                                    <span>No history records found</span>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {orderHistory
+                                        .filter(order => {
+                                            const matchesSearch = 
+                                                (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+                                                (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
+                                            
+                                            const matchesDate = !historyDate || order.created_at.startsWith(historyDate);
+                                            const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
+                                            
+                                            return matchesSearch && matchesDate && matchesMode;
+                                        })
+                                        .map(order => (
+                                        <div 
+                                            key={order.id}
+                                            style={{ background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{order.invoice_number}</span>
+                                                        <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', fontWeight: '800' }}>PAID</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#64748B' }}>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(order.created_at).toLocaleString()}</span>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={12} /> {order.client_name}</span>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={12} /> {order.payment_mode}</span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>₹{order.total_amount.toLocaleString()}</span>
+                                                    <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Item list in history */}
+                                            <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                                                    <thead>
+                                                        <tr style={{ color: '#94A3B8', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                            <th style={{ padding: '4px 0', fontWeight: '700' }}>Item (SKU/Barcode)</th>
+                                                            <th style={{ padding: '4px 0', fontWeight: '700', textAlign: 'center' }}>Qty</th>
+                                                            <th style={{ padding: '4px 0', fontWeight: '700', textAlign: 'right' }}>Price</th>
+                                                            <th style={{ padding: '4px 0', fontWeight: '700', textAlign: 'right' }}>Total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {order.items?.map((item, idx) => (
+                                                            <tr key={idx} style={{ color: '#1E293B' }}>
+                                                                <td style={{ padding: '6px 0', fontWeight: '650' }}>
+                                                                    {item.description}
+                                                                    {item.sku && <span style={{ display: 'block', fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>[{item.sku}]</span>}
+                                                                </td>
+                                                                <td style={{ padding: '6px 0', textAlign: 'center', fontWeight: '700' }}>{item.quantity}</td>
+                                                                <td style={{ padding: '6px 0', textAlign: 'right' }}>₹{item.price.toLocaleString()}</td>
+                                                                <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: '700' }}>₹{item.total.toLocaleString()}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid #F1F5F9', background: '#FFF', textAlign: 'right' }}>
+                            <button 
+                                onClick={() => setShowHistoryModal(false)}
+                                style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
+                            >
+                                Close History
+                            </button>
+                        </div>
                     </motion.div>
                 </div>
             )}

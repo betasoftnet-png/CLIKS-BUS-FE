@@ -54,6 +54,8 @@ const getAvatarColors = (name) => {
 
 const BusinessCRM = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [customerTypeFilter, setCustomerTypeFilter] = useState('All');
+    const [balanceFilter, setBalanceFilter] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -336,11 +338,21 @@ const BusinessCRM = () => {
         window.open(whatsappUrl, '_blank');
     };
 
-    const filteredCustomers = customers.filter(c => 
-        (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.business_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.phone_number || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCustomers = customers.filter(c => {
+        const matchesSearch = 
+            (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.business_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.phone_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesType = customerTypeFilter === 'All' || c.customer_type === customerTypeFilter;
+        
+        let matchesBalance = true;
+        if (balanceFilter === 'Outstanding') matchesBalance = (c.current_balance || 0) > 0;
+        else if (balanceFilter === 'Advance') matchesBalance = (c.current_balance || 0) < 0;
+        else if (balanceFilter === 'Settled') matchesBalance = (c.current_balance || 0) === 0;
+
+        return matchesSearch && matchesType && matchesBalance;
+    });
 
     // Reports Computations
     const totalOutstanding = customers.reduce((sum, c) => sum + (c.current_balance > 0 ? c.current_balance : 0), 0);
@@ -503,9 +515,30 @@ const BusinessCRM = () => {
                                 style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                             />
                         </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <select 
+                            value={customerTypeFilter}
+                            onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                            style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                        >
+                            <option value="All">All Types</option>
+                            <option value="wholesale">Wholesale</option>
+                            <option value="retail">Retail</option>
+                        </select>
+                        <select 
+                            value={balanceFilter}
+                            onChange={(e) => setBalanceFilter(e.target.value)}
+                            style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                        >
+                            <option value="All">All Balances</option>
+                            <option value="Outstanding">Outstanding</option>
+                            <option value="Advance">Advance</option>
+                            <option value="Settled">Settled</option>
+                        </select>
                         <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                             <Filter size={16} />
                         </button>
+                    </div>
                     </div>
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '0.5rem' }}>

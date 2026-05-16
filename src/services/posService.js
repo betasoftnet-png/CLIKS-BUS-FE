@@ -31,6 +31,16 @@ export const posService = {
                 card_sales: 0
             };
         }
+    },
+
+    getOrders: async (params = {}) => {
+        try {
+            const res = await apiClient.get('/pos/orders', { params });
+            return res.data?.data || res.data || [];
+        } catch (error) {
+            console.error('[POS Service] Fetching orders error:', error);
+            return [];
+        }
     }
 };
 

@@ -44,6 +44,8 @@ import { customConfirm } from '../utils/customConfirm';
 const BusinessBilling = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [dateFilter, setDateFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState(null);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -551,10 +553,16 @@ const BusinessBilling = () => {
         }
     };
 
-    const filteredInvoices = invoices.filter(inv => 
-        (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredInvoices = invoices.filter(inv => {
+        const matchesSearch = 
+            (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = statusFilter === 'All' || inv.status === statusFilter;
+        const matchesDate = !dateFilter || inv.due_date === dateFilter;
+
+        return matchesSearch && matchesStatus && matchesDate;
+    });
 
     const totalInvoiced = invoices.reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
     const paidInvoiced = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
@@ -648,9 +656,29 @@ const BusinessBilling = () => {
                             style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                         />
                     </div>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                        <Filter size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <input 
+                            type="date" 
+                            value={dateFilter}
+                            onChange={(e) => setDateFilter(e.target.value)}
+                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                        />
+                        <select 
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                        >
+                            <option value="All">All Status</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Partially Paid">Partially Paid</option>
+                            <option value="Overdue">Overdue</option>
+                            <option value="Draft">Draft</option>
+                        </select>
+                        <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                            <Filter size={16} />
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>

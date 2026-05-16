@@ -236,105 +236,105 @@ const BusinessSplitCollect = () => {
     return (
         <div style={{ padding: '1rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Top Banner Header */}
-            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
                         <div style={{ 
-                            width: '38px', 
-                            height: '38px', 
-                            borderRadius: '12px', 
+                            width: '32px', 
+                            height: '32px', 
+                            borderRadius: '10px', 
                             background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center', 
                             color: 'white', 
-                            boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' 
+                            boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' 
                         }}>
-                            <CreditCard size={18} />
+                            <CreditCard size={16} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Split & Collect</h1>
+                        <h1 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Split & Collect</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Divide collaborative payments, client expenses, or collective billing with partners easily.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '500', margin: 0 }}>Divide collaborative payments and collective billing with partners easily.</p>
                 </div>
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                        padding: '0.75rem 1.25rem', borderRadius: '12px', 
+                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                        padding: '0.6rem 1rem', borderRadius: '10px', 
                         background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer',
-                        boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)',
+                        fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={18} strokeWidth={3} />
+                    <Plus size={16} strokeWidth={3} />
                     New Split Ticket
                 </button>
             </div>
 
             {/* Metric Cards Panel */}
-            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                     <div>
-                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Cumulative Receivable</p>
-                        <h3 style={{ fontSize: '1.4rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹{totalReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', fontWeight: '650', color: '#059669' }}>Across {partners.length} associates</p>
+                        <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.15rem 0' }}>Cumulative Receivable</p>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹{totalReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.68rem', fontWeight: '650', color: '#059669' }}>Across {partners.length} associates</p>
                     </div>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
-                        <ArrowDownLeft size={22} strokeWidth={2.5} />
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
+                        <ArrowDownLeft size={18} strokeWidth={2.5} />
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                     <div>
-                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Outbound Liabilities</p>
-                        <h3 style={{ fontSize: '1.4rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹0.00</h3>
-                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', fontWeight: '650', color: '#EF4444' }}>Zero outstanding entries</p>
+                        <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.15rem 0' }}>Outbound Liabilities</p>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹0.00</h3>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.68rem', fontWeight: '650', color: '#EF4444' }}>Zero outstanding</p>
                     </div>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
-                        <ArrowUpRight size={22} strokeWidth={2.5} />
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
+                        <ArrowUpRight size={18} strokeWidth={2.5} />
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                     <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity Ratio</span>
-                            <span style={{ fontWeight: '900', color: '#1B6B3A', fontSize: '0.8rem' }}>{activeSplitsCount} Splits</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity Ratio</span>
+                            <span style={{ fontWeight: '900', color: '#1B6B3A', fontSize: '0.75rem' }}>{activeSplitsCount} Splits</span>
                         </div>
-                        <div style={{ width: '100%', height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                        <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.4rem' }}>
                             <div style={{ width: `${Math.min(activeSplitsCount * 10, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #10B981 0%, #1B6B3A 100%)', borderRadius: '4px' }} />
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '650', color: '#64748B' }}>Sync status: Normal</p>
+                        <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '650', color: '#64748B' }}>Sync status: Normal</p>
                     </div>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', flexShrink: 0, marginLeft: '1rem' }}>
-                        <Sparkles size={20} />
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', flexShrink: 0, marginLeft: '0.75rem' }}>
+                        <Sparkles size={16} />
                     </div>
                 </div>
             </div>
 
             {/* Tab Bar and Subsearch Overlay */}
-            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', gap: '2rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1.5rem' }}>
                     {['ALL PARTNERS', 'HISTORY'].map(tab => (
                         <button
                             key={tab}
                             style={{ 
                                 background: 'transparent', 
                                 border: 'none', 
-                                padding: '0 0 0.75rem 0', 
+                                padding: '0 0 0.5rem 0', 
                                 cursor: 'pointer',
-                                fontSize: '0.82rem', 
+                                fontSize: '0.78rem', 
                                 fontWeight: '900', 
                                 color: activeTab === tab ? '#1B6B3A' : '#64748B',
-                                borderBottom: activeTab === tab ? '3px solid #1B6B3A' : '3px solid transparent',
+                                borderBottom: activeTab === tab ? '2.5px solid #1B6B3A' : '2.5px solid transparent',
                                 textTransform: 'uppercase', 
                                 letterSpacing: '0.05em',
                                 transition: 'all 0.2s ease',
                                 position: 'relative',
-                                top: '2px'
+                                top: '1px'
                             }}
                             onClick={() => setActiveTab(tab)}
                         >
@@ -342,10 +342,10 @@ const BusinessSplitCollect = () => {
                         </button>
                     ))}
                 </div>
-                <div style={{ background: 'white', borderRadius: '10px', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', border: '1px solid #E2E8F0', width: '280px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', marginBottom: '0.5rem' }}>
-                    <Search size={16} color="#94A3B8" />
+                <div style={{ background: 'white', borderRadius: '8px', padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid #E2E8F0', width: '240px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', marginBottom: '0.4rem' }}>
+                    <Search size={14} color="#94A3B8" />
                     <input
-                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontWeight: '600', fontSize: '0.85rem', color: '#1E293B' }}
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontWeight: '600', fontSize: '0.8rem', color: '#1E293B' }}
                         type="text"
                         placeholder={`Lookup ${activeTab === 'ALL PARTNERS' ? 'partners' : 'invoices'}...`}
                         value={searchQuery}
@@ -368,59 +368,57 @@ const BusinessSplitCollect = () => {
                     ) : filteredPartners.length === 0 ? (
                         <EmptyState title="No Active Partners Found" description="When splitting combined billing across external agencies or partners, their receivable analytics will populate dynamically." />
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                             {filteredPartners.map(partner => (
                                 <div key={partner.name} style={{ 
                                     background: 'white', 
-                                    borderRadius: '16px', 
+                                    borderRadius: '12px', 
                                     border: '1px solid #E2E8F0', 
-                                    padding: '1rem 1.25rem', 
+                                    padding: '0.75rem 1rem', 
                                     display: 'flex', 
                                     alignItems: 'center', 
-                                    gap: '1.25rem',
-                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
+                                    gap: '1rem',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.01)'
                                 }}>
                                     <div style={{ 
-                                        width: '44px', 
-                                        height: '44px', 
-                                        borderRadius: '12px', 
+                                        width: '36px', 
+                                        height: '36px', 
+                                        borderRadius: '10px', 
                                         background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
                                         display: 'flex', 
                                         alignItems: 'center', 
                                         justifyContent: 'center', 
-                                        fontSize: '1.2rem', 
+                                        fontSize: '1rem', 
                                         fontWeight: '850', 
                                         color: 'white',
                                         flexShrink: 0,
-                                        boxShadow: '0 4px 8px rgba(6, 78, 59, 0.1)',
-                                        fontFamily: '"Outfit", sans-serif'
+                                        boxShadow: '0 2px 6px rgba(6, 78, 59, 0.1)'
                                     }}>
                                         {partner.name && partner.name.trim().length > 0 ? partner.name.trim().charAt(0).toUpperCase() : 'P'}
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '1rem', fontWeight: '850', color: '#1F2937' }}>{partner.name}</h4>
+                                        <h4 style={{ margin: '0 0 0.1rem 0', fontSize: '0.9rem', fontWeight: '850', color: '#1F2937' }}>{partner.name}</h4>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#1B6B3A', background: '#F0FDF4', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #DCF2E4', display: 'inline-block', textTransform: 'uppercase' }}>
+                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#1B6B3A', background: '#F0FDF4', padding: '0.15rem 0.4rem', borderRadius: '5px', border: '1px solid #DCF2E4', display: 'inline-block', textTransform: 'uppercase' }}>
                                                 {partner.split_count} Accounts
                                             </span>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '950', color: '#059669' }}>
+                                    <div style={{ textAlign: 'right', minWidth: '110px' }}>
+                                        <div style={{ fontSize: '1.05rem', fontWeight: '950', color: '#059669' }}>
                                             ₹{(partner.total_owed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </div>
-                                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Balance</p>
+                                        <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.6rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Balance</p>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.4rem', marginLeft: '0.4rem' }}>
                                         <button 
                                             onClick={() => alert(`Notification dispatch request queued for partner ${partner.name}`)}
-                                            style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer' }}
+                                            style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}
                                         >
                                             Remind
                                         </button>
                                         <button 
-                                            className="btn-premium primary" 
-                                            style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: '900', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,107,58,0.15)' }} 
+                                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: '900', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(27,107,58,0.1)' }} 
                                             onClick={() => settleMutation.mutate(partner.name)}
                                         >
                                             Settle
@@ -439,48 +437,48 @@ const BusinessSplitCollect = () => {
                     ) : filteredExpenses.length === 0 ? (
                         <EmptyState title="No Active Split History" description="Past split allocations and completed payment files will register automatically." />
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                             {filteredExpenses.map(expense => (
                                 <div 
                                     key={expense.id} 
                                     style={{ 
                                         background: 'white', 
-                                        borderRadius: '16px', 
+                                        borderRadius: '12px', 
                                         border: '1px solid #E2E8F0', 
-                                        padding: '1rem 1.5rem', 
+                                        padding: '0.75rem 1.25rem', 
                                         display: 'flex', 
                                         alignItems: 'center', 
-                                        gap: '1.5rem',
+                                        gap: '1.25rem',
                                         cursor: 'pointer',
-                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.01)',
                                         transition: 'transform 0.2s ease'
                                     }} 
                                     onClick={() => openExpenseDetail(expense)}
                                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                                 >
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A', flexShrink: 0 }}>
-                                        <Receipt size={20} />
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A', flexShrink: 0 }}>
+                                        <Receipt size={18} />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.95rem', fontWeight: '850', color: '#1F2937' }}>{expense.title}</h4>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Users size={12} /> {expense.participant_count} Partners
+                                        <h4 style={{ margin: '0 0 0.1rem 0', fontSize: '0.88rem', fontWeight: '850', color: '#1F2937' }}>{expense.title}</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                <Users size={10} /> {expense.participant_count} Partners
                                             </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B' }}>
                                                 Funder: {expense.paid_by}
                                             </span>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
-                                        <div style={{ fontSize: '1.1rem', fontWeight: '950', color: '#1E293B' }}>₹{expense.total_amount.toLocaleString('en-IN')}</div>
-                                        <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '0.15rem' }}>
-                                            <Calendar size={12} /> {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    <div style={{ textAlign: 'right', minWidth: '110px' }}>
+                                        <div style={{ fontSize: '1rem', fontWeight: '950', color: '#1E293B' }}>₹{expense.total_amount.toLocaleString('en-IN')}</div>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '0.1rem' }}>
+                                            <Calendar size={10} /> {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </span>
                                     </div>
                                     <div style={{ color: '#CBD5E1' }}>
-                                        <ChevronRight size={20} />
+                                        <ChevronRight size={16} />
                                     </div>
                                 </div>
                             ))}

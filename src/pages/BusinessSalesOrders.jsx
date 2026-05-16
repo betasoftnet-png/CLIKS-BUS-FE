@@ -32,6 +32,8 @@ import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSalesOrders = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [dateFilter, setDateFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState(null);
     const [isFulfillmentOpen, setIsFulfillmentOpen] = useState(false);
@@ -260,10 +262,16 @@ const BusinessSalesOrders = () => {
         }
     };
 
-    const filteredOrders = orders.filter(o => 
-        (o.customer || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (o.order_number || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOrders = orders.filter(o => {
+        const matchesSearch = 
+            (o.customer || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (o.order_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = statusFilter === 'All' || o.status === statusFilter;
+        const matchesDate = !dateFilter || o.date === dateFilter;
+
+        return matchesSearch && matchesStatus && matchesDate;
+    });
 
     // Dynamic Computations for KPIs & Reports
     const activeOrdersCount = orders.filter(o => o.status !== 'Invoiced' && o.status !== 'Cancelled').length;
@@ -394,7 +402,7 @@ const BusinessSalesOrders = () => {
                 </div>
             ) : activeTab === 'list' ? (
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', overflow: 'hidden' }}>
-                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '1rem' }}>
                         <div style={{ position: 'relative', width: '280px' }}>
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
@@ -405,9 +413,30 @@ const BusinessSalesOrders = () => {
                                 style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                             />
                         </div>
-                        <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <Filter size={16} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'white', padding: '0.2rem 0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                <Calendar size={14} color="#64748B" />
+                                <input 
+                                    type="date" 
+                                    value={dateFilter}
+                                    onChange={(e) => setDateFilter(e.target.value)}
+                                    style={{ border: 'none', outline: 'none', fontSize: '0.8rem', color: '#475569', fontWeight: '600', padding: '0.25rem 0' }}
+                                />
+                                {dateFilter && <X size={14} onClick={() => setDateFilter('')} style={{ cursor: 'pointer', color: '#94A3B8' }} />}
+                            </div>
+                            <select 
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem', fontWeight: '600', color: '#475569' }}
+                            >
+                                <option value="All">All Status</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Invoiced">Invoiced</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '0.5rem' }}>

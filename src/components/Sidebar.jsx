@@ -328,11 +328,11 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         ],
         financeMode: [
             { label: 'People', icon: Users, path: '/payments/people' },
-            { label: 'Plan', icon: Calendar, path: '/payments/plan' },
             { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
             { label: 'Segregation', icon: Target, path: '/payments/segregation' },
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
+            { label: 'Plan', icon: Calendar, path: '/payments/plan' },
             { label: 'Rewards & Offers', icon: Gift, path: '/payments/rewards' }
         ]
 

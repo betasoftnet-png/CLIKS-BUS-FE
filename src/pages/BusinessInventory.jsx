@@ -45,6 +45,7 @@ const BusinessInventory = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'movement', 'reports'
     const [filterCategory, setFilterCategory] = useState('All');
+    const [stockStatusFilter, setStockStatusFilter] = useState('All'); // All, Low Stock, In Stock
     
     // Auto-trigger product modal setup via search params
     const [searchParams, setSearchParams] = useSearchParams();
@@ -302,7 +303,13 @@ const BusinessInventory = () => {
                             (i.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                             (i.category || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'All' || i.category === filterCategory;
-        return matchesSearch && matchesCategory;
+        
+        const isLowStock = i.product_type === 'product' && i.quantity < i.min_stock;
+        const matchesStockStatus = stockStatusFilter === 'All' || 
+                                 (stockStatusFilter === 'Low Stock' && isLowStock) || 
+                                 (stockStatusFilter === 'In Stock' && !isLowStock);
+        
+        return matchesSearch && matchesCategory && matchesStockStatus;
     });
 
     // Dynamic Report Computations
@@ -428,6 +435,15 @@ const BusinessInventory = () => {
                             />
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <select 
+                                value={stockStatusFilter} 
+                                onChange={(e) => setStockStatusFilter(e.target.value)} 
+                                style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
+                            >
+                                <option value="All">All Stock Status</option>
+                                <option value="In Stock">In Stock</option>
+                                <option value="Low Stock">Low Stock Alerts</option>
+                            </select>
                             <select 
                                 value={filterCategory} 
                                 onChange={(e) => setFilterCategory(e.target.value)} 

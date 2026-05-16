@@ -432,10 +432,10 @@ const BusinessReports = () => {
     const reportCategories = [
         { id: 'all', label: 'All Reports', icon: BarChart3 },
         { id: 'sales', label: 'Sales & Revenue', icon: TrendingUp },
-        { id: 'purchase', label: 'Purchases (Procurement)', icon: ShoppingBag },
+        { id: 'purchase', label: 'Purchases', icon: ShoppingBag },
         { id: 'inventory', label: 'Stock & Inventory', icon: Package },
-        { id: 'parties', label: 'Parties (CRM)', icon: Users },
-        { id: 'accounting', label: 'Financial Statements', icon: FileText }
+        { id: 'parties', label: 'CRM & Parties', icon: Users },
+        { id: 'accounting', label: 'Finance & Tax', icon: FileText }
     ];
 
     const allReports = [
@@ -565,18 +565,18 @@ const BusinessReports = () => {
             </div>
 
             {/* Category Switcher */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
                 {reportCategories.map(cat => (
                     <button 
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
                         style={{ 
-                            padding: '0.5rem 1rem', borderRadius: '8px', 
-                            background: activeCategory === cat.id ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white', 
+                            padding: '0.6rem 1.25rem', borderRadius: '10px', 
+                            background: activeCategory === cat.id ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'transparent', 
                             color: activeCategory === cat.id ? 'white' : '#64748B',
-                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.4rem',
-                            boxShadow: activeCategory === cat.id ? '0 4px 10px rgba(236, 72, 153, 0.15)' : 'none'
+                            border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            transition: 'all 0.2s ease'
                         }}
                     >
                         <cat.icon size={16} />

@@ -30,6 +30,8 @@ import { expensesService } from '../services';
 const BusinessExpenses = () => {
     const [activeTab, setActiveTab] = useState('registry'); // 'registry', 'recurring', 'budget', 'claims'
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('All');
+    const [modeFilter, setModeFilter] = useState('All');
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -196,10 +198,16 @@ const BusinessExpenses = () => {
         approveClaimMutation.mutate(claimId);
     };
 
-    const filteredExpenses = expenses.filter(e => 
-        e.payee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.category_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredExpenses = expenses.filter(e => {
+        const matchesSearch = 
+            e.payee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            e.category_name.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesCategory = categoryFilter === 'All' || e.category_name === categoryFilter;
+        const matchesMode = modeFilter === 'All' || e.payment_mode === modeFilter;
+
+        return matchesSearch && matchesCategory && matchesMode;
+    });
 
     const totalExpenseSpent = expenses.reduce((sum, e) => sum + e.expense_amount, 0);
     const totalITCClaimsAccumulated = expenses.reduce((sum, e) => sum + (e.tax_amount || 0), 0);
@@ -297,6 +305,32 @@ const BusinessExpenses = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
                             />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <select 
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                            >
+                                <option value="All">All Categories</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Electricity">Electricity</option>
+                                <option value="Internet">Internet</option>
+                                <option value="Salary">Salary</option>
+                                <option value="Fuel">Fuel</option>
+                                <option value="General">General</option>
+                            </select>
+                            <select 
+                                value={modeFilter}
+                                onChange={(e) => setModeFilter(e.target.value)}
+                                style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                            >
+                                <option value="All">All Modes</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
                         </div>
                     </div>
 

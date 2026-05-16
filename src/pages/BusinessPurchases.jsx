@@ -37,6 +37,8 @@ const BusinessPurchases = () => {
     const [bankAccounts, setBankAccounts] = useState(() => paymentsStore.getBankAccounts());
     const [activeTab, setActiveTab] = useState('purchase-orders'); // 'purchase-orders', 'purchase-bills', 'purchase-returns', 'reports'
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [dateFilter, setDateFilter] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createDocType, setCreateDocType] = useState('PO'); // 'PO', 'BILL', 'RETURN'
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
@@ -71,9 +73,20 @@ const BusinessPurchases = () => {
         queryFn: () => suppliersService.getSuppliers()
     });
 
-    const purchaseOrders = allPurchases.filter(p => p.doc_type === 'PO');
-    const purchaseBills = allPurchases.filter(p => p.doc_type === 'BILL');
-    const purchaseReturns = allPurchases.filter(p => p.doc_type === 'RETURN');
+    const applyFilters = (docs) => docs.filter(p => {
+        const matchesSearch = 
+            (p.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.doc_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
+        const matchesDate = !dateFilter || (p.doc_date || '').startsWith(dateFilter);
+
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+
+    const purchaseOrders = applyFilters(allPurchases.filter(p => p.doc_type === 'PO'));
+    const purchaseBills = applyFilters(allPurchases.filter(p => p.doc_type === 'BILL'));
+    const purchaseReturns = applyFilters(allPurchases.filter(p => p.doc_type === 'RETURN'));
 
     // Mutations
     const createMutation = useMutation({
@@ -450,7 +463,7 @@ const BusinessPurchases = () => {
             {activeTab === 'purchase-orders' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
+                        <div style={{ position: 'relative', width: '300px' }}>
                             <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
@@ -459,6 +472,30 @@ const BusinessPurchases = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
                             />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <input 
+                                type="date" 
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#475569' }}
+                            />
+                            <select 
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
+                            >
+                                <option value="All">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Received">Received</option>
+                                <option value="Billed">Billed</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                            <button style={{ width: '42px', height: '42px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <Filter size={20} />
+                            </button>
                         </div>
                     </div>
 
@@ -538,7 +575,7 @@ const BusinessPurchases = () => {
             {activeTab === 'purchase-bills' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
+                        <div style={{ position: 'relative', width: '300px' }}>
                             <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
@@ -547,6 +584,28 @@ const BusinessPurchases = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
                             />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <input 
+                                type="date" 
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#475569' }}
+                            />
+                            <select 
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
+                            >
+                                <option value="All">All Status</option>
+                                <option value="Unpaid">Unpaid</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                            <button style={{ width: '42px', height: '42px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <Filter size={20} />
+                            </button>
                         </div>
                     </div>
 
