@@ -187,9 +187,12 @@ const BusinessPOS = () => {
 
     // Filtered Products Catalog
     const filteredProducts = inventory.filter(prod => {
+        const lowerSearch = searchTerm.toLowerCase();
         const matchesSearch = 
-            (prod.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (prod.sku || '').toLowerCase().includes(searchTerm.toLowerCase());
+            (prod.name || '').toLowerCase().includes(lowerSearch) ||
+            (prod.sku || '').toLowerCase().includes(lowerSearch) ||
+            (prod.category || '').toLowerCase().includes(lowerSearch) ||
+            (prod.price || 0).toString().includes(searchTerm);
         
         const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
         

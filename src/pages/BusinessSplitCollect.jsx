@@ -234,15 +234,15 @@ const BusinessSplitCollect = () => {
     const calculatedPreview = useMemo(() => calculateSplits(), [calculateSplits]);
 
     return (
-        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '1rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Top Banner Header */}
             <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
                         <div style={{ 
-                            width: '44px', 
-                            height: '44px', 
-                            borderRadius: '14px', 
+                            width: '38px', 
+                            height: '38px', 
+                            borderRadius: '12px', 
                             background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -250,83 +250,83 @@ const BusinessSplitCollect = () => {
                             color: 'white', 
                             boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' 
                         }}>
-                            <CreditCard size={24} />
+                            <CreditCard size={18} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Split & Collect</h1>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Split & Collect</h1>
                     </div>
-                    <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500', margin: 0 }}>Divide collaborative payments, client expenses, or collective billing with partners easily.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Divide collaborative payments, client expenses, or collective billing with partners easily.</p>
                 </div>
                 <button 
                     onClick={() => setIsModalOpen(true)}
                     style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.6rem', 
-                        padding: '0.9rem 1.75rem', borderRadius: '14px', 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                        padding: '0.75rem 1.25rem', borderRadius: '12px', 
                         background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '800', fontSize: '1rem', cursor: 'pointer',
-                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)',
+                        fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer',
+                        boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={20} strokeWidth={3} />
+                    <Plus size={18} strokeWidth={3} />
                     New Split Ticket
                 </button>
             </div>
 
             {/* Metric Cards Panel */}
-            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                     <div>
-                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>Cumulative Receivable</p>
-                        <h3 style={{ fontSize: '2rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹{totalReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', fontWeight: '650', color: '#059669' }}>Across {partners.length} business associates</p>
+                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Cumulative Receivable</p>
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹{totalReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
+                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', fontWeight: '650', color: '#059669' }}>Across {partners.length} associates</p>
                     </div>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
-                        <ArrowDownLeft size={26} strokeWidth={2.5} />
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
+                        <ArrowDownLeft size={22} strokeWidth={2.5} />
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                     <div>
-                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.5rem 0' }}>Outbound Liabilities</p>
-                        <h3 style={{ fontSize: '2rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹0.00</h3>
-                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', fontWeight: '650', color: '#EF4444' }}>Zero outstanding debt entries</p>
+                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.25rem 0' }}>Outbound Liabilities</p>
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹0.00</h3>
+                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', fontWeight: '650', color: '#EF4444' }}>Zero outstanding entries</p>
                     </div>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
-                        <ArrowUpRight size={26} strokeWidth={2.5} />
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
+                        <ArrowUpRight size={22} strokeWidth={2.5} />
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.75rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                     <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity Ratio</span>
-                            <span style={{ fontWeight: '900', color: '#1B6B3A', fontSize: '0.9rem' }}>{activeSplitsCount} Recorded Splits</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity Ratio</span>
+                            <span style={{ fontWeight: '900', color: '#1B6B3A', fontSize: '0.8rem' }}>{activeSplitsCount} Splits</span>
                         </div>
-                        <div style={{ width: '100%', height: '10px', background: '#F1F5F9', borderRadius: '6px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                            <div style={{ width: `${Math.min(activeSplitsCount * 10, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #10B981 0%, #1B6B3A 100%)', borderRadius: '6px' }} />
+                        <div style={{ width: '100%', height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                            <div style={{ width: `${Math.min(activeSplitsCount * 10, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #10B981 0%, #1B6B3A 100%)', borderRadius: '4px' }} />
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '650', color: '#64748B' }}>Sync status: Operating normal</p>
+                        <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '650', color: '#64748B' }}>Sync status: Normal</p>
                     </div>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', flexShrink: 0, marginLeft: '1.5rem' }}>
-                        <Sparkles size={24} />
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', flexShrink: 0, marginLeft: '1rem' }}>
+                        <Sparkles size={20} />
                     </div>
                 </div>
             </div>
 
             {/* Tab Bar and Subsearch Overlay */}
-            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', gap: '2.5rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '2rem' }}>
                     {['ALL PARTNERS', 'HISTORY'].map(tab => (
                         <button
                             key={tab}
                             style={{ 
                                 background: 'transparent', 
                                 border: 'none', 
-                                padding: '0 0 1rem 0', 
+                                padding: '0 0 0.75rem 0', 
                                 cursor: 'pointer',
-                                fontSize: '0.9rem', 
+                                fontSize: '0.82rem', 
                                 fontWeight: '900', 
                                 color: activeTab === tab ? '#1B6B3A' : '#64748B',
                                 borderBottom: activeTab === tab ? '3px solid #1B6B3A' : '3px solid transparent',
@@ -342,10 +342,10 @@ const BusinessSplitCollect = () => {
                         </button>
                     ))}
                 </div>
-                <div style={{ background: 'white', borderRadius: '14px', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', border: '1px solid #E2E8F0', width: '340px', boxShadow: '0 2px 8px rgba(0,0,0,0.01)', marginBottom: '0.75rem' }}>
-                    <Search size={18} color="#94A3B8" />
+                <div style={{ background: 'white', borderRadius: '10px', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', border: '1px solid #E2E8F0', width: '280px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', marginBottom: '0.5rem' }}>
+                    <Search size={16} color="#94A3B8" />
                     <input
-                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontWeight: '600', fontSize: '0.92rem', color: '#1E293B' }}
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontWeight: '600', fontSize: '0.85rem', color: '#1E293B' }}
                         type="text"
                         placeholder={`Lookup ${activeTab === 'ALL PARTNERS' ? 'partners' : 'invoices'}...`}
                         value={searchQuery}
@@ -368,62 +368,62 @@ const BusinessSplitCollect = () => {
                     ) : filteredPartners.length === 0 ? (
                         <EmptyState title="No Active Partners Found" description="When splitting combined billing across external agencies or partners, their receivable analytics will populate dynamically." />
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {filteredPartners.map(partner => (
                                 <div key={partner.name} style={{ 
                                     background: 'white', 
-                                    borderRadius: '24px', 
+                                    borderRadius: '16px', 
                                     border: '1px solid #E2E8F0', 
-                                    padding: '1.5rem 2rem', 
+                                    padding: '1rem 1.25rem', 
                                     display: 'flex', 
                                     alignItems: 'center', 
-                                    gap: '2rem',
-                                    boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+                                    gap: '1.25rem',
+                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
                                 }}>
                                     <div style={{ 
-                                        width: '60px', 
-                                        height: '60px', 
-                                        borderRadius: '20px', 
+                                        width: '44px', 
+                                        height: '44px', 
+                                        borderRadius: '12px', 
                                         background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
                                         display: 'flex', 
                                         alignItems: 'center', 
                                         justifyContent: 'center', 
-                                        fontSize: '1.6rem', 
+                                        fontSize: '1.2rem', 
                                         fontWeight: '850', 
                                         color: 'white',
                                         flexShrink: 0,
-                                        boxShadow: '0 4px 12px rgba(6, 78, 59, 0.15)',
+                                        boxShadow: '0 4px 8px rgba(6, 78, 59, 0.1)',
                                         fontFamily: '"Outfit", sans-serif'
                                     }}>
                                         {partner.name && partner.name.trim().length > 0 ? partner.name.trim().charAt(0).toUpperCase() : 'P'}
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.2rem', fontWeight: '850', color: '#1F2937' }}>{partner.name}</h4>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', background: '#F0FDF4', padding: '0.35rem 0.6rem', borderRadius: '8px', border: '1px solid #DCF2E4', display: 'inline-block', textTransform: 'uppercase' }}>
-                                                {partner.split_count} Active Accounts
+                                        <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '1rem', fontWeight: '850', color: '#1F2937' }}>{partner.name}</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#1B6B3A', background: '#F0FDF4', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid #DCF2E4', display: 'inline-block', textTransform: 'uppercase' }}>
+                                                {partner.split_count} Accounts
                                             </span>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right', minWidth: '160px' }}>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: '950', color: '#059669' }}>
+                                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '950', color: '#059669' }}>
                                             ₹{(partner.total_owed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </div>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Claim Balance</p>
+                                        <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Balance</p>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.75rem', marginLeft: '1rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
                                         <button 
                                             onClick={() => alert(`Notification dispatch request queued for partner ${partner.name}`)}
-                                            style={{ padding: '0.75rem 1.25rem', borderRadius: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569', fontSize: '0.88rem', fontWeight: '800', cursor: 'pointer' }}
+                                            style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer' }}
                                         >
-                                            Issue Reminder
+                                            Remind
                                         </button>
                                         <button 
                                             className="btn-premium primary" 
-                                            style={{ padding: '0.75rem 1.5rem', fontSize: '0.88rem', fontWeight: '900', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,107,58,0.15)' }} 
+                                            style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: '900', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,107,58,0.15)' }} 
                                             onClick={() => settleMutation.mutate(partner.name)}
                                         >
-                                            Settle Ledger
+                                            Settle
                                         </button>
                                     </div>
                                 </div>
@@ -439,48 +439,48 @@ const BusinessSplitCollect = () => {
                     ) : filteredExpenses.length === 0 ? (
                         <EmptyState title="No Active Split History" description="Past split allocations and completed payment files will register automatically." />
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {filteredExpenses.map(expense => (
                                 <div 
                                     key={expense.id} 
                                     style={{ 
                                         background: 'white', 
-                                        borderRadius: '24px', 
+                                        borderRadius: '16px', 
                                         border: '1px solid #E2E8F0', 
-                                        padding: '1.5rem 2rem', 
+                                        padding: '1rem 1.5rem', 
                                         display: 'flex', 
                                         alignItems: 'center', 
-                                        gap: '2rem',
+                                        gap: '1.5rem',
                                         cursor: 'pointer',
-                                        boxShadow: '0 4px 15px rgba(0,0,0,0.01)',
+                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)',
                                         transition: 'transform 0.2s ease'
                                     }} 
                                     onClick={() => openExpenseDetail(expense)}
                                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                                 >
-                                    <div style={{ width: '54px', height: '54px', borderRadius: '16px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A', flexShrink: 0 }}>
-                                        <Receipt size={26} />
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A', flexShrink: 0 }}>
+                                        <Receipt size={20} />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.15rem', fontWeight: '850', color: '#1F2937' }}>{expense.title}</h4>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Users size={14} /> {expense.participant_count} Allocations
+                                        <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.95rem', fontWeight: '850', color: '#1F2937' }}>{expense.title}</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Users size={12} /> {expense.participant_count} Partners
                                             </span>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B' }}>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B' }}>
                                                 Funder: {expense.paid_by}
                                             </span>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right', minWidth: '150px' }}>
-                                        <div style={{ fontSize: '1.35rem', fontWeight: '950', color: '#1E293B' }}>₹{expense.total_amount.toLocaleString('en-IN')}</div>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '0.25rem' }}>
-                                            <Calendar size={14} /> {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                                        <div style={{ fontSize: '1.1rem', fontWeight: '950', color: '#1E293B' }}>₹{expense.total_amount.toLocaleString('en-IN')}</div>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '0.15rem' }}>
+                                            <Calendar size={12} /> {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </span>
                                     </div>
                                     <div style={{ color: '#CBD5E1' }}>
-                                        <ChevronRight size={24} />
+                                        <ChevronRight size={20} />
                                     </div>
                                 </div>
                             ))}
@@ -499,75 +499,74 @@ const BusinessSplitCollect = () => {
                     >
                         <Motion.div
                             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                            style={{ width: '100%', maxWidth: '520px', background: 'white', borderRadius: '28px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }}
+                            style={{ width: '100%', maxWidth: '460px', background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <div style={{ padding: '2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Allocation Receipt</h3>
-                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.5rem', cursor: 'pointer', color: '#475569' }} onClick={() => setSelectedExpense(null)}><X size={20} /></button>
+                            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Allocation Receipt</h3>
+                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => setSelectedExpense(null)}><X size={18} /></button>
                             </div>
                             
-                            <div style={{ padding: '2rem' }}>
-                                <div style={{ marginBottom: '2rem' }}>
-                                    <h3 style={{ fontSize: '1.6rem', fontWeight: '950', color: '#0F172A', margin: '0 0 0.5rem 0' }}>{selectedExpense.title}</h3>
-                                    <div style={{ fontSize: '0.82rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{new Date(selectedExpense.date).toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
+                            <div style={{ padding: '1.5rem' }}>
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1.4rem', fontWeight: '950', color: '#0F172A', margin: '0 0 0.4rem 0' }}>{selectedExpense.title}</h3>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{new Date(selectedExpense.date).toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#F8FAFC', padding: '1.25rem 1.5rem', borderRadius: '20px', marginBottom: '2rem', border: '1px solid #F1F5F9' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', background: '#F8FAFC', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #F1F5F9' }}>
                                     <div>
-                                        <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Total Bill</span>
-                                        <div style={{ fontWeight: '950', color: '#1B6B3A', fontSize: '1.05rem' }}>₹{selectedExpense.total_amount.toLocaleString('en-IN')}</div>
+                                        <span style={{ display: 'block', fontSize: '0.62rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Total Bill</span>
+                                        <div style={{ fontWeight: '950', color: '#1B6B3A', fontSize: '0.95rem' }}>₹{selectedExpense.total_amount.toLocaleString('en-IN')}</div>
                                     </div>
                                     <div>
-                                        <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Funder</span>
-                                        <div style={{ fontWeight: '950', fontSize: '1.05rem', color: '#1F2937' }}>{selectedExpense.paid_by}</div>
+                                        <span style={{ display: 'block', fontSize: '0.62rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Funder</span>
+                                        <div style={{ fontWeight: '950', fontSize: '0.95rem', color: '#1F2937' }}>{selectedExpense.paid_by}</div>
                                     </div>
                                     <div>
-                                        <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Split Protocol</span>
-                                        <div style={{ fontWeight: '950', fontSize: '1.05rem', color: '#1F2937', textTransform: 'capitalize' }}>{selectedExpense.split_type}</div>
+                                        <span style={{ display: 'block', fontSize: '0.62rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Protocol</span>
+                                        <div style={{ fontWeight: '950', fontSize: '0.95rem', color: '#1F2937', textTransform: 'capitalize' }}>{selectedExpense.split_type}</div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <h4 style={{ margin: 0, fontSize: '0.75rem', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member Breakdown</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <h4 style={{ margin: 0, fontSize: '0.7rem', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member Breakdown</h4>
                                     {selectedExpense.participants?.map(p => (
-                                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '12px 16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+                                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '10px 12px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
                                             <div style={{ 
-                                                width: '40px', 
-                                                height: '40px', 
-                                                borderRadius: '12px', 
+                                                width: '32px', 
+                                                height: '32px', 
+                                                borderRadius: '8px', 
                                                 background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
                                                 display: 'flex', 
                                                 alignItems: 'center', 
                                                 justifyContent: 'center', 
-                                                fontSize: '1.15rem', 
+                                                fontSize: '1rem', 
                                                 fontWeight: '850', 
                                                 color: 'white',
-                                                flexShrink: 0,
-                                                boxShadow: '0 2px 6px rgba(6, 78, 59, 0.1)'
+                                                flexShrink: 0
                                             }}>
                                                 {p.name && p.name.trim().length > 0 ? p.name.trim().charAt(0).toUpperCase() : 'P'}
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: '850', fontSize: '0.95rem', color: '#1E293B' }}>{p.name}</div>
-                                                <div style={{ fontSize: '0.72rem', fontWeight: '800', color: p.is_settled ? '#059669' : '#F59E0B', textTransform: 'uppercase', marginTop: '2px' }}>
-                                                    {p.is_settled ? 'Reconciled' : 'Pending Allocation'}
+                                                <div style={{ fontWeight: '850', fontSize: '0.88rem', color: '#1E293B' }}>{p.name}</div>
+                                                <div style={{ fontSize: '0.65rem', fontWeight: '800', color: p.is_settled ? '#059669' : '#F59E0B', textTransform: 'uppercase', marginTop: '1px' }}>
+                                                    {p.is_settled ? 'Reconciled' : 'Pending'}
                                                 </div>
                                             </div>
-                                            <div style={{ fontWeight: '950', fontSize: '1rem', color: '#1E293B' }}>₹{p.share_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                            {p.is_settled ? <CheckCircle2 size={18} color="#10B981" /> : <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#E2E8F0' }} />}
+                                            <div style={{ fontWeight: '950', fontSize: '0.92rem', color: '#1E293B' }}>₹{p.share_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                            {p.is_settled ? <CheckCircle2 size={16} color="#10B981" /> : <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#E2E8F0' }} />}
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', background: '#FAFAFA' }}>
+                            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', background: '#FAFAFA' }}>
                                 <button 
                                     onClick={async () => { if(await customConfirm("Discard this whole split record?")) deleteMutation.mutate(selectedExpense.id); }}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontWeight: '800', fontSize: '0.85rem' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontWeight: '800', fontSize: '0.8rem' }}
                                 >
-                                    <Trash2 size={16} /> Discard Entry
+                                    <Trash2 size={14} /> Discard Entry
                                 </button>
-                                <button onClick={() => setSelectedExpense(null)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#1B6B3A', color: 'white', fontWeight: '850', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                <button onClick={() => setSelectedExpense(null)} style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', fontWeight: '850', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
                                     Close Info
                                 </button>
                             </div>
@@ -582,33 +581,33 @@ const BusinessSplitCollect = () => {
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                         <Motion.div
                             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                            style={{ width: '100%', maxWidth: '680px', background: 'white', maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', overflow: 'hidden' }}
+                            style={{ width: '100%', maxWidth: '600px', background: 'white', maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', overflow: 'hidden' }}
                         >
-                            <div style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#064E3B', margin: 0, letterSpacing: '-0.3px' }}>Initiate Collective Split</h2>
-                                <button onClick={() => setIsModalOpen(false)} style={{ background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', padding: '0.5rem', cursor: 'pointer' }}><X size={20} /></button>
+                            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#064E3B', margin: 0, letterSpacing: '-0.3px' }}>Initiate Collective Split</h2>
+                                <button onClick={() => setIsModalOpen(false)} style={{ background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer' }}><X size={18} /></button>
                             </div>
                             
                             <form onSubmit={handleAddSplit} style={{ overflowY: 'auto', flex: 1, background: '#FAFAFA' }}>
-                                <div style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                     
                                     {/* Basic metadata */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Payment Narrative</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Payment Narrative</label>
                                             <input 
                                                 required
-                                                style={{ padding: '0.9rem 1.1rem', background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '600', color: '#1F2937' }}
+                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1F2937' }}
                                                 type="text" value={formData.title} 
                                                 onChange={e => setFormData({...formData, title: e.target.value})}
-                                                placeholder="e.g. Shared Agency Costs, Client Dinner"
+                                                placeholder="e.g. Agency Costs, Dinner"
                                             />
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Invoice Amount (₹)</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Amount (₹)</label>
                                             <input 
                                                 required
-                                                style={{ padding: '0.9rem 1.1rem', background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '900', color: '#1B6B3A', fontSize: '1.1rem' }}
+                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '900', color: '#1B6B3A', fontSize: '1rem' }}
                                                 type="number" value={formData.amount} 
                                                 onChange={e => setFormData({...formData, amount: e.target.value})}
                                                 placeholder="0.00"
@@ -617,11 +616,11 @@ const BusinessSplitCollect = () => {
                                     </div>
 
                                     {/* Funder and date */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Primary Payer</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Primary Payer</label>
                                             <select 
-                                                style={{ padding: '0.9rem 1.1rem', background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '600', color: '#1F2937' }}
+                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1F2937' }}
                                                 value={formData.paidBy} 
                                                 onChange={e => setFormData({...formData, paidBy: e.target.value})}
                                             >
@@ -631,95 +630,93 @@ const BusinessSplitCollect = () => {
                                                 ))}
                                             </select>
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Booking Date</label>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Date</label>
                                             <input 
-                                                style={{ padding: '0.9rem 1.1rem', background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '600', color: '#1F2937' }}
+                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1F2937' }}
                                                 type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} 
                                             />
                                         </div>
                                     </div>
 
                                     {/* Split Methods */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        <label style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Splitting Protocol</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Protocol</label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                                             {[
                                                 { id: 'equal', label: 'Equally', icon: Users },
-                                                { id: 'exact', label: 'Exact Cap', icon: Hash },
-                                                { id: 'percentage', label: 'Percentage', icon: Percent },
-                                                { id: 'shares', label: 'Fixed Shares', icon: PieChart },
+                                                { id: 'exact', label: 'Exact', icon: Hash },
+                                                { id: 'percentage', label: 'Percent', icon: Percent },
+                                                { id: 'shares', label: 'Shares', icon: PieChart },
                                             ].map(type => (
                                                 <button 
                                                     key={type.id} type="button" 
                                                     style={{ 
-                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '14px 8px',
-                                                        borderRadius: '18px', border: splitType === type.id ? '2.5px solid #1B6B3A' : '1.5px solid #E2E8F0',
-                                                        background: splitType === type.id ? '#FFFFFF' : '#F8FAFC', cursor: 'pointer', transition: 'all 0.2s ease',
-                                                        boxShadow: splitType === type.id ? '0 4px 15px rgba(27,107,58,0.08)' : 'none'
+                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 4px',
+                                                        borderRadius: '14px', border: splitType === type.id ? '2px solid #1B6B3A' : '1.5px solid #E2E8F0',
+                                                        background: splitType === type.id ? '#FFFFFF' : '#F8FAFC', cursor: 'pointer', transition: 'all 0.2s ease'
                                                     }}
                                                     onClick={() => setSplitType(type.id)}
                                                 >
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: splitType === type.id ? '#1B6B3A' : '#E2E8F0', color: splitType === type.id ? 'white' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        <type.icon size={20} />
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: splitType === type.id ? '#1B6B3A' : '#E2E8F0', color: splitType === type.id ? 'white' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <type.icon size={16} />
                                                     </div>
-                                                    <span style={{ fontSize: '0.78rem', fontWeight: '850', color: splitType === type.id ? '#1B6B3A' : '#1F2937' }}>{type.label}</span>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '850', color: splitType === type.id ? '#1B6B3A' : '#1F2937' }}>{type.label}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
                                     {/* Allocation structure */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', margin: 0 }}>Partner List</label>
+                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', margin: 0 }}>Partners</label>
                                             <button 
                                                 type="button" onClick={addParticipantField} 
                                                 style={{ 
-                                                    padding: '0.5rem 1rem', fontSize: '0.8rem', borderRadius: '10px', background: '#ECFDF5', border: '1px solid #D1FAE5', 
-                                                    color: '#065F46', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' 
+                                                    padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '8px', background: '#ECFDF5', border: '1px solid #D1FAE5', 
+                                                    color: '#065F46', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' 
                                                 }}
                                             >
-                                                <Plus size={16} strokeWidth={2.5} /> Add Partner
+                                                <Plus size={14} strokeWidth={2.5} /> Add Partner
                                             </button>
                                         </div>
                                         
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                             {formData.participants.map((p, index) => (
-                                                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '12px 16px', background: 'white', borderRadius: '18px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
+                                                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '10px 12px', background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
                                                     <div style={{ 
-                                                        width: '38px', 
-                                                        height: '38px', 
-                                                        borderRadius: '10px', 
+                                                        width: '32px', 
+                                                        height: '32px', 
+                                                        borderRadius: '8px', 
                                                         background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
                                                         display: 'flex', 
                                                         alignItems: 'center', 
                                                         justifyContent: 'center', 
-                                                        fontSize: '1.1rem', 
+                                                        fontSize: '1rem', 
                                                         fontWeight: '850', 
                                                         color: 'white',
-                                                        flexShrink: 0,
-                                                        boxShadow: '0 2px 6px rgba(6, 78, 59, 0.1)'
+                                                        flexShrink: 0
                                                     }}>
                                                         {p.name && p.name.trim().length > 0 ? p.name.trim().charAt(0).toUpperCase() : '?'}
                                                     </div>
                                                     <input 
                                                         required
-                                                        style={{ margin: 0, padding: '0.5rem', flex: 2, background: 'transparent', border: 'none', borderBottom: '2px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '700', color: '#1E293B' }}
-                                                        type="text" placeholder="Associate / Vendor Name" 
+                                                        style={{ margin: 0, padding: '0.4rem', flex: 2, background: 'transparent', border: 'none', borderBottom: '1.5px solid #E2E8F0', outline: 'none', fontSize: '0.88rem', fontWeight: '700', color: '#1E293B' }}
+                                                        type="text" placeholder="Associate Name" 
                                                         value={p.name} 
                                                         onChange={e => updateParticipant(index, 'name', e.target.value)} 
                                                     />
                                                     {splitType !== 'equal' && (
                                                         <input 
                                                             required
-                                                            style={{ margin: 0, padding: '0.6rem 0.85rem', flex: 0.8, border: '1px solid #E2E8F0', borderRadius: '12px', background: '#F8FAFC', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '1rem', color: '#1B6B3A' }}
+                                                            style={{ margin: 0, padding: '0.5rem 0.75rem', flex: 0.8, border: '1px solid #E2E8F0', borderRadius: '10px', background: '#F8FAFC', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '0.9rem', color: '#1B6B3A' }}
                                                             type="number" value={p.value} 
                                                             onChange={e => updateParticipant(index, 'value', e.target.value)} 
                                                             placeholder={splitType === 'percentage' ? '%' : 'Val'}
                                                         />
                                                     )}
-                                                    <button type="button" onClick={() => removeParticipant(index)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#EF4444', opacity: 0.6, display: 'flex' }}><X size={20} /></button>
+                                                    <button type="button" onClick={() => removeParticipant(index)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#EF4444', opacity: 0.6, display: 'flex' }}><X size={18} /></button>
                                                 </div>
                                             ))}
                                             {formData.participants.length === 0 && (
@@ -734,32 +731,32 @@ const BusinessSplitCollect = () => {
                                     
                                     {/* Live breakdown layout */}
                                     {calculatedPreview.length > 0 && parseFloat(formData.amount) > 0 && (
-                                        <div style={{ background: '#0F172A', borderRadius: '24px', padding: '1.5rem 1.75rem', color: 'white', boxShadow: '0 12px 24px rgba(15, 23, 42, 0.15)' }}>
-                                            <div style={{ color: '#94A3B8', fontSize: '0.72rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Real-time Calculations Breakdown</div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        <div style={{ background: '#0F172A', borderRadius: '20px', padding: '1.25rem', color: 'white', boxShadow: '0 12px 24px rgba(15, 23, 42, 0.15)' }}>
+                                            <div style={{ color: '#94A3B8', fontSize: '0.68rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Calculations Breakdown</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {calculatedPreview.map((p, idx) => (
                                                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ fontWeight: '800', color: p.isSelf ? '#34D399' : '#F8FAFC', fontSize: '0.92rem' }}>{p.name} {p.isSelf && '(You)'}</span>
-                                                        <div style={{ flex: 1, borderBottom: '1.5px dashed rgba(255,255,255,0.1)', margin: '0 1rem' }} />
-                                                        <span style={{ fontWeight: '950', color: p.isSelf ? '#34D399' : '#38BDF8', fontSize: '1rem' }}>₹{p.share_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                        <span style={{ fontWeight: '800', color: p.isSelf ? '#34D399' : '#F8FAFC', fontSize: '0.85rem' }}>{p.name} {p.isSelf && '(You)'}</span>
+                                                        <div style={{ flex: 1, borderBottom: '1.5px dashed rgba(255,255,255,0.1)', margin: '0 0.75rem' }} />
+                                                        <span style={{ fontWeight: '950', color: p.isSelf ? '#34D399' : '#38BDF8', fontSize: '0.9rem' }}>₹{p.share_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                                     </div>
                                                 ))}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.9rem', marginTop: '0.25rem', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-                                                    <span style={{ fontWeight: '900', color: 'white', fontSize: '1rem' }}>Total Manifest</span>
-                                                    <div style={{ flex: 1, borderBottom: '1.5px dashed rgba(255,255,255,0.2)', margin: '0 1rem' }} />
-                                                    <span style={{ fontWeight: '950', color: 'white', fontSize: '1.1rem' }}>₹{calculatedPreview.reduce((sum, p) => sum + p.share_amount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', marginTop: '0.15rem', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                                                    <span style={{ fontWeight: '900', color: 'white', fontSize: '0.9rem' }}>Total Manifest</span>
+                                                    <div style={{ flex: 1, borderBottom: '1.5px dashed rgba(255,255,255,0.2)', margin: '0 0.75rem' }} />
+                                                    <span style={{ fontWeight: '950', color: 'white', fontSize: '1rem' }}>₹{calculatedPreview.reduce((sum, p) => sum + p.share_amount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
                                 </div>
                                 
-                                {formError && <div style={{ background: '#FEF2F2', color: '#DC2626', padding: '1rem', borderRadius: '14px', margin: '0 2.5rem', fontWeight: '800', textAlign: 'center', border: '1px solid #FCA5A5', fontSize: '0.88rem' }}>{formError}</div>}
+                                {formError && <div style={{ background: '#FEF2F2', color: '#DC2626', padding: '0.75rem', borderRadius: '10px', margin: '0 1.5rem', fontWeight: '800', textAlign: 'center', border: '1px solid #FCA5A5', fontSize: '0.8rem' }}>{formError}</div>}
                                 
-                                <div style={{ padding: '1.75rem 2.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: '1.25rem', background: 'white' }}>
-                                    <button type="button" style={{ padding: '0.9rem 1.75rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'transparent', color: '#475569', fontWeight: '800', fontSize: '0.92rem', cursor: 'pointer' }} onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                    <button type="submit" disabled={createMutation.isPending} style={{ padding: '0.9rem 2rem', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', fontWeight: '900', fontSize: '0.92rem', cursor: 'pointer', boxShadow: '0 8px 20px rgba(27,107,58,0.2)' }}>
-                                        {createMutation.isPending ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : 'Commit Split Receipt'}
+                                <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: 'white' }}>
+                                    <button type="button" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'transparent', color: '#475569', fontWeight: '800', fontSize: '0.88rem', cursor: 'pointer' }} onClick={() => setIsModalOpen(false)}>Cancel</button>
+                                    <button type="submit" disabled={createMutation.isPending} style={{ padding: '0.75rem 1.75rem', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', fontWeight: '900', fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(27,107,58,0.2)' }}>
+                                        {createMutation.isPending ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : 'Commit Split'}
                                     </button>
                                 </div>
                             </form>
