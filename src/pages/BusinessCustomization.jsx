@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import '../App.css';
 import { Toggle } from '../components/ui/toggle';
 import { settingsService } from '../services';
+import { customPrompt } from '../utils/customConfirm';
 
 const BusinessCustomization = () => {
     const navigate = useNavigate();
@@ -131,8 +132,8 @@ const BusinessCustomization = () => {
         }
     };
 
-    const handleSimulateUpload = (field) => {
-        const name = prompt('Simulate Uploading (Enter dummy file URL or click OK):', `https://api.cliksbusiness.com/simulations/${field}.png`);
+    const handleSimulateUpload = async (field) => {
+        const name = await customPrompt('Simulate Uploading (Enter dummy file URL or click OK):', `https://api.cliksbusiness.com/simulations/${field}.png`);
         if (name) {
             setConfig(prev => ({ ...prev, [field]: name }));
         }

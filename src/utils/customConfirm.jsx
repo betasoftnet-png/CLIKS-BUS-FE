@@ -104,3 +104,115 @@ export const customConfirm = (message) => {
         );
     });
 };
+
+import { Edit3 } from 'lucide-react';
+
+const PromptDialog = ({ message, defaultValue, onConfirm, onCancel }) => {
+    const [inputValue, setInputValue] = React.useState(defaultValue || '');
+    
+    return (
+        <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '2rem'
+        }}>
+            <div 
+                style={{
+                    background: 'white',
+                    width: '100%',
+                    maxWidth: '420px',
+                    borderRadius: '24px',
+                    padding: '2rem',
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                    border: '1px solid #E2E8F0',
+                    animation: 'fadeInUp 0.2s ease-out'
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                        <Edit3 size={24} />
+                    </div>
+                    <button 
+                        onClick={onCancel}
+                        style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+                
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.75rem', lineHeight: 1.3 }}>
+                    Input Required
+                </h3>
+                <p style={{ fontSize: '0.95rem', color: '#475569', marginBottom: '1.5rem', lineHeight: 1.5, fontWeight: '500', whiteSpace: 'pre-wrap' }}>
+                    {message}
+                </p>
+
+                <input 
+                    type="text" 
+                    autoFocus
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') onConfirm(inputValue); }}
+                    style={{ width: '100%', padding: '0.85rem 1rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1rem', outline: 'none', marginBottom: '2rem', fontWeight: '500', color: '#1E293B', transition: 'border-color 0.2s' }}
+                    onFocus={(e) => e.target.style.borderColor = '#16A34A'}
+                    onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                />
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button 
+                        onClick={onCancel}
+                        style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#475569', fontWeight: '750', cursor: 'pointer' }}
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={() => onConfirm(inputValue)}
+                        style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', border: 'none', background: '#16A34A', color: 'white', fontWeight: '750', cursor: 'pointer', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)' }}
+                    >
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export const customPrompt = (message, defaultValue = '') => {
+    return new Promise((resolve) => {
+        const div = document.createElement('div');
+        document.body.appendChild(div);
+        const root = createRoot(div);
+
+        const cleanup = () => {
+            root.unmount();
+            if (document.body.contains(div)) {
+                document.body.removeChild(div);
+            }
+        };
+
+        const handleConfirm = (val) => {
+            cleanup();
+            resolve(val);
+        };
+
+        const handleCancel = () => {
+            cleanup();
+            resolve(null);
+        };
+
+        root.render(
+            <PromptDialog 
+                message={message} 
+                defaultValue={defaultValue}
+                onConfirm={handleConfirm} 
+                onCancel={handleCancel} 
+            />
+        );
+    });
+};

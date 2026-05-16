@@ -29,7 +29,7 @@ import { productsService } from '../services/productsService';
 import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
 import '../App.css';
-import { customConfirm } from '../utils/customConfirm';
+import { customConfirm, customPrompt } from '../utils/customConfirm';
 
 const BusinessPOS = () => {
     const queryClient = useQueryClient();
@@ -317,11 +317,11 @@ const BusinessPOS = () => {
         }
     };
 
-    const holdCart = () => {
+    const holdCart = async () => {
         if (cart.length === 0) return;
         
         const suggestedName = customerName ? `Cart - ${customerName}` : `Cart #${holdCounter}`;
-        const customName = prompt('Assign a name/label to identify this held cart:', suggestedName);
+        const customName = await customPrompt('Assign a name/label to identify this held cart:', suggestedName);
         
         if (customName === null) return;
 
@@ -345,11 +345,11 @@ const BusinessPOS = () => {
         setDiscountVal(0);
     };
 
-    const renameHeldCart = (holdId) => {
+    const renameHeldCart = async (holdId) => {
         const held = heldCarts.find(h => h.id === holdId);
         if (!held) return;
         const defaultName = held.customName || held.customerName || `Cart #${held.displayId}`;
-        const newName = prompt('Enter a new name/label for this held cart:', defaultName);
+        const newName = await customPrompt('Enter a new name/label for this held cart:', defaultName);
         if (newName && newName.trim() !== '') {
             setHeldCarts(prev => prev.map(h => h.id === holdId ? { ...h, customName: newName.trim() } : h));
         }
