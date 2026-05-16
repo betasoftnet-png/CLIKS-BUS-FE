@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { calculatorService } from '../../services';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { customConfirm } from '../../utils/customConfirm';
@@ -24,7 +26,31 @@ export function CalcPopover() {
     const [isConverted, setIsConverted] = useState(false);
     const [compareMode, setCompareMode] = useState(false);
     const [showHistory, setShowHistory] = useState(false); // History panel toggle
-    const [calcHistory, setCalcHistory] = useState([]); // Saved tape snapshots
+    const queryClient = useQueryClient();
+
+    // Queries
+    const { data: calcHistory = [] } = useQuery({
+        queryKey: ['calculator-history'],
+        queryFn: calculatorService.getHistory,
+        enabled: open
+    });
+
+    // Mutations
+    const saveMutation = useMutation({
+        mutationFn: calculatorService.saveHistory,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calculator-history'] })
+    });
+
+    const deleteItemMutation = useMutation({
+        mutationFn: calculatorService.deleteHistoryItem,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calculator-history'] })
+    });
+
+    const clearHistoryMutation = useMutation({
+        mutationFn: calculatorService.clearHistory,
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calculator-history'] })
+    });
+
     const [sciMode, setSciMode] = useState(false);
 
     // Compare Mode dual-tape state
@@ -280,15 +306,12 @@ export function CalcPopover() {
             }
         });
 
-        // Save static history snapshot (limit to latest 30 records)
-        const newHistoryLog = {
-            id: Date.now(),
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        // Save to backend history
+        saveMutation.mutate({
             tape: finalTapeState,
-            total: runningTotal
-        };
-
-        setCalcHistory(prev => [newHistoryLog, ...prev.slice(0, 29)]);
+            total: runningTotal,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        });
     }
 
     // Smart Presets logic
@@ -581,7 +604,7 @@ export function CalcPopover() {
                                     <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tape Archives</span>
                                     {calcHistory.length > 0 && (
                                         <button 
-                                            onClick={async () => { if(await customConfirm("Clear calculation history?")) setCalcHistory([]); }} 
+                                            onClick={async () => { if(await customConfirm("Clear calculation history?")) clearHistoryMutation.mutate(); }} 
                                             style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: 0 }}
                                         >
                                             CLEAR ALL
@@ -647,7 +670,7 @@ export function CalcPopover() {
                                                     </button>
                                                     <button 
                                                         onClick={() => {
-                                                            setCalcHistory(prev => prev.filter(x => x.id !== hist.id));
+                                                            deleteItemMutation.mutate(hist.id);
                                                         }}
                                                         style={{ 
                                                             width: '26px',
