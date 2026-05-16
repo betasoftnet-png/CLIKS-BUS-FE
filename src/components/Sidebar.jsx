@@ -192,7 +192,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/inventory/products')) return 'Products';
         if (path.includes('/inventory/barcode')) return 'Barcode Gen';
         if (path.includes('/inventory/stock')) return 'Stock';
-        if (path.includes('/purchases/purchases')) return 'Purchases';
+        if (path.includes('/purchases/purchases')) return 'Purchase Invoice';
         if (path.includes('/purchases/suppliers')) return 'Suppliers';
         if (path.includes('/inventory/warehouse')) return 'Warehouse';
         if (path.includes('/finance/accounting')) return 'Accounting';
@@ -293,7 +293,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 label: 'Purchases',
                 icon: ShoppingCart,
                 children: [
-                    { label: 'Purchases', icon: ShoppingCart, path: '/purchases/purchases' },
+                    { label: 'Purchase Invoice', icon: ShoppingCart, path: '/purchases/purchases' },
                     { label: 'Suppliers', icon: UsersRound, path: '/purchases/suppliers' }
                 ]
             },
