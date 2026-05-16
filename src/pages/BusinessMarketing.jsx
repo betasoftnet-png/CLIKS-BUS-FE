@@ -982,6 +982,40 @@ const BusinessMarketing = () => {
                                             />
                                         </div>
                                     </div>
+
+                                    {/* RECIPIENT EMAIL PREVIEW LIST */}
+                                    {customerData.length > 0 && (
+                                        <div style={{ marginTop: '1rem', background: '#FFFFFF', padding: '0.85rem', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                                                <h5 style={{ margin: 0, fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase' }}>📧 Selected Recipient Emails</h5>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#1B6B3A', background: '#E8F5EE', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                                                    {formData.target_audience === 'All Customers' ? customerData.length : formData.total_recipients} Recipients
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
+                                                {(formData.target_audience === 'All Customers' ? customerData : customerData.slice(0, formData.total_recipients)).map((c, i) => (
+                                                    <div key={i} style={{ 
+                                                        fontSize: '0.7rem', 
+                                                        background: '#F1F5F9', 
+                                                        padding: '0.3rem 0.6rem', 
+                                                        borderRadius: '6px', 
+                                                        color: '#334155', 
+                                                        fontWeight: '600',
+                                                        border: '1px solid #E2E8F0',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.4rem'
+                                                    }}>
+                                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E' }} />
+                                                        {c.email || `${c.name.split(' ')[0].toLowerCase()}@cliks.in`}
+                                                    </div>
+                                                ))}
+                                                {customerData.length === 0 && (
+                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic' }}>No customer data available...</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* SECTION 3: CONTENT */}
