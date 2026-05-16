@@ -182,7 +182,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/admin/moderation')) return 'Feed Monitor';
         if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
-        if (path.includes('/sales/pos')) return 'POS Billing';
+        if (path.includes('/pos')) return 'POS Billing';
         if (path.includes('/dashboard')) return 'Dashboard';
         if (path.includes('/sales/invoice')) return 'Sales Invoice';
         if (path.includes('/sales/orders')) return 'Orders';
@@ -315,7 +315,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     { label: 'Payroll', icon: FileCheck, path: '/hr/payroll' }
                 ]
             },
-            { label: 'POS Billing', icon: Monitor, path: '/sales/pos' },
+            { label: 'POS Billing', icon: Monitor, path: '/pos' },
             { label: 'Reports', icon: BarChart3, path: '/reports' },
             { label: 'Barcode Gen', icon: Barcode, path: '/inventory/barcode' },
             { label: 'Marketing', icon: Megaphone, path: '/marketing' }

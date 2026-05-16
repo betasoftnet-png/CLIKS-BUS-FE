@@ -30,7 +30,7 @@ const MASTER_SHORTCUTS = [
     { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: DollarSign, color: '#1B6B3A' },
     { id: 'sales_orders', label: 'Sales Orders', path: '/sales/orders', icon: ShoppingCart, color: '#2563EB' },
     { id: 'new_product', label: 'Add Product', path: '/inventory/products?create=true', icon: Package, color: '#EA580C' },
-    { id: 'pos_billing', label: 'POS Billing', path: '/sales/pos', icon: LayoutDashboard, color: '#0D9488' },
+    { id: 'pos_billing', label: 'POS Billing', path: '/pos', icon: LayoutDashboard, color: '#0D9488' },
     { id: 'expenses', label: 'Add Expense', path: '/finance/expenses?create=true', icon: TrendingUp, color: '#DC2626' },
     { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
     { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
