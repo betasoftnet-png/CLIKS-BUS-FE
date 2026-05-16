@@ -913,7 +913,7 @@ const BusinessMarketing = () => {
             {/* COMPOSE / CREATE CAMPAIGN MODAL - Premium Compact Redesign */}
             {isComposeOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(6px)' }}>
-                    <div style={{ background: 'white', width: '820px', maxHeight: '92vh', borderRadius: '20px', overflowY: 'auto', padding: '1.5rem 1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                    <div style={{ background: 'white', width: '550px', maxHeight: '92vh', borderRadius: '24px', overflowY: 'auto', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Sparkles size={18} style={{ color: '#1B6B3A' }} />
@@ -923,304 +923,93 @@ const BusinessMarketing = () => {
                         </div>
 
                         <form onSubmit={handleCreateCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {/* 2-COLUMN DENSE GRID */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            {/* SIMPLIFIED DENSE FLOW */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 
-                                {/* COL 1: BASICS & TARGETING */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    
-                                    {/* SECTION 1: BASIC INFO */}
-                                    <div style={{ background: '#FAFDFB', padding: '1rem', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>📌 1. Basic Campaign Info</h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Campaign Name *</label>
-                                                <input 
-                                                    type="text" 
-                                                    required
-                                                    value={formData.campaign_name} 
-                                                    onChange={e => setFormData({ ...formData, campaign_name: e.target.value })}
-                                                    placeholder="e.g. Diwali Premium Blast"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Campaign Type</label>
-                                                    <input 
-                                                        type="text"
-                                                        disabled
-                                                        value="Email (Direct API)"
-                                                        style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.82rem', fontWeight: '750', background: '#F8FAFC', color: '#3B82F6', boxSizing: 'border-box' }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Status</label>
-                                                    <select 
-                                                        value={formData.campaign_status} 
-                                                        onChange={e => setFormData({ ...formData, campaign_status: e.target.value })}
-                                                        style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
-                                                    >
-                                                        <option value="Draft">Draft</option>
-                                                        <option value="Scheduled">Scheduled</option>
-                                                        <option value="Sent">Sent (Execute)</option>
-                                                    </select>
-                                                </div>
-                                            </div>
+                                {/* SECTION 1: BASICS */}
+                                <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>📌 1. Campaign Basics</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Campaign Name *</label>
+                                            <input 
+                                                type="text" 
+                                                required
+                                                value={formData.campaign_name} 
+                                                onChange={e => setFormData({ ...formData, campaign_name: e.target.value })}
+                                                placeholder="e.g. Summer Clearance Blast"
+                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                            />
                                         </div>
-                                    </div>
-
-                                    {/* SECTION 2: AUDIENCE */}
-                                    <div style={{ background: '#FAFDFB', padding: '1rem', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>👥 2. Target Audience</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Audience Group</label>
-                                                <select 
-                                                    value={formData.target_audience} 
-                                                    onChange={e => setFormData({ ...formData, target_audience: e.target.value })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
-                                                >
-                                                    <option value="All Customers">All Customers</option>
-                                                    <option value="Repeat Customers">Repeat Customers</option>
-                                                    <option value="High-value Customers">High-value Customers</option>
-                                                    <option value="Inactive Customers">Inactive Customers</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Recipients Count</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={formData.total_recipients} 
-                                                    onChange={e => setFormData({ ...formData, total_recipients: parseInt(e.target.value) || 0 })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                    placeholder={isCustLoading ? "Loading..." : "0"}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* RECIPIENT EMAILS PREVIEW */}
-                                        {formData.target_audience === 'All Customers' && customerData.length > 0 && (
-                                            <div style={{ marginTop: '0.5rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', border: '1px dashed #CBD5E1' }}>
-                                                <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.7rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase' }}>📧 Audience Email List (Preview)</h5>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '100px', overflowY: 'auto' }}>
-                                                    {customerData.map((c, i) => (
-                                                        <span key={i} style={{ fontSize: '0.65rem', background: '#E2E8F0', padding: '0.2rem 0.4rem', borderRadius: '4px', color: '#1E293B', fontWeight: '600' }}>
-                                                            {c.email || c.name.split(' ')[0].toLowerCase() + '@cliks.in'}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Segment Label</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.customer_segment} 
-                                                    onChange={e => setFormData({ ...formData, customer_segment: e.target.value })}
-                                                    placeholder="VIP, Retail, etc."
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Location Focus</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.location_filter} 
-                                                    onChange={e => setFormData({ ...formData, location_filter: e.target.value })}
-                                                    placeholder="Pan India, Mumbai"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* SECTION 3: OFFERS */}
-                                    <div style={{ background: '#FAFDFB', padding: '1rem', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>🎁 3. Offers & Promo Config</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 0.8fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Offer Type</label>
-                                                <select 
-                                                    value={formData.offer_type} 
-                                                    onChange={e => setFormData({ ...formData, offer_type: e.target.value })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
-                                                >
-                                                    <option value="discount">discount</option>
-                                                    <option value="cashback">cashback</option>
-                                                    <option value="coupon">coupon</option>
-                                                    <option value="none">none</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Coupon Code</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.coupon_code} 
-                                                    onChange={e => setFormData({ ...formData, coupon_code: e.target.value.toUpperCase() })}
-                                                    placeholder="MEGA50"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Disc. %</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={formData.discount_percentage} 
-                                                    onChange={e => setFormData({ ...formData, discount_percentage: parseInt(e.target.value) || 0 })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Expiry Date</label>
-                                                <input 
-                                                    type="date" 
-                                                    value={formData.offer_validity} 
-                                                    onChange={e => setFormData({ ...formData, offer_validity: e.target.value })}
-                                                    style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Min Cart ₹</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={formData.minimum_purchase} 
-                                                    onChange={e => setFormData({ ...formData, minimum_purchase: parseInt(e.target.value) || 0 })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
+                                            <select 
+                                                value={formData.campaign_status} 
+                                                onChange={e => setFormData({ ...formData, campaign_status: e.target.value })}
+                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                            >
+                                                <option value="Draft">Draft</option>
+                                                <option value="Scheduled">Scheduled</option>
+                                                <option value="Sent">Sent (Execute Immediately)</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* COL 2: CONTENT, TIMING & LOGISTICS */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    
-                                    {/* SECTION 4: COPYWRITING & MESSAGE CONTENT */}
-                                    <div style={{ background: '#FAFDFB', padding: '1rem', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>💬 4. Email Copy & Templates</h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Email Subject Title *</label>
-                                                <input 
-                                                    type="text" 
-                                                    required
-                                                    value={formData.message_title} 
-                                                    onChange={e => setFormData({ ...formData, message_title: e.target.value })}
-                                                    placeholder="e.g. Claim your exclusive festival discount ☀️"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Email Body Copy *</label>
-                                                <textarea 
-                                                    required
-                                                    value={formData.message_content} 
-                                                    onChange={e => setFormData({ ...formData, message_content: e.target.value })}
-                                                    placeholder="Use {name} for customer injection. Draft high-impact promotion details..."
-                                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', minHeight: '75px', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>HTML Layout Template Name (Optional)</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.email_template} 
-                                                    onChange={e => setFormData({ ...formData, email_template: e.target.value })}
-                                                    placeholder="e.g. standard_marketing_layout"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
+                                {/* SECTION 2: AUDIENCE */}
+                                <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>👥 2. Target Audience</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Audience Group</label>
+                                            <select 
+                                                value={formData.target_audience} 
+                                                onChange={e => setFormData({ ...formData, target_audience: e.target.value })}
+                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                            >
+                                                <option value="All Customers">All Customers</option>
+                                                <option value="Repeat Customers">Repeat Customers</option>
+                                                <option value="Inactive Customers">Inactive Customers</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expected Recipients</label>
+                                            <input 
+                                                type="number" 
+                                                readOnly
+                                                value={formData.total_recipients} 
+                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.88rem', fontWeight: '750', background: '#F8FAFC', color: '#1B6B3A', boxSizing: 'border-box' }}
+                                            />
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* SECTION 5: SCHEDULING & TRIGGERS */}
-                                    <div style={{ background: '#FAFDFB', padding: '1rem', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>⏰ 5. Automation & Scheduling</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Scheduled Date</label>
-                                                <input 
-                                                    type="date" 
-                                                    value={formData.scheduled_date} 
-                                                    onChange={e => setFormData({ ...formData, scheduled_date: e.target.value })}
-                                                    style={{ width: '100%', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Scheduled Time</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.scheduled_time} 
-                                                    onChange={e => setFormData({ ...formData, scheduled_time: e.target.value })}
-                                                    placeholder="10:00 AM"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
+                                {/* SECTION 3: CONTENT */}
+                                <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>✉️ 3. Email Content</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Email Subject Line *</label>
+                                            <input 
+                                                type="text" 
+                                                required
+                                                value={formData.message_title} 
+                                                onChange={e => setFormData({ ...formData, message_title: e.target.value })}
+                                                placeholder="e.g. Exclusive Offer for You!"
+                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                            />
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Automatic Life-cycle Trigger</label>
-                                                <select 
-                                                    value={formData.trigger_event} 
-                                                    onChange={e => setFormData({ 
-                                                        ...formData, 
-                                                        trigger_event: e.target.value,
-                                                        automation_status: e.target.value !== 'none' ? 'active' : 'inactive',
-                                                        auto_send_enabled: e.target.value !== 'none'
-                                                    })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
-                                                >
-                                                    <option value="none">Manual Send Only</option>
-                                                    <option value="birthday">Customer Birthday</option>
-                                                    <option value="anniversary">Anniversary Alert</option>
-                                                    <option value="purchase">New Purchase Receipt</option>
-                                                    <option value="cart_abandoned">Cart Abandonment</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Repeat</label>
-                                                <select 
-                                                    value={formData.recurring_campaign ? 'yes' : 'no'} 
-                                                    onChange={e => setFormData({ ...formData, recurring_campaign: e.target.value === 'yes', recurrence_frequency: e.target.value === 'yes' ? 'weekly' : 'none' })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
-                                                >
-                                                    <option value="no">One time</option>
-                                                    <option value="yes">Weekly Blast</option>
-                                                </select>
-                                            </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Message Body *</label>
+                                            <textarea 
+                                                required
+                                                value={formData.message_content} 
+                                                onChange={e => setFormData({ ...formData, message_content: e.target.value })}
+                                                placeholder="Write your email body here. Use {name} for personalization."
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', minHeight: '120px', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: '1.5' }}
+                                            />
                                         </div>
                                     </div>
-
-                                    {/* SECTION 6: LOYALTY & SALES */}
-                                    <div style={{ background: '#FAFDFB', padding: '1rem', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                        <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>👨💼 6. Admin Logistics</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Campaign Manager</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={formData.campaign_owner} 
-                                                    onChange={e => setFormData({ ...formData, campaign_owner: e.target.value })}
-                                                    placeholder="Deepak Rao"
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Reward Pts Granted</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={formData.reward_points} 
-                                                    onChange={e => setFormData({ ...formData, reward_points: parseInt(e.target.value) || 0 })}
-                                                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
                                 </div>
                             </div>
 
@@ -1240,8 +1029,6 @@ const BusinessMarketing = () => {
                     </div>
                 </div>
             )}
-
-            {/* DETAIL & ANALYTICS DRAWER / MODAL */}
             {isDetailsOpen && selectedCampaign && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', zIndex: 1050, backdropFilter: 'blur(6px)' }}>
                     <div style={{ background: 'white', width: '600px', height: '100vh', overflowY: 'auto', padding: '2.5rem', boxShadow: '-10px 0 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column' }}>
