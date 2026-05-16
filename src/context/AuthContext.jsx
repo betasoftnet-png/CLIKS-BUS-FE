@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = React.useCallback(() => {
         localStorage.removeItem('books_auth_token');
+        localStorage.removeItem('bnx_auth_token');
         setToken(null);
         setUser(null);
         // Clear query cache to prevent User B from seeing User A's cached data
@@ -58,6 +59,7 @@ export const AuthProvider = ({ children }) => {
         const { accessToken, user: newUser } = data;
 
         localStorage.setItem('books_auth_token', accessToken);
+        localStorage.setItem('bnx_auth_token', bnxToken);
         setToken(accessToken);
         setUser(newUser);
 
