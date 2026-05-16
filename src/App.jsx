@@ -141,7 +141,8 @@ function AppContent() {
                     {/* Restructured Business Modules */}
                     <Route path="/dashboard" element={<BusinessDashboard />} />
                     <Route path="/inventory/products" element={<BusinessInventory />} />
-                    <Route path="/inventory/barcode" element={<BusinessBarcode />} />
+                    <Route path="/barcode" element={<BusinessBarcode />} />
+                    <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
                     <Route path="/sales/invoice" element={<BusinessBilling />} />
                     <Route path="/sales/orders" element={<BusinessSalesOrders />} />
                     <Route path="/purchases/purchases" element={<BusinessPurchases />} />

@@ -190,7 +190,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/sales/customers')) return 'Customers';
         if (path.includes('/sales/returns')) return 'Returns';
         if (path.includes('/inventory/products')) return 'Products';
-        if (path.includes('/inventory/barcode')) return 'Barcode Gen';
+        if (path.includes('/barcode')) return 'Barcode Gen';
         if (path.includes('/inventory/stock')) return 'Stock';
         if (path.includes('/purchases/purchases')) return 'Purchase Invoice';
         if (path.includes('/purchases/suppliers')) return 'Suppliers';
@@ -317,7 +317,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             },
             { label: 'POS Billing', icon: Monitor, path: '/pos' },
             { label: 'Reports', icon: BarChart3, path: '/reports' },
-            { label: 'Barcode Gen', icon: Barcode, path: '/inventory/barcode' },
+            { label: 'Barcode Gen', icon: Barcode, path: '/barcode' },
             { label: 'Marketing', icon: Megaphone, path: '/marketing' }
 
         ],
