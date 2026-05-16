@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { crmService, mailService } from '../services';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { crmService, mailService, marketingService } from '../services';
 
 import { 
     Send, 
@@ -207,9 +207,28 @@ const PREMADE_TEMPLATES = [
 ];
 
 const BusinessMarketing = () => {
-    const [campaigns, setCampaigns] = useState(() => {
-        const local = localStorage.getItem('cliks_campaigns');
-        return local ? JSON.parse(local) : INITIAL_CAMPAIGNS;
+    const queryClient = useQueryClient();
+
+    // 1. Fetch Campaigns from DB
+    const { data: campaigns = [], isLoading: isCampLoading } = useQuery({
+        queryKey: ['marketing-campaigns'],
+        queryFn: marketingService.getCampaigns
+    });
+
+    // 2. Mutations
+    const createMutation = useMutation({
+        mutationFn: marketingService.createCampaign,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-campaigns'])
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => marketingService.updateCampaign(id, data),
+        onSuccess: () => queryClient.invalidateQueries(['marketing-campaigns'])
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: marketingService.deleteCampaign,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-campaigns'])
     });
 
     const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'templates' | 'automation' | 'segments' | 'reports'
@@ -221,14 +240,13 @@ const BusinessMarketing = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [isLaunching, setIsLaunching] = useState(false);
 
-    // New Campaign Form State with all required fields
     const [formData, setFormData] = useState({
         campaign_name: '',
         campaign_type: 'Email',
         campaign_status: 'Draft',
         target_audience: 'All Customers',
         customer_segment: 'Retail Customers',
-        total_recipients: 100,
+        total_recipients: 0,
         location_filter: 'All Regions',
         offer_type: 'discount',
         coupon_code: '',
@@ -268,77 +286,66 @@ const BusinessMarketing = () => {
         if (formData.target_audience === 'All Customers') {
             setFormData(prev => ({ ...prev, total_recipients: customerData.length }));
         } else if (formData.target_audience === 'Repeat Customers') {
-            // Mock logic for segments
             setFormData(prev => ({ ...prev, total_recipients: Math.floor(customerData.length * 0.4) }));
         } else if (formData.target_audience === 'Inactive Customers') {
             setFormData(prev => ({ ...prev, total_recipients: Math.floor(customerData.length * 0.2) }));
         }
     }, [formData.target_audience, customerData]);
 
+    // Removed local storage helper
 
-    const saveToLocalStorage = (updated) => {
-        setCampaigns(updated);
-        localStorage.setItem('cliks_campaigns', JSON.stringify(updated));
-    };
-
-    const handleCreateCampaign = (e) => {
+    const handleCreateCampaign = async (e) => {
         e.preventDefault();
-        const newCamp = {
-            ...formData,
-            campaign_id: `CAMP-${Date.now().toString().slice(-4)}`,
-            sent_count: formData.campaign_status === 'Sent' ? formData.total_recipients : 0,
-            delivered_count: formData.campaign_status === 'Sent' ? Math.floor(formData.total_recipients * 0.98) : 0,
-            opened_count: formData.campaign_status === 'Sent' ? Math.floor(formData.total_recipients * 0.75) : 0,
-            clicked_count: formData.campaign_status === 'Sent' ? Math.floor(formData.total_recipients * 0.45) : 0,
-            conversion_count: formData.campaign_status === 'Sent' ? Math.floor(formData.total_recipients * 0.12) : 0,
-            roi_percentage: formData.campaign_status === 'Sent' ? 120 : 0,
-            lead_conversion_rate: formData.campaign_status === 'Sent' ? 12.0 : 0
-        };
-
-        const updated = [newCamp, ...campaigns];
-        saveToLocalStorage(updated);
-        setIsComposeOpen(false);
-        // Reset Form
-        setFormData({
-            campaign_name: '',
-            campaign_type: 'Email',
-            campaign_status: 'Draft',
-            target_audience: 'All Customers',
-            customer_segment: 'Retail Customers',
-            total_recipients: 100,
-            location_filter: 'All Regions',
-            offer_type: 'discount',
-            coupon_code: '',
-            discount_percentage: 10,
-            offer_validity: '',
-            minimum_purchase: 500,
-            message_title: '',
-            message_content: '',
-            whatsapp_template: '',
-            sms_template: '',
-            email_template: '',
-            scheduled_date: '',
-            scheduled_time: '',
-            recurring_campaign: false,
-            recurrence_frequency: 'none',
-            trigger_event: 'none',
-            automation_status: 'inactive',
-            auto_send_enabled: false,
-            reward_points: 0,
-            referral_code: '',
-            referral_bonus: 0,
-            campaign_owner: 'Admin',
-            assigned_salesperson: 'Sales Team',
-        });
+        try {
+            await createMutation.mutateAsync(formData);
+            setIsComposeOpen(false);
+            // Reset Form
+            setFormData({
+                campaign_name: '',
+                campaign_type: 'Email',
+                campaign_status: 'Draft',
+                target_audience: 'All Customers',
+                customer_segment: 'Retail Customers',
+                total_recipients: 100,
+                location_filter: 'All Regions',
+                offer_type: 'discount',
+                coupon_code: '',
+                discount_percentage: 10,
+                offer_validity: '',
+                minimum_purchase: 500,
+                message_title: '',
+                message_content: '',
+                whatsapp_template: '',
+                sms_template: '',
+                email_template: '',
+                scheduled_date: '',
+                scheduled_time: '',
+                recurring_campaign: false,
+                recurrence_frequency: 'none',
+                trigger_event: 'none',
+                automation_status: 'inactive',
+                auto_send_enabled: false,
+                reward_points: 0,
+                referral_code: '',
+                referral_bonus: 0,
+                campaign_owner: 'Admin',
+                assigned_salesperson: 'Sales Team',
+            });
+        } catch (err) {
+            alert('Failed to create campaign');
+        }
     };
 
     const handleDeleteCampaign = async (id) => {
         if (await customConfirm('Are you sure you want to delete this campaign?')) {
-            const updated = campaigns.filter(c => c.campaign_id !== id);
-            saveToLocalStorage(updated);
-            if (selectedCampaign?.campaign_id === id) {
-                setIsDetailsOpen(false);
-                setSelectedCampaign(null);
+            try {
+                await deleteMutation.mutateAsync(id);
+                if (selectedCampaign?.id === id) {
+                    setIsDetailsOpen(false);
+                    setSelectedCampaign(null);
+                }
+            } catch (err) {
+                alert('Failed to delete campaign');
             }
         }
     };
@@ -350,16 +357,16 @@ const BusinessMarketing = () => {
     const avgROI = Math.round(campaigns.filter(c => c.sent_count > 0).reduce((sum, c) => sum + c.roi_percentage, 0) / (totalSentCampaigns || 1));
 
     const filteredCampaigns = campaigns.filter(c => {
-        const matchesSearch = c.campaign_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              c.coupon_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              c.customer_segment.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (c.campaign_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              (c.coupon_code || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              (c.customer_segment || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesType = typeFilter === 'All' || c.campaign_type === typeFilter;
         const matchesStatus = statusFilter === 'All' || c.campaign_status === statusFilter;
         return matchesSearch && matchesType && matchesStatus;
     });
 
     const triggerManualLaunch = async (camp) => {
-        console.log('[Campaign Launch] Entry point reached for campaign:', camp.campaign_id);
+        console.log('[Campaign Launch] Entry point reached for campaign:', camp.id);
         if (!(await customConfirm(`Are you sure you want to launch "${camp.campaign_name}" to ${camp.total_recipients} customers?`))) {
             console.log('[Campaign Launch] User cancelled the confirmation dialog.');
             return;
@@ -401,25 +408,20 @@ const BusinessMarketing = () => {
                 isHtml: true
             });
 
-            // 3. Update Local State
-            const updated = campaigns.map(c => {
-                if (c.campaign_id === camp.campaign_id) {
-                    return {
-                        ...c,
-                        campaign_status: 'Sent',
-                        sent_count: recipients.length,
-                        delivered_count: Math.floor(recipients.length * 0.98),
-                        opened_count: Math.floor(recipients.length * 0.82),
-                        clicked_count: Math.floor(recipients.length * 0.50),
-                        conversion_count: Math.floor(recipients.length * 0.15),
-                        roi_percentage: 180,
-                        lead_conversion_rate: 15.0
-                    };
+            // 3. Update DB State
+            await updateMutation.mutateAsync({ 
+                id: camp.id, 
+                data: {
+                    campaign_status: 'Sent',
+                    sent_count: recipients.length,
+                    delivered_count: Math.floor(recipients.length * 0.98),
+                    opened_count: Math.floor(recipients.length * 0.82),
+                    clicked_count: Math.floor(recipients.length * 0.50),
+                    conversion_count: Math.floor(recipients.length * 0.15),
+                    roi_percentage: 180
                 }
-                return c;
             });
 
-            saveToLocalStorage(updated);
             alert(`Campaign "${camp.campaign_name}" launched successfully via bnxmail!`);
         } catch (error) {
             alert(`Failed to launch campaign: ${error.message || 'Unknown error'}`);
@@ -560,7 +562,7 @@ const BusinessMarketing = () => {
                         ) : (
                             filteredCampaigns.map((camp) => (
                                 <div 
-                                    key={camp.campaign_id}
+                                    key={camp.id}
                                     style={{ 
                                         background: 'white', padding: '0.9rem 1.25rem', borderRadius: '14px', 
                                         border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
@@ -604,7 +606,7 @@ const BusinessMarketing = () => {
                                                 )}
                                             </div>
                                             <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '500' }}>
-                                                ID: <strong style={{ color: '#334155' }}>{camp.campaign_id}</strong> • Target: <strong style={{ color: '#334155' }}>{camp.customer_segment} ({camp.total_recipients} users)</strong>
+                                                ID: <strong style={{ color: '#334155' }}>#{camp.id}</strong> • Target: <strong style={{ color: '#334155' }}>{camp.customer_segment || 'All'} ({camp.total_recipients} users)</strong>
                                                 {camp.coupon_code && <> • Coupon: <span style={{ color: '#1B6B3A', background: '#E8F5EE', padding: '0.05rem 0.35rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '750' }}>{camp.coupon_code}</span></>}
                                             </p>
                                         </div>
@@ -615,7 +617,7 @@ const BusinessMarketing = () => {
                                         {camp.campaign_status === 'Sent' ? (
                                             <div style={{ textAlign: 'right', marginRight: '0.75rem' }}>
                                                 <div style={{ fontSize: '0.88rem', fontWeight: '850', color: '#1B6B3A' }}>{camp.roi_percentage}% ROI</div>
-                                                <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>{camp.conversion_count} Conv. ({camp.lead_conversion_rate}%)</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>{camp.conversion_count} Conv.</div>
                                             </div>
                                         ) : (
                                             <div style={{ marginRight: '0.5rem' }}>
@@ -639,7 +641,7 @@ const BusinessMarketing = () => {
                                         </button>
 
                                         <button 
-                                            onClick={() => handleDeleteCampaign(camp.campaign_id)}
+                                            onClick={() => handleDeleteCampaign(camp.id)}
                                             style={{ background: 'none', border: 'none', padding: '0.4rem', color: '#EF4444', cursor: 'pointer', borderRadius: '6px', opacity: 0.75 }}
                                             onMouseOver={e => e.currentTarget.style.opacity = 1}
                                             onMouseOut={e => e.currentTarget.style.opacity = 0.75}
@@ -1178,10 +1180,20 @@ const BusinessMarketing = () => {
                             </div>
                         </div>
 
-                        <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginTop: '2rem' }}>
+                        <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.5rem', marginTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <button 
+                                onClick={() => handleDeleteCampaign(selectedCampaign.id)}
+                                style={{ width: '100%', background: '#FEF2F2', border: '1px solid #FEE2E2', padding: '0.85rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '850', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', transition: 'all 0.2s' }}
+                                onMouseOver={e => e.currentTarget.style.background = '#FEE2E2'}
+                                onMouseOut={e => e.currentTarget.style.background = '#FEF2F2'}
+                            >
+                                <Trash2 size={18} /> Delete Campaign Permanently
+                            </button>
                             <button 
                                 onClick={() => { setIsDetailsOpen(false); setSelectedCampaign(null); }}
-                                style={{ width: '100%', background: '#F1F5F9', border: 'none', padding: '0.75rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: '750', cursor: 'pointer', color: '#475569' }}
+                                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.85rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '750', cursor: 'pointer', color: '#64748B', transition: 'all 0.2s' }}
+                                onMouseOver={e => e.currentTarget.style.background = '#F1F5F9'}
+                                onMouseOut={e => e.currentTarget.style.background = '#F8FAFC'}
                             >
                                 Close Details Panel
                             </button>

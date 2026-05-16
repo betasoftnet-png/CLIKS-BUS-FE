@@ -37,3 +37,4 @@ export * from './pitchesService';
 export * from './plannedPaymentsService';
 export * from './calculatorService';
 export * from './mailService';
+export * from './marketingService';
