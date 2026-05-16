@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { crmService } from '../services/crmService';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { crmService, mailService } from '../services';
 
 import { 
     Send, 
@@ -218,6 +218,7 @@ const BusinessMarketing = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
+    const [isLaunching, setIsLaunching] = useState(false);
 
     // New Campaign Form State with all required fields
     const [formData, setFormData] = useState({
@@ -356,25 +357,62 @@ const BusinessMarketing = () => {
         return matchesSearch && matchesType && matchesStatus;
     });
 
-    const triggerManualLaunch = (camp) => {
-        const updated = campaigns.map(c => {
-            if (c.campaign_id === camp.campaign_id) {
-                return {
-                    ...c,
-                    campaign_status: 'Sent',
-                    sent_count: c.total_recipients,
-                    delivered_count: Math.floor(c.total_recipients * 0.98),
-                    opened_count: Math.floor(c.total_recipients * 0.82),
-                    clicked_count: Math.floor(c.total_recipients * 0.50),
-                    conversion_count: Math.floor(c.total_recipients * 0.15),
-                    roi_percentage: 180,
-                    lead_conversion_rate: 15.0
-                };
+    const triggerManualLaunch = async (camp) => {
+        if (!confirm(`Are you sure you want to launch "${camp.campaign_name}" to ${camp.total_recipients} customers?`)) return;
+
+        setIsLaunching(true);
+        try {
+            // 1. Prepare Recipients
+            let recipients = [];
+            if (camp.target_audience === 'All Customers') {
+                recipients = customerData.map(c => c.email).filter(e => e && e.includes('@'));
+            } else {
+                // For segments, we take available emails up to the total_recipients count for mock purposes
+                recipients = customerData
+                    .map(c => c.email)
+                    .filter(e => e && e.includes('@'))
+                    .slice(0, camp.total_recipients);
             }
-            return c;
-        });
-        saveToLocalStorage(updated);
-        alert(`Campaign "${camp.campaign_name}" launched successfully to ${camp.total_recipients} customers via ${camp.campaign_type}!`);
+
+            if (recipients.length === 0) {
+                alert('No valid customer emails found for this audience.');
+                setIsLaunching(false);
+                return;
+            }
+
+            // 2. Call BNX Mail API
+            await mailService.bulkSend({
+                recipients: recipients,
+                subject: camp.message_title || camp.campaign_name,
+                body: camp.message_content,
+                isHtml: true
+            });
+
+            // 3. Update Local State
+            const updated = campaigns.map(c => {
+                if (c.campaign_id === camp.campaign_id) {
+                    return {
+                        ...c,
+                        campaign_status: 'Sent',
+                        sent_count: recipients.length,
+                        delivered_count: Math.floor(recipients.length * 0.98),
+                        opened_count: Math.floor(recipients.length * 0.82),
+                        clicked_count: Math.floor(recipients.length * 0.50),
+                        conversion_count: Math.floor(recipients.length * 0.15),
+                        roi_percentage: 180,
+                        lead_conversion_rate: 15.0
+                    };
+                }
+                return c;
+            });
+
+            saveToLocalStorage(updated);
+            alert(`Campaign "${camp.campaign_name}" launched successfully via bnxmail!`);
+        } catch (error) {
+            alert(`Failed to launch campaign: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsLaunching(false);
+        }
     };
 
     return (
@@ -569,10 +607,11 @@ const BusinessMarketing = () => {
                                         ) : (
                                             <div style={{ marginRight: '0.5rem' }}>
                                                 <button 
+                                                    disabled={isLaunching}
                                                     onClick={() => triggerManualLaunch(camp)}
-                                                    style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                    style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: isLaunching ? 0.6 : 1 }}
                                                 >
-                                                    <Send size={10} /> Launch
+                                                    <Send size={10} /> {isLaunching ? 'Sending...' : 'Launch'}
                                                 </button>
                                             </div>
                                         )}
