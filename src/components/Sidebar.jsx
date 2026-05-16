@@ -213,7 +213,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
         if (path.includes('/marketing')) return 'Marketing';
-        if (path.includes('/social/investors')) return 'BETA Club';
+        if (path.includes('/social/betaclub')) return 'BETA Club';
         if (path.includes('/social/meetup')) return 'Meetup';
         if (path.includes('/social/trading')) return 'Trading docs';
         if (path.includes('/subscription')) return 'Subscription';
@@ -324,7 +324,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         social: [
             { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
             { label: 'Trading docs', icon: LineChart, path: '/social/trading' },
-            { label: 'BETA Club', icon: UsersRound, path: '/social/investors' , color: '#FFD700' }
+            { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub' , color: '#FFD700' }
         ],
         financeMode: [
             { label: 'People', icon: Users, path: '/payments/people' },
