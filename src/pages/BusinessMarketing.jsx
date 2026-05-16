@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { crmService } from '../services/crmService';
 
 import { 
     Send, 
@@ -249,6 +251,28 @@ const BusinessMarketing = () => {
         campaign_owner: 'Admin',
         assigned_salesperson: 'Sales Team',
     });
+
+    // 1. Fetch Customers to map audience
+    const { data: customerData = [], isLoading: isCustLoading } = useQuery({
+        queryKey: ['marketing-customers'],
+        queryFn: async () => {
+            const res = await crmService.getCustomers();
+            return res.data || [];
+        }
+    });
+
+    // 2. Auto-populate recipients count based on audience selection
+    useEffect(() => {
+        if (formData.target_audience === 'All Customers') {
+            setFormData(prev => ({ ...prev, total_recipients: customerData.length }));
+        } else if (formData.target_audience === 'Repeat Customers') {
+            // Mock logic for segments
+            setFormData(prev => ({ ...prev, total_recipients: Math.floor(customerData.length * 0.4) }));
+        } else if (formData.target_audience === 'Inactive Customers') {
+            setFormData(prev => ({ ...prev, total_recipients: Math.floor(customerData.length * 0.2) }));
+        }
+    }, [formData.target_audience, customerData]);
+
 
     const saveToLocalStorage = (updated) => {
         setCampaigns(updated);
@@ -918,9 +942,24 @@ const BusinessMarketing = () => {
                                                     value={formData.total_recipients} 
                                                     onChange={e => setFormData({ ...formData, total_recipients: parseInt(e.target.value) || 0 })}
                                                     style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.82rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                                    placeholder={isCustLoading ? "Loading..." : "0"}
                                                 />
                                             </div>
                                         </div>
+
+                                        {/* RECIPIENT EMAILS PREVIEW */}
+                                        {formData.target_audience === 'All Customers' && customerData.length > 0 && (
+                                            <div style={{ marginTop: '0.5rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', border: '1px dashed #CBD5E1' }}>
+                                                <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.7rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase' }}>📧 Audience Email List (Preview)</h5>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '100px', overflowY: 'auto' }}>
+                                                    {customerData.map((c, i) => (
+                                                        <span key={i} style={{ fontSize: '0.65rem', background: '#E2E8F0', padding: '0.2rem 0.4rem', borderRadius: '4px', color: '#1E293B', fontWeight: '600' }}>
+                                                            {c.email || c.name.split(' ')[0].toLowerCase() + '@cliks.in'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#64748B', marginBottom: '0.3rem' }}>Segment Label</label>
