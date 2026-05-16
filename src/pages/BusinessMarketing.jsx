@@ -380,6 +380,9 @@ const BusinessMarketing = () => {
                 return;
             }
 
+            console.log(`[Campaign Launch] Dispatching to ${recipients.length} recipients.`);
+            console.log(`[Campaign Launch] Sample recipients:`, recipients.slice(0, 3));
+
             // 2. Call BNX Mail API
             await mailService.bulkSend({
                 recipients: recipients,
