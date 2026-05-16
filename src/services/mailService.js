@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiClient } from '../api/client';
 
 export const mailService = {
     bulkSend: async (payload) => {
@@ -8,16 +8,15 @@ export const mailService = {
         console.log('[Mail Service] Payload:', JSON.stringify(payload, null, 2));
 
         try {
-            const response = await axios.post('https://api.bnxmail.com/api/mail/bulk-send', payload, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            console.log('[Mail Service] Success Response:', response.data);
-            return response.data;
+            // Using apiClient instead of axios to match project standards and resolve build errors
+            const res = await apiClient.post('https://api.bnxmail.com/api/mail/bulk-send', payload);
+            
+            // apiClient returns res.data equivalent or the parsed JSON directly
+            // In our apiClient.js, it returns response.json() or response.text()
+            console.log('[Mail Service] Success Response:', res);
+            return res;
         } catch (error) {
-            console.error('[Mail Service] Bulk Send Error:', error.response?.data || error.message);
+            console.error('[Mail Service] Bulk Send Error:', error.message || error);
             throw error;
         }
     }

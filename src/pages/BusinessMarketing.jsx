@@ -36,6 +36,7 @@ import {
     Zap
 } from 'lucide-react';
 import '../App.css';
+import { customConfirm } from '../utils/customConfirm';
 
 // Pre-defined initial mock campaigns with all required fields
 const INITIAL_CAMPAIGNS = [
@@ -331,8 +332,8 @@ const BusinessMarketing = () => {
         });
     };
 
-    const handleDeleteCampaign = (id) => {
-        if (confirm('Are you sure you want to delete this campaign?')) {
+    const handleDeleteCampaign = async (id) => {
+        if (await customConfirm('Are you sure you want to delete this campaign?')) {
             const updated = campaigns.filter(c => c.campaign_id !== id);
             saveToLocalStorage(updated);
             if (selectedCampaign?.campaign_id === id) {
@@ -359,7 +360,7 @@ const BusinessMarketing = () => {
 
     const triggerManualLaunch = async (camp) => {
         console.log('[Campaign Launch] Entry point reached for campaign:', camp.campaign_id);
-        if (!confirm(`Are you sure you want to launch "${camp.campaign_name}" to ${camp.total_recipients} customers?`)) {
+        if (!(await customConfirm(`Are you sure you want to launch "${camp.campaign_name}" to ${camp.total_recipients} customers?`))) {
             console.log('[Campaign Launch] User cancelled the confirmation dialog.');
             return;
         }
