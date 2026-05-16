@@ -51,7 +51,7 @@ const BusinessBilling = () => {
     const [selectedHistoryInvoice, setSelectedHistoryInvoice] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
-    const [activeTemplate, setActiveTemplate] = useState('standard'); // standard, modern, minimal
+    const [activeTemplate, setActiveTemplate] = useState('premium_corporate'); // standard, premium_corporate, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
@@ -1217,7 +1217,7 @@ const BusinessBilling = () => {
                                     <LayoutTemplate size={20} color="#BE185D" />
                                     Choose Invoice Template
                                 </h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.1rem', margin: 0 }}>Select the visual design for generated PDF and physical prints. Select one of 10 unique layouts.</p>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.1rem', margin: 0 }}>Select the visual design for generated PDF and physical prints. Select one of 11 unique layouts.</p>
                             </div>
                             <button onClick={() => setIsTemplatesModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#64748B', cursor: 'pointer' }}>
                                 <X size={18} />
@@ -1238,8 +1238,9 @@ const BusinessBilling = () => {
                                 borderRight: '1px solid #E2E8F0' 
                             }}>
                                 {[
+                                    { id: 'premium_corporate', name: 'Premium Corporate', desc: 'Sleek Navy Enterprise', color: '#1E3A8A', bg: '#DBEAFE' },
                                     { id: 'standard', name: 'Executive Standard', desc: 'Clean Compliance', color: '#BE185D', bg: '#FCE7F3' },
-                                    { id: 'modern', name: 'Premium Corporate', desc: 'Sleek Sans-Serif', color: '#1E3A8A', bg: '#DBEAFE' },
+                                    { id: 'modern', name: 'Modern Pro', desc: 'Minimalist Sans-Serif', color: '#10B981', bg: '#D1FAE5' },
                                     { id: 'minimal', name: 'Master Box Grid', desc: 'Heavy Accounting', color: '#000000', bg: '#F1F5F9' },
                                     { id: 'elegant_dark', name: 'Pro Accent Top', desc: 'Luxury Color Block', color: '#F59E0B', bg: '#FEF3C7' },
                                     { id: 'compact_retail', name: 'Thermal Receipt (POS)', desc: '80mm Small Roll Printing', color: '#4B5563', bg: '#E5E7EB' },
@@ -1275,11 +1276,14 @@ const BusinessBilling = () => {
                                         }}>
                                             {/* Render mini abstract SVG / Div representation placeholders */}
                                             <div style={{ width: '100%', height: '100%', opacity: 0.7, position: 'relative' }}>
+                                                {tmpl.id === 'premium_corporate' && (
+                                                    <div><div style={{height: '4px', width: '100%', background: tmpl.color}}></div><div style={{height: '25px', width: '40%', background: '#eee', margin: '10px 0', borderLeft: `4px solid ${tmpl.color}`}}></div><div style={{height:'35px', width: '100%', background: '#fafafa'}}></div></div>
+                                                )}
                                                 {tmpl.id === 'standard' && (
                                                     <div><div style={{height: '6px', width: '40%', background: tmpl.color, marginBottom: '5px'}}></div><div style={{display:'flex', gap: '2px'}}><div style={{height:'20px', flex:1, background:tmpl.bg}}></div><div style={{height:'20px', flex:1, background:tmpl.bg}}></div></div><div style={{height:'30px', width: '100%', background: '#f1f1f1', marginTop: '5px'}}></div></div>
                                                 )}
                                                 {tmpl.id === 'modern' && (
-                                                    <div><div style={{height: '4px', width: '100%', background: tmpl.color}}></div><div style={{height: '25px', width: '40%', background: '#eee', margin: '10px 0'}}></div><div style={{height:'35px', width: '100%', borderTop: `2px solid ${tmpl.color}`, background: '#fafafa'}}></div></div>
+                                                    <div><div style={{height: '2px', width: '100%', background: tmpl.color}}></div><div style={{height: '20px', width: '30%', background: '#eee', margin: '8px 0'}}></div><div style={{height: '40px', background: '#fcfcfc', border: '1px solid #eee'}}></div></div>
                                                 )}
                                                 {tmpl.id === 'minimal' && (
                                                     <div style={{border: '1px solid #000', height: '90px'}}><div style={{height: '15px', borderBottom: '1px solid #000'}}></div><div style={{height: '15px', borderBottom: '1px solid #000', display:'flex'}}><div style={{flex:1, borderRight: '1px solid #000'}}></div><div style={{flex:1}}></div></div><div style={{height: '40px'}}></div></div>
