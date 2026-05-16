@@ -202,6 +202,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/payments/split-collect')) return 'Split & Collect';
         if (path.includes('/payments/rewards')) return 'Rewards & Offers';
         if (path.includes('/payments/people')) return 'People';
+        if (path.includes('/payments/plan')) return 'Plan';
 
         if (path.includes('/referral')) return 'Refer & Earn';
         if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
@@ -326,12 +327,12 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'BETA Club', icon: UsersRound, path: '/social/investors' , color: '#FFD700' }
         ],
         financeMode: [
-            { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
-            { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
-            { label: 'Segregation', icon: Target, path: '/payments/segregation' },
-            // { label: 'Bank Accounts', icon: Building, path: '/payments/bank-accounts' }, // Will do in future
-            { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
             { label: 'People', icon: Users, path: '/payments/people' },
+            { label: 'Plan', icon: Calendar, path: '/payments/plan' },
+            { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
+            { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
+            { label: 'Segregation', icon: Target, path: '/payments/segregation' },
+            { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
             { label: 'Rewards & Offers', icon: Gift, path: '/payments/rewards' }
         ]
 

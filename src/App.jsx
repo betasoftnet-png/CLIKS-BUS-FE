@@ -66,6 +66,7 @@ import BusinessReferral from './pages/BusinessReferral';
 import BusinessRewards from './pages/BusinessRewards';
 import BusinessTrading from './pages/BusinessTrading';
 import BusinessPeople from './pages/BusinessPeople';
+import BusinessPaymentPlan from './pages/BusinessPaymentPlan';
 import BusinessMeetup from './pages/BusinessMeetup';
 import BusinessPitches from './pages/BusinessPitches';
 import VerifyPass from './pages/VerifyPass';
@@ -161,6 +162,7 @@ function AppContent() {
                     <Route path="/payments/rewards" element={<BusinessRewards />} />
                     {/* <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} /> */} {/* Will do in future */}
                     <Route path="/payments/people" element={<BusinessPeople />} />
+                    <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
 
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
                     <Route path="/inventory/warehouse" element={<BusinessWarehouse />} />

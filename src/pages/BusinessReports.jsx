@@ -496,6 +496,40 @@ const BusinessReports = () => {
         ? allReports 
         : allReports.filter(r => r.category === activeCategory);
 
+    const renderReportCard = (report) => (
+        <div 
+            key={report.id} 
+            onClick={() => handleSelectReport(report)}
+            style={{ 
+                background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
+                transition: 'all 0.3s', cursor: 'pointer', position: 'relative', overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#BE185D';
+                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#E2E8F0';
+                e.currentTarget.style.boxShadow = 'none';
+            }}
+        >
+            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', marginBottom: '1rem' }}>
+                <report.icon size={20} />
+            </div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.4rem', margin: 0 }}>{report.title}</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', marginBottom: '1rem', margin: 0 }}>{report.desc}</p>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
+                <button style={{ color: '#BE185D', background: 'transparent', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}>
+                    VIEW REPORT <ChevronRight size={14} />
+                </button>
+                <button style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <Download size={14} />
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
@@ -552,44 +586,35 @@ const BusinessReports = () => {
             </div>
             
             {/* Central Auto-Scrolling Frame */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-
-            {/* Reports Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                {filteredReports.map(report => (
-                    <div 
-                        key={report.id} 
-                        onClick={() => handleSelectReport(report)}
-                        style={{ 
-                            background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
-                            transition: 'all 0.3s', cursor: 'pointer', position: 'relative', overflow: 'hidden'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#BE185D';
-                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#E2E8F0';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                    >
-                        <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', marginBottom: '1rem' }}>
-                            <report.icon size={20} />
-                        </div>
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.4rem', margin: 0 }}>{report.title}</h3>
-                        <p style={{ fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', marginBottom: '1rem', margin: 0 }}>{report.desc}</p>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
-                            <button style={{ color: '#BE185D', background: 'transparent', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}>
-                                VIEW REPORT <ChevronRight size={14} />
-                            </button>
-                            <button style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <Download size={14} />
-                            </button>
-                        </div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
+                {activeCategory === 'all' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', paddingBottom: '2rem' }}>
+                        {reportCategories.filter(c => c.id !== 'all').map(cat => {
+                            const catReports = allReports.filter(r => r.category === cat.id);
+                            if (catReports.length === 0) return null;
+                            return (
+                                <div key={cat.id}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D' }}>
+                                            <cat.icon size={14} />
+                                        </div>
+                                        <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>
+                                            {cat.label}
+                                        </h2>
+                                        <div style={{ flex: 1, height: '1px', background: '#E2E8F0', marginLeft: '0.5rem' }}></div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                        {catReports.map(report => renderReportCard(report))}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                ))}
-            </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', paddingBottom: '2rem' }}>
+                        {filteredReports.map(report => renderReportCard(report))}
+                    </div>
+                )}
             </div>
 
             {/* Dynamic Report Details Modal */}
