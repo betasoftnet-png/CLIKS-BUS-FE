@@ -358,9 +358,14 @@ const BusinessMarketing = () => {
     });
 
     const triggerManualLaunch = async (camp) => {
-        if (!confirm(`Are you sure you want to launch "${camp.campaign_name}" to ${camp.total_recipients} customers?`)) return;
+        console.log('[Campaign Launch] Entry point reached for campaign:', camp.campaign_id);
+        if (!confirm(`Are you sure you want to launch "${camp.campaign_name}" to ${camp.total_recipients} customers?`)) {
+            console.log('[Campaign Launch] User cancelled the confirmation dialog.');
+            return;
+        }
 
         setIsLaunching(true);
+        console.log('[Campaign Launch] Starting recipient preparation...');
         try {
             // 1. Prepare Recipients
             let recipients = [];
@@ -374,7 +379,11 @@ const BusinessMarketing = () => {
                     .slice(0, camp.total_recipients);
             }
 
+            console.log('[Campaign Launch] Total customers in CRM:', customerData.length);
+            console.log('[Campaign Launch] Generated recipients:', recipients.length);
+
             if (recipients.length === 0) {
+                console.warn('[Campaign Launch] Aborting send: No valid recipients found.');
                 alert('No valid customer emails found for this audience.');
                 setIsLaunching(false);
                 return;
