@@ -26,6 +26,7 @@ const AdminSalesLeads = () => {
     const [agents, setAgents] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [agentFilter, setAgentFilter] = useState('ALL');
     const [showModal, setShowModal] = useState(false);
 
     // Form states for enlisting prospect by admin
@@ -125,6 +126,7 @@ const AdminSalesLeads = () => {
 
     const filteredLeads = leads
         .filter(l => statusFilter === 'ALL' ? true : (l.status || '').toUpperCase() === statusFilter.toUpperCase())
+        .filter(l => agentFilter === 'ALL' ? true : (l.agent_id && l.agent_id.toString() === agentFilter))
         .filter(l => {
             const q = searchQuery.toLowerCase();
             return (
@@ -214,6 +216,17 @@ const AdminSalesLeads = () => {
                             <option value="PRESENTATION">Presentation Scheduled</option>
                             <option value="CONVERTED">Converted</option>
                             <option value="LOST">Lost</option>
+                        </select>
+
+                        <select 
+                            value={agentFilter}
+                            onChange={(e) => setAgentFilter(e.target.value)}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 700, fontSize: '0.85rem', color: '#1E293B', background: '#F8FAFC', outline: 'none' }}
+                        >
+                            <option value="ALL">All Representatives</option>
+                            {agents.map(agent => (
+                                <option key={agent.id} value={agent.id.toString()}>{agent.name}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
