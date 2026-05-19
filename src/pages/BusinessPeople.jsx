@@ -1539,9 +1539,6 @@ const BusinessPeople = () => {
                                         {isInlineRemOpen ? 'Cancel Alarm' : <><Bell size={15} /> Set Maturity Due</>}
                                     </button>
                                 )}
-                                <button onClick={() => setSelectedPersonId(null)} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#1B6B3A', border: 'none', color: 'white', fontWeight: '750', cursor: 'pointer' }}>
-                                    Dismiss Records
-                                </button>
                             </div>
                         </Motion.div>
                     </div>
