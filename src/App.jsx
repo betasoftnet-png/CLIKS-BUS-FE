@@ -37,6 +37,7 @@ import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
 import BusinessInventory from './pages/BusinessInventory';
 import BusinessBilling from './pages/BusinessBilling';
+import BusinessInvoicePreview from './pages/BusinessInvoicePreview';
 import BusinessSalesOrders from './pages/BusinessSalesOrders';
 import BusinessPurchases from './pages/BusinessPurchases';
 import BusinessCRM from './pages/BusinessCRM';
@@ -118,6 +119,15 @@ function AppContent() {
 
         {/* Public Pass Verification Gate */}
         <Route path="/verify-pass" element={<VerifyPass />} />
+
+        {/* Dynamic A4 print-ready invoice preview standalone page */}
+        <Route path="/sales/invoice/preview" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <BusinessInvoicePreview />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         
         {/* Protected Routes - All routes within MainLayout require authentication */}
         <Route path="*" element={

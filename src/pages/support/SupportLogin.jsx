@@ -17,7 +17,7 @@ const SupportLogin = () => {
         setError('');
         try {
             const res = await supportAgentLogin(email, password);
-            if (res && res.success) {
+            if (res && res.user && res.user.role === 'support_agent') {
                 navigate('/support-portal/dashboard');
             }
         } catch (err) {
