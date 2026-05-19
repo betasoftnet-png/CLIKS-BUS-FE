@@ -35,8 +35,8 @@ const AdminSalesTeam = () => {
         setLoading(true);
         try {
             const res = await adminService.getSalesAgents();
-            if (res && res.data) {
-                setAgents(res.data);
+            if (res) {
+                setAgents(res);
             }
         } catch (err) {
             console.error("Failed to query sales team:", err);

@@ -26,8 +26,8 @@ const AdminSalesLeads = () => {
         setLoading(true);
         try {
             const res = await adminService.getGlobalLeads();
-            if (res && res.data) {
-                setLeads(res.data);
+            if (res) {
+                setLeads(res);
             }
         } catch (err) {
             console.error("Failed to query global leads metrics:", err);

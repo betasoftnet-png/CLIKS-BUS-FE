@@ -31,9 +31,9 @@ const AdminSales = () => {
         setLoading(true);
         try {
             const res = await adminService.getGlobalSalesData();
-            if (res && res.data) {
-                setInvoices(res.data.invoices || []);
-                setTotals(res.data.totals || { count: 0, total_volume: 0, total_collected: 0, total_tax: 0 });
+            if (res) {
+                setInvoices(res.invoices || []);
+                setTotals(res.totals || { count: 0, total_volume: 0, total_collected: 0, total_tax: 0 });
             }
         } catch (err) {
             console.error("Failed to load global sales:", err);
