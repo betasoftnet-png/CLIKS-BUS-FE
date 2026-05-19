@@ -332,7 +332,7 @@ const BusinessMeetup = () => {
                                 {/* Sleek Condensed Card Art Cover */}
                                 <div style={{
                                     height: '75px',
-                                    background: '#1E40AF',
+                                    background: '#004aad',
                                     position: 'relative',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -353,7 +353,7 @@ const BusinessMeetup = () => {
                                     </div>
 
                                     {/* Price Tag */}
-                                    <div style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'white', color: '#1E40AF', padding: '0.3rem 0.6rem', borderRadius: '6px', fontWeight: '900', fontSize: '0.7rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'white', color: '#004aad', padding: '0.3rem 0.6rem', borderRadius: '6px', fontWeight: '900', fontSize: '0.7rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                                         {event.price || 'Free'}
                                     </div>
                                 </div>
@@ -364,7 +364,7 @@ const BusinessMeetup = () => {
                                         <span style={{
                                             display: 'inline-flex', alignItems: 'center', gap: '3px',
                                             padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                            background: '#EFF6FF', color: '#1E40AF', fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase'
+                                            background: '#EFF6FF', color: '#004aad', fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase'
                                         }}>
                                             {event.type || 'Offline'}
                                         </span>
@@ -397,7 +397,7 @@ const BusinessMeetup = () => {
                                         {/* Capacity visualizer */}
                                         <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.35rem', fontSize: '0.68rem' }}>
                                             <span style={{ fontWeight: '800', color: '#64748B' }}>Seats:</span>
-                                            <span style={{ fontWeight: '900', color: isSoldOut ? '#DC2626' : '#1E40AF' }}>
+                                            <span style={{ fontWeight: '900', color: isSoldOut ? '#DC2626' : '#004aad' }}>
                                                 {currentAttendees}/{maxSeats} Booked {isSoldOut && '(FULL)'}
                                             </span>
                                         </div>
@@ -421,7 +421,7 @@ const BusinessMeetup = () => {
                                                 {currentAttendees > 3 && (
                                                     <div style={{
                                                         width: '22px', height: '22px', borderRadius: '50%',
-                                                        background: '#1E40AF', border: '2px solid white', marginLeft: '-6px',
+                                                        background: '#004aad', border: '2px solid white', marginLeft: '-6px',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         fontSize: '0.55rem', color: 'white', fontWeight: '900'
                                                     }}>
@@ -476,8 +476,8 @@ const BusinessMeetup = () => {
                                                 disabled={joinMutation.isPending}
                                                 style={{
                                                     padding: '0.55rem 1.1rem', border: 'none', borderRadius: '8px',
-                                                    color: 'white', background: '#1E40AF', fontWeight: '800',
-                                                    cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(30,64,175,0.15)'
+                                                    color: 'white', background: '#004aad', fontWeight: '800',
+                                                    cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(0,74,173,0.15)'
                                                 }}
                                             >
                                                 Reserve Entry
