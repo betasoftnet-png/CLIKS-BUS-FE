@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, stockService, settingsService } from '../services';
 import { apiClient } from '../api/client';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     Warehouse as WarehouseIcon, 
     Plus, 
@@ -37,7 +38,8 @@ const BusinessWarehouse = () => {
     });
     const activeConfig = userSettings?.data || userSettings || {};
 
-    const [activeTab, setActiveTab] = useState('profiles'); // 'profiles', 'stock', 'operations', 'transfers'
+    const [activeTab, setActiveTab] = useState('profiles');
+    const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'stock', 'operations', 'transfers'
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
@@ -507,17 +509,15 @@ const BusinessWarehouse = () => {
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Warehouse Facility</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Product Description</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Storage location zone</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Current Stock</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Damaged Qty</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>In Transit</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Sourcing Valuation</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'warehouse_name', label: 'Warehouse Facility', placeholder: 'Name' },
+        { key: 'product_name', label: 'Product Description', placeholder: 'Product' },
+        { key: 'zone', label: 'Storage Zone', placeholder: 'Zone A' },
+        { key: 'current_stock', label: 'Current Stock', placeholder: 'e.g. 100' },
+        { key: 'damaged', label: 'Damaged Qty', placeholder: 'e.g. 5' },
+        { key: 'in_transit', label: 'In Transit', placeholder: 'e.g. 10' },
+        { key: 'valuation', label: 'Sourcing Valuation', placeholder: 'e.g. 50000' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {whStocks.map((st) => (
                                     <tr key={st.wh_stock_id} style={{ borderBottom: '1px solid #F8FAFC' }}>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     Calculator, 
     FileText, 
@@ -38,7 +39,8 @@ const BusinessAccounting = () => {
     });
     const activeConfig = userSettings?.data || userSettings || {};
 
-    const [activeTab, setActiveTab] = useState('p&l'); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
+    const [activeTab, setActiveTab] = useState('p&l');
+    const [colFilters, setColFilters] = React.useState({}); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [exportFromDate, setExportFromDate] = useState(() => {
@@ -676,15 +678,13 @@ const BusinessAccounting = () => {
                 {activeTab === 'ledger' && (
                     <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
-                                    <th style={{ padding: '0.6rem 1rem', color: '#94A3B8', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ padding: '0.6rem 1rem', color: '#94A3B8', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Category</th>
-                                    <th style={{ padding: '0.6rem 1rem', color: '#94A3B8', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Mode</th>
-                                    <th style={{ padding: '0.6rem 1rem', color: '#94A3B8', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Type</th>
-                                    <th style={{ padding: '0.6rem 1rem', color: '#94A3B8', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+        { key: 'category', label: 'Category', placeholder: 'e.g. Sales' },
+        { key: 'mode', label: 'Mode', placeholder: 'e.g. UPI' },
+        { key: 'type', label: 'Type', placeholder: 'e.g. Income' },
+        { key: 'amount', label: 'Amount', placeholder: 'e.g. 5000' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {dayBook.map(entry => (
                                     <tr key={entry.id} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>

@@ -28,6 +28,7 @@ import {
 import '../App.css';
 import { useQuery } from '@tanstack/react-query';
 import { settingsService } from '../services';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const INITIAL_DELIVERIES = [
     {
@@ -221,7 +222,8 @@ const BusinessDelivery = () => {
     });
 
     const staff = INITIAL_STAFF;
-    const [activeTab, setActiveTab] = useState('all'); // 'all' | 'staff' | 'challans' | 'returns' | 'reports'
+    const [activeTab, setActiveTab] = useState('all');
+    const [colFilters, setColFilters] = React.useState({}); // 'all' | 'staff' | 'challans' | 'returns' | 'reports'
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isActionOpen, setIsActionOpen] = useState(false);
     const [selectedDelivery, setSelectedDelivery] = useState(null);
@@ -667,17 +669,15 @@ const BusinessDelivery = () => {
                 <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>📄 Generated Delivery Challans (Product Dispatches)</h3>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontSize: '0.85rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                <th style={{ padding: '1rem' }}>Challan No</th>
-                                <th style={{ padding: '1rem' }}>Type</th>
-                                <th style={{ padding: '1rem' }}>Customer</th>
-                                <th style={{ padding: '1rem' }}>Dispatch Date</th>
-                                <th style={{ padding: '1rem' }}>linked invoice</th>
-                                <th style={{ padding: '1rem' }}>Status</th>
-                                <th style={{ padding: '1rem' }}>Action</th>
-                            </tr>
-                        </thead>
+                        <FilterableTableHead columns={[
+        { key: 'challan_number', label: 'Challan No', placeholder: 'e.g. CH-001' },
+        { key: 'type', label: 'Type', placeholder: 'e.g. Outward' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'dispatch_date', label: 'Dispatch Date', placeholder: 'e.g. 2026-05' },
+        { key: 'linked_invoice', label: 'Linked Invoice', placeholder: 'INV-' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Delivered' },
+        { key: '_actions', label: 'Action', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                         <tbody>
                             {deliveries.map((dlv) => (
                                 <tr key={dlv.delivery_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>

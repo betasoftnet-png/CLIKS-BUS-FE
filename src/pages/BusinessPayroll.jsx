@@ -22,11 +22,13 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollService } from '../services/payrollService';
 import { staffingService } from '../services/staffingService';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 
 
 const BusinessPayroll = () => {
-    const [activeTab, setActiveTab] = useState('run'); // 'run', 'structures', 'compliance', 'loans'
+    const [activeTab, setActiveTab] = useState('run');
+    const [colFilters, setColFilters] = React.useState({}); // 'run', 'structures', 'compliance', 'loans'
     const [searchTerm, setSearchTerm] = useState('');
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
@@ -291,19 +293,17 @@ const BusinessPayroll = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Payslip Ref</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Taxable Base Salary</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Earnings (HRA/Bonus/OT)</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Deductions (PF/ESI/TDS)</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Net Take Home</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Bank Account</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'payslip_ref', label: 'Payslip Ref', placeholder: 'e.g. PAY-001' },
+        { key: 'employee_name', label: 'Employee', placeholder: 'Name' },
+        { key: 'base_salary', label: 'Base Salary', placeholder: 'e.g. 50000' },
+        { key: 'earnings', label: 'Earnings', placeholder: 'e.g. 5000' },
+        { key: 'deductions', label: 'Deductions', placeholder: 'e.g. 2000' },
+        { key: 'net_pay', label: 'Net Take Home', placeholder: 'e.g. 48000' },
+        { key: 'bank_account', label: 'Bank Account', placeholder: 'Account' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Paid' },
+        { key: '_actions', label: 'Action', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredRecords.map((rec) => {
                                     const gross = rec.basic_salary + rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay;

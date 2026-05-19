@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ordersService } from '../services/ordersService';
 import { crmService } from '../services/crmService';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 import { 
     ShoppingCart, 
@@ -32,6 +33,7 @@ import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSalesOrders = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [colFilters, setColFilters] = React.useState({});
     const [statusFilter, setStatusFilter] = useState('All');
     const [dateFilter, setDateFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -441,17 +443,15 @@ const BusinessSalesOrders = () => {
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Order Number</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Dispatch Date</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Grand Total</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Advance</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'order_number', label: 'Order Number', placeholder: 'e.g. SO-001' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'dispatch_date', label: 'Dispatch Date', placeholder: 'e.g. 2026-05' },
+        { key: 'grand_total', label: 'Grand Total', placeholder: 'e.g. 10000' },
+        { key: 'advance', label: 'Advance', placeholder: 'e.g. 2000' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Confirmed' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredOrders.map((row, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>

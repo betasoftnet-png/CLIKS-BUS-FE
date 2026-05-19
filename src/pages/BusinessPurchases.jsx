@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     ShoppingCart, 
     Plus, 
@@ -35,7 +36,8 @@ import '../App.css';
 
 const BusinessPurchases = () => {
     const [bankAccounts, setBankAccounts] = useState(() => paymentsStore.getBankAccounts());
-    const [activeTab, setActiveTab] = useState('purchase-orders'); // 'purchase-orders', 'purchase-bills', 'purchase-returns', 'reports'
+    const [activeTab, setActiveTab] = useState('purchase-orders');
+    const [colFilters, setColFilters] = React.useState({}); // 'purchase-orders', 'purchase-bills', 'purchase-returns', 'reports'
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [dateFilter, setDateFilter] = useState('');
@@ -519,16 +521,14 @@ const BusinessPurchases = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>PO Details</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier & GST</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items & Procurement</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outward Payables</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receiving Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'po_number', label: 'PO Details', placeholder: 'PO No' },
+        { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
+        { key: 'items', label: 'Items', placeholder: 'Item' },
+        { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPOs.map((po) => (
                                     <tr key={po.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -629,16 +629,14 @@ const BusinessPurchases = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Bill Details</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Details</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Itemized Grid</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GST CGST/SGST/IGST</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Grand Total</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Payment Mode</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'po_number', label: 'PO Details', placeholder: 'PO No' },
+        { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
+        { key: 'items', label: 'Items', placeholder: 'Item' },
+        { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredBills.map((bill) => (
                                     <tr key={bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>

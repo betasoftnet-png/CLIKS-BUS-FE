@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     ArrowDownRight, 
     Plus, 
@@ -31,7 +32,8 @@ import { returnsService } from '../services/returnsService';
 import '../App.css';
 
 const BusinessReturns = () => {
-    const [activeTab, setActiveTab] = useState('sales'); // 'sales', 'purchase', 'warranty', 'stock'
+    const [activeTab, setActiveTab] = useState('sales');
+    const [colFilters, setColFilters] = React.useState({}); // 'sales', 'purchase', 'warranty', 'stock'
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createReturnType, setCreateReturnType] = useState('sales'); // 'sales' or 'purchase'
@@ -359,18 +361,15 @@ const BusinessReturns = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Return Ref</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Original Inv</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Refund Mode</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Inspection</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Inspection</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'return_ref', label: 'Return Ref', placeholder: 'e.g. RET-001' },
+        { key: 'original_invoice', label: 'Original Inv', placeholder: 'INV-' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'items_returned', label: 'Items Returned', placeholder: 'Item' },
+        { key: 'refund_mode', label: 'Refund Mode', placeholder: 'e.g. UPI' },
+        { key: 'inspection', label: 'Inspection', placeholder: 'Status' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Approved' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredSalesReturns.map((sr) => (
                                     <tr key={sr.id || sr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -448,16 +447,15 @@ const BusinessReturns = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Return Ref</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Original Bill</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Returned Items</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Refund Amount</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Damages status</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'return_ref', label: 'Return Ref', placeholder: 'e.g. RET-001' },
+        { key: 'original_invoice', label: 'Original Inv', placeholder: 'INV-' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'items_returned', label: 'Items Returned', placeholder: 'Item' },
+        { key: 'refund_mode', label: 'Refund Mode', placeholder: 'e.g. UPI' },
+        { key: 'inspection', label: 'Inspection', placeholder: 'Status' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Approved' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPurchaseReturns.map((pr) => (
                                     <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>

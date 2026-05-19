@@ -33,6 +33,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
 import { customConfirm } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const INITIAL_EMPLOYEES = [
     {
@@ -112,7 +113,8 @@ const INITIAL_EMPLOYEES = [
 ];
 
 const BusinessStaffing = () => {
-    const [activeTab, setActiveTab] = useState('profiles'); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
+    const [activeTab, setActiveTab] = useState('profiles');
+    const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
     const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
     const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
@@ -378,17 +380,15 @@ const BusinessStaffing = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>ID / Code</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Info</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Emergency Person</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Personal (DOB/Blood)</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Work Location</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'name', label: 'Employee Profile', placeholder: 'Name' },
+        { key: 'employee_id', label: 'ID / Code', placeholder: 'EMP-' },
+        { key: 'contact', label: 'Contact Info', placeholder: 'Phone/Email' },
+        { key: 'emergency', label: 'Emergency Person', placeholder: 'Name' },
+        { key: 'personal', label: 'Personal Info', placeholder: 'DOB' },
+        { key: 'location', label: 'Work Location', placeholder: 'City' },
+        { key: '_actions', label: 'Action', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredEmployees.map((emp) => (
                                     <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>

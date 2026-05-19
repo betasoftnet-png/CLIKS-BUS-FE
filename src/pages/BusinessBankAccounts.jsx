@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     CreditCard, 
     Plus, 
@@ -25,7 +26,8 @@ import { paymentsStore } from '../lib/paymentsStore';
 import '../App.css';
 
 const BusinessBankAccounts = () => {
-    const [activeTab, setActiveTab] = useState('accounts'); // 'accounts' or 'transactions'
+    const [activeTab, setActiveTab] = useState('accounts');
+    const [colFilters, setColFilters] = React.useState({}); // 'accounts' or 'transactions'
     const [searchTerm, setSearchTerm] = useState('');
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -213,15 +215,13 @@ const BusinessBankAccounts = () => {
                             <div style={{ padding: '5rem', textAlign: 'center', color: '#64748B' }}>No bank accounts found.</div>
                         ) : (
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Bank / Institution</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Account Name</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Account Details</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Opening Balance</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Current Balance</th>
-                                    </tr>
-                                </thead>
+                                <FilterableTableHead columns={[
+        { key: 'bank', label: 'Bank / Institution', placeholder: 'e.g. HDFC' },
+        { key: 'account_name', label: 'Account Name', placeholder: 'Name' },
+        { key: 'account_no', label: 'Account Details', placeholder: 'Acc No' },
+        { key: 'opening_balance', label: 'Opening Balance', placeholder: 'e.g. 10000' },
+        { key: 'current_balance', label: 'Current Balance', placeholder: 'e.g. 50000' }
+    ]} onFilterChange={setColFilters} />
                                 <tbody>
                                     {filteredAccounts.map((acc) => (
                                         <tr key={acc.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -258,17 +258,13 @@ const BusinessBankAccounts = () => {
                             <div style={{ padding: '5rem', textAlign: 'center', color: '#64748B' }}>No ledger entries found.</div>
                         ) : (
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Type</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reference</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Bank Account</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Method</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Notes</th>
-                                        <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</th>
-                                    </tr>
-                                </thead>
+                                <FilterableTableHead columns={[
+        { key: 'bank', label: 'Bank / Institution', placeholder: 'e.g. HDFC' },
+        { key: 'account_name', label: 'Account Name', placeholder: 'Name' },
+        { key: 'account_no', label: 'Account Details', placeholder: 'Acc No' },
+        { key: 'opening_balance', label: 'Opening Balance', placeholder: 'e.g. 10000' },
+        { key: 'current_balance', label: 'Current Balance', placeholder: 'e.g. 50000' }
+    ]} onFilterChange={setColFilters} />
                                 <tbody>
                                     {filteredTransactions.map((tx) => (
                                         <tr key={tx.id} style={{ borderBottom: '1px solid #F8FAFC' }}>

@@ -24,10 +24,12 @@ import {
 import { businessSegregationService } from '../services';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessSegregation = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [colFilters, setColFilters] = React.useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -165,15 +167,13 @@ const BusinessSegregation = () => {
                         <div style={{ padding: '5rem', textAlign: 'center', color: '#64748B' }}>No strategies found.</div>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Strategy Name</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Description</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Allocation Split</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'strategy_name', label: 'Strategy Name', placeholder: 'Name' },
+        { key: 'description', label: 'Description', placeholder: 'Desc' },
+        { key: 'allocation', label: 'Allocation Split', placeholder: 'e.g. 60/40' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredSegregations.map((seg) => (
                                     <tr key={seg.id} style={{ borderBottom: '1px solid #F8FAFC' }}>

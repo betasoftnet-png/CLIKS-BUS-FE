@@ -139,6 +139,7 @@ const INITIAL_MATERIALS = [
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bomService, manufacturingService } from '../services';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessManufacturing = () => {
     const queryClient = useQueryClient();
@@ -246,7 +247,8 @@ const BusinessManufacturing = () => {
         }
         return acc;
     }, []);
-    const [activeTab, setActiveTab] = useState('all'); // 'all' (Orders) | 'bom' | 'materials' | 'costing' | 'qc' | 'reports'
+    const [activeTab, setActiveTab] = useState('all');
+    const [colFilters, setColFilters] = React.useState({}); // 'all' (Orders) | 'bom' | 'materials' | 'costing' | 'qc' | 'reports'
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isBOMOpen, setIsBOMOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -579,15 +581,13 @@ const BusinessManufacturing = () => {
                             </div>
 
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                        <th style={{ padding: '0.75rem' }}>Raw Material ID</th>
-                                        <th style={{ padding: '0.75rem' }}>Material Name</th>
-                                        <th style={{ padding: '0.75rem' }}>Required Qty Formula</th>
-                                        <th style={{ padding: '0.75rem' }}>Unit</th>
-                                        <th style={{ padding: '0.75rem', textAlign: 'right' }}>Standard Cost Per Unit</th>
-                                    </tr>
-                                </thead>
+                                <FilterableTableHead columns={[
+        { key: 'material_id', label: 'Material ID', placeholder: 'ID' },
+        { key: 'material_name', label: 'Material Name', placeholder: 'Name' },
+        { key: 'qty', label: 'Required Qty', placeholder: 'Qty' },
+        { key: 'unit', label: 'Unit', placeholder: 'e.g. Kg' },
+        { key: 'cost', label: 'Cost Per Unit', placeholder: 'e.g. 50' }
+    ]} onFilterChange={setColFilters} />
                                 <tbody>
                                     {bom.raw_materials.map(raw => (
                                         <tr key={raw.material_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#475569' }}>
@@ -610,17 +610,13 @@ const BusinessManufacturing = () => {
                 <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>🏗️ Raw Material Stock & Wastage Tracking</h3>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontSize: '0.85rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                <th style={{ padding: '1rem' }}>Material ID</th>
-                                <th style={{ padding: '1rem' }}>Material Name</th>
-                                <th style={{ padding: '1rem' }}>Opening Stock</th>
-                                <th style={{ padding: '1rem' }}>Consumed Qty</th>
-                                <th style={{ padding: '1rem' }}>Remaining Stock</th>
-                                <th style={{ padding: '1rem' }}>Unit</th>
-                                <th style={{ padding: '1rem', textAlign: 'right' }}>Standard Unit Cost</th>
-                            </tr>
-                        </thead>
+                        <FilterableTableHead columns={[
+        { key: 'material_id', label: 'Material ID', placeholder: 'ID' },
+        { key: 'material_name', label: 'Material Name', placeholder: 'Name' },
+        { key: 'qty', label: 'Required Qty', placeholder: 'Qty' },
+        { key: 'unit', label: 'Unit', placeholder: 'e.g. Kg' },
+        { key: 'cost', label: 'Cost Per Unit', placeholder: 'e.g. 50' }
+    ]} onFilterChange={setColFilters} />
                         <tbody>
                             {materials.map(mat => (
                                 <tr key={mat.material_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
@@ -643,17 +639,13 @@ const BusinessManufacturing = () => {
                 <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>💰 Costing, Labor, & Overheads Ledger</h3>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontSize: '0.85rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                <th style={{ padding: '1rem' }}>Work Order</th>
-                                <th style={{ padding: '1rem' }}>Finished Product</th>
-                                <th style={{ padding: '1rem' }}>Raw Materials Cost</th>
-                                <th style={{ padding: '1rem' }}>Labor Cost</th>
-                                <th style={{ padding: '1rem' }}>Overhead Cost</th>
-                                <th style={{ padding: '1rem' }}>Total Cost</th>
-                                <th style={{ padding: '1rem', textAlign: 'right' }}>Per Unit Production Cost</th>
-                            </tr>
-                        </thead>
+                        <FilterableTableHead columns={[
+        { key: 'material_id', label: 'Material ID', placeholder: 'ID' },
+        { key: 'material_name', label: 'Material Name', placeholder: 'Name' },
+        { key: 'qty', label: 'Required Qty', placeholder: 'Qty' },
+        { key: 'unit', label: 'Unit', placeholder: 'e.g. Kg' },
+        { key: 'cost', label: 'Cost Per Unit', placeholder: 'e.g. 50' }
+    ]} onFilterChange={setColFilters} />
                         <tbody>
                             {workOrders.map(wo => (
                                 <tr key={wo.production_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>

@@ -36,6 +36,7 @@ import '../App.css';
 import { crmService } from '../services/crmService';
 import { settingsService } from '../services/settingsService';
 import { customConfirm } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const AVATAR_COLORS = [
     { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue
@@ -55,6 +56,7 @@ const getAvatarColors = (name) => {
 
 const BusinessCRM = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [colFilters, setColFilters] = React.useState({});
     const [customerTypeFilter, setCustomerTypeFilter] = useState('All');
     const [balanceFilter, setBalanceFilter] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -560,20 +562,16 @@ const BusinessCRM = () => {
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Business / Contact</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Details</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limit</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outstanding Balance</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Status</th>
-                                    {activeConfig.loyalty !== false && (
-                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Loyalty Points</th>
-                                    )}
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
+        { key: 'business', label: 'Business / Contact', placeholder: 'e.g. ABC Ltd' },
+        { key: 'gstin', label: 'GSTIN', placeholder: 'Tax ID' },
+        { key: 'credit_limit', label: 'Credit Limit', placeholder: 'e.g. 50000' },
+        { key: 'outstanding', label: 'Outstanding', placeholder: 'e.g. 5000' },
+        { key: 'credit_status', label: 'Credit Status', placeholder: 'e.g. Good' },
+        { key: 'loyalty_points', label: 'Loyalty Pts', placeholder: 'e.g. 100' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredCustomers.map((row) => (
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>

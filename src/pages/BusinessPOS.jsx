@@ -31,10 +31,12 @@ import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessPOS = () => {
     const queryClient = useQueryClient();
     const [cart, setCart] = useState([]);
+    const [colFilters, setColFilters] = React.useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     
@@ -988,13 +990,11 @@ const BusinessPOS = () => {
 
                                 {/* Items Table */}
                                 <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', fontFamily: 'monospace' }}>
-                                    <thead>
-                                        <tr style={{ borderBottom: '1px solid #000' }}>
-                                            <th style={{ textAlign: 'left', padding: '2px 0' }}>ITEM</th>
-                                            <th style={{ textAlign: 'center', padding: '2px 0' }}>QTY</th>
-                                            <th style={{ textAlign: 'right', padding: '2px 0' }}>AMT</th>
-                                        </tr>
-                                    </thead>
+                                    <FilterableTableHead columns={[
+        { key: 'item', label: 'Item', placeholder: 'Name/SKU' },
+        { key: 'qty', label: 'Qty', placeholder: 'e.g. 2' },
+        { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
+    ]} onFilterChange={setColFilters} />
                                     <tbody>
                                         {((lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || []).map((item, i) => (
                                             <tr key={i}>
@@ -1318,14 +1318,11 @@ const BusinessPOS = () => {
                                             {/* Item list in history */}
                                             <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem' }}>
                                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                                                    <thead>
-                                                        <tr style={{ color: '#94A3B8', textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
-                                                            <th style={{ padding: '4px 0', fontWeight: '700' }}>Item (SKU/Barcode)</th>
-                                                            <th style={{ padding: '4px 0', fontWeight: '700', textAlign: 'center' }}>Qty</th>
-                                                            <th style={{ padding: '4px 0', fontWeight: '700', textAlign: 'right' }}>Price</th>
-                                                            <th style={{ padding: '4px 0', fontWeight: '700', textAlign: 'right' }}>Total</th>
-                                                        </tr>
-                                                    </thead>
+                                                    <FilterableTableHead columns={[
+        { key: 'item', label: 'Item', placeholder: 'Name/SKU' },
+        { key: 'qty', label: 'Qty', placeholder: 'e.g. 2' },
+        { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
+    ]} onFilterChange={setColFilters} />
                                                     <tbody>
                                                         {order.items?.map((item, idx) => (
                                                             <tr key={idx} style={{ color: '#1E293B' }}>

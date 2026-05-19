@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { stockService, warehouseService } from '../services';
 import { apiClient } from '../api/client';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     Layers, 
     Plus, 
@@ -28,7 +29,8 @@ import '../App.css';
 
 const BusinessStock = () => {
     const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState('registry'); // 'registry', 'movement', 'warehouse', 'batch'
+    const [activeTab, setActiveTab] = useState('registry');
+    const [colFilters, setColFilters] = React.useState({}); // 'registry', 'movement', 'warehouse', 'batch'
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -364,18 +366,16 @@ const BusinessStock = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Product Description</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Warehouse Location</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Current Stock</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Available Stock</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Damaged / Expired</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Avg Cost</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Valuation</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Alert Status</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'product_name', label: 'Product Description', placeholder: 'Name' },
+        { key: 'warehouse', label: 'Warehouse Location', placeholder: 'Location' },
+        { key: 'current_stock', label: 'Current Stock', placeholder: 'e.g. 100' },
+        { key: 'available_stock', label: 'Available Stock', placeholder: 'e.g. 80' },
+        { key: 'damaged', label: 'Damaged / Expired', placeholder: 'e.g. 5' },
+        { key: 'avg_cost', label: 'Avg Cost', placeholder: 'e.g. 500' },
+        { key: 'valuation', label: 'Total Valuation', placeholder: 'e.g. 50000' },
+        { key: 'alert_status', label: 'Alert Status', placeholder: 'e.g. Low' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredStocks.map((st) => {
                                     const isLow = st.current_stock <= st.reorder_level;

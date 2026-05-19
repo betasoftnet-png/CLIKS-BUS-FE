@@ -41,10 +41,12 @@ import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessBilling = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [colFilters, setColFilters] = React.useState({});
     const [statusFilter, setStatusFilter] = useState('All');
     const [dateFilter, setDateFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -806,18 +808,14 @@ const BusinessBilling = () => {
                         <div style={{ padding: '4rem', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={32} color="#BE185D" /></div>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Client</th>
-                                    {activeConfig.dueDates !== false && (
-                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
-                                    )}
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'invoice_number', label: 'Invoice', placeholder: 'e.g. INV-001' },
+        { key: 'client_name', label: 'Client', placeholder: 'Name' },
+        { key: 'due_date', label: 'Due Date', placeholder: 'e.g. 2026-05' },
+        { key: 'total_amount', label: 'Amount', placeholder: 'e.g. 5000' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Paid' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredInvoices.map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>

@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessWallet = () => {
     // Persisted LocalState for the Wallet context
@@ -23,6 +24,7 @@ const BusinessWallet = () => {
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [colFilters, setColFilters] = React.useState({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [addForm, setAddForm] = useState({ amount: '', description: '' });
     const [searchTerm, setSearchTerm] = useState('');
@@ -246,15 +248,13 @@ const BusinessWallet = () => {
                 {/* History Display Grid/Table */}
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Transaction ID</th>
-                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date & Time</th>
-                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Description</th>
-                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Direction</th>
-                                <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FAFAFA', padding: '1.25rem 2rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
-                            </tr>
-                        </thead>
+                        <FilterableTableHead columns={[
+        { key: 'transaction_id', label: 'Transaction ID', placeholder: 'e.g. TXN-001' },
+        { key: 'date', label: 'Date & Time', placeholder: 'e.g. 2026-05' },
+        { key: 'description', label: 'Description', placeholder: 'Desc' },
+        { key: 'direction', label: 'Direction', placeholder: 'e.g. Credit' },
+        { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
+    ]} onFilterChange={setColFilters} />
                         <tbody>
                             {filteredHistory.length === 0 ? (
                                 <tr>

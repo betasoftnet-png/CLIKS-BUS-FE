@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     CreditCard, 
     Plus, 
@@ -26,7 +27,8 @@ import { paymentService } from '../services/paymentService';
 import '../App.css';
 
 const BusinessPayments = () => {
-    const [activeTab, setActiveTab] = useState('receivables'); // 'receivables', 'payables', 'bank', 'reminders'
+    const [activeTab, setActiveTab] = useState('receivables');
+    const [colFilters, setColFilters] = React.useState({}); // 'receivables', 'payables', 'bank', 'reminders'
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -306,18 +308,16 @@ const BusinessPayments = () => {
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt ID</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice Linked</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Original</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reconciliation</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
+        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
+        { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
+        { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
+        { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
+        { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredReceivables.map((r) => (
                                     <tr key={r.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -349,18 +349,16 @@ const BusinessPayments = () => {
 
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Voucher No</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Name</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Purchase Linked</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Due</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Paid Amount</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Number</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
+        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
+        { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
+        { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
+        { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
+        { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPayables.map((p) => (
                                     <tr key={p.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -417,17 +415,16 @@ const BusinessPayments = () => {
                     <h3 style={{ flexShrink: 0, fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Overdue Customer Accounts Reminders (myBillBook flow)</h3>
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Profile</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Linked Invoice</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount Overdue</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Delay Days</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reminder Status</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right', textTransform: 'uppercase' }}>WhatsApp Alert</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
+        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+        { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
+        { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
+        { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
+        { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
+        { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
+    ]} onFilterChange={setColFilters} />
                         <tbody>
                             {overdues.map((ov) => (
                                 <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>

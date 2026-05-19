@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gstService } from '../services';
+import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     PercentCircle, 
     Plus, 
@@ -26,7 +27,8 @@ import {
 import '../App.css';
 
 const BusinessGST = () => {
-    const [activeTab, setActiveTab] = useState('gstr1'); // 'gstr1', 'gstr2', 'gstr3b', 'gstr9', 'einvoice', 'eway'
+    const [activeTab, setActiveTab] = useState('gstr1');
+    const [colFilters, setColFilters] = React.useState({}); // 'gstr1', 'gstr2', 'gstr3b', 'gstr9', 'einvoice', 'eway'
     const [searchTerm, setSearchTerm] = useState('');
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
     const [isEwayModalOpen, setIsEwayModalOpen] = useState(false);
@@ -368,19 +370,17 @@ const BusinessGST = () => {
 
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice No</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Type</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Place of supply</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Taxable Value</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>CGST / SGST</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>IGST</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total GST</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'invoice_number', label: 'Invoice No', placeholder: 'e.g. INV-001' },
+        { key: 'type', label: 'Type', placeholder: 'e.g. B2B' },
+        { key: 'place_of_supply', label: 'Place of Supply', placeholder: 'State' },
+        { key: 'taxable_value', label: 'Taxable Value', placeholder: 'e.g. 10000' },
+        { key: 'cgst_sgst', label: 'CGST/SGST', placeholder: 'e.g. 900' },
+        { key: 'igst', label: 'IGST', placeholder: 'e.g. 1800' },
+        { key: 'total_gst', label: 'Total GST', placeholder: 'e.g. 1800' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Filed' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredInvoices.map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>

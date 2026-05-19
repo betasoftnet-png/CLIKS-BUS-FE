@@ -34,10 +34,12 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessSuppliers = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [colFilters, setColFilters] = React.useState({});
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'ledger', 'reports'
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -392,17 +394,15 @@ const BusinessSuppliers = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Details</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Demographics</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GST & HSN</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limits</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Running Payable Balance</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'supplier_name', label: 'Supplier Details', placeholder: 'Name' },
+        { key: 'city', label: 'Demographics', placeholder: 'City' },
+        { key: 'gstin', label: 'GST & HSN', placeholder: 'GSTIN' },
+        { key: 'credit_limit', label: 'Credit Limits', placeholder: 'e.g. 50000' },
+        { key: 'payable_balance', label: 'Running Payable', placeholder: 'e.g. 5000' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredSuppliers.map((sup) => {
                                     const supId = sup.id || sup.supplier_id;
@@ -532,15 +532,15 @@ const BusinessSuppliers = () => {
                                 </div>
 
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                    <thead>
-                                        <tr style={{ borderBottom: '1px solid #F1F5F9', background: '#F8FAFC' }}>
-                                            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Tx Date</th>
-                                            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Transaction Ref</th>
-                                            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Debit (You Owe)</th>
-                                            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit (We Paid)</th>
-                                            <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Running Payable</th>
-                                        </tr>
-                                    </thead>
+                                    <FilterableTableHead columns={[
+        { key: 'supplier_name', label: 'Supplier Details', placeholder: 'Name' },
+        { key: 'city', label: 'Demographics', placeholder: 'City' },
+        { key: 'gstin', label: 'GST & HSN', placeholder: 'GSTIN' },
+        { key: 'credit_limit', label: 'Credit Limits', placeholder: 'e.g. 50000' },
+        { key: 'payable_balance', label: 'Running Payable', placeholder: 'e.g. 5000' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
+        { key: '_actions', label: 'Actions', noFilter: true }
+    ]} onFilterChange={setColFilters} />
                                     <tbody>
                                         {(selectedSupplier.ledger || []).map((row, idx) => (
                                             <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>

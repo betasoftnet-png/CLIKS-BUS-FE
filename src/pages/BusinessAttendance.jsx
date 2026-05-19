@@ -21,11 +21,13 @@ import {
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { attendanceService } from '../services/attendanceService';
+import FilterableTableHead from '../components/FilterableTableHead';
 
 
 
 const BusinessAttendance = () => {
-    const [activeTab, setActiveTab] = useState('daily'); // 'daily', 'shifts', 'geo', 'corrections'
+    const [activeTab, setActiveTab] = useState('daily');
+    const [colFilters, setColFilters] = React.useState({}); // 'daily', 'shifts', 'geo', 'corrections'
     const [searchTerm, setSearchTerm] = useState('');
     const [isPunchModalOpen, setIsPunchModalOpen] = useState(false);
     const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
@@ -283,18 +285,16 @@ const BusinessAttendance = () => {
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Log Reference</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Check-In / Out</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Late (Mins)</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Productive Hours</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Device Sync ID</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Location Coordinates</th>
-                                    <th style={{ padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+        { key: 'log_ref', label: 'Log Reference', placeholder: 'e.g. ATT-001' },
+        { key: 'employee', label: 'Employee Profile', placeholder: 'Name' },
+        { key: 'checkin', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
+        { key: 'late', label: 'Late (Mins)', placeholder: 'e.g. 15' },
+        { key: 'hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
+        { key: 'device', label: 'Device Sync ID', placeholder: 'ID' },
+        { key: 'location', label: 'Location', placeholder: 'Coords' },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Present' }
+    ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredLogs.map((log) => (
                                     <tr key={log.attendance_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
