@@ -128,28 +128,7 @@ const FAQ = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
                 
-                {/* Left Column: Frequently Asked Questions */}
-                <div style={{ background: 'white', padding: '2.25rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
-                        <div style={{ padding: '8px', background: '#EFF6FF', color: '#3B82F6', borderRadius: '10px' }}>
-                            <HelpCircle size={20} />
-                        </div>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Frequently Asked Questions</h2>
-                    </div>
-
-                    <AccordionRoot>
-                        {faqs.map((faq, index) => (
-                            <AccordionItem key={index}>
-                                <AccordionTrigger>{faq.question}</AccordionTrigger>
-                                <AccordionContent>
-                                    <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>{faq.answer}</p>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </AccordionRoot>
-                </div>
-
-                {/* Right Column: Ticketing & Active Tickets */}
+                {/* Left Column: Ticketing & Active Tickets */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     
                     {/* Log New Ticket Form */}
@@ -283,6 +262,27 @@ const FAQ = () => {
                         )}
                     </div>
 
+                </div>
+
+                {/* Right Column: Frequently Asked Questions */}
+                <div style={{ background: 'white', padding: '2.25rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
+                        <div style={{ padding: '8px', background: '#EFF6FF', color: '#3B82F6', borderRadius: '10px' }}>
+                            <HelpCircle size={20} />
+                        </div>
+                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Frequently Asked Questions</h2>
+                    </div>
+
+                    <AccordionRoot>
+                        {faqs.map((faq, index) => (
+                            <AccordionItem key={index}>
+                                <AccordionTrigger>{faq.question}</AccordionTrigger>
+                                <AccordionContent>
+                                    <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>{faq.answer}</p>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </AccordionRoot>
                 </div>
 
             </div>
