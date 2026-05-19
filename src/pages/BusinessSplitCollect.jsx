@@ -1,248 +1,419 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { splitExpenseService } from '../services';
-import { EmptyState, PageHeader } from '../components/common';
 import {
     Plus,
     Search,
-    ArrowUpRight,
-    ArrowDownLeft,
-    Loader2,
     Users,
     Receipt,
     Calendar,
     ChevronRight,
-    CheckCircle2,
-    Percent,
-    Hash,
-    PieChart,
-    ShoppingCart,
-    Sparkles,
-    CreditCard,
     Trash2,
-    X
+    X,
+    ChevronLeft,
+    Globe,
+    FileText,
+    Check,
+    AlertCircle,
+    ArrowRight,
+    UserPlus,
+    Upload,
+    DollarSign,
+    CreditCard
 } from 'lucide-react';
 import '../App.css';
-import { customConfirm } from '../utils/customConfirm';
+
+// Initial Seed Data for Split Groups
+const INITIAL_SPLITS = [
+    {
+        id: 'split-goa-2026',
+        title: 'Goa Weekend Getaway',
+        currency: 'INR',
+        currencySymbol: '₹',
+        description: 'Annual corporate retreat team gateway with colleagues.',
+        participants: ['You', 'Vishal', 'Amit', 'Rahul'],
+        created_at: '2026-05-18T10:00:00Z',
+        expenses: [
+            {
+                id: 'exp-1',
+                title: 'Beachside Villa Booking',
+                amount: 12000,
+                paidBy: 'You',
+                date: '2026-05-18',
+                attachment: 'villa_booking_receipt.pdf',
+                splitType: 'equal',
+                shares: { 'You': 3000, 'Vishal': 3000, 'Amit': 3000, 'Rahul': 3000 }
+            },
+            {
+                id: 'exp-2',
+                title: 'Sunset Dinner & Drinks',
+                amount: 4000,
+                paidBy: 'Rahul',
+                date: '2026-05-19',
+                attachment: 'sunset_club_invoice.jpg',
+                splitType: 'custom',
+                shares: { 'You': 1500, 'Vishal': 1000, 'Amit': 1000, 'Rahul': 500 }
+            },
+            {
+                id: 'exp-3',
+                title: 'SUV Car Rental',
+                amount: 3000,
+                paidBy: 'Amit',
+                date: '2026-05-19',
+                attachment: 'car_rental_agreement.pdf',
+                splitType: 'equal',
+                shares: { 'You': 750, 'Vishal': 750, 'Amit': 750, 'Rahul': 750 }
+            }
+        ]
+    },
+    {
+        id: 'split-office-lunch',
+        title: 'Project Kickoff Catering',
+        currency: 'INR',
+        currencySymbol: '₹',
+        description: 'Office catering for the tech development squad.',
+        participants: ['You', 'Aniket', 'Sneha'],
+        created_at: '2026-05-15T12:00:00Z',
+        expenses: [
+            {
+                id: 'exp-4',
+                title: 'Premium Sushi Platters',
+                amount: 6000,
+                paidBy: 'You',
+                date: '2026-05-15',
+                attachment: 'catering_sushi.pdf',
+                splitType: 'equal',
+                shares: { 'You': 2000, 'Aniket': 2000, 'Sneha': 2000 }
+            }
+        ]
+    }
+];
 
 const BusinessSplitCollect = () => {
-    const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState('ALL PARTNERS'); // ALL PARTNERS, HISTORY
+    // ── State Management ───────────────────────────────────────────────────
+    const [splits, setSplits] = useState(() => {
+        const saved = localStorage.getItem('cliks_splits_data');
+        return saved ? JSON.parse(saved) : INITIAL_SPLITS;
+    });
+
+    const [selectedSplitId, setSelectedSplitId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedExpense, setSelectedExpense] = useState(null);
-    const [splitType, setSplitType] = useState('equal');
+    const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+    const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
     
-    const [formData, setFormData] = useState({ 
-        title: '', 
-        amount: '', 
-        paidBy: 'You', 
+    // Group Form State
+    const [groupForm, setGroupForm] = useState({
+        title: '',
+        currency: 'INR',
+        description: '',
+        participants: ['You']
+    });
+    const [newParticipantName, setNewParticipantName] = useState('');
+
+    // Expense Form State
+    const [expenseForm, setExpenseForm] = useState({
+        title: '',
+        amount: '',
+        paidBy: 'You',
         date: new Date().toISOString().split('T')[0],
-        participants: [] 
-    });
-    
-    const [formError, setFormError] = useState('');
-
-    // ── Queries ─────────────────────────────────────────────────────────────
-    
-    // Summary by Friend/Partner
-    const { 
-        data: summaryResponse = [], 
-        isLoading: isSummaryLoading
-    } = useQuery({
-        queryKey: ['business-split-summary'],
-        queryFn: async () => {
-            const res = await splitExpenseService.getSummary();
-            return Array.isArray(res) ? res : (res.data || []);
-        },
+        attachmentName: '',
+        splitType: 'equal', // equal, custom
+        shares: {} // Custom shares per participant
     });
 
-    // Expense List
-    const {
-        data: expensesResponse = [],
-        isLoading: isExpensesLoading
-    } = useQuery({
-        queryKey: ['business-split-list'],
-        queryFn: async () => {
-            const res = await splitExpenseService.getSplits();
-            return Array.isArray(res) ? res : (res.data || []);
+    // Save splits to localStorage whenever state changes
+    useEffect(() => {
+        localStorage.setItem('cliks_splits_data', JSON.stringify(splits));
+    }, [splits]);
+
+    // Active Split Lookup
+    const activeSplit = splits.find(s => s.id === selectedSplitId);
+
+    // Filtered Splits List
+    const filteredSplits = splits.filter(s =>
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Currency Symbols Helper
+    const getCurrencySymbol = (code) => {
+        switch (code) {
+            case 'USD': return '$';
+            case 'EUR': return '€';
+            case 'GBP': return '£';
+            default: return '₹';
         }
-    });
+    };
 
-    const partners = useMemo(() => Array.isArray(summaryResponse) ? summaryResponse : [], [summaryResponse]);
-    const expenses = useMemo(() => Array.isArray(expensesResponse) ? expensesResponse : [], [expensesResponse]);
-
-    // ── Mutations ───────────────────────────────────────────────────────────
-    
-    const createMutation = useMutation({
-        mutationFn: splitExpenseService.createSplit,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['business-split-summary'] });
-            queryClient.invalidateQueries({ queryKey: ['business-split-list'] });
-            setIsModalOpen(false);
-            resetForm();
-            alert("🎯 Revenue / Expense split recorded successfully!");
-        },
-        onError: (err) => {
-            setFormError(err?.response?.data?.message || err.message || 'Failed to register split');
-        }
-    });
-
-    const settleMutation = useMutation({
-        mutationFn: splitExpenseService.settleFriend,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['business-split-summary'] });
-            queryClient.invalidateQueries({ queryKey: ['business-split-list'] });
-            alert("💼 Balance settled successfully!");
-        }
-    });
-
-    const deleteMutation = useMutation({
-        mutationFn: splitExpenseService.deleteSplit,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['business-split-summary'] });
-            queryClient.invalidateQueries({ queryKey: ['business-split-list'] });
-            setSelectedExpense(null);
-        }
-    });
-
-    // ── Logic ──────────────────────────────────────────────────────────────
-
-    const calculateSplits = useCallback(() => {
-        const totalAmount = parseFloat(formData.amount) || 0;
-        const participants = formData.participants;
-        if (participants.length === 0) return [];
-
-        let results = [];
-
-        if (splitType === 'equal') {
-            const count = participants.length + 1;
-            const share = totalAmount / count;
-            results = participants.map(p => ({ ...p, share_amount: share }));
-            results.push({ name: 'You', share_amount: share, isSelf: true });
-        } 
-        else if (splitType === 'exact') {
-            results = participants.map(p => ({ ...p, share_amount: parseFloat(p.value) || 0 }));
-            const sumOthers = results.reduce((s, p) => s + p.share_amount, 0);
-            results.push({ name: 'You', share_amount: Math.max(0, totalAmount - sumOthers), isSelf: true });
-        } 
-        else if (splitType === 'percentage') {
-            results = participants.map(p => ({ ...p, share_amount: (parseFloat(p.value) / 100) * totalAmount }));
-            const sumPctOthers = participants.reduce((s, p) => s + (parseFloat(p.value) || 0), 0);
-            results.push({ name: 'You', share_amount: Math.max(0, ((100 - sumPctOthers) / 100) * totalAmount), isSelf: true });
-        } 
-        else if (splitType === 'shares') {
-            const sumSharesOthers = participants.reduce((sum, p) => sum + (parseFloat(p.value) || 0), 0);
-            const totalShares = sumSharesOthers + 1;
-            results = participants.map(p => ({ ...p, share_amount: ((parseFloat(p.value) || 0) / totalShares) * totalAmount }));
-            results.push({ name: 'You', share_amount: (1 / totalShares) * totalAmount, isSelf: true });
-        }
-
-        return results;
-    }, [formData, splitType]);
-
-    const handleAddSplit = (e) => {
+    // ── Group Actions ──────────────────────────────────────────────────────
+    const handleCreateGroup = (e) => {
         e.preventDefault();
-        if (!formData.title || !formData.amount || !formData.date) {
-            setFormError('Basic information (Title, Amount, Date) is mandatory.');
-            return;
-        }
+        if (!groupForm.title.trim()) return alert('Please enter a group title.');
+        if (groupForm.participants.length < 2) return alert('Please add at least one other participant.');
 
-        const calculated = calculateSplits();
-        const finalParticipants = calculated.filter(p => !p.isSelf);
-        
-        if (finalParticipants.length === 0) {
-            setFormError('Please include at least one co-participant to allocate shares.');
-            return;
-        }
-
-        const totalAmount = parseFloat(formData.amount);
-
-        if (splitType === 'exact') {
-            const sumOthers = finalParticipants.reduce((s, p) => s + p.share_amount, 0);
-            if (sumOthers > totalAmount) {
-                setFormError('Partner shares exceed total bill amount.');
-                return;
-            }
-        }
-
-        if (splitType === 'percentage') {
-            const sumPct = finalParticipants.reduce((s, p) => s + (parseFloat(p.value) || 0), 0);
-            if (sumPct > 100) {
-                setFormError('Cumulative percentage allocation exceeds 100%.');
-                return;
-            }
-        }
-
-        const payload = {
-            title: formData.title,
-            total_amount: totalAmount,
-            date: formData.date,
-            split_type: splitType,
-            paid_by: formData.paidBy,
-            participants: finalParticipants.map(p => ({
-                name: p.name,
-                share_amount: p.share_amount
-            }))
+        const newGroup = {
+            id: 'split-' + Date.now(),
+            title: groupForm.title,
+            currency: groupForm.currency,
+            currencySymbol: getCurrencySymbol(groupForm.currency),
+            description: groupForm.description,
+            participants: [...groupForm.participants],
+            created_at: new Date().toISOString(),
+            expenses: []
         };
 
-        createMutation.mutate(payload);
+        setSplits([newGroup, ...splits]);
+        setIsCreateGroupModalOpen(false);
+        setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
     };
 
-    const resetForm = () => {
-        setFormData({ title: '', amount: '', paidBy: 'You', date: new Date().toISOString().split('T')[0], participants: [] });
-        setSplitType('equal');
-        setFormError('');
+    const addParticipantToForm = () => {
+        if (!newParticipantName.trim()) return;
+        if (groupForm.participants.includes(newParticipantName.trim())) {
+            alert('This participant is already added!');
+            return;
+        }
+        setGroupForm({
+            ...groupForm,
+            participants: [...groupForm.participants, newParticipantName.trim()]
+        });
+        setNewParticipantName('');
     };
 
-    const addParticipantField = () => {
-        setFormData({ ...formData, participants: [...formData.participants, { name: '', value: '' }] });
+    const removeParticipantFromForm = (name) => {
+        if (name === 'You') return;
+        setGroupForm({
+            ...groupForm,
+            participants: groupForm.participants.filter(p => p !== name)
+        });
     };
 
-    const updateParticipant = (index, field, value) => {
-        const newParticipants = [...formData.participants];
-        newParticipants[index][field] = value;
-        setFormData({ ...formData, participants: newParticipants });
-    };
-
-    const removeParticipant = (index) => {
-        setFormData({ ...formData, participants: formData.participants.filter((_, i) => i !== index) });
-    };
-
-    const openExpenseDetail = async (expense) => {
-        try {
-            const detail = await splitExpenseService.getSplitById(expense.id);
-            setSelectedExpense(detail.data || detail);
-        } catch (err) {
-            console.error('Failed to load details.', err);
+    const handleDeleteGroup = (groupId) => {
+        if (window.confirm('Are you sure you want to delete this split group? All logged expenses will be lost.')) {
+            setSplits(splits.filter(s => s.id !== groupId));
+            setSelectedSplitId(null);
         }
     };
 
-    // Aggregations
-    const totalReceivable = partners.reduce((sum, p) => sum + parseFloat(p.total_owed || 0), 0);
-    const activeSplitsCount = expenses.length;
+    // ── Expense Actions ────────────────────────────────────────────────────
+    const openAddExpenseModal = () => {
+        if (!activeSplit) return;
+        // Initialize shares
+        const initialShares = {};
+        activeSplit.participants.forEach(p => {
+            initialShares[p] = '';
+        });
+        setExpenseForm({
+            title: '',
+            amount: '',
+            paidBy: 'You',
+            date: new Date().toISOString().split('T')[0],
+            attachmentName: '',
+            splitType: 'equal',
+            shares: initialShares
+        });
+        setIsAddExpenseModalOpen(true);
+    };
 
-    const filteredPartners = partners.filter(p => 
-        (p.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleAddExpense = (e) => {
+        e.preventDefault();
+        if (!expenseForm.title.trim()) return alert('Please enter expense title.');
+        const amount = parseFloat(expenseForm.amount);
+        if (isNaN(amount) || amount <= 0) return alert('Please enter a valid amount.');
 
-    const filteredExpenses = expenses.filter(e =>
-        (e.title || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+        let finalShares = {};
+        if (expenseForm.splitType === 'equal') {
+            const equalShare = amount / activeSplit.participants.length;
+            activeSplit.participants.forEach(p => {
+                finalShares[p] = Math.round(equalShare * 100) / 100;
+            });
+        } else {
+            // Validate custom shares sum matches total amount
+            let sum = 0;
+            activeSplit.participants.forEach(p => {
+                const share = parseFloat(expenseForm.shares[p]) || 0;
+                finalShares[p] = share;
+                sum += share;
+            });
+            
+            if (Math.abs(sum - amount) > 0.1) {
+                alert(`The sum of custom shares (${activeSplit.currencySymbol}${sum.toFixed(2)}) must exactly match the total expense amount (${activeSplit.currencySymbol}${amount.toFixed(2)})!`);
+                return;
+            }
+        }
 
-    const calculatedPreview = useMemo(() => calculateSplits(), [calculateSplits]);
+        const newExpense = {
+            id: 'exp-' + Date.now(),
+            title: expenseForm.title,
+            amount: amount,
+            paidBy: expenseForm.paidBy,
+            date: expenseForm.date,
+            attachment: expenseForm.attachmentName || null,
+            splitType: expenseForm.splitType,
+            shares: finalShares
+        };
+
+        const updatedSplits = splits.map(s => {
+            if (s.id === selectedSplitId) {
+                return {
+                    ...s,
+                    expenses: [newExpense, ...s.expenses]
+                };
+            }
+            return s;
+        });
+
+        setSplits(updatedSplits);
+        setIsAddExpenseModalOpen(false);
+    };
+
+    const handleDeleteExpense = (expenseId) => {
+        if (window.confirm('Delete this expense?')) {
+            const updatedSplits = splits.map(s => {
+                if (s.id === selectedSplitId) {
+                    return {
+                        ...s,
+                        expenses: s.expenses.filter(e => e.id !== expenseId)
+                    };
+                }
+                return s;
+            });
+            setSplits(updatedSplits);
+        }
+    };
+
+    // Simulated Attachment Upload
+    const triggerSimulatedUpload = () => {
+        const fileNames = ['invoice_rent.pdf', 'dinner_bill_482.jpg', 'uber_receipt.png', 'supplies_list.pdf', 'grocery_slip.jpg'];
+        const randomName = fileNames[Math.floor(Math.random() * fileNames.length)];
+        setExpenseForm({
+            ...expenseForm,
+            attachmentName: randomName
+        });
+    };
+
+    // ── Debts & Balances Calculations ──────────────────────────────────────
+    const calculatedBalances = React.useMemo(() => {
+        if (!activeSplit) return { members: {}, debts: [], totalSpent: 0 };
+
+        const balances = {};
+        let totalSpent = 0;
+        activeSplit.participants.forEach(p => {
+            balances[p] = 0;
+        });
+
+        activeSplit.expenses.forEach(exp => {
+            const payer = exp.paidBy;
+            const amt = exp.amount;
+            totalSpent += amt;
+
+            // Credit the payer
+            if (balances[payer] !== undefined) {
+                balances[payer] += amt;
+            }
+
+            // Debit everyone who shared
+            Object.keys(exp.shares).forEach(member => {
+                if (balances[member] !== undefined) {
+                    balances[member] -= exp.shares[member];
+                }
+            });
+        });
+
+        // Deep copy balances for debt simplification
+        const tempBalances = { ...balances };
+        const debts = [];
+
+        // Simplify debts algorithm (Splitwise style)
+        const participants = Object.keys(tempBalances);
+        
+        while (true) {
+            let debtor = null;
+            let creditor = null;
+            let maxDebit = 0;
+            let maxCredit = 0;
+
+            participants.forEach(p => {
+                const bal = tempBalances[p];
+                if (bal < -0.01 && bal < maxDebit) {
+                    maxDebit = bal;
+                    debtor = p;
+                }
+                if (bal > 0.01 && bal > maxCredit) {
+                    maxCredit = bal;
+                    creditor = p;
+                }
+            });
+
+            if (!debtor || !creditor) break;
+
+            const amtToSettle = Math.min(-maxDebit, maxCredit);
+            tempBalances[debtor] += amtToSettle;
+            tempBalances[creditor] -= amtToSettle;
+
+            debts.push({
+                from: debtor,
+                to: creditor,
+                amount: Math.round(amtToSettle * 100) / 100
+            });
+        }
+
+        return {
+            members: balances,
+            debts: debts,
+            totalSpent: totalSpent
+        };
+    }, [activeSplit]);
+
+    // Handle instant settlement log
+    const handleSettleDebt = (debt) => {
+        if (!activeSplit) return;
+        if (window.confirm(`Mark settlement: does ${debt.from} paid ${activeSplit.currencySymbol}${debt.amount.toLocaleString()} to ${debt.to}?`)) {
+            // Settle creates a custom expense compensating the debt
+            const settlementExpense = {
+                id: 'exp-settle-' + Date.now(),
+                title: `Settlement: ${debt.from} paid ${debt.to}`,
+                amount: debt.amount,
+                paidBy: debt.from,
+                date: new Date().toISOString().split('T')[0],
+                attachment: null,
+                splitType: 'custom',
+                shares: {
+                    [debt.to]: debt.amount
+                }
+            };
+
+            // Set shares to 0 for everyone else
+            activeSplit.participants.forEach(p => {
+                if (p !== debt.to) {
+                    settlementExpense.shares[p] = 0;
+                }
+            });
+
+            const updatedSplits = splits.map(s => {
+                if (s.id === selectedSplitId) {
+                    return {
+                        ...s,
+                        expenses: [settlementExpense, ...s.expenses]
+                    };
+                }
+                return s;
+            });
+            setSplits(updatedSplits);
+            alert('Settlement logged perfectly!');
+        }
+    };
 
     return (
-        <div style={{ padding: '1rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
-            {/* Top Banner Header */}
-            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem' }}>
+        <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+            
+            {/* Header Dashboard Banner */}
+            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
                         <div style={{ 
-                            width: '32px', 
-                            height: '32px', 
-                            borderRadius: '10px', 
+                            width: '36px', 
+                            height: '36px', 
+                            borderRadius: '12px', 
                             background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -250,518 +421,675 @@ const BusinessSplitCollect = () => {
                             color: 'white', 
                             boxShadow: '0 4px 10px rgba(27, 107, 58, 0.15)' 
                         }}>
-                            <CreditCard size={16} />
+                            <CreditCard size={18} />
                         </div>
-                        <h1 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Split & Collect</h1>
+                        <h1 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Splitwise & Collect</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '500', margin: 0 }}>Divide collaborative payments and collective billing with partners easily.</p>
-                </div>
-                <button 
-                    onClick={() => setIsModalOpen(true)}
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                        padding: '0.6rem 1rem', borderRadius: '10px', 
-                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    <Plus size={16} strokeWidth={3} />
-                    New Split Ticket
-                </button>
-            </div>
-
-            {/* Metric Cards Panel */}
-            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                    <div>
-                        <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.15rem 0' }}>Cumulative Receivable</p>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹{totalReceivable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.68rem', fontWeight: '650', color: '#059669' }}>Across {partners.length} associates</p>
-                    </div>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
-                        <ArrowDownLeft size={18} strokeWidth={2.5} />
-                    </div>
+                    <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '500', margin: 0 }}>Divide collaborative bills, track expenses, and simplify balances with team members.</p>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                    <div>
-                        <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.15rem 0' }}>Outbound Liabilities</p>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: '950', color: '#0F172A', margin: 0 }}>₹0.00</h3>
-                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.68rem', fontWeight: '650', color: '#EF4444' }}>Zero outstanding</p>
-                    </div>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
-                        <ArrowUpRight size={18} strokeWidth={2.5} />
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity Ratio</span>
-                            <span style={{ fontWeight: '900', color: '#1B6B3A', fontSize: '0.75rem' }}>{activeSplitsCount} Splits</span>
-                        </div>
-                        <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.4rem' }}>
-                            <div style={{ width: `${Math.min(activeSplitsCount * 10, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #10B981 0%, #1B6B3A 100%)', borderRadius: '4px' }} />
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '650', color: '#64748B' }}>Sync status: Normal</p>
-                    </div>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', flexShrink: 0, marginLeft: '0.75rem' }}>
-                        <Sparkles size={16} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Tab Bar and Subsearch Overlay */}
-            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.1px', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                    {['ALL PARTNERS', 'HISTORY'].map(tab => (
-                        <button
-                            key={tab}
-                            style={{ 
-                                background: 'transparent', 
-                                border: 'none', 
-                                padding: '0 0 0.5rem 0', 
-                                cursor: 'pointer',
-                                fontSize: '0.78rem', 
-                                fontWeight: '900', 
-                                color: activeTab === tab ? '#1B6B3A' : '#64748B',
-                                borderBottom: activeTab === tab ? '2.5px solid #1B6B3A' : '2.5px solid transparent',
-                                textTransform: 'uppercase', 
-                                letterSpacing: '0.05em',
-                                transition: 'all 0.2s ease',
-                                position: 'relative',
-                                top: '1px'
-                            }}
-                            onClick={() => setActiveTab(tab)}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-                <div style={{ background: 'white', borderRadius: '8px', padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid #E2E8F0', width: '240px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', marginBottom: '0.4rem' }}>
-                    <Search size={14} color="#94A3B8" />
-                    <input
-                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontWeight: '600', fontSize: '0.8rem', color: '#1E293B' }}
-                        type="text"
-                        placeholder={`Lookup ${activeTab === 'ALL PARTNERS' ? 'partners' : 'invoices'}...`}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-
-            {/* Interactive Dynamic Render */}
-            <div>
-                {activeTab === 'ALL PARTNERS' ? (
-                    isSummaryLoading ? (
-                        <div style={{ padding: '6rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#059669' }}>
-                            <Loader2 className="animate-spin" size={48} strokeWidth={2.5} />
-                            <p style={{ fontWeight: '700', fontSize: '1.1rem' }}>Compiling ledgers...</p>
-                        </div>
-                    ) : filteredPartners.length === 0 ? (
-                        <EmptyState title="No Active Partners Found" description="When splitting combined billing across external agencies or partners, their receivable analytics will populate dynamically." />
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                            {filteredPartners.map(partner => (
-                                <div key={partner.name} style={{ 
-                                    background: 'white', 
-                                    borderRadius: '12px', 
-                                    border: '1px solid #E2E8F0', 
-                                    padding: '0.75rem 1rem', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '1rem',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.01)'
-                                }}>
-                                    <div style={{ 
-                                        width: '36px', 
-                                        height: '36px', 
-                                        borderRadius: '10px', 
-                                        background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        justifyContent: 'center', 
-                                        fontSize: '1rem', 
-                                        fontWeight: '850', 
-                                        color: 'white',
-                                        flexShrink: 0,
-                                        boxShadow: '0 2px 6px rgba(6, 78, 59, 0.1)'
-                                    }}>
-                                        {partner.name && partner.name.trim().length > 0 ? partner.name.trim().charAt(0).toUpperCase() : 'P'}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: '0 0 0.1rem 0', fontSize: '0.9rem', fontWeight: '850', color: '#1F2937' }}>{partner.name}</h4>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#1B6B3A', background: '#F0FDF4', padding: '0.15rem 0.4rem', borderRadius: '5px', border: '1px solid #DCF2E4', display: 'inline-block', textTransform: 'uppercase' }}>
-                                                {partner.split_count} Accounts
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right', minWidth: '110px' }}>
-                                        <div style={{ fontSize: '1.05rem', fontWeight: '950', color: '#059669' }}>
-                                            ₹{(partner.total_owed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                        </div>
-                                        <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.6rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Balance</p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.4rem', marginLeft: '0.4rem' }}>
-                                        <button 
-                                            onClick={() => alert(`Notification dispatch request queued for partner ${partner.name}`)}
-                                            style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#475569', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}
-                                        >
-                                            Remind
-                                        </button>
-                                        <button 
-                                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: '900', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(27,107,58,0.1)' }} 
-                                            onClick={() => settleMutation.mutate(partner.name)}
-                                        >
-                                            Settle
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )
-                ) : (
-                    isExpensesLoading ? (
-                        <div style={{ padding: '6rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', color: '#059669' }}>
-                            <Loader2 className="animate-spin" size={48} strokeWidth={2.5} />
-                            <p style={{ fontWeight: '700', fontSize: '1.1rem' }}>Polling database history...</p>
-                        </div>
-                    ) : filteredExpenses.length === 0 ? (
-                        <EmptyState title="No Active Split History" description="Past split allocations and completed payment files will register automatically." />
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                            {filteredExpenses.map(expense => (
-                                <div 
-                                    key={expense.id} 
-                                    style={{ 
-                                        background: 'white', 
-                                        borderRadius: '12px', 
-                                        border: '1px solid #E2E8F0', 
-                                        padding: '0.75rem 1.25rem', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: '1.25rem',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.01)',
-                                        transition: 'transform 0.2s ease'
-                                    }} 
-                                    onClick={() => openExpenseDetail(expense)}
-                                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                                >
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A', flexShrink: 0 }}>
-                                        <Receipt size={18} />
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: '0 0 0.1rem 0', fontSize: '0.88rem', fontWeight: '850', color: '#1F2937' }}>{expense.title}</h4>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                <Users size={10} /> {expense.participant_count} Partners
-                                            </span>
-                                            <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B' }}>
-                                                Funder: {expense.paid_by}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right', minWidth: '110px' }}>
-                                        <div style={{ fontSize: '1rem', fontWeight: '950', color: '#1E293B' }}>₹{expense.total_amount.toLocaleString('en-IN')}</div>
-                                        <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '0.1rem' }}>
-                                            <Calendar size={10} /> {new Date(expense.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                        </span>
-                                    </div>
-                                    <div style={{ color: '#CBD5E1' }}>
-                                        <ChevronRight size={16} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )
-                )}
-            </div>
-            </div>
-
-            {/* ──────── VIEW RECORD MODAL ──────── */}
-            <AnimatePresence>
-                {selectedExpense && (
-                    <div 
-                        style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-                        onClick={() => setSelectedExpense(null)}
+                {!selectedSplitId && (
+                    <button 
+                        onClick={() => setIsCreateGroupModalOpen(true)}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                            padding: '0.65rem 1.15rem', borderRadius: '12px', 
+                            background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
+                            fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
                     >
-                        <Motion.div
-                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                            style={{ width: '100%', maxWidth: '460px', background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }}
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Allocation Receipt</h3>
-                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => setSelectedExpense(null)}><X size={18} /></button>
-                            </div>
-                            
-                            <div style={{ padding: '1.5rem' }}>
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <h3 style={{ fontSize: '1.4rem', fontWeight: '950', color: '#0F172A', margin: '0 0 0.4rem 0' }}>{selectedExpense.title}</h3>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{new Date(selectedExpense.date).toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', background: '#F8FAFC', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #F1F5F9' }}>
-                                    <div>
-                                        <span style={{ display: 'block', fontSize: '0.62rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Total Bill</span>
-                                        <div style={{ fontWeight: '950', color: '#1B6B3A', fontSize: '0.95rem' }}>₹{selectedExpense.total_amount.toLocaleString('en-IN')}</div>
-                                    </div>
-                                    <div>
-                                        <span style={{ display: 'block', fontSize: '0.62rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Funder</span>
-                                        <div style={{ fontWeight: '950', fontSize: '0.95rem', color: '#1F2937' }}>{selectedExpense.paid_by}</div>
-                                    </div>
-                                    <div>
-                                        <span style={{ display: 'block', fontSize: '0.62rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Protocol</span>
-                                        <div style={{ fontWeight: '950', fontSize: '0.95rem', color: '#1F2937', textTransform: 'capitalize' }}>{selectedExpense.split_type}</div>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                    <h4 style={{ margin: 0, fontSize: '0.7rem', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member Breakdown</h4>
-                                    {selectedExpense.participants?.map(p => (
-                                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '10px 12px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
-                                            <div style={{ 
-                                                width: '32px', 
-                                                height: '32px', 
-                                                borderRadius: '8px', 
-                                                background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center', 
-                                                fontSize: '1rem', 
-                                                fontWeight: '850', 
-                                                color: 'white',
-                                                flexShrink: 0
-                                            }}>
-                                                {p.name && p.name.trim().length > 0 ? p.name.trim().charAt(0).toUpperCase() : 'P'}
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: '850', fontSize: '0.88rem', color: '#1E293B' }}>{p.name}</div>
-                                                <div style={{ fontSize: '0.65rem', fontWeight: '800', color: p.is_settled ? '#059669' : '#F59E0B', textTransform: 'uppercase', marginTop: '1px' }}>
-                                                    {p.is_settled ? 'Reconciled' : 'Pending'}
-                                                </div>
-                                            </div>
-                                            <div style={{ fontWeight: '950', fontSize: '0.92rem', color: '#1E293B' }}>₹{p.share_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                            {p.is_settled ? <CheckCircle2 size={16} color="#10B981" /> : <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#E2E8F0' }} />}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', background: '#FAFAFA' }}>
-                                <button 
-                                    onClick={async () => { if(await customConfirm("Discard this whole split record?")) deleteMutation.mutate(selectedExpense.id); }}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', cursor: 'pointer', fontWeight: '800', fontSize: '0.8rem' }}
-                                >
-                                    <Trash2 size={14} /> Discard Entry
-                                </button>
-                                <button onClick={() => setSelectedExpense(null)} style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', fontWeight: '850', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
-                                    Close Info
-                                </button>
-                            </div>
-                        </Motion.div>
-                    </div>
+                        <Plus size={16} strokeWidth={3} />
+                        New Split Ticket
+                    </button>
                 )}
-            </AnimatePresence>
+            </div>
 
-            {/* ──────── CREATE NEW RECORD MODAL ──────── */}
-            <AnimatePresence>
-                {isModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <Motion.div
-                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                            style={{ width: '100%', maxWidth: '600px', background: 'white', maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', overflow: 'hidden' }}
+            {/* Scrollable Container Wrapper */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <AnimatePresence mode="wait">
+                    {!selectedSplitId ? (
+                        
+                        // ── ALL SPLITS VIEW ──
+                        <Motion.div 
+                            key="splits-list"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}
                         >
-                            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#064E3B', margin: 0, letterSpacing: '-0.3px' }}>Initiate Collective Split</h2>
-                                <button onClick={() => setIsModalOpen(false)} style={{ background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer' }}><X size={18} /></button>
+                            {/* Search bar */}
+                            <div style={{ background: 'white', borderRadius: '14px', padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid #E2E8F0', maxWidth: '320px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                                <Search size={16} color="#94A3B8" />
+                                <input
+                                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontWeight: '600', fontSize: '0.85rem', color: '#1E293B' }}
+                                    type="text"
+                                    placeholder="Search split tickets..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
                             </div>
-                            
-                            <form onSubmit={handleAddSplit} style={{ overflowY: 'auto', flex: 1, background: '#FAFAFA' }}>
-                                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                    
-                                    {/* Basic metadata */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Payment Narrative</label>
-                                            <input 
-                                                required
-                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1F2937' }}
-                                                type="text" value={formData.title} 
-                                                onChange={e => setFormData({...formData, title: e.target.value})}
-                                                placeholder="e.g. Agency Costs, Dinner"
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Amount (₹)</label>
-                                            <input 
-                                                required
-                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '900', color: '#1B6B3A', fontSize: '1rem' }}
-                                                type="number" value={formData.amount} 
-                                                onChange={e => setFormData({...formData, amount: e.target.value})}
-                                                placeholder="0.00"
-                                            />
-                                        </div>
-                                    </div>
 
-                                    {/* Funder and date */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Primary Payer</label>
-                                            <select 
-                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1F2937' }}
-                                                value={formData.paidBy} 
-                                                onChange={e => setFormData({...formData, paidBy: e.target.value})}
-                                            >
-                                                <option value="You">You (Main Account)</option>
-                                                {formData.participants.map(p => p.name && (
-                                                    <option key={p.name} value={p.name}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Date</label>
-                                            <input 
-                                                style={{ padding: '0.75rem 1rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1F2937' }}
-                                                type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} 
-                                            />
-                                        </div>
+                            {/* Splits Cards Grid */}
+                            {filteredSplits.length === 0 ? (
+                                <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+                                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                        <Users size={48} style={{ color: '#CBD5E1', marginBottom: '1rem' }} />
+                                        <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#334155', margin: '0 0 0.25rem 0' }}>No Active Split Tickets</h3>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748B', maxWidth: '320px', margin: 0 }}>Create a new split ticket to begin tracking collaborative expenses with your co-workers.</p>
                                     </div>
-
-                                    {/* Split Methods */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                        <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Protocol</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
-                                            {[
-                                                { id: 'equal', label: 'Equally', icon: Users },
-                                                { id: 'exact', label: 'Exact', icon: Hash },
-                                                { id: 'percentage', label: 'Percent', icon: Percent },
-                                                { id: 'shares', label: 'Shares', icon: PieChart },
-                                            ].map(type => (
-                                                <button 
-                                                    key={type.id} type="button" 
-                                                    style={{ 
-                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 4px',
-                                                        borderRadius: '14px', border: splitType === type.id ? '2px solid #1B6B3A' : '1.5px solid #E2E8F0',
-                                                        background: splitType === type.id ? '#FFFFFF' : '#F8FAFC', cursor: 'pointer', transition: 'all 0.2s ease'
-                                                    }}
-                                                    onClick={() => setSplitType(type.id)}
-                                                >
-                                                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: splitType === type.id ? '#1B6B3A' : '#E2E8F0', color: splitType === type.id ? 'white' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                        <type.icon size={16} />
-                                                    </div>
-                                                    <span style={{ fontSize: '0.72rem', fontWeight: '850', color: splitType === type.id ? '#1B6B3A' : '#1F2937' }}>{type.label}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Allocation structure */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.02em', margin: 0 }}>Partners</label>
-                                            <button 
-                                                type="button" onClick={addParticipantField} 
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                                    {filteredSplits.map(s => {
+                                        const groupTotal = s.expenses.reduce((sum, e) => sum + e.amount, 0);
+                                        return (
+                                            <div 
+                                                key={s.id} 
+                                                onClick={() => setSelectedSplitId(s.id)}
                                                 style={{ 
-                                                    padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '8px', background: '#ECFDF5', border: '1px solid #D1FAE5', 
-                                                    color: '#065F46', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' 
+                                                    background: 'white', 
+                                                    borderRadius: '20px', 
+                                                    border: '1.5px solid #E2E8F0', 
+                                                    padding: '1.5rem', 
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    position: 'relative',
+                                                    overflow: 'hidden'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.borderColor = '#1B6B3A';
+                                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                                    e.currentTarget.style.transform = 'translateY(0)';
+                                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
                                                 }}
                                             >
-                                                <Plus size={14} strokeWidth={2.5} /> Add Partner
-                                            </button>
-                                        </div>
-                                        
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                            {formData.participants.map((p, index) => (
-                                                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '10px 12px', background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                                                    <div style={{ 
-                                                        width: '32px', 
-                                                        height: '32px', 
-                                                        borderRadius: '8px', 
-                                                        background: 'linear-gradient(135deg, #10B981 0%, #064E3B 100%)', 
-                                                        display: 'flex', 
-                                                        alignItems: 'center', 
-                                                        justifyContent: 'center', 
-                                                        fontSize: '1rem', 
-                                                        fontWeight: '850', 
-                                                        color: 'white',
-                                                        flexShrink: 0
-                                                    }}>
-                                                        {p.name && p.name.trim().length > 0 ? p.name.trim().charAt(0).toUpperCase() : '?'}
+                                                {/* Card Header */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                                    <div>
+                                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>{s.title}</h3>
+                                                        <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px', marginTop: '4px', display: 'inline-block' }}>
+                                                            {s.currency}
+                                                        </span>
                                                     </div>
-                                                    <input 
-                                                        required
-                                                        style={{ margin: 0, padding: '0.4rem', flex: 2, background: 'transparent', border: 'none', borderBottom: '1.5px solid #E2E8F0', outline: 'none', fontSize: '0.88rem', fontWeight: '700', color: '#1E293B' }}
-                                                        type="text" placeholder="Associate Name" 
-                                                        value={p.name} 
-                                                        onChange={e => updateParticipant(index, 'name', e.target.value)} 
-                                                    />
-                                                    {splitType !== 'equal' && (
-                                                        <input 
-                                                            required
-                                                            style={{ margin: 0, padding: '0.5rem 0.75rem', flex: 0.8, border: '1px solid #E2E8F0', borderRadius: '10px', background: '#F8FAFC', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '0.9rem', color: '#1B6B3A' }}
-                                                            type="number" value={p.value} 
-                                                            onChange={e => updateParticipant(index, 'value', e.target.value)} 
-                                                            placeholder={splitType === 'percentage' ? '%' : 'Val'}
-                                                        />
-                                                    )}
-                                                    <button type="button" onClick={() => removeParticipant(index)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#EF4444', opacity: 0.6, display: 'flex' }}><X size={18} /></button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteGroup(s.id); }}
+                                                        style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                                                        onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
+                                                        onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
-                                            ))}
-                                            {formData.participants.length === 0 && (
-                                                <div style={{ border: '2.5px dashed #CBD5E1', borderRadius: '20px', padding: '32px 24px', background: '#FFFFFF', textAlign: 'center', cursor: 'pointer', color: '#64748B' }} onClick={addParticipantField}>
-                                                    <Users size={36} style={{ margin: '0 auto 12px', color: '#94A3B8' }} />
-                                                    <div style={{ fontWeight: '850', fontSize: '1rem', color: '#334155', marginBottom: '4px' }}>Zero co-owners added</div>
-                                                    <span style={{ fontSize: '0.78rem', fontWeight: '500', color: '#64748B' }}>Click above or here to start allocating portions.</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Live breakdown layout */}
-                                    {calculatedPreview.length > 0 && parseFloat(formData.amount) > 0 && (
-                                        <div style={{ background: '#0F172A', borderRadius: '20px', padding: '1.25rem', color: 'white', boxShadow: '0 12px 24px rgba(15, 23, 42, 0.15)' }}>
-                                            <div style={{ color: '#94A3B8', fontSize: '0.68rem', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Calculations Breakdown</div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                {calculatedPreview.map((p, idx) => (
-                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ fontWeight: '800', color: p.isSelf ? '#34D399' : '#F8FAFC', fontSize: '0.85rem' }}>{p.name} {p.isSelf && '(You)'}</span>
-                                                        <div style={{ flex: 1, borderBottom: '1.5px dashed rgba(255,255,255,0.1)', margin: '0 0.75rem' }} />
-                                                        <span style={{ fontWeight: '950', color: p.isSelf ? '#34D399' : '#38BDF8', fontSize: '0.9rem' }}>₹{p.share_amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+
+                                                <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                    {s.description || 'No description provided.'}
+                                                </p>
+
+                                                {/* Card Footer Statistics */}
+                                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#1B6B3A' }}>
+                                                        <Users size={14} />
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>{s.participants.length} Members</span>
                                                     </div>
-                                                ))}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', marginTop: '0.15rem', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-                                                    <span style={{ fontWeight: '900', color: 'white', fontSize: '0.9rem' }}>Total Manifest</span>
-                                                    <div style={{ flex: 1, borderBottom: '1.5px dashed rgba(255,255,255,0.2)', margin: '0 0.75rem' }} />
-                                                    <span style={{ fontWeight: '950', color: 'white', fontSize: '1rem' }}>₹{calculatedPreview.reduce((sum, p) => sum + p.share_amount, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Spent</span>
+                                                        <span style={{ fontSize: '1.05rem', fontWeight: '950', color: '#064E3B' }}>
+                                                            {s.currencySymbol}{groupTotal.toLocaleString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </Motion.div>
+                    ) : (
+                        
+                        // ── DETAILED SPLIT VIEW ──
+                        <Motion.div 
+                            key="split-detail"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1.25rem' }}
+                        >
+                            {/* Back and Action Panel */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <button 
+                                    onClick={() => setSelectedSplitId(null)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', color: '#064E3B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}
+                                >
+                                    <ChevronLeft size={18} strokeWidth={2.5} /> Back to all tickets
+                                </button>
+
+                                <button 
+                                    onClick={openAddExpenseModal}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                        padding: '0.6rem 1.15rem', borderRadius: '12px', 
+                                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
+                                        fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
+                                    }}
+                                >
+                                    <Plus size={16} strokeWidth={3} />
+                                    Add Expense
+                                </button>
+                            </div>
+
+                            {/* Split Banner Header */}
+                            <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.62rem', color: '#1B6B3A', fontWeight: '850', textTransform: 'uppercase', background: '#ECFDF5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #D1FAE5' }}>
+                                        {activeSplit.currency} Group
+                                    </span>
+                                    <h2 style={{ margin: '0.35rem 0 0.15rem 0', fontSize: '1.4rem', fontWeight: '900', color: '#0F172A' }}>{activeSplit.title}</h2>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748B', fontWeight: '500' }}>{activeSplit.description}</p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Group Outlay</span>
+                                        <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#064E3B', letterSpacing: '-0.02em' }}>
+                                            {activeSplit.currencySymbol}{calculatedBalances.totalSpent.toLocaleString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Grid Split Content */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.75fr', gap: '1.5rem', alignItems: 'start' }}>
+                                
+                                {/* LEFT SIDE: Ledger Expenses List */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Logged Expenses</h3>
+                                    
+                                    {activeSplit.expenses.length === 0 ? (
+                                        <div style={{ border: '2px dashed #E2E8F0', borderRadius: '24px', background: 'white', padding: '3.5rem 2rem', textAlign: 'center' }}>
+                                            <Receipt size={36} style={{ color: '#CBD5E1', marginBottom: '0.75rem' }} />
+                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#334155', margin: '0 0 0.15rem 0' }}>No Expenses Logged</h4>
+                                            <p style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '280px', margin: '0 auto 1.25rem' }}>Click "Add Expense" to record dinners, travel costs, or team bills in this split ticket.</p>
+                                            <button 
+                                                onClick={openAddExpenseModal}
+                                                style={{ border: 'none', background: '#ECFDF5', color: '#065F46', padding: '0.5rem 1.25rem', borderRadius: '10px', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
+                                            >
+                                                Log First Expense
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                            {activeSplit.expenses.map(e => {
+                                                const isSettlement = e.title.startsWith('Settlement:');
+                                                return (
+                                                    <div 
+                                                        key={e.id} 
+                                                        style={{ 
+                                                            background: 'white', 
+                                                            borderRadius: '16px', 
+                                                            border: '1.5px solid #E2E8F0', 
+                                                            padding: '1rem 1.25rem', 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            gap: '1rem',
+                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        {/* Icon indicator */}
+                                                        <div style={{ 
+                                                            width: '38px', 
+                                                            height: '38px', 
+                                                            borderRadius: '10px', 
+                                                            background: isSettlement ? '#F0FDF4' : '#F8FAFC', 
+                                                            color: isSettlement ? '#10B981' : '#475569', 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            justifyContent: 'center', 
+                                                            flexShrink: 0 
+                                                        }}>
+                                                            {isSettlement ? <Check size={18} strokeWidth={2.5} /> : <Receipt size={18} />}
+                                                        </div>
+
+                                                        {/* Details */}
+                                                        <div style={{ flex: 1 }}>
+                                                            <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.9rem', fontWeight: '850', color: '#1F2937' }}>{e.title}</h4>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>
+                                                                    Paid by <strong style={{ color: '#1E293B' }}>{e.paidBy}</strong>
+                                                                </span>
+                                                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                                    <Calendar size={12} /> {e.date}
+                                                                </span>
+                                                                {e.attachment && (
+                                                                    <>
+                                                                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                        <span 
+                                                                            title={`Attachment: ${e.attachment}`}
+                                                                            style={{ fontSize: '0.65rem', fontWeight: '800', color: '#2563EB', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                                        >
+                                                                            <FileText size={10} /> {e.attachment}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Amount & Actions */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <span style={{ fontSize: '1.05rem', fontWeight: '950', color: isSettlement ? '#059669' : '#1E293B' }}>
+                                                                    {activeSplit.currencySymbol}{e.amount.toLocaleString()}
+                                                                </span>
+                                                                <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', marginTop: '1px' }}>
+                                                                    {e.splitType} Split
+                                                                </span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => handleDeleteExpense(e.id)}
+                                                                style={{ background: 'transparent', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '4px' }}
+                                                                onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
+                                                                onMouseOut={(e) => e.currentTarget.style.color = '#CBD5E1'}
+                                                            >
+                                                                <X size={15} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
-                                
-                                {formError && <div style={{ background: '#FEF2F2', color: '#DC2626', padding: '0.75rem', borderRadius: '10px', margin: '0 1.5rem', fontWeight: '800', textAlign: 'center', border: '1px solid #FCA5A5', fontSize: '0.8rem' }}>{formError}</div>}
-                                
-                                <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: 'white' }}>
-                                    <button type="button" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'transparent', color: '#475569', fontWeight: '800', fontSize: '0.88rem', cursor: 'pointer' }} onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                    <button type="submit" disabled={createMutation.isPending} style={{ padding: '0.75rem 1.75rem', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', fontWeight: '900', fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(27,107,58,0.2)' }}>
-                                        {createMutation.isPending ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : 'Commit Split'}
-                                    </button>
+
+                                {/* RIGHT SIDE: Balances, Debts, Settlement */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    
+                                    {/* 1. Net Balances Breakdown */}
+                                    <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', padding: '1.5rem' }}>
+                                        <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: '900', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Individual Balances</h3>
+                                        
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {activeSplit.participants.map(m => {
+                                                const bal = calculatedBalances.members[m] || 0;
+                                                return (
+                                                    <div key={m} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontWeight: '800', color: '#1F2937', fontSize: '0.85rem' }}>{m}</span>
+                                                        <span style={{ 
+                                                            fontWeight: '950', 
+                                                            fontSize: '0.88rem', 
+                                                            color: bal > 0.01 ? '#059669' : bal < -0.01 ? '#DC2626' : '#64748B' 
+                                                        }}>
+                                                            {bal > 0.01 ? '+' : ''}{activeSplit.currencySymbol}{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Simplified Settlements / Debts */}
+                                    <div style={{ background: '#0F172A', borderRadius: '24px', padding: '1.5rem', color: 'white', boxShadow: '0 12px 24px rgba(15,23,42,0.1)' }}>
+                                        <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Simplified Debts</h3>
+
+                                        {calculatedBalances.debts.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                                                <Check size={28} color="#34D399" style={{ marginBottom: '0.5rem' }} />
+                                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8', fontWeight: '600' }}>All accounts completely settled!</p>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                {calculatedBalances.debts.map((d, index) => (
+                                                    <div 
+                                                        key={index}
+                                                        style={{ 
+                                                            background: 'rgba(255,255,255,0.03)', 
+                                                            padding: '0.85rem 1rem', 
+                                                            borderRadius: '16px', 
+                                                            border: '1px solid rgba(255,255,255,0.06)',
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center'
+                                                        }}
+                                                    >
+                                                        <div>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: '750', color: '#F8FAFC' }}>
+                                                                {d.from} owes {d.to}
+                                                            </div>
+                                                            <div style={{ fontSize: '1rem', fontWeight: '950', color: '#38BDF8', marginTop: '2px' }}>
+                                                                {activeSplit.currencySymbol}{d.amount.toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => handleSettleDebt(d)}
+                                                            style={{ 
+                                                                border: 'none', 
+                                                                background: '#34D399', 
+                                                                color: '#064E3B', 
+                                                                padding: '0.45rem 0.85rem', 
+                                                                borderRadius: '10px', 
+                                                                fontWeight: '900', 
+                                                                fontSize: '0.75rem', 
+                                                                cursor: 'pointer',
+                                                                boxShadow: '0 4px 10px rgba(52, 211, 153, 0.2)'
+                                                            }}
+                                                        >
+                                                            Settle Debt
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
                                 </div>
+
+                            </div>
+                        </Motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* ──────── MODAL: CREATE GROUP ──────── */}
+            <AnimatePresence>
+                {isCreateGroupModalOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <Motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}
+                        >
+                            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Create Split Ticket</h3>
+                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => setIsCreateGroupModalOpen(false)}><X size={18} /></button>
+                            </div>
+                            
+                            <form onSubmit={handleCreateGroup} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Ticket Title</label>
+                                    <input 
+                                        required
+                                        type="text" 
+                                        placeholder="e.g. Goa Trip, Office lunch split"
+                                        value={groupForm.title}
+                                        onChange={(e) => setGroupForm({ ...groupForm, title: e.target.value })}
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Group Currency</label>
+                                        <select 
+                                            value={groupForm.currency}
+                                            onChange={(e) => setGroupForm({ ...groupForm, currency: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none' }}
+                                        >
+                                            <option value="INR">INR (₹)</option>
+                                            <option value="USD">USD ($)</option>
+                                            <option value="EUR">EUR (€)</option>
+                                            <option value="GBP">GBP (£)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Description</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Optional details"
+                                            value={groupForm.description}
+                                            onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Participants Manager */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Participants ({groupForm.participants.length})</label>
+                                    
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Add participant name..."
+                                            value={newParticipantName}
+                                            onChange={(e) => setNewParticipantName(e.target.value)}
+                                            style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }}
+                                            onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addParticipantToForm(); } }}
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={addParticipantToForm}
+                                            style={{ border: 'none', background: '#ECFDF5', color: '#065F46', padding: '0.65rem 1rem', borderRadius: '10px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        >
+                                            <UserPlus size={15} /> Add
+                                        </button>
+                                    </div>
+
+                                    {/* Participants Badges list */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '100px', overflowY: 'auto', background: '#F8FAFC', padding: '0.5rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                                        {groupForm.participants.map(p => (
+                                            <span 
+                                                key={p} 
+                                                style={{ 
+                                                    display: 'inline-flex', alignItems: 'center', gap: '4px', 
+                                                    background: p === 'You' ? '#ECFDF5' : 'white', 
+                                                    color: p === 'You' ? '#047857' : '#334155', 
+                                                    border: '1px solid #E2E8F0', 
+                                                    padding: '3px 8px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750' 
+                                                }}
+                                            >
+                                                {p}
+                                                {p !== 'You' && (
+                                                    <button type="button" onClick={() => removeParticipantFromForm(p)} style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={12} /></button>
+                                                )}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button 
+                                    type="submit"
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.5rem' }}
+                                >
+                                    Create Ticket
+                                </button>
                             </form>
                         </Motion.div>
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* ──────── MODAL: ADD EXPENSE ──────── */}
+            <AnimatePresence>
+                {isAddExpenseModalOpen && activeSplit && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <Motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+                        >
+                            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Record Expense</h3>
+                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => setIsAddExpenseModalOpen(false)}><X size={18} /></button>
+                            </div>
+                            
+                            <form onSubmit={handleAddExpense} style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1, background: '#FAFAFA' }}>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Expense Description</label>
+                                        <input 
+                                            required
+                                            type="text" 
+                                            placeholder="e.g. Dinner, Uber, Flight ticket"
+                                            value={expenseForm.title}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '700', fontSize: '0.88rem' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Amount ({activeSplit.currencySymbol})</label>
+                                        <input 
+                                            required
+                                            type="number" 
+                                            placeholder="0.00"
+                                            value={expenseForm.amount}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '900', color: '#1B6B3A', fontSize: '0.95rem' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Who Paid?</label>
+                                        <select 
+                                            value={expenseForm.paidBy}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, paidBy: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontWeight: '600' }}
+                                        >
+                                            {activeSplit.participants.map(p => (
+                                                <option key={p} value={p}>{p}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Date</label>
+                                        <input 
+                                            type="date"
+                                            value={expenseForm.date}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Attachment Upload Panel */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Expense Attachment</label>
+                                    <div 
+                                        onClick={triggerSimulatedUpload}
+                                        style={{ border: '2px dashed #CBD5E1', borderRadius: '14px', padding: '0.75rem', background: '#F8FAFC', textAlign: 'center', cursor: 'pointer', color: '#475569', transition: 'border-color 0.2s' }}
+                                        onMouseOver={(e) => e.currentTarget.style.borderColor = '#1B6B3A'}
+                                        onMouseOut={(e) => e.currentTarget.style.borderColor = '#CBD5E1'}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                            <Upload size={16} />
+                                            <span style={{ fontSize: '0.78rem', fontWeight: '750' }}>
+                                                {expenseForm.attachmentName ? expenseForm.attachmentName : 'Click to upload invoice / receipt copy'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Split Type Protocol */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Splitting Protocol</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setExpenseForm({ ...expenseForm, splitType: 'equal' })}
+                                            style={{ 
+                                                padding: '0.6rem', borderRadius: '10px', 
+                                                border: expenseForm.splitType === 'equal' ? '2px solid #1B6B3A' : '1px solid #E2E8F0',
+                                                background: expenseForm.splitType === 'equal' ? 'white' : '#F8FAFC', 
+                                                fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', color: expenseForm.splitType === 'equal' ? '#1B6B3A' : '#475569'
+                                            }}
+                                        >
+                                            Split Equally
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setExpenseForm({ ...expenseForm, splitType: 'custom' })}
+                                            style={{ 
+                                                padding: '0.6rem', borderRadius: '10px', 
+                                                border: expenseForm.splitType === 'custom' ? '2px solid #1B6B3A' : '1px solid #E2E8F0',
+                                                background: expenseForm.splitType === 'custom' ? 'white' : '#F8FAFC', 
+                                                fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', color: expenseForm.splitType === 'custom' ? '#1B6B3A' : '#475569'
+                                            }}
+                                        >
+                                            Customize Shares
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Dynamic Shares Breakdown */}
+                                <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1rem', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.75rem', fontWeight: '900', color: '#475569', textTransform: 'uppercase' }}>Shares Allocations</h4>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        {activeSplit.participants.map(p => {
+                                            const totalAmt = parseFloat(expenseForm.amount) || 0;
+                                            const equalShare = totalAmt / activeSplit.participants.length;
+                                            return (
+                                                <div key={p} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#1F2937' }}>{p}</span>
+                                                    
+                                                    {expenseForm.splitType === 'equal' ? (
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#1E293B' }}>
+                                                            {activeSplit.currencySymbol}{Math.round(equalShare * 100) / 100}
+                                                        </span>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: '850', color: '#64748B' }}>{activeSplit.currencySymbol}</span>
+                                                            <input 
+                                                                required
+                                                                type="number"
+                                                                placeholder="0.00"
+                                                                value={expenseForm.shares[p] || ''}
+                                                                onChange={(e) => {
+                                                                    const newShares = { ...expenseForm.shares };
+                                                                    newShares[p] = e.target.value;
+                                                                    setExpenseForm({ ...expenseForm, shares: newShares });
+                                                                }}
+                                                                style={{ width: '80px', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '0.82rem', color: '#1B6B3A' }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Custom Shares Sum Warning */}
+                                    {expenseForm.splitType === 'custom' && (() => {
+                                        const totalAmt = parseFloat(expenseForm.amount) || 0;
+                                        const sum = activeSplit.participants.reduce((s, p) => s + (parseFloat(expenseForm.shares[p]) || 0), 0);
+                                        const difference = totalAmt - sum;
+                                        return (
+                                            <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '6px', color: Math.abs(difference) < 0.1 ? '#059669' : '#DC2626' }}>
+                                                <AlertCircle size={14} />
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>
+                                                    {Math.abs(difference) < 0.1 
+                                                        ? 'All allocations match total perfectly!' 
+                                                        : `Allocated: ${activeSplit.currencySymbol}${sum.toFixed(2)} (${difference > 0 ? 'Remaining' : 'Over'}: ${activeSplit.currencySymbol}${Math.abs(difference).toFixed(2)})`
+                                                    }
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                <button 
+                                    type="submit"
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.5rem' }}
+                                >
+                                    Log Expense
+                                </button>
+                            </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 };
