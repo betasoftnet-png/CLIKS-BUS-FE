@@ -42,8 +42,8 @@ const SupportDashboard = () => {
         setError('');
         try {
             const res = await supportService.getAgentTickets();
-            if (res && res.data) {
-                setTickets(res.data);
+            if (res) {
+                setTickets(res);
             }
         } catch (err) {
             setError('Failed to fetch platform tickets.');

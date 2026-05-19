@@ -42,12 +42,12 @@ const AdminSupportTeam = () => {
         setLoading(true);
         try {
             const agentRes = await supportService.getSupportAgents();
-            if (agentRes && agentRes.data) {
-                setAgents(agentRes.data);
+            if (agentRes) {
+                setAgents(agentRes);
             }
             const ticketRes = await supportService.getEscalatedTickets();
-            if (ticketRes && ticketRes.data) {
-                setEscalatedTickets(ticketRes.data);
+            if (ticketRes) {
+                setEscalatedTickets(ticketRes);
             }
         } catch (err) {
             console.error("Failed to query support workspace data:", err);

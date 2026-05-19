@@ -59,8 +59,8 @@ const FAQ = () => {
         setLoading(true);
         try {
             const res = await supportService.getUserTickets();
-            if (res && res.data) {
-                setTickets(res.data);
+            if (res) {
+                setTickets(res);
             }
         } catch (err) {
             console.error("Failed to fetch tickets stream:", err);
