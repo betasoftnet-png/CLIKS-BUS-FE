@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { 
     Truck, 
     Package, 
@@ -29,7 +30,6 @@ import '../App.css';
 import { useQuery } from '@tanstack/react-query';
 import { settingsService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const INITIAL_DELIVERIES = [
     {

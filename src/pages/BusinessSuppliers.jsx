@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { suppliersService } from '../services';
@@ -35,7 +36,6 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessSuppliers = () => {
     const queryClient = useQueryClient();

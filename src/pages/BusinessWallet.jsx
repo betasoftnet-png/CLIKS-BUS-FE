@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, X, Search, IndianRupee, Loader } from 'lucide-react';
 import { load } from '@cashfreepayments/cashfree-js';
 import { useLocation } from 'react-router-dom';
@@ -6,7 +7,6 @@ import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessWallet = () => {
     // Persisted LocalState for the Wallet context

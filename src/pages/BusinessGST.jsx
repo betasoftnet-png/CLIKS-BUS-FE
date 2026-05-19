@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gstService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';

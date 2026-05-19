@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     Search, 
@@ -32,7 +33,6 @@ import { posService } from '../services/posService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessPOS = () => {
     const queryClient = useQueryClient();

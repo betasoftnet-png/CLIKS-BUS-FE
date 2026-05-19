@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { useSearchParams } from 'react-router-dom';
 import { 
     UserPlus, 
@@ -37,7 +38,6 @@ import { crmService } from '../services/crmService';
 import { settingsService } from '../services/settingsService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const AVATAR_COLORS = [
     { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue

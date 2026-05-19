@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { 
     Users, 
     UserPlus, 
@@ -34,7 +35,6 @@ import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const INITIAL_EMPLOYEES = [
     {

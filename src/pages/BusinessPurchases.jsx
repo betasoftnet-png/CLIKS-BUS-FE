@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { 
     ShoppingCart, 

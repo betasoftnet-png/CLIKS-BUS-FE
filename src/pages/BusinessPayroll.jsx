@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { 
     CreditCard, 
     Plus, 
@@ -23,7 +24,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollService } from '../services/payrollService';
 import { staffingService } from '../services/staffingService';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 
 

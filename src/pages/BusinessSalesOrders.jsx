@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { ordersService } from '../services/ordersService';
 import { crmService } from '../services/crmService';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 import { 
     ShoppingCart, 

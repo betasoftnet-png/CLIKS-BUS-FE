@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { applyTableFilters } from '../utils/filterUtils';
 import { 
     Cpu, 
     Layers, 
@@ -140,7 +141,6 @@ const INITIAL_MATERIALS = [
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bomService, manufacturingService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessManufacturing = () => {
     const queryClient = useQueryClient();
