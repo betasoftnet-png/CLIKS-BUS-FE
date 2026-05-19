@@ -1579,7 +1579,42 @@ const BusinessBilling = () => {
             {/* Visual Invoice Preview Stage (Post Generation) */}
             {viewingInvoice && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1250, backdropFilter: 'blur(10px)', padding: '1rem' }}>
-                    <div style={{ 
+                    <style dangerouslySetInnerHTML={{ __html: `
+                        @media (max-width: 768px) {
+                            .billing-preview-modal-inner {
+                                height: 95vh !important;
+                                border-radius: 12px !important;
+                            }
+                            .billing-preview-modal-header {
+                                padding: 1rem !important;
+                                flex-direction: column !important;
+                                align-items: stretch !important;
+                                gap: 1rem !important;
+                            }
+                            .billing-preview-modal-header-actions {
+                                width: 100% !important;
+                                flex-direction: column !important;
+                                gap: 0.5rem !important;
+                            }
+                            .billing-preview-modal-header-actions a,
+                            .billing-preview-modal-header-actions button {
+                                width: 100% !important;
+                                justify-content: center !important;
+                            }
+                            .billing-preview-scroll-wrapper {
+                                padding: 0.5rem !important;
+                            }
+                            .billing-preview-a4-sheet {
+                                min-height: auto !important;
+                                box-shadow: none !important;
+                                border-radius: 12px !important;
+                            }
+                            .billing-preview-inner-wrapper {
+                                padding: 0px !important;
+                            }
+                        }
+                    `}} />
+                    <div className="billing-preview-modal-inner" style={{ 
                         background: 'white', 
                         width: '100%', 
                         maxWidth: '920px', 
@@ -1591,7 +1626,7 @@ const BusinessBilling = () => {
                         flexDirection: 'column',
                         animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
                     }}>
-                        <div style={{ padding: '1.25rem 1.75rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="billing-preview-modal-header" style={{ padding: '1.25rem 1.75rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                                     <div style={{ width: '10px', height: '10px', background: '#10B981', borderRadius: '50%' }}></div>
@@ -1599,7 +1634,7 @@ const BusinessBilling = () => {
                                 </div>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, fontWeight: '500' }}>Document Ref: <span style={{ fontWeight: '800', color: '#334155' }}>{viewingInvoice.invoice_number}</span></p>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <div className="billing-preview-modal-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
                                 <a 
                                     href="/sales/invoice/preview" 
                                     target="_blank" 
@@ -1640,8 +1675,8 @@ const BusinessBilling = () => {
                                 </button>
                             </div>
                         </div>
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ 
+                        <div className="billing-preview-scroll-wrapper" style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
+                            <div className="billing-preview-a4-sheet" style={{ 
                                 background: 'white', 
                                 width: '100%', 
                                 maxWidth: '794px', // approx A4
@@ -1651,7 +1686,7 @@ const BusinessBilling = () => {
                                 borderRadius: '2px',
                                 overflow: 'hidden'
                             }}>
-                                <div style={{ padding: '40px', color: '#000', background: '#fff' }}>
+                                <div className="billing-preview-inner-wrapper" style={{ padding: '40px', color: '#000', background: '#fff' }}>
                                     <InvoiceTemplates.Renderer 
                                         type={activeTemplate} 
                                         data={viewingInvoice} 

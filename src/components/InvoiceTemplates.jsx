@@ -61,6 +61,621 @@ const SignatoryBox = ({ company, style }) => (
     </div>
 );
 
+// RESPONSIVE STYLES FOR ALL INVOICE TEMPLATES
+const INVOICE_RESPONSIVE_CSS = `
+/* Global scroll wrapper for tables on small screens */
+.inv-table-scroll-container {
+  width: 100% !important;
+  overflow-x: auto !important;
+  margin-bottom: 25px !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+.inv-table-scroll-container::-webkit-scrollbar {
+  display: flex !important;
+  height: 4px !important;
+}
+.inv-table-scroll-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+@media (max-width: 768px) {
+  /* Premium Corporate Template Responsive Styles */
+  .inv-premium-corporate-container {
+    padding: 20px !important;
+    min-height: auto !important;
+  }
+  .inv-premium-corporate-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    margin-bottom: 30px !important;
+    gap: 25px !important;
+  }
+  .inv-premium-corporate-logo-title {
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+  }
+  .inv-premium-corporate-logo-title h1 {
+    font-size: 22px !important;
+  }
+  .inv-premium-corporate-profile-text {
+    max-width: 100% !important;
+  }
+  .inv-premium-corporate-header-right {
+    text-align: left !important;
+    align-items: flex-start !important;
+  }
+  .inv-premium-corporate-invoice-title {
+    font-size: 30px !important;
+    letter-spacing: 4px !important;
+    margin-bottom: 10px !important;
+  }
+  .inv-premium-corporate-invoice-details {
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .inv-premium-corporate-pill {
+    padding: 6px 16px !important;
+    border-radius: 8px !important;
+  }
+  .inv-premium-corporate-billing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 25px !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-premium-corporate-recipient-bar {
+    left: -12px !important;
+  }
+  .inv-premium-corporate-recipient-name {
+    font-size: 18px !important;
+  }
+  .inv-premium-corporate-payment-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .inv-premium-corporate-payment-card {
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+  .inv-premium-corporate-th {
+    padding: 12px 15px !important;
+    font-size: 10px !important;
+  }
+  .inv-premium-corporate-td {
+    padding: 15px !important;
+    font-size: 13px !important;
+  }
+  .inv-premium-corporate-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
+  }
+  .inv-premium-corporate-bank-card {
+    padding: 20px !important;
+    border-radius: 16px !important;
+    margin-bottom: 20px !important;
+  }
+  .inv-premium-corporate-bank-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .inv-premium-corporate-totals-card {
+    padding: 0 !important;
+  }
+  .inv-premium-corporate-total-amount {
+    font-size: 24px !important;
+  }
+  .inv-premium-corporate-words-card {
+    margin-top: 15px !important;
+    padding: 12px !important;
+  }
+  .inv-premium-corporate-signature-area {
+    margin-top: 30px !important;
+  }
+
+  /* Standard Template Responsive Styles */
+  .inv-standard-container {
+    padding: 20px !important;
+  }
+  .inv-standard-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  .inv-standard-header > div {
+    text-align: left !important;
+  }
+  .inv-standard-billing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 25px !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-standard-footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
+  }
+
+  /* Modern Template Responsive Styles */
+  .inv-modern-container {
+    padding: 20px !important;
+  }
+  .inv-modern-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px !important;
+    margin-bottom: 25px !important;
+    padding-bottom: 15px !important;
+  }
+  .inv-modern-header > div {
+    text-align: left !important;
+  }
+  .inv-modern-header h2 {
+    font-size: 28px !important;
+  }
+  .inv-modern-billing-grid {
+    flex-direction: column !important;
+    gap: 20px !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-modern-totals {
+    justify-content: flex-start !important;
+  }
+  .inv-modern-totals > div {
+    width: 100% !important;
+  }
+  .inv-modern-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 30px !important;
+    margin-top: 30px !important;
+  }
+  .inv-modern-footer > div {
+    text-align: left !important;
+  }
+
+  /* Minimal Template Responsive Styles */
+  .inv-minimal-header {
+    flex-direction: column !important;
+  }
+  .inv-minimal-header > div {
+    border-right: none !important;
+    border-bottom: 1px solid #000 !important;
+  }
+  .inv-minimal-footer {
+    flex-direction: column !important;
+  }
+  .inv-minimal-footer > div {
+    border-right: none !important;
+    border-bottom: 1px solid #000 !important;
+  }
+  .inv-minimal-footer > div:last-child {
+    border-bottom: none !important;
+  }
+
+  /* Elegant Dark Template Responsive Styles */
+  .inv-elegant-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+    padding: 20px !important;
+  }
+  .inv-elegant-header > div {
+    text-align: left !important;
+  }
+  .inv-elegant-container {
+    padding: 20px !important;
+  }
+  .inv-elegant-billing {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  .inv-elegant-billing > div {
+    text-align: left !important;
+  }
+  .inv-elegant-footer {
+    flex-direction: column !important;
+    gap: 25px !important;
+  }
+  .inv-elegant-footer > div {
+    width: 100% !important;
+  }
+
+  /* Retro Mono Responsive Styles */
+  .inv-retro-container {
+    padding: 20px !important;
+  }
+  .inv-retro-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-retro-header > div {
+    text-align: left !important;
+  }
+  .inv-retro-totals {
+    width: 100% !important;
+  }
+
+  /* Creative Blue Responsive Styles */
+  .inv-creative-container {
+    padding: 20px !important;
+  }
+  .inv-creative-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-creative-header > div {
+    text-align: left !important;
+  }
+  .inv-creative-billing {
+    flex-direction: column !important;
+    gap: 20px !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-creative-totals {
+    justify-content: flex-start !important;
+  }
+  .inv-creative-totals > div {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Executive Serif Responsive Styles */
+  .inv-executive-container {
+    padding: 20px !important;
+  }
+  .inv-executive-header h1 {
+    font-size: 20px !important;
+  }
+  .inv-executive-billing {
+    flex-direction: column !important;
+    gap: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  .inv-executive-billing > div {
+    text-align: left !important;
+  }
+
+  /* Clean Stripe Responsive Styles */
+  .inv-stripe-parent {
+    flex-direction: column !important;
+    min-height: auto !important;
+  }
+  .inv-stripe-sidebar {
+    width: 100% !important;
+    padding: 20px !important;
+    border-right: none !important;
+    border-bottom: 1px solid #ddd !important;
+  }
+  .inv-stripe-main {
+    padding: 20px !important;
+  }
+  .inv-stripe-main-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+  }
+  .inv-stripe-main-header > div {
+    text-align: left !important;
+  }
+
+  /* Service Pro Responsive Styles */
+  .inv-service-container {
+    padding: 20px !important;
+  }
+  .inv-service-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-service-header > div {
+    text-align: left !important;
+  }
+  .inv-service-table-header {
+    padding: 10px 15px !important;
+  }
+  .inv-service-table-row {
+    padding: 15px !important;
+  }
+  .inv-service-totals {
+    width: 100% !important;
+  }
+
+  /* Custom Template Responsive Styles */
+  .inv-custom-container {
+    padding: 20px !important;
+  }
+  .inv-custom-header {
+    align-items: flex-start !important;
+    text-align: left !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-custom-info {
+    flex-direction: column !important;
+    gap: 15px !important;
+    margin-bottom: 25px !important;
+  }
+  .inv-custom-info > div {
+    text-align: left !important;
+  }
+  .inv-custom-totals {
+    justify-content: flex-start !important;
+  }
+  .inv-custom-totals > div {
+    width: 100% !important;
+  }
+  .inv-custom-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 30px !important;
+  }
+  .inv-custom-footer > div {
+    justify-content: flex-start !important;
+  }
+}
+
+/* Force perfect print styling to always render desktop layout for all A4 templates */
+@media print {
+  /* Force A4 container styles */
+  .inv-premium-corporate-container {
+    padding: 60px !important;
+    min-height: 1100px !important;
+  }
+  .inv-premium-corporate-header {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    margin-bottom: 80px !important;
+    gap: 0 !important;
+  }
+  .inv-premium-corporate-logo-title {
+    gap: 15px !important;
+    margin-bottom: 20px !important;
+  }
+  .inv-premium-corporate-logo-title h1 {
+    font-size: 28px !important;
+  }
+  .inv-premium-corporate-profile-text {
+    max-width: 380px !important;
+  }
+  .inv-premium-corporate-header-right {
+    text-align: right !important;
+    align-items: flex-end !important;
+  }
+  .inv-premium-corporate-invoice-title {
+    font-size: 42px !important;
+    letter-spacing: 8px !important;
+    margin-bottom: 10px !important;
+  }
+  .inv-premium-corporate-invoice-details {
+    align-items: flex-end !important;
+    gap: 12px !important;
+  }
+  .inv-premium-corporate-pill {
+    padding: 10px 24px !important;
+    border-radius: 100px !important;
+  }
+  .inv-premium-corporate-billing-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 80px !important;
+    margin-bottom: 80px !important;
+  }
+  .inv-premium-corporate-recipient-bar {
+    left: -20px !important;
+  }
+  .inv-premium-corporate-recipient-name {
+    font-size: 20px !important;
+  }
+  .inv-premium-corporate-payment-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+  }
+  .inv-premium-corporate-payment-card {
+    padding: 24px !important;
+    border-radius: 16px !important;
+  }
+  .inv-premium-corporate-th {
+    padding: 20px 25px !important;
+    font-size: 11px !important;
+  }
+  .inv-premium-corporate-td {
+    padding: 25px !important;
+    font-size: 15px !important;
+  }
+  .inv-premium-corporate-footer-grid {
+    grid-template-columns: 1.5fr 1fr !important;
+    gap: 60px !important;
+  }
+  .inv-premium-corporate-bank-card {
+    padding: 30px !important;
+    border-radius: 20px !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-premium-corporate-bank-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+  }
+  .inv-premium-corporate-total-amount {
+    font-size: 32px !important;
+  }
+  .inv-premium-corporate-words-card {
+    margin-top: 30px !important;
+    padding: 15px !important;
+  }
+  .inv-premium-corporate-signature-area {
+    margin-top: 50px !important;
+  }
+
+  .inv-standard-container {
+    padding: 40px !important;
+  }
+  .inv-standard-header {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0 !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-standard-billing-grid {
+    grid-template-columns: 1.2fr 1fr !important;
+    gap: 50px !important;
+    margin-bottom: 35px !important;
+  }
+  .inv-standard-footer-grid {
+    grid-template-columns: 1.4fr 1fr !important;
+    gap: 40px !important;
+  }
+
+  .inv-modern-container {
+    padding: 40px !important;
+  }
+  .inv-modern-header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    margin-bottom: 50px !important;
+    padding-bottom: 20px !important;
+  }
+  .inv-modern-header h2 {
+    font-size: 36px !important;
+  }
+  .inv-modern-billing-grid {
+    flex-direction: row !important;
+    gap: 60px !important;
+    margin-bottom: 40px !important;
+  }
+  .inv-modern-totals {
+    justify-content: flex-end !important;
+  }
+  .inv-modern-totals > div {
+    width: 350px !important;
+  }
+  .inv-modern-footer {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    margin-top: 60px !important;
+  }
+
+  .inv-minimal-header {
+    flex-direction: row !important;
+  }
+  .inv-minimal-header > div {
+    border-right: 1px solid #000 !important;
+    border-bottom: none !important;
+  }
+  .inv-minimal-footer {
+    flex-direction: row !important;
+  }
+  .inv-minimal-footer > div {
+    border-right: 1px solid #000 !important;
+    border-bottom: none !important;
+  }
+
+  .inv-elegant-header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    padding: 30px 40px !important;
+  }
+  .inv-elegant-container {
+    padding: 30px 40px !important;
+  }
+  .inv-elegant-billing {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 40px !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-elegant-footer {
+    flex-direction: row !important;
+  }
+  .inv-elegant-footer > div {
+    width: 250px !important;
+  }
+
+  .inv-retro-header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    margin-bottom: 40px !important;
+  }
+  .inv-retro-totals {
+    width: 250px !important;
+  }
+
+  .inv-creative-header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-creative-billing {
+    flex-direction: row !important;
+    gap: 30px !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-creative-totals {
+    justify-content: flex-end !important;
+  }
+  .inv-creative-totals > div {
+    width: auto !important;
+  }
+
+  .inv-stripe-parent {
+    flex-direction: row !important;
+    min-height: 700px !important;
+  }
+  .inv-stripe-sidebar {
+    width: 25% !important;
+    padding: 30px 20px !important;
+    border-right: 1px solid #ddd !important;
+    border-bottom: none !important;
+  }
+  .inv-stripe-main {
+    padding: 30px !important;
+  }
+  .inv-stripe-main-header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+
+  .inv-service-container {
+    padding: 40px !important;
+  }
+  .inv-service-header {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+  .inv-service-table-header {
+    padding: 15px 20px !important;
+  }
+  .inv-service-table-row {
+    padding: 20px !important;
+  }
+  .inv-service-totals {
+    width: 300px !important;
+  }
+
+  .inv-custom-header {
+    align-items: flex-start !important;
+  }
+  .inv-custom-info {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    margin-bottom: 30px !important;
+  }
+  .inv-custom-totals {
+    justify-content: flex-end !important;
+  }
+  .inv-custom-totals > div {
+    width: 320px !important;
+  }
+  .inv-custom-footer {
+    flex-direction: row !important;
+  }
+}
+\`;
+`;
+
 export const InvoiceTemplates = {
     // =====================================================
     // 1. STANDARD TAX INVOICE (PRODUCTION LEVEL A)
@@ -69,12 +684,12 @@ export const InvoiceTemplates = {
         const items = getParsedItems(data.items);
         const themeColor = config?.accentColor || '#BE185D';
         return (
-            <div style={{ fontFamily: "'Inter', sans-serif", padding: '40px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.06)', position: 'relative', overflow: 'hidden' }}>
+            <div className="inv-standard-container" style={{ fontFamily: "'Inter', sans-serif", padding: '40px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.06)', position: 'relative', overflow: 'hidden' }}>
                 {/* Beautiful Accent Bar at top */}
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: `linear-gradient(90deg, ${themeColor} 0%, ${themeColor}CC 100%)` }}></div>
                 
                 {/* Top Header Section */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '25px', marginBottom: '30px', marginTop: '10px' }}>
+                <div className="inv-standard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '25px', marginBottom: '30px', marginTop: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '4px', height: '42px', background: themeColor, borderRadius: '4px' }}></div>
                         <div>
@@ -89,7 +704,7 @@ export const InvoiceTemplates = {
                 </div>
 
                 {/* Issued By & Bill To Details */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '50px', marginBottom: '35px', padding: '0 5px' }}>
+                <div className="inv-standard-billing-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '50px', marginBottom: '35px', padding: '0 5px' }}>
                     <div style={{ borderLeft: `3px solid #E2E8F0`, paddingLeft: '15px' }}>
                         <h3 style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>Issued By</h3>
                         <h4 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: '0 0 6px 0', letterSpacing: '-0.01em' }}>{business?.business_name || business?.name}</h4>
@@ -110,45 +725,47 @@ export const InvoiceTemplates = {
                     </div>
                 </div>
 
-                {/* Items Table */}
-                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '35px', overflow: 'hidden', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                    <thead>
-                        <tr style={{ background: '#1E293B' }}>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '45%' }}>Description</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '13%' }}>HSN</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '10%' }}>Qty</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '15%' }}>Rate</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '17%' }}>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, i) => (
-                            <tr key={i} style={{ background: i % 2 === 1 ? '#F8FAFC' : '#FFFFFF' }}>
-                                <td style={{ padding: '14px 15px', borderBottom: '1px solid #E2E8F0', wordBreak: 'break-word' }}>
-                                    <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{item.description}</div>
-                                    <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>{item.details || ''}</div>
-                                </td>
-                                <td style={{ padding: '14px 15px', textAlign: 'center', borderBottom: '1px solid #E2E8F0', fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>{item.hsn_code || '-'}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>{item.quantity}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
+                {/* Items Table with horizontal scroll container */}
+                <div className="inv-table-scroll-container">
+                    <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '35px', overflow: 'hidden', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                        <thead>
+                            <tr style={{ background: '#1E293B' }}>
+                                <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '45%' }}>Description</th>
+                                <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '13%' }}>HSN</th>
+                                <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '10%' }}>Qty</th>
+                                <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '15%' }}>Rate</th>
+                                <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '17%' }}>Amount</th>
                             </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr style={{ background: `${themeColor}05` }}>
-                            <td colSpan="3" style={{ padding: '15px', fontSize: '11px', color: '#64748B', fontWeight: '600' }}>
-                                <div style={{ textTransform: 'uppercase', marginBottom: '4px', fontSize: '9px', fontWeight: '850', color: themeColor, letterSpacing: '0.05em' }}>Total In Words</div>
-                                <div style={{ color: '#1E293B', fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4', fontWeight: '700' }}>{numberToWords(data.total_amount)}</div>
-                            </td>
-                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: '800', color: '#64748B', whiteSpace: 'nowrap', width: '15%' }}>Total</td>
-                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '20px', fontWeight: '950', color: themeColor, whiteSpace: 'nowrap', width: '17%' }}>{formatCurrency(data.total_amount)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody>
+                            {items.map((item, i) => (
+                                <tr key={i} style={{ background: i % 2 === 1 ? '#F8FAFC' : '#FFFFFF' }}>
+                                    <td style={{ padding: '14px 15px', borderBottom: '1px solid #E2E8F0', wordBreak: 'break-word' }}>
+                                        <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{item.description}</div>
+                                        <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>{item.details || ''}</div>
+                                    </td>
+                                    <td style={{ padding: '14px 15px', textAlign: 'center', borderBottom: '1px solid #E2E8F0', fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>{item.hsn_code || '-'}</td>
+                                    <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>{item.quantity}</td>
+                                    <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                    <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr style={{ background: `${themeColor}05` }}>
+                                <td colSpan="3" style={{ padding: '15px', fontSize: '11px', color: '#64748B', fontWeight: '600' }}>
+                                    <div style={{ textTransform: 'uppercase', marginBottom: '4px', fontSize: '9px', fontWeight: '850', color: themeColor, letterSpacing: '0.05em' }}>Total In Words</div>
+                                    <div style={{ color: '#1E293B', fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4', fontWeight: '700' }}>{numberToWords(data.total_amount)}</div>
+                                </td>
+                                <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: '800', color: '#64748B', whiteSpace: 'nowrap', width: '15%' }}>Total</td>
+                                <td style={{ padding: '15px', textAlign: 'right', fontSize: '20px', fontWeight: '950', color: themeColor, whiteSpace: 'nowrap', width: '17%' }}>{formatCurrency(data.total_amount)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
 
                 {/* Footer Section: Bank Account Details & Authorized Signatory */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '40px', alignItems: 'flex-start' }}>
+                <div className="inv-standard-footer-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '40px', alignItems: 'flex-start' }}>
                     <div>
                         {/* Bank Details Container */}
                         <div style={{ border: '1px solid #E2E8F0', borderRadius: '10px', background: '#F8FAFC', padding: '18px', position: 'relative', overflow: 'hidden' }}>
@@ -218,8 +835,8 @@ export const InvoiceTemplates = {
     modern: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ padding: '40px', background: '#fff', color: '#333' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px', borderBottom: '4px solid #1E3A8A', paddingBottom: '20px' }}>
+            <div className="inv-modern-container" style={{ padding: '40px', background: '#fff', color: '#333' }}>
+                <div className="inv-modern-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px', borderBottom: '4px solid #1E3A8A', paddingBottom: '20px' }}>
                     <div>
                         <h1 style={{ margin: 0, color: '#1E3A8A', fontSize: '28px', fontWeight: '900' }}>{business?.business_name || business?.name || 'CLIKS'}</h1>
                         <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#666' }}>{business?.address}</p>
@@ -232,7 +849,7 @@ export const InvoiceTemplates = {
                         </div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '60px', marginBottom: '40px' }}>
+                <div className="inv-modern-billing-grid" style={{ display: 'flex', gap: '60px', marginBottom: '40px' }}>
                     <div style={{ flex: 1 }}>
                         <h3 style={{ fontSize: '12px', color: '#1E3A8A', borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '10px', textTransform: 'uppercase' }}>Client Details</h3>
                         <div style={{ fontSize: '15px', fontWeight: '700', marginBottom: '5px' }}>{data.client_name}</div>
@@ -244,39 +861,41 @@ export const InvoiceTemplates = {
                         <div style={{ fontSize: '13px', color: '#555', whiteSpace: 'pre-line' }}>{data.shipping_address || 'As above'}</div>
                     </div>
                 </div>
-                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', marginBottom: '30px' }}>
-                    <thead>
-                        <tr style={{ borderTop: '1px solid #ccc', borderBottom: '2px solid #1E3A8A', background: '#F8FAFC' }}>
-                            <th style={{ padding: '15px 10px', textAlign: 'left', fontSize: '12px', width: '45%' }}>ITEMS & DESCRIPTION</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '10%' }}>QTY</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '15%' }}>RATE</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '13%' }}>TAX%</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '17%' }}>AMOUNT</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                                <td style={{ padding: '15px 10px', wordBreak: 'break-word' }}>
-                                    <div style={{ fontWeight: '700', fontSize: '14px' }}>{item.description}</div>
-                                    <div style={{ fontSize: '11px', color: '#666' }}>HSN: {item.hsn_code || 'N/A'}</div>
-                                </td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.quantity}</td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.tax_rate}%</td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
+                <div className="inv-table-scroll-container">
+                    <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                        <thead>
+                            <tr style={{ borderTop: '1px solid #ccc', borderBottom: '2px solid #1E3A8A', background: '#F8FAFC' }}>
+                                <th style={{ padding: '15px 10px', textAlign: 'left', fontSize: '12px', width: '45%' }}>ITEMS & DESCRIPTION</th>
+                                <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '10%' }}>QTY</th>
+                                <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '15%' }}>RATE</th>
+                                <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '13%' }}>TAX%</th>
+                                <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '17%' }}>AMOUNT</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                                    <td style={{ padding: '15px 10px', wordBreak: 'break-word' }}>
+                                        <div style={{ fontWeight: '700', fontSize: '14px' }}>{item.description}</div>
+                                        <div style={{ fontSize: '11px', color: '#666' }}>HSN: {item.hsn_code || 'N/A'}</div>
+                                    </td>
+                                    <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.quantity}</td>
+                                    <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                    <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.tax_rate}%</td>
+                                    <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="inv-modern-totals" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ width: '350px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '14px', whiteSpace: 'nowrap' }}><span>Sub Total:</span><span>{formatCurrency(data.amount)}</span></div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '14px', borderBottom: '1px solid #eee', whiteSpace: 'nowrap' }}><span>Tax Amount:</span><span>{formatCurrency(data.tax_amount)}</span></div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', fontSize: '20px', fontWeight: '900', color: '#1E3A8A', whiteSpace: 'nowrap' }}><span>Total:</span><span>{formatCurrency(data.total_amount)}</span></div>
                     </div>
                 </div>
-                <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div className="inv-modern-footer" style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <BankDetails data={business} style={{border: 'none', padding: 0}} />
                     <SignatoryBox company={business?.business_name || business?.name} style={{textAlign: 'right'}} />
                 </div>
@@ -291,9 +910,9 @@ export const InvoiceTemplates = {
         const items = getParsedItems(data.items);
         const taxBreakdown = data.tax_amount / 2;
         return (
-            <div style={{ border: '2px solid #000', padding: 0, color: '#000' }}>
+            <div className="inv-minimal-container" style={{ border: '2px solid #000', padding: 0, color: '#000' }}>
                 <div style={{ textAlign: 'center', borderBottom: '2px solid #000', padding: '5px', fontWeight: '900', fontSize: '16px', textTransform: 'uppercase' }}>TAX INVOICE</div>
-                <div style={{ display: 'flex', borderBottom: '1px solid #000' }}>
+                <div className="inv-minimal-header" style={{ display: 'flex', borderBottom: '1px solid #000' }}>
                     <div style={{ flex: 1, borderRight: '1px solid #000', padding: '10px' }}>
                         <h2 style={{ fontSize: '16px', margin: '0 0 5px 0' }}>{business?.business_name || 'OUR BUSINESS'}</h2>
                         <p style={{ fontSize: '11px', margin: 0 }}>{business?.address}</p>
@@ -316,57 +935,59 @@ export const InvoiceTemplates = {
                     <div style={{ fontSize: '11px' }}>{data.billing_address}</div>
                     {data.client_gstin && <div style={{ fontSize: '11px', fontWeight: 'bold' }}>GSTIN/UIN: {data.client_gstin}</div>}
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid #000', fontSize: '11px', fontWeight: 'bold', textAlign: 'center' }}>
-                            <th style={{ borderRight: '1px solid #000', padding: '5px', width: '40px' }}>Sl No.</th>
-                            <th style={{ borderRight: '1px solid #000', padding: '5px', textAlign: 'left' }}>Description of Goods</th>
-                            <th style={{ borderRight: '1px solid #000', padding: '5px' }}>HSN/SAC</th>
-                            <th style={{ borderRight: '1px solid #000', padding: '5px' }}>Quantity</th>
-                            <th style={{ borderRight: '1px solid #000', padding: '5px' }}>Rate</th>
-                            <th style={{ borderRight: '1px solid #000', padding: '5px' }}>per</th>
-                            <th style={{ padding: '5px' }}>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, i) => (
-                            <tr key={i} style={{ fontSize: '12px', verticalAlign: 'top' }}>
-                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'center' }}>{i + 1}</td>
-                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', fontWeight: 'bold' }}>{item.description}</td>
-                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'center' }}>{item.hsn_code}</td>
-                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right', fontWeight: 'bold' }}>{item.quantity}</td>
-                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'center' }}>{item.unit || 'nos'}</td>
-                                <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(item.total).toFixed(2)}</td>
+                <div className="inv-table-scroll-container">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px solid #000', fontSize: '11px', fontWeight: 'bold', textAlign: 'center' }}>
+                                <th style={{ borderRight: '1px solid #000', padding: '5px', width: '40px' }}>Sl No.</th>
+                                <th style={{ borderRight: '1px solid #000', padding: '5px', textAlign: 'left' }}>Description of Goods</th>
+                                <th style={{ borderRight: '1px solid #000', padding: '5px' }}>HSN/SAC</th>
+                                <th style={{ borderRight: '1px solid #000', padding: '5px' }}>Quantity</th>
+                                <th style={{ borderRight: '1px solid #000', padding: '5px' }}>Rate</th>
+                                <th style={{ borderRight: '1px solid #000', padding: '5px' }}>per</th>
+                                <th style={{ padding: '5px' }}>Amount</th>
                             </tr>
-                        ))}
-                        <tr style={{ height: '100px' }}>
-                            <td style={{ borderRight: '1px solid #000' }}></td>
-                            <td style={{ borderRight: '1px solid #000' }}>
-                                <div style={{ textAlign: 'right', fontSize: '11px', paddingRight: '10px', fontStyle: 'italic' }}>CGST @9%<br/>SGST @9%</div>
-                            </td>
-                            <td style={{ borderRight: '1px solid #000' }}></td><td style={{ borderRight: '1px solid #000' }}></td><td style={{ borderRight: '1px solid #000' }}></td><td style={{ borderRight: '1px solid #000' }}></td>
-                            <td style={{ textAlign: 'right', padding: '0 10px', fontSize: '12px' }}>
-                                {taxBreakdown.toFixed(2)}<br/>{taxBreakdown.toFixed(2)}
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot style={{ borderTop: '1px solid #000' }}>
-                        <tr style={{ fontWeight: 'bold', fontSize: '13px' }}>
-                            <td style={{ borderRight: '1px solid #000' }}></td>
-                            <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right' }}>Total</td>
-                            <td style={{ borderRight: '1px solid #000' }}></td>
-                            <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + parseFloat(i.quantity || 0), 0)}</td>
-                            <td style={{ borderRight: '1px solid #000' }}></td>
-                            <td style={{ borderRight: '1px solid #000' }}></td>
-                            <td style={{ padding: '5px 10px', textAlign: 'right', background: '#f1f1f1' }}>₹{parseFloat(data.total_amount).toFixed(2)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody>
+                            {items.map((item, i) => (
+                                <tr key={i} style={{ fontSize: '12px', verticalAlign: 'top' }}>
+                                    <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'center' }}>{i + 1}</td>
+                                    <td style={{ borderRight: '1px solid #000', padding: '5px 10px', fontWeight: 'bold' }}>{item.description}</td>
+                                    <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'center' }}>{item.hsn_code}</td>
+                                    <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right', fontWeight: 'bold' }}>{item.quantity}</td>
+                                    <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                    <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'center' }}>{item.unit || 'nos'}</td>
+                                    <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                            <tr style={{ height: '100px' }}>
+                                <td style={{ borderRight: '1px solid #000' }}></td>
+                                <td style={{ borderRight: '1px solid #000' }}>
+                                    <div style={{ textAlign: 'right', fontSize: '11px', paddingRight: '10px', fontStyle: 'italic' }}>CGST @9%<br/>SGST @9%</div>
+                                </td>
+                                <td style={{ borderRight: '1px solid #000' }}></td><td style={{ borderRight: '1px solid #000' }}></td><td style={{ borderRight: '1px solid #000' }}></td><td style={{ borderRight: '1px solid #000' }}></td>
+                                <td style={{ textAlign: 'right', padding: '0 10px', fontSize: '12px' }}>
+                                    {taxBreakdown.toFixed(2)}<br/>{taxBreakdown.toFixed(2)}
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot style={{ borderTop: '1px solid #000' }}>
+                            <tr style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                                <td style={{ borderRight: '1px solid #000' }}></td>
+                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right' }}>Total</td>
+                                <td style={{ borderRight: '1px solid #000' }}></td>
+                                <td style={{ borderRight: '1px solid #000', padding: '5px 10px', textAlign: 'right' }}>{items.reduce((acc, i) => acc + parseFloat(i.quantity || 0), 0)}</td>
+                                <td style={{ borderRight: '1px solid #000' }}></td>
+                                <td style={{ borderRight: '1px solid #000' }}></td>
+                                <td style={{ padding: '5px 10px', textAlign: 'right', background: '#f1f1f1' }}>₹{parseFloat(data.total_amount).toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
                 <div style={{ borderTop: '1px solid #000', padding: '5px 10px', fontSize: '11px' }}>
                     Amount Chargeable (in words)<br/><b style={{textTransform: 'capitalize'}}>{numberToWords(data.total_amount)}</b>
                 </div>
-                <div style={{ display: 'flex', borderTop: '1px solid #000' }}>
+                <div className="inv-minimal-footer" style={{ display: 'flex', borderTop: '1px solid #000' }}>
                     <div style={{ flex: 1, borderRight: '1px solid #000', padding: '10px' }}>
                         <BankDetails data={business} style={{border: 'none', padding: 0}} />
                     </div>
@@ -385,8 +1006,8 @@ export const InvoiceTemplates = {
     elegant_dark: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ border: '1px solid #E5E7EB', background: 'white' }}>
-                <div style={{ background: '#111827', color: 'white', padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="inv-elegant-container" style={{ border: '1px solid #E5E7EB', background: 'white' }}>
+                <div className="inv-elegant-header" style={{ background: '#111827', color: 'white', padding: '30px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <div style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '3px', textTransform: 'uppercase' }}>{business?.business_name || 'ENTERPRISE'}</div>
                         <div style={{ fontSize: '12px', opacity: 0.8 }}>{business?.gstin ? `GSTIN: ${business.gstin}` : 'Registered Invoice'}</div>
@@ -397,7 +1018,7 @@ export const InvoiceTemplates = {
                     </div>
                 </div>
                 <div style={{ padding: '30px 40px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
+                    <div className="inv-elegant-billing" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '30px' }}>
                         <div>
                             <label style={{ fontSize: '11px', color: '#6B7280', fontWeight: 'bold', textTransform: 'uppercase' }}>Sold To</label>
                             <div style={{ fontWeight: '800', fontSize: '16px', margin: '5px 0' }}>{data.client_name}</div>
@@ -412,30 +1033,32 @@ export const InvoiceTemplates = {
                             </div>
                         </div>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
-                        <thead>
-                            <tr style={{ color: '#6B7280', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
-                                <th style={{ textAlign: 'left', padding: '0 10px' }}>Item & HSN</th>
-                                <th style={{ textAlign: 'center' }}>Qty</th>
-                                <th style={{ textAlign: 'right' }}>Rate</th>
-                                <th style={{ textAlign: 'right', padding: '0 10px' }}>Line Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((item, i) => (
-                                <tr key={i} style={{ background: '#F9FAFB' }}>
-                                    <td style={{ padding: '15px 10px', borderLeft: '4px solid #FBBF24', borderRadius: '4px 0 0 4px' }}>
-                                        <div style={{ fontWeight: '700' }}>{item.description}</div>
-                                        <div style={{ fontSize: '11px', color: '#6B7280' }}>{item.hsn_code}</div>
-                                    </td>
-                                    <td style={{ padding: '15px 10px', textAlign: 'center' }}>{item.quantity}</td>
-                                    <td style={{ padding: '15px 10px', textAlign: 'right' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                    <td style={{ padding: '15px 10px', textAlign: 'right', fontWeight: '800', borderRadius: '0 4px 4px 0' }}>{parseFloat(item.total).toFixed(2)}</td>
+                    <div className="inv-table-scroll-container">
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
+                            <thead>
+                                <tr style={{ color: '#6B7280', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
+                                    <th style={{ textAlign: 'left', padding: '0 10px' }}>Item & HSN</th>
+                                    <th style={{ textAlign: 'center' }}>Qty</th>
+                                    <th style={{ textAlign: 'right' }}>Rate</th>
+                                    <th style={{ textAlign: 'right', padding: '0 10px' }}>Line Total</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', borderTop: '1px solid #E5E7EB', paddingTop: '20px' }}>
+                            </thead>
+                            <tbody>
+                                {items.map((item, i) => (
+                                    <tr key={i} style={{ background: '#F9FAFB' }}>
+                                        <td style={{ padding: '15px 10px', borderLeft: '4px solid #FBBF24', borderRadius: '4px 0 0 4px' }}>
+                                            <div style={{ fontWeight: '700' }}>{item.description}</div>
+                                            <div style={{ fontSize: '11px', color: '#6B7280' }}>{item.hsn_code}</div>
+                                        </td>
+                                        <td style={{ padding: '15px 10px', textAlign: 'center' }}>{item.quantity}</td>
+                                        <td style={{ padding: '15px 10px', textAlign: 'right' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                        <td style={{ padding: '15px 10px', textAlign: 'right', fontWeight: '800', borderRadius: '0 4px 4px 0' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="inv-elegant-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', borderTop: '1px solid #E5E7EB', paddingTop: '20px' }}>
                         <BankDetails data={business} />
                         <div style={{ textAlign: 'right', width: '250px' }}>
                             <div style={{ color: '#6B7280', fontSize: '13px', marginBottom: '5px' }}>Sub Total: {formatCurrency(data.amount)}</div>
@@ -533,8 +1156,8 @@ export const InvoiceTemplates = {
     retro_mono: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ padding: '30px', background: '#fff' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
+            <div className="inv-retro-container" style={{ padding: '30px', background: '#fff' }}>
+                <div className="inv-retro-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
                     <SellerHeader business={business} />
                     <div style={{ textAlign: 'right' }}>
                         <h1 style={{ fontSize: '30px', color: '#999', fontWeight: '300', margin: 0 }}>INVOICE</h1>
@@ -547,31 +1170,35 @@ export const InvoiceTemplates = {
                     <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{data.client_name}</div>
                     <div>{data.billing_address}</div>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #333', fontWeight: 'bold', fontSize: '13px' }}>
-                            <td style={{ padding: '10px 0' }}>Item Description</td>
-                            <td style={{ textAlign: 'right' }}>Quantity</td>
-                            <td style={{ textAlign: 'right' }}>Price</td>
-                            <td style={{ textAlign: 'right' }}>Total</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: '1px solid #eee', fontSize: '13px' }}>
-                                <td style={{ padding: '12px 0' }}><b>{item.description}</b><br/><span style={{fontSize: '11px', color: '#666'}}>HSN/SAC: {item.hsn_code}</span></td>
-                                <td style={{ textAlign: 'right' }}>{item.quantity}</td>
-                                <td style={{ textAlign: 'right' }}>{formatCurrency(item.price)}</td>
-                                <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(item.total)}</td>
+                <div className="inv-table-scroll-container">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid #333', fontWeight: 'bold', fontSize: '13px' }}>
+                                <td style={{ padding: '10px 0' }}>Item Description</td>
+                                <td style={{ textAlign: 'right' }}>Quantity</td>
+                                <td style={{ textAlign: 'right' }}>Price</td>
+                                <td style={{ textAlign: 'right' }}>Total</td>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #eee', fontSize: '13px' }}>
+                                    <td style={{ padding: '12px 0' }}><b>{item.description}</b><br/><span style={{fontSize: '11px', color: '#666'}}>HSN/SAC: {item.hsn_code}</span></td>
+                                    <td style={{ textAlign: 'right' }}>{item.quantity}</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(item.price)}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(item.total)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                    <table style={{ width: '250px', fontSize: '13px' }}>
-                        <tr><td style={{ padding: '5px' }}>Subtotal:</td><td style={{ textAlign: 'right' }}>{formatCurrency(data.amount)}</td></tr>
-                        <tr><td style={{ padding: '5px' }}>Tax Total:</td><td style={{ textAlign: 'right' }}>{formatCurrency(data.tax_amount)}</td></tr>
-                        <tr style={{ fontWeight: 'bold', fontSize: '16px', borderTop: '2px solid #333' }}><td style={{ padding: '10px 5px' }}>Balance Due:</td><td style={{ textAlign: 'right', padding: '10px 5px' }}>{formatCurrency(data.total_amount)}</td></tr>
+                    <table className="inv-retro-totals" style={{ width: '250px', fontSize: '13px' }}>
+                        <tbody>
+                            <tr><td style={{ padding: '5px' }}>Subtotal:</td><td style={{ textAlign: 'right' }}>{formatCurrency(data.amount)}</td></tr>
+                            <tr><td style={{ padding: '5px' }}>Tax Total:</td><td style={{ textAlign: 'right' }}>{formatCurrency(data.tax_amount)}</td></tr>
+                            <tr style={{ fontWeight: 'bold', fontSize: '16px', borderTop: '2px solid #333' }}><td style={{ padding: '10px 5px' }}>Balance Due:</td><td style={{ textAlign: 'right', padding: '10px 5px' }}>{formatCurrency(data.total_amount)}</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -584,8 +1211,8 @@ export const InvoiceTemplates = {
     creative_blue: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ padding: '40px' }}>
-                <div style={{ background: '#f5f7fa', padding: '20px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <div className="inv-creative-container" style={{ padding: '40px' }}>
+                <div className="inv-creative-header" style={{ background: '#f5f7fa', padding: '20px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                     <div>
                         <h2 style={{ margin: 0, color: '#2d3748' }}>{business?.business_name || 'Our Company'}</h2>
                         <div style={{ fontSize: '12px' }}>GST: {business?.gstin}</div>
@@ -595,7 +1222,7 @@ export const InvoiceTemplates = {
                         <div style={{ fontSize: '13px' }}>Ref: {data.invoice_number}</div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '30px', marginBottom: '30px' }}>
+                <div className="inv-creative-billing" style={{ display: 'flex', gap: '30px', marginBottom: '30px' }}>
                     <div style={{ flex: 1 }}><b>Client:</b><br/>{data.client_name}<br/>{data.billing_address}</div>
                     <div style={{ flex: 1 }}><b>Order Details:</b><br/>Date: {data.due_date}<br/>Method: {data.payment_mode}</div>
                 </div>
@@ -608,7 +1235,7 @@ export const InvoiceTemplates = {
                         <div style={{ fontWeight: '800', fontSize: '18px' }}>₹{parseFloat(item.total).toLocaleString()}</div>
                     </div>
                 ))}
-                <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end' }}>
+                <div className="inv-creative-totals" style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ background: '#2d3748', color: 'white', padding: '15px 25px', borderRadius: '8px', fontSize: '20px', fontWeight: 'bold' }}>
                         Payable: {formatCurrency(data.total_amount)}
                     </div>
@@ -623,38 +1250,40 @@ export const InvoiceTemplates = {
     executive: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ fontFamily: 'Georgia, serif', padding: '40px' }}>
+            <div className="inv-executive-container" style={{ fontFamily: 'Georgia, serif', padding: '40px' }}>
                 <div style={{ textAlign: 'center', borderBottom: '3px double #000', paddingBottom: '20px', marginBottom: '30px' }}>
                     <h1 style={{ margin: '0 0 5px 0', fontSize: '28px' }}>{business?.business_name?.toUpperCase() || 'BUSINESS NAME'}</h1>
                     <div style={{ fontSize: '12px', fontStyle: 'italic' }}>{business?.address} | GSTIN: {business?.gstin}</div>
                 </div>
                 <div style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px' }}>STATEMENT OF ACCOUNTS</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '20px' }}>
+                <div className="inv-executive-billing" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '20px' }}>
                     <div><b>DEBTOR:</b><br/>{data.client_name}<br/>{data.billing_address}</div>
                     <div style={{ textAlign: 'right' }}><b>DOC NO:</b> {data.invoice_number}<br/><b>DATE:</b> {data.due_date}</div>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000' }}>
-                    <thead>
-                        <tr style={{ background: '#f1f1f1', borderBottom: '1px solid #000' }}>
-                            <th style={{ borderRight: '1px solid #000', padding: '8px', textAlign: 'left' }}>PARTICULARS</th>
-                            <th style={{ borderRight: '1px solid #000', padding: '8px', textAlign: 'right' }}>VALUATION</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((it, i) => (
-                            <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
-                                <td style={{ borderRight: '1px solid #000', padding: '10px' }}>{it.description} (Qty: {it.quantity})</td>
-                                <td style={{ padding: '10px', textAlign: 'right' }}>{parseFloat(it.total).toFixed(2)}</td>
+                <div className="inv-table-scroll-container">
+                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #000' }}>
+                        <thead>
+                            <tr style={{ background: '#f1f1f1', borderBottom: '1px solid #000' }}>
+                                <th style={{ borderRight: '1px solid #000', padding: '8px', textAlign: 'left' }}>PARTICULARS</th>
+                                <th style={{ borderRight: '1px solid #000', padding: '8px', textAlign: 'right' }}>VALUATION</th>
                             </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr style={{ fontWeight: 'bold', borderTop: '2px solid #000' }}>
-                            <td style={{ borderRight: '1px solid #000', padding: '10px', textAlign: 'right' }}>NET PAYABLE</td>
-                            <td style={{ padding: '10px', textAlign: 'right' }}>₹ {parseFloat(data.total_amount).toFixed(2)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody>
+                            {items.map((it, i) => (
+                                <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
+                                    <td style={{ borderRight: '1px solid #000', padding: '10px' }}>{it.description} (Qty: {it.quantity})</td>
+                                    <td style={{ padding: '10px', textAlign: 'right' }}>{parseFloat(it.total).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr style={{ fontWeight: 'bold', borderTop: '2px solid #000' }}>
+                                <td style={{ borderRight: '1px solid #000', padding: '10px', textAlign: 'right' }}>NET PAYABLE</td>
+                                <td style={{ padding: '10px', textAlign: 'right' }}>₹ {parseFloat(data.total_amount).toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
                 <div style={{ marginTop: '50px' }}>
                     <BankDetails data={business} />
                 </div>
@@ -668,8 +1297,8 @@ export const InvoiceTemplates = {
     clean_stripe: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ display: 'flex', border: '1px solid #ddd', minHeight: '700px' }}>
-                <div style={{ width: '25%', background: '#F3F4F6', borderRight: '1px solid #ddd', padding: '30px 20px', display: 'flex', flexDirection: 'column' }}>
+            <div className="inv-stripe-parent" style={{ display: 'flex', border: '1px solid #ddd', minHeight: '700px' }}>
+                <div className="inv-stripe-sidebar" style={{ width: '25%', background: '#F3F4F6', borderRight: '1px solid #ddd', padding: '30px 20px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ flex: 1 }}>
                         <h3 style={{ fontSize: '11px', color: '#6B7280', textTransform: 'uppercase', marginBottom: '10px' }}>From</h3>
                         <div style={{ fontWeight: '800', fontSize: '15px', marginBottom: '5px' }}>{business?.business_name || 'Company'}</div>
@@ -684,29 +1313,31 @@ export const InvoiceTemplates = {
                         <div style={{ fontSize: '22px', fontWeight: '900', color: '#000' }}>{formatCurrency(data.total_amount)}</div>
                     </div>
                 </div>
-                <div style={{ flex: 1, padding: '30px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
+                <div className="inv-stripe-main" style={{ flex: 1, padding: '30px' }}>
+                    <div className="inv-stripe-main-header" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
                         <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '900' }}>INVOICE</h1>
                         <div style={{ textAlign: 'right', fontSize: '12px' }}>#{data.invoice_number}<br/>{data.due_date}</div>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ fontSize: '11px', fontWeight: 'bold', color: '#888', borderBottom: '1px solid #ddd' }}>
-                                <th style={{ textAlign: 'left', padding: '10px 0' }}>DESCRIPTION</th>
-                                <th style={{ textAlign: 'right' }}>QTY</th>
-                                <th style={{ textAlign: 'right' }}>TOTAL</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((it, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid #f3f3f3', fontSize: '13px' }}>
-                                    <td style={{ padding: '15px 0' }}>{it.description}</td>
-                                    <td style={{ textAlign: 'right' }}>{it.quantity}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(it.total).toFixed(2)}</td>
+                    <div className="inv-table-scroll-container">
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ fontSize: '11px', fontWeight: 'bold', color: '#888', borderBottom: '1px solid #ddd' }}>
+                                    <th style={{ textAlign: 'left', padding: '10px 0' }}>DESCRIPTION</th>
+                                    <th style={{ textAlign: 'right' }}>QTY</th>
+                                    <th style={{ textAlign: 'right' }}>TOTAL</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {items.map((it, i) => (
+                                    <tr key={i} style={{ borderBottom: '1px solid #f3f3f3', fontSize: '13px' }}>
+                                        <td style={{ padding: '15px 0' }}>{it.description}</td>
+                                        <td style={{ textAlign: 'right' }}>{it.quantity}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{parseFloat(it.total).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         );
@@ -718,8 +1349,8 @@ export const InvoiceTemplates = {
     service_pro: ({ data, business }) => {
         const items = getParsedItems(data.items);
         return (
-            <div style={{ padding: '40px', background: '#FFF', color: '#111827' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '50px' }}>
+            <div className="inv-service-container" style={{ padding: '40px', background: '#FFF', color: '#111827' }}>
+                <div className="inv-service-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '50px' }}>
                     <div>
                         <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0 }}>{business?.business_name || 'Business'}</h1>
                         <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '5px' }}>{business?.address}</div>
@@ -731,13 +1362,13 @@ export const InvoiceTemplates = {
                     </div>
                 </div>
                 <div style={{ border: '1px solid #F3F4F6', borderRadius: '12px', overflow: 'hidden', marginBottom: '40px' }}>
-                    <div style={{ background: '#F9FAFB', padding: '15px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', fontSize: '12px', fontWeight: 'bold', color: '#374151' }}>
+                    <div className="inv-service-table-header" style={{ background: '#F9FAFB', padding: '15px 20px', borderBottom: '1px solid #F3F4F6', display: 'flex', fontSize: '12px', fontWeight: 'bold', color: '#374151' }}>
                         <div style={{ flex: 3 }}>Product / Service</div>
                         <div style={{ flex: 1, textAlign: 'center' }}>Qty</div>
                         <div style={{ flex: 1, textAlign: 'right' }}>Price</div>
                     </div>
                     {items.map((item, idx) => (
-                        <div key={idx} style={{ padding: '20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center' }}>
+                        <div key={idx} className="inv-service-table-row" style={{ padding: '20px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center' }}>
                             <div style={{ flex: 3 }}>
                                 <div style={{ fontWeight: '700' }}>{item.description}</div>
                                 <div style={{ fontSize: '11px', color: '#6B7280' }}>HSN: {item.hsn_code || '—'}</div>
@@ -747,7 +1378,7 @@ export const InvoiceTemplates = {
                         </div>
                     ))}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div className="inv-service-totals" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ width: '300px', background: '#F9FAFB', padding: '20px', borderRadius: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                             <span style={{ color: '#6B7280' }}>Total Payable</span>
@@ -776,7 +1407,7 @@ export const InvoiceTemplates = {
         const headerFlex = align === 'center' ? 'center' : (align === 'right' ? 'flex-end' : 'flex-start');
 
         return (
-            <div style={{ padding: '40px', background: '#FFF', minHeight: '900px', position: 'relative', fontFamily: 'system-ui, sans-serif' }}>
+            <div className="inv-custom-container" style={{ padding: '40px', background: '#FFF', minHeight: '900px', position: 'relative', fontFamily: 'system-ui, sans-serif' }}>
                 
                 {/* Optional Header Accent Strip */}
                 {config.showHeaderStrip && (
@@ -784,7 +1415,7 @@ export const InvoiceTemplates = {
                 )}
 
                 {/* Dynamic Header Alignment */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: headerFlex, textAlign: textAlign, marginBottom: '40px', marginTop: config.showHeaderStrip ? '15px' : '0' }}>
+                <div className="inv-custom-header" style={{ display: 'flex', flexDirection: 'column', alignItems: headerFlex, textAlign: textAlign, marginBottom: '40px', marginTop: config.showHeaderStrip ? '15px' : '0' }}>
                     <h1 style={{ fontSize: '32px', fontWeight: '900', color: theme, margin: '0 0 5px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
                         {business?.business_name || 'MY COMPANY'}
                     </h1>
@@ -796,7 +1427,7 @@ export const InvoiceTemplates = {
                 </div>
 
                 {/* Split Info Band */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '20px', marginBottom: '30px' }}>
+                <div className="inv-custom-info" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '20px', marginBottom: '30px' }}>
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>Invoice Details</div>
                         <div style={{ fontSize: '14px' }}>Doc No: <b>#{data.invoice_number}</b></div>
@@ -812,29 +1443,31 @@ export const InvoiceTemplates = {
                 {/* CONDITIONAL LAYOUT SWITCH (Table vs List Cards) */}
                 {isTable ? (
                     // Classic Elegant Table Mode
-                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '30px' }}>
-                        <thead>
-                            <tr style={{ background: theme, color: 'white' }}>
-                                <th style={{ padding: '12px 15px', textAlign: 'left', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}>Description</th>
-                                <th style={{ padding: '12px 15px', textAlign: 'center' }}>Qty</th>
-                                <th style={{ padding: '12px 15px', textAlign: 'right' }}>Rate</th>
-                                <th style={{ padding: '12px 15px', textAlign: 'right', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((it, i) => (
-                                <tr key={i} style={{ background: i % 2 === 0 ? `${theme}05` : 'transparent' }}>
-                                    <td style={{ padding: '15px', borderBottom: '1px solid #f1f1f1' }}>
-                                        <div style={{ fontWeight: '700', color: '#0F172A' }}>{it.description}</div>
-                                        <span style={{ fontSize: '11px', color: '#64748B' }}>{it.hsn_code ? `HSN: ${it.hsn_code}` : ''}</span>
-                                    </td>
-                                    <td style={{ padding: '15px', textAlign: 'center', borderBottom: '1px solid #f1f1f1', fontWeight: '600' }}>{it.quantity}</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', borderBottom: '1px solid #f1f1f1' }}>{parseFloat(it.price).toFixed(2)}</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', borderBottom: '1px solid #f1f1f1', fontWeight: '800' }}>{parseFloat(it.total).toFixed(2)}</td>
+                    <div className="inv-table-scroll-container">
+                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '30px' }}>
+                            <thead>
+                                <tr style={{ background: theme, color: 'white' }}>
+                                    <th style={{ padding: '12px 15px', textAlign: 'left', borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}>Description</th>
+                                    <th style={{ padding: '12px 15px', textAlign: 'center' }}>Qty</th>
+                                    <th style={{ padding: '12px 15px', textAlign: 'right' }}>Rate</th>
+                                    <th style={{ padding: '12px 15px', textAlign: 'right', borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}>Total</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {items.map((it, i) => (
+                                    <tr key={i} style={{ background: i % 2 === 0 ? `${theme}05` : 'transparent' }}>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #f1f1f1' }}>
+                                            <div style={{ fontWeight: '700', color: '#0F172A' }}>{it.description}</div>
+                                            <span style={{ fontSize: '11px', color: '#64748B' }}>{it.hsn_code ? `HSN: ${it.hsn_code}` : ''}</span>
+                                        </td>
+                                        <td style={{ padding: '15px', textAlign: 'center', borderBottom: '1px solid #f1f1f1', fontWeight: '600' }}>{it.quantity}</td>
+                                        <td style={{ padding: '15px', textAlign: 'right', borderBottom: '1px solid #f1f1f1' }}>{parseFloat(it.price).toFixed(2)}</td>
+                                        <td style={{ padding: '15px', textAlign: 'right', borderBottom: '1px solid #f1f1f1', fontWeight: '800' }}>{parseFloat(it.total).toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 ) : (
                     // Modern Dynamic Card Stack List Mode
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '30px' }}>
@@ -857,7 +1490,7 @@ export const InvoiceTemplates = {
                 )}
 
                 {/* Totals Footer Layer */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div className="inv-custom-totals" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ width: '320px', background: '#F8FAFC', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px', color: '#475569' }}>
                             <span>Net Subtotal</span><span>{formatCurrency(data.amount)}</span>
@@ -873,7 +1506,7 @@ export const InvoiceTemplates = {
                 </div>
 
                 {/* Fully Optional Feature Modules */}
-                <div style={{ marginTop: '50px', display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-end' }}>
+                <div className="inv-custom-footer" style={{ marginTop: '50px', display: 'flex', flexWrap: 'wrap', gap: '30px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 2 }}>
                         {showBank && (
                             <div style={{ marginBottom: '20px' }}>
@@ -897,21 +1530,23 @@ export const InvoiceTemplates = {
         );
     },
 
+    // =====================================================
+    // 12. PREMIUM CORPORATE (DEFAULT & HIGHLY DETAILED)
+    // =====================================================
     premium_corporate: ({ data, business }) => {
         const items = getParsedItems(data.items);
         const corporateBlue = '#1E3A8A';
-        const accentGold = '#B45309';
         const lightBg = '#F8FAFC';
 
         return (
-            <div style={{ padding: '60px', background: '#fff', color: '#1E293B', minHeight: '1100px', fontFamily: "'Inter', sans-serif", position: 'relative' }}>
+            <div className="inv-premium-corporate-container" style={{ padding: '60px', background: '#fff', color: '#1E293B', minHeight: '1100px', fontFamily: "'Inter', sans-serif", position: 'relative' }}>
                 {/* Visual Accent */}
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '8px', background: `linear-gradient(90deg, ${corporateBlue} 0%, #3B82F6 100%)` }} />
                 
                 {/* Header Section */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '80px' }}>
+                <div className="inv-premium-corporate-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '80px' }}>
                     <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+                        <div className="inv-premium-corporate-logo-title" style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
                             <div style={{ width: '54px', height: '54px', borderRadius: '12px', background: corporateBlue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '24px', fontWeight: '900', boxShadow: '0 10px 15px -3px rgba(30, 58, 138, 0.2)' }}>
                                 {(business?.business_name || business?.name || 'C').charAt(0)}
                             </div>
@@ -922,7 +1557,7 @@ export const InvoiceTemplates = {
                                 <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '600', margin: '2px 0 0 0' }}>Global Solutions Enterprise</p>
                             </div>
                         </div>
-                        <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', maxWidth: '380px' }}>
+                        <div className="inv-premium-corporate-profile-text" style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7', maxWidth: '380px' }}>
                             <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{business?.address}</p>
                             <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -936,10 +1571,10 @@ export const InvoiceTemplates = {
                             </div>
                         </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <h2 style={{ fontSize: '42px', fontWeight: '900', color: '#E2E8F0', letterSpacing: '8px', textTransform: 'uppercase', margin: '0 0 10px 0', lineHeight: 1 }}>INVOICE</h2>
-                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-                            <div style={{ background: '#F1F5F9', padding: '10px 24px', borderRadius: '100px', border: '1px solid #E2E8F0' }}>
+                    <div className="inv-premium-corporate-header-right" style={{ textAlign: 'right' }}>
+                        <h2 className="inv-premium-corporate-invoice-title" style={{ fontSize: '42px', fontWeight: '900', color: '#E2E8F0', letterSpacing: '8px', textTransform: 'uppercase', margin: '0 0 10px 0', lineHeight: 1 }}>INVOICE</h2>
+                        <div className="inv-premium-corporate-invoice-details" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+                            <div className="inv-premium-corporate-pill" style={{ background: '#F1F5F9', padding: '10px 24px', borderRadius: '100px', border: '1px solid #E2E8F0' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '10px' }}>Invoice No.</span>
                                 <b style={{ fontSize: '15px', color: '#0F172A' }}>{data.invoice_number}</b>
                             </div>
@@ -952,11 +1587,11 @@ export const InvoiceTemplates = {
                 </div>
 
                 {/* Billing Matrix */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginBottom: '80px' }}>
+                <div className="inv-premium-corporate-billing-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', marginBottom: '80px' }}>
                     <div style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: '-20px', top: '0', bottom: '0', width: '3px', background: '#CBD5E1', borderRadius: '4px' }} />
+                        <div className="inv-premium-corporate-recipient-bar" style={{ position: 'absolute', left: '-20px', top: '0', bottom: '0', width: '3px', background: '#CBD5E1', borderRadius: '4px' }} />
                         <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '18px', letterSpacing: '0.15em' }}>Bill Recipient</h3>
-                        <div style={{ fontSize: '20px', fontWeight: '950', color: '#0F172A', marginBottom: '8px' }}>{data.client_name}</div>
+                        <div className="inv-premium-corporate-recipient-name" style={{ fontSize: '20px', fontWeight: '950', color: '#0F172A', marginBottom: '8px' }}>{data.client_name}</div>
                         <div style={{ fontSize: '14px', color: '#475569', lineHeight: '1.7', whiteSpace: 'pre-line', maxWidth: '320px' }}>{data.billing_address}</div>
                         {data.client_gstin && (
                             <div style={{ marginTop: '15px', display: 'inline-block', background: '#F8FAFC', padding: '5px 12px', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '12px' }}>
@@ -964,13 +1599,13 @@ export const InvoiceTemplates = {
                             </div>
                         )}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        <div style={{ background: lightBg, padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                    <div className="inv-premium-corporate-payment-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div className="inv-premium-corporate-payment-card" style={{ background: lightBg, padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                             <h3 style={{ fontSize: '10px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.1em' }}>Payment Mode</h3>
                             <div style={{ fontSize: '15px', fontWeight: '900', color: corporateBlue }}>{data.payment_mode || 'Bank Transfer'}</div>
                             <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', fontWeight: '600' }}>Terms: Net 30</div>
                         </div>
-                        <div style={{ background: lightBg, padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                        <div className="inv-premium-corporate-payment-card" style={{ background: lightBg, padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                             <h3 style={{ fontSize: '10px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.1em' }}>Currency</h3>
                             <div style={{ fontSize: '15px', fontWeight: '900', color: corporateBlue }}>INR (₹)</div>
                             <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', fontWeight: '600' }}>Indian Rupee</div>
@@ -978,40 +1613,42 @@ export const InvoiceTemplates = {
                     </div>
                 </div>
 
-                {/* Items Ledger */}
-                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '60px' }}>
-                    <thead>
-                        <tr>
-                            <th style={{ padding: '20px 25px', textAlign: 'left', background: '#0F172A', color: 'white', borderRadius: '12px 0 0 12px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>DESCRIPTION</th>
-                            <th style={{ padding: '20px 25px', textAlign: 'center', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>QTY</th>
-                            <th style={{ padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>UNIT PRICE</th>
-                            <th style={{ padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', borderRadius: '0 12px 12px 0', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>TOTAL</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {items.map((item, idx) => (
-                            <tr key={idx}>
-                                <td style={{ padding: '25px', borderBottom: '1px solid #F1F5F9' }}>
-                                    <div style={{ fontWeight: '850', color: '#0F172A', fontSize: '15px', marginBottom: '4px' }}>{item.description}</div>
-                                    <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>HSN CODE: {item.hsn_code || '8471.30.10'}</div>
-                                </td>
-                                <td style={{ padding: '25px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontWeight: '800', color: '#475569', fontSize: '15px' }}>{item.quantity}</td>
-                                <td style={{ padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '600', color: '#475569', fontSize: '15px' }}>{formatCurrency(item.price)}</td>
-                                <td style={{ padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '900', color: '#0F172A', fontSize: '16px' }}>{formatCurrency(item.total)}</td>
+                {/* Items Ledger with horizontal scroll wrapper */}
+                <div className="inv-table-scroll-container">
+                    <table className="inv-premium-corporate-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '60px' }}>
+                        <thead>
+                            <tr>
+                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'left', background: '#0F172A', color: 'white', borderRadius: '12px 0 0 12px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>DESCRIPTION</th>
+                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'center', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>QTY</th>
+                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>UNIT PRICE</th>
+                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', borderRadius: '0 12px 12px 0', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>TOTAL</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {items.map((item, idx) => (
+                                <tr key={idx}>
+                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', borderBottom: '1px solid #F1F5F9' }}>
+                                        <div style={{ fontWeight: '850', color: '#0F172A', fontSize: '15px', marginBottom: '4px' }}>{item.description}</div>
+                                        <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>HSN CODE: {item.hsn_code || '8471.30.10'}</div>
+                                    </td>
+                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontWeight: '800', color: '#475569', fontSize: '15px' }}>{item.quantity}</td>
+                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '600', color: '#475569', fontSize: '15px' }}>{formatCurrency(item.price)}</td>
+                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '900', color: '#0F172A', fontSize: '16px' }}>{formatCurrency(item.total)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
                 {/* Footer Matrix */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '60px' }}>
+                <div className="inv-premium-corporate-footer-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '60px' }}>
                     <div>
-                        <div style={{ background: '#F8FAFC', padding: '30px', borderRadius: '20px', border: '1px solid #F1F5F9', marginBottom: '30px' }}>
+                        <div className="inv-premium-corporate-bank-card" style={{ background: '#F8FAFC', padding: '30px', borderRadius: '20px', border: '1px solid #F1F5F9', marginBottom: '30px' }}>
                             <div style={{ fontSize: '11px', fontWeight: '950', color: corporateBlue, textTransform: 'uppercase', marginBottom: '15px', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: corporateBlue }} />
                                 Bank Settlement Details
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <div className="inv-premium-corporate-bank-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
                                     <p style={{ margin: '0 0 4px 0', fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Bank Name</p>
                                     <p style={{ margin: 0, fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>{business?.bank_name || 'Standard Chartered'}</p>
@@ -1036,7 +1673,7 @@ export const InvoiceTemplates = {
                         </div>
                     </div>
                     <div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', padding: '10px' }}>
+                        <div className="inv-premium-corporate-totals-card" style={{ display: 'flex', flexDirection: 'column', gap: '15px', padding: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748B' }}>Amount (Tax Excl.)</span>
                                 <span style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{formatCurrency(data.amount)}</span>
@@ -1048,14 +1685,14 @@ export const InvoiceTemplates = {
                             <div style={{ margin: '15px 0', height: '2px', background: '#F1F5F9' }} />
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '16px', fontWeight: '950', color: '#0F172A' }}>Total Balance</span>
-                                <span style={{ fontSize: '32px', fontWeight: '1000', color: corporateBlue, letterSpacing: '-0.02em' }}>{formatCurrency(data.total_amount)}</span>
+                                <span className="inv-premium-corporate-total-amount" style={{ fontSize: '32px', fontWeight: '1000', color: corporateBlue, letterSpacing: '-0.02em' }}>{formatCurrency(data.total_amount)}</span>
                             </div>
                         </div>
-                        <div style={{ background: corporateBlue, color: 'white', padding: '15px', borderRadius: '12px', marginTop: '30px', textAlign: 'center' }}>
+                        <div className="inv-premium-corporate-words-card" style={{ background: corporateBlue, color: 'white', padding: '15px', borderRadius: '12px', marginTop: '30px', textAlign: 'center' }}>
                             <div style={{ fontSize: '10px', fontWeight: '900', opacity: 0.8, textTransform: 'uppercase', marginBottom: '5px', letterSpacing: '0.05em' }}>Amount in Words</div>
                             <div style={{ fontSize: '12px', fontWeight: '800', lineHeight: '1.4' }}>{numberToWords(data.total_amount).toUpperCase()}</div>
                         </div>
-                        <div style={{ marginTop: '50px', textAlign: 'center' }}>
+                        <div className="inv-premium-corporate-signature-area" style={{ marginTop: '50px', textAlign: 'center' }}>
                             <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <div style={{ width: '120px', height: '40px', background: '#F8FAFC', borderRadius: '8px', border: '1px dashed #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94A3B8' }}>Digital Signature</div>
                             </div>
@@ -1073,6 +1710,11 @@ export const InvoiceTemplates = {
     // The master switch renderer that takes template ID, data, and business context
     Renderer: ({ type, data, business, config }) => {
         const TemplateComponent = InvoiceTemplates[type] || InvoiceTemplates.standard;
-        return <TemplateComponent data={data} business={business} config={config} />;
+        return (
+            <>
+                <style dangerouslySetInnerHTML={{ __html: INVOICE_RESPONSIVE_CSS }} />
+                <TemplateComponent data={data} business={business} config={config} />
+            </>
+        );
     }
 };
