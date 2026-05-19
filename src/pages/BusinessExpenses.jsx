@@ -32,6 +32,8 @@ const BusinessExpenses = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [modeFilter, setModeFilter] = useState('All');
+    const [columnFilters, setColumnFilters] = useState({ voucher: '', date: '', category: '', payee: '', subtotal: '', itc: '', total: '', mode: '' });
+    const updateColumnFilter = (col, val) => setColumnFilters(prev => ({ ...prev, [col]: val }));
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -199,14 +201,31 @@ const BusinessExpenses = () => {
     };
 
     const filteredExpenses = expenses.filter(e => {
-        const matchesSearch = 
-            e.payee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            e.category_name.toLowerCase().includes(searchTerm.toLowerCase());
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = !term ||
+            e.payee_name.toLowerCase().includes(term) ||
+            e.category_name.toLowerCase().includes(term) ||
+            (e.subcategory || '').toLowerCase().includes(term) ||
+            (e.expense_number || '').toLowerCase().includes(term) ||
+            (e.expense_date || '').toLowerCase().includes(term) ||
+            String(e.expense_amount).includes(term) ||
+            (e.payment_mode || '').toLowerCase().includes(term);
         
         const matchesCategory = categoryFilter === 'All' || e.category_name === categoryFilter;
         const matchesMode = modeFilter === 'All' || e.payment_mode === modeFilter;
 
-        return matchesSearch && matchesCategory && matchesMode;
+        // Per-column filters
+        const cf = columnFilters;
+        const matchVoucher = !cf.voucher || (e.expense_number || '').toLowerCase().includes(cf.voucher.toLowerCase());
+        const matchDate = !cf.date || (e.expense_date || '').toLowerCase().includes(cf.date.toLowerCase());
+        const matchCat = !cf.category || (e.category_name + ' ' + (e.subcategory || '')).toLowerCase().includes(cf.category.toLowerCase());
+        const matchPayee = !cf.payee || (e.payee_name || '').toLowerCase().includes(cf.payee.toLowerCase());
+        const matchSubtotal = !cf.subtotal || String(e.subtotal).includes(cf.subtotal);
+        const matchItc = !cf.itc || String(Math.round(e.tax_amount)).includes(cf.itc);
+        const matchTotal = !cf.total || String(e.expense_amount).includes(cf.total);
+        const matchModeCol = !cf.mode || (e.payment_mode || '').toLowerCase().includes(cf.mode.toLowerCase());
+
+        return matchesSearch && matchesCategory && matchesMode && matchVoucher && matchDate && matchCat && matchPayee && matchSubtotal && matchItc && matchTotal && matchModeCol;
     });
 
     const totalExpenseSpent = expenses.reduce((sum, e) => sum + e.expense_amount, 0);
@@ -300,7 +319,7 @@ const BusinessExpenses = () => {
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
-                                placeholder="Search category or payees..." 
+                                placeholder="Search any column (date, payee, amount)..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
@@ -346,6 +365,28 @@ const BusinessExpenses = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>ITC Tax Claim</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Paid</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
+                                </tr>
+                                <tr style={{ borderBottom: '2px solid #E2E8F0', background: '#F8FAFC' }}>
+                                    {[
+                                        { key: 'voucher', placeholder: 'Filter...' },
+                                        { key: 'date', placeholder: 'dd/mm/yyyy' },
+                                        { key: 'category', placeholder: 'Filter...' },
+                                        { key: 'payee', placeholder: 'Filter...' },
+                                        { key: 'subtotal', placeholder: '₹ amt' },
+                                        { key: 'itc', placeholder: '₹ amt' },
+                                        { key: 'total', placeholder: '₹ amt' },
+                                        { key: 'mode', placeholder: 'Filter...' }
+                                    ].map(col => (
+                                        <th key={col.key} style={{ padding: '0.3rem 0.5rem' }}>
+                                            <input
+                                                type="text"
+                                                placeholder={col.placeholder}
+                                                value={columnFilters[col.key]}
+                                                onChange={(e) => updateColumnFilter(col.key, e.target.value)}
+                                                style={{ width: '100%', padding: '0.3rem 0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.72rem', fontWeight: '600', color: '#475569', background: 'white', boxSizing: 'border-box' }}
+                                            />
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody>
