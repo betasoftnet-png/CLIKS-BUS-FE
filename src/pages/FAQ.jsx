@@ -344,21 +344,37 @@ const FAQ = () => {
                                 </div>
                             </a>
 
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '0.75rem', 
-                                background: 'rgba(255,255,255,0.05)',
-                                padding: '1rem',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(255,255,255,0.1)'
-                            }}>
+                            <a 
+                                href="https://beta-softnet.com" 
+                                target="_blank" 
+                                rel="noreferrer"
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.75rem', 
+                                    textDecoration: 'none', 
+                                    color: 'white',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    padding: '1rem',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    transition: 'all 0.25s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                                    e.currentTarget.style.borderColor = '#A7F3D0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                                }}
+                            >
                                 <Globe size={18} style={{ color: '#A7F3D0' }} />
                                 <div>
                                     <div style={{ fontSize: '0.7rem', color: '#A7F3D0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Official Portal</div>
-                                    <a href="https://cliksbusiness.com" target="_blank" rel="noreferrer" style={{ fontSize: '0.95rem', fontWeight: 750, color: 'white', textDecoration: 'none' }}>cliksbusiness.com</a>
+                                    <div style={{ fontSize: '0.95rem', fontWeight: 750 }}>beta-softnet.com</div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     </div>
                 </div>
