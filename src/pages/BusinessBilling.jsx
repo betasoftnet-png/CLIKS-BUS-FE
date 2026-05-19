@@ -1291,6 +1291,8 @@ const BusinessBilling = () => {
                             }}>
                                 {[
                                     { id: 'premium_corporate', name: 'Premium Corporate', desc: 'Sleek Navy Enterprise', color: '#1E3A8A', bg: '#DBEAFE' },
+                                    { id: 'creative_agency', name: 'Bold Amethyst', desc: 'Creative Digital Studio', color: '#6D28D9', bg: '#F5F3FF' },
+                                    { id: 'emerald_clean', name: 'Emerald Eco-Mint', desc: 'Organic Minimal Luxe', color: '#047857', bg: '#ECFDF5' },
                                     { id: 'standard', name: 'Executive Standard', desc: 'Clean Compliance', color: '#BE185D', bg: '#FCE7F3' },
                                     { id: 'modern', name: 'Modern Pro', desc: 'Minimalist Sans-Serif', color: '#10B981', bg: '#D1FAE5' },
                                     { id: 'minimal', name: 'Master Box Grid', desc: 'Heavy Accounting', color: '#000000', bg: '#F1F5F9' },
@@ -1330,6 +1332,20 @@ const BusinessBilling = () => {
                                             <div style={{ width: '100%', height: '100%', opacity: 0.7, position: 'relative' }}>
                                                 {tmpl.id === 'premium_corporate' && (
                                                     <div><div style={{height: '4px', width: '100%', background: tmpl.color}}></div><div style={{height: '25px', width: '40%', background: '#eee', margin: '10px 0', borderLeft: `4px solid ${tmpl.color}`}}></div><div style={{height:'35px', width: '100%', background: '#fafafa'}}></div></div>
+                                                )}
+                                                {tmpl.id === 'creative_agency' && (
+                                                    <div style={{ background: '#fff', height: '90px' }}>
+                                                        <div style={{ height: '4px', width: '100%', background: 'linear-gradient(90deg, #6D28D9, #D946EF)' }}></div>
+                                                        <div style={{ height: '18px', width: '55%', background: '#FAF5FF', margin: '8px 0', border: '1px dashed #E9D5FF', borderRadius: '4px' }}></div>
+                                                        <div style={{ height: '35px', background: '#FAF5FF', borderRadius: '6px', borderLeft: `3px solid #6D28D9` }}></div>
+                                                    </div>
+                                                )}
+                                                {tmpl.id === 'emerald_clean' && (
+                                                    <div style={{ background: '#fff', height: '90px' }}>
+                                                        <div style={{ display: 'flex', gap: '2px', height: '4px' }}><div style={{ flex: 3, background: '#047857' }} /><div style={{ flex: 1, background: '#064E3B' }} /></div>
+                                                        <div style={{ height: '22px', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', margin: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}><div style={{ height: '6px', width: '30%', background: '#047857' }}></div><div style={{ height: '6px', width: '20%', background: '#064E3B' }}></div></div>
+                                                        <div style={{ height: '30px', background: '#ECFDF5', borderLeft: '3px solid #047857' }}></div>
+                                                    </div>
                                                 )}
                                                 {tmpl.id === 'standard' && (
                                                     <div><div style={{height: '6px', width: '40%', background: tmpl.color, marginBottom: '5px'}}></div><div style={{display:'flex', gap: '2px'}}><div style={{height:'20px', flex:1, background:tmpl.bg}}></div><div style={{height:'20px', flex:1, background:tmpl.bg}}></div></div><div style={{height:'30px', width: '100%', background: '#f1f1f1', marginTop: '5px'}}></div></div>
