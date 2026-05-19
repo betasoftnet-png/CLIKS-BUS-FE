@@ -95,9 +95,16 @@ const BusinessBilling = () => {
         }
     }, [searchParams, setSearchParams]);
 
+    const getPrefixForType = (type) => {
+        if (!activeConfig) return 'INV-';
+        if (type === 'Proforma') return activeConfig.prefixProforma || 'PRO-';
+        if (type === 'Quotation') return activeConfig.prefixEstimate || 'EST-';
+        return activeConfig.prefixSale || 'INV-';
+    };
+
     React.useEffect(() => {
         if (isModalOpen && !editingInvoice && activeConfig) {
-            const prefix = activeConfig.prefixSale || 'INV-';
+            const prefix = getPrefixForType('GST');
             const defaultTaxType = activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive';
             const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Bank';
             setFormData(prev => ({
@@ -216,6 +223,16 @@ const BusinessBilling = () => {
             round_off: parseFloat(roundOff) || 0,
             earned_points: parseInt(earnedPts) || 0
         };
+    };
+
+    const calculateEstimatedProfit = () => {
+        return items.reduce((acc, item) => {
+            const catalogItem = products?.find(p => p.id === item.product_id || p.name === item.name || p.product_name === item.name);
+            const purchase = parseFloat(item.purchase_price) || parseFloat(catalogItem?.purchase_price) || 0;
+            const saleRate = parseFloat(item.rate) || 0;
+            const qty = parseInt(item.quantity) || 0;
+            return acc + (saleRate - purchase) * qty;
+        }, 0);
     };
 
     const handleClientChange = (value) => {
@@ -417,8 +434,10 @@ const BusinessBilling = () => {
             // Close creation workspace
             closeModal();
             
-            // Render visual modal instantly on screen
-            setViewingInvoice(invoiceForView);
+            // Render visual modal instantly on screen if preview is enabled
+            if (activeConfig.noInvoicePreview !== true) {
+                setViewingInvoice(invoiceForView);
+            }
         }
     });
 
@@ -774,7 +793,9 @@ const BusinessBilling = () => {
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Client</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
+                                    {activeConfig.dueDates !== false && (
+                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Due Date</th>
+                                    )}
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.75rem 1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
@@ -797,12 +818,14 @@ const BusinessBilling = () => {
                                                 <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{inv.client_email}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
-                                                <Calendar size={12} />
-                                                {inv.due_date}
-                                            </div>
-                                        </td>
+                                        {activeConfig.dueDates !== false && (
+                                            <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                                    <Calendar size={12} />
+                                                    {inv.due_date}
+                                                </div>
+                                            </td>
+                                        )}
                                         <td style={{ padding: '0.75rem 1.25rem' }}>
                                             <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>₹{inv.amount.toLocaleString()}</span>
                                         </td>
@@ -822,20 +845,22 @@ const BusinessBilling = () => {
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
                                                 <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={14} /></button>
                                                 <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={14} /></button>
-                                                <a 
-                                                    href="/sales/invoice/preview" 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    onClick={() => handlePreviewPDF(inv)} 
-                                                    title="Preview PDF in New Tab" 
-                                                    style={{ 
-                                                        width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', 
-                                                        background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', 
-                                                        justifyContent: 'center', cursor: 'pointer', textDecoration: 'none' 
-                                                    }}
-                                                >
-                                                    <Eye size={14} />
-                                                </a>
+                                                {activeConfig.noInvoicePreview !== true && (
+                                                    <a 
+                                                        href="/sales/invoice/preview" 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        onClick={() => handlePreviewPDF(inv)} 
+                                                        title="Preview PDF in New Tab" 
+                                                        style={{ 
+                                                            width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', 
+                                                            background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', 
+                                                            justifyContent: 'center', cursor: 'pointer', textDecoration: 'none' 
+                                                        }}
+                                                    >
+                                                        <Eye size={14} />
+                                                    </a>
+                                                )}
                                                 <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#BE185D', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={14} /></button>
                                                 <button onClick={() => handleEdit(inv)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
                                                 <button onClick={() => handleDelete(inv.id)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
@@ -906,7 +931,15 @@ const BusinessBilling = () => {
                                 )}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
-                                    <select value={formData.invoice_type} onChange={(e) => setFormData({...formData, invoice_type: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
+                                    <select value={formData.invoice_type} onChange={(e) => {
+                                        const nextType = e.target.value;
+                                        const nextPrefix = getPrefixForType(nextType);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            invoice_type: nextType,
+                                            invoice_number: `${nextPrefix}${prev.invoice_number.replace(/^[^-]+-/, '')}`
+                                        }));
+                                    }} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
                                         <option>GST</option>
                                         <option>Non-GST</option>
                                         <option>Proforma</option>
@@ -924,7 +957,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.placeSupply ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${3 + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
                                     <input 
@@ -953,6 +986,12 @@ const BusinessBilling = () => {
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Place of Supply</label>
                                         <input type="text" value={formData.place_of_supply || ''} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="e.g. Maharashtra" />
+                                    </div>
+                                )}
+                                {activeConfig.customerPo && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Customer P.O. No.</label>
+                                        <input type="text" value={formData.customer_po_number || ''} onChange={(e) => setFormData({...formData, customer_po_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="PO-12345" />
                                     </div>
                                 )}
                             </div>
@@ -1061,9 +1100,13 @@ const BusinessBilling = () => {
                                                     style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
                                                 />
                                                 <datalist id="inventory-suggestions">
-                                                    {/* Real Product Catalog Items */}
                                                     {catalogProducts.map(prod => (
-                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} {activeConfig.displayPurchase && `- Purchase Price: ₹${prod.purchase_price || 0}`}</option>
+                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
+                                                            📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
+                                                            {activeConfig.displayPurchase && ` - Purchase Price: ₹${prod.purchase_price || 0}`}
+                                                            {activeConfig.showLast5Sale && ` - Last Sale: ₹${prod.price || prod.sale_price || 0}`}
+                                                            {activeConfig.showLast5Purchase && ` - Last Purchase: ₹${prod.purchase_price || 0}`}
+                                                        </option>
                                                     ))}
                                                     {/* Legacy Generic Inventory items fallback */}
                                                     {inventoryItems.map(inv => (
@@ -1249,16 +1292,24 @@ const BusinessBilling = () => {
                                         </div>
                                     )}
 
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
-                                        <input required type="date" value={formData.due_date || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} />
-                                    </div>
+                                    {activeConfig.dueDates !== false && (
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
+                                            <input required type="date" value={formData.due_date || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} />
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Subtotal:</span>
                                         <span>₹ {formData.amount.toLocaleString()}</span>
                                     </div>
+                                    {activeConfig.countItems === true && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                            <span>Items Count:</span>
+                                            <span>{items.length} items ({items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} Qty)</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Total Discount:</span>
                                         <span style={{ color: '#EF4444' }}>- ₹ {formData.discount_amount.toLocaleString()}</span>
@@ -1281,6 +1332,12 @@ const BusinessBilling = () => {
                                         <span>Total:</span>
                                         <span>₹ {formData.total_amount.toLocaleString()}</span>
                                     </div>
+                                    {activeConfig.showProfitSale === true && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.35rem 0.5rem', borderRadius: '6px', marginTop: '0.2rem' }}>
+                                            <span>Est. Gross Profit:</span>
+                                            <span>₹ {calculateEstimatedProfit().toLocaleString()}</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
                                         <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             🎉 Points to earn this bill: {formData.earned_points || 0} pts
