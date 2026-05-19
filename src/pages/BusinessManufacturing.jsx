@@ -140,6 +140,7 @@ const INITIAL_MATERIALS = [
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bomService, manufacturingService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessManufacturing = () => {
     const queryClient = useQueryClient();
@@ -570,7 +571,7 @@ const BusinessManufacturing = () => {
             {/* TAB CONTENT: BOM */}
             {activeTab === 'bom' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    {boms.map(bom => (
+                    {boms.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(bom => (
                         <div key={bom.bom_id} style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
                                 <div>
@@ -618,7 +619,7 @@ const BusinessManufacturing = () => {
         { key: 'cost', label: 'Cost Per Unit', placeholder: 'e.g. 50' }
     ]} onFilterChange={setColFilters} />
                         <tbody>
-                            {materials.map(mat => (
+                            {materials.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(mat => (
                                 <tr key={mat.material_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{mat.material_id}</td>
                                     <td style={{ padding: '1rem', fontWeight: '600' }}>{mat.material_name}</td>
@@ -647,7 +648,7 @@ const BusinessManufacturing = () => {
         { key: 'cost', label: 'Cost Per Unit', placeholder: 'e.g. 50' }
     ]} onFilterChange={setColFilters} />
                         <tbody>
-                            {workOrders.map(wo => (
+                            {workOrders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(wo => (
                                 <tr key={wo.production_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{wo.production_order_number}</td>
                                     <td style={{ padding: '1rem', fontWeight: '600' }}>{wo.finished_product_name}</td>
@@ -668,7 +669,7 @@ const BusinessManufacturing = () => {
                 <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>🧪 Quality Checks & Defective Items Inspection Logs</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {workOrders.map(wo => (
+                        {workOrders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(wo => (
                             <div key={wo.production_id} style={{ background: '#FAFDFB', border: '1px solid #E8F5EE', padding: '1.5rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
@@ -781,7 +782,7 @@ const BusinessManufacturing = () => {
                                         onChange={e => setWoForm({ ...woForm, bom_id: e.target.value })}
                                         style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
                                     >
-                                        {boms.map(b => (
+                                        {boms.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(b => (
                                             <option key={b.bom_id} value={b.bom_id}>{b.bom_name}</option>
                                         ))}
                                     </select>

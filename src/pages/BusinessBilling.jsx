@@ -42,6 +42,7 @@ import { InvoiceTemplates } from '../components/InvoiceTemplates';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessBilling = () => {
     const queryClient = useQueryClient();
@@ -817,7 +818,7 @@ const BusinessBilling = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredInvoices.map((inv) => (
+                                {filteredInvoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.75rem 1.25rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -984,7 +985,7 @@ const BusinessBilling = () => {
                                         style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
                                     />
                                     <datalist id="customer-suggestions">
-                                        {customers.map(c => (
+                                        {customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(c => (
                                             <option key={c.id} value={c.name}>{c.company || 'Personal'}</option>
                                         ))}
                                     </datalist>
@@ -1122,7 +1123,7 @@ const BusinessBilling = () => {
                                                     style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
                                                 />
                                                 <datalist id="inventory-suggestions">
-                                                    {catalogProducts.map(prod => (
+                                                    {catalogProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
                                                         <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
                                                             📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
                                                             {activeConfig.displayPurchase && ` - Purchase Price: ₹${prod.purchase_price || 0}`}
@@ -1131,7 +1132,7 @@ const BusinessBilling = () => {
                                                         </option>
                                                     ))}
                                                     {/* Legacy Generic Inventory items fallback */}
-                                                    {inventoryItems.map(inv => (
+                                                    {inventoryItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
                                                         <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
                                                     ))}
                                                 </datalist>
@@ -1234,7 +1235,7 @@ const BusinessBilling = () => {
                                                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
                                             >
                                                 <option value="">-- Select Bank Account --</option>
-                                                {bankAccounts.map(acc => (
+                                                {bankAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
                                                     <option key={acc.id} value={acc.id}>{acc.bank_name} - ₹{acc.current_balance.toLocaleString()}</option>
                                                 ))}
                                             </select>

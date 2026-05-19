@@ -34,6 +34,7 @@ import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const INITIAL_EMPLOYEES = [
     {
@@ -390,7 +391,7 @@ const BusinessStaffing = () => {
         { key: '_actions', label: 'Action', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredEmployees.map((emp) => (
+                                {filteredEmployees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                     <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -451,7 +452,7 @@ const BusinessStaffing = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {employees.map((emp) => (
+                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                 <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.department_name}</td>
@@ -484,7 +485,7 @@ const BusinessStaffing = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {employees.map((emp) => (
+                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                 <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
                                     <td style={{ padding: '1rem' }}>{emp.salary_type}</td>
@@ -517,7 +518,7 @@ const BusinessStaffing = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {employees.map((emp) => (
+                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                 <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.shift_name}</td>
@@ -544,7 +545,7 @@ const BusinessStaffing = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {employees.map((emp) => (
+                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                 <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
                                     <td style={{ padding: '1rem', fontWeight: '800', color: '#F59E0B' }}>⭐ {emp.performance_rating} / 5.0</td>
@@ -651,7 +652,7 @@ const BusinessStaffing = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee</label>
                                 <select value={perfForm.employee_id} onChange={(e) => setPerfForm({ ...perfForm, employee_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    {employees.map(emp => (
+                                    {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(emp => (
                                         <option key={emp.employee_id} value={emp.employee_id}>{emp.first_name} {emp.last_name}</option>
                                     ))}
                                 </select>

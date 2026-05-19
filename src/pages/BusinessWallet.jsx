@@ -6,6 +6,7 @@ import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessWallet = () => {
     // Persisted LocalState for the Wallet context

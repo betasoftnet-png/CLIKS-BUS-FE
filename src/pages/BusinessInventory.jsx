@@ -34,6 +34,7 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessInventory = () => {
     const queryClient = useQueryClient();
@@ -471,7 +472,7 @@ const BusinessInventory = () => {
         { key: '_actions', label: 'Stock Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredItems.map((row) => (
+                                {filteredItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
                                     <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -569,7 +570,7 @@ const BusinessInventory = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {movementHistory.map((tx) => (
+                                {movementHistory.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((tx) => (
                                     <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{tx.date}</td>
                                         <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{tx.item_name}</td>
@@ -634,7 +635,7 @@ const BusinessInventory = () => {
                                 <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Product-wise Profitability Margins</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                {items.map((prod, idx) => {
+                                {items.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((prod, idx) => {
                                     const profit = prod.selling_price - prod.purchase_price;
                                     const margin = prod.selling_price > 0 ? Math.round((profit / prod.selling_price) * 100) : 100;
                                     return (

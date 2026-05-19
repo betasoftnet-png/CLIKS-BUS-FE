@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollService } from '../services/payrollService';
 import { staffingService } from '../services/staffingService';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 
 
@@ -305,7 +306,7 @@ const BusinessPayroll = () => {
         { key: '_actions', label: 'Action', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredRecords.map((rec) => {
+                                {filteredRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => {
                                     const gross = rec.basic_salary + rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay;
                                     const deductions = rec.pf_deduction + rec.esi_deduction + rec.tds_deduction + rec.professional_tax + rec.loan_deduction;
                                     const netPay = gross - deductions;
@@ -369,7 +370,7 @@ const BusinessPayroll = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {payrollRecords.map((rec) => (
+                            {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
                                 <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
                                     <td style={{ padding: '1rem' }}>₹{rec.basic_salary.toLocaleString()} / Month</td>
@@ -398,7 +399,7 @@ const BusinessPayroll = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {payrollRecords.map((rec) => (
+                            {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
                                 <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700', fontFamily: 'monospace' }}>{rec.pan_number}</td>
@@ -430,7 +431,7 @@ const BusinessPayroll = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {loans.map((l, idx) => (
+                            {loans.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((l, idx) => (
                                 <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{l.employee_name}</td>
                                     <td style={{ padding: '1rem' }}>₹{l.loan_amount.toLocaleString()}</td>
@@ -471,7 +472,7 @@ const BusinessPayroll = () => {
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">-- Select Staff Member --</option>
-                                    {staffList.map(s => (
+                                    {staffList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
                                         <option key={s.id} value={s.name}>{s.name} ({s.department || 'Staff'})</option>
                                     ))}
                                 </select>
@@ -528,7 +529,7 @@ const BusinessPayroll = () => {
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">-- Select Employee --</option>
-                                    {payrollRecords.map(r => (
+                                    {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(r => (
                                         <option key={r.payroll_id} value={r.employee_name}>{r.employee_name}</option>
                                     ))}
                                 </select>

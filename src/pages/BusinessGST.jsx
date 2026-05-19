@@ -382,7 +382,7 @@ const BusinessGST = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredInvoices.map((inv) => (
+                                {filteredInvoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>{inv.gst_invoice_number}</p>
@@ -460,7 +460,7 @@ const BusinessGST = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {reconciliations.map((rec) => (
+                                {reconciliations.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
                                     <tr key={rec.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{rec.vendor_gstin}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{rec.vendor_name}</td>
@@ -640,7 +640,7 @@ const BusinessGST = () => {
             {/* Tab 3: e-Invoicing */}
             {activeTab === 'einvoice' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                    {invoices.map(inv => (
+                    {invoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
                         <div key={inv.gst_invoice_number} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                 <div>
@@ -711,7 +711,7 @@ const BusinessGST = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {eways.map((ew) => (
+                                {eways.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ew) => (
                                     <tr key={ew.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{ew.eway_bill_number}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{ew.transporter_name}</td>

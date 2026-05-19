@@ -223,7 +223,7 @@ const BusinessBankAccounts = () => {
         { key: 'current_balance', label: 'Current Balance', placeholder: 'e.g. 50000' }
     ]} onFilterChange={setColFilters} />
                                 <tbody>
-                                    {filteredAccounts.map((acc) => (
+                                    {filteredAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((acc) => (
                                         <tr key={acc.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -266,7 +266,7 @@ const BusinessBankAccounts = () => {
         { key: 'current_balance', label: 'Current Balance', placeholder: 'e.g. 50000' }
     ]} onFilterChange={setColFilters} />
                                 <tbody>
-                                    {filteredTransactions.map((tx) => (
+                                    {filteredTransactions.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((tx) => (
                                         <tr key={tx.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>
@@ -393,7 +393,7 @@ const BusinessBankAccounts = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Bank Account</label>
                                 <select required value={txForm.bank_account_id} onChange={e => setTxForm({...txForm, bank_account_id: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white' }}>
                                     <option value="">-- Select Bank Account --</option>
-                                    {accounts.map(a => (
+                                    {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(a => (
                                         <option key={a.id} value={a.id}>{a.bank_name} - ₹{a.current_balance.toLocaleString()}</option>
                                     ))}
                                 </select>

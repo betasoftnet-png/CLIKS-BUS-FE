@@ -530,7 +530,7 @@ const BusinessPurchases = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredPOs.map((po) => (
+                                {filteredPOs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((po) => (
                                     <tr key={po.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{po.purchase_number}</p>
@@ -638,7 +638,7 @@ const BusinessPurchases = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredBills.map((bill) => (
+                                {filteredBills.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bill) => (
                                     <tr key={bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{bill.purchase_number}</p>
@@ -702,7 +702,7 @@ const BusinessPurchases = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {purchaseReturns.map((ret) => (
+                                {purchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
                                     <tr key={ret.return_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '1.25rem', fontWeight: '850', color: '#B91C1C' }}>{ret.return_id}</td>
                                         <td style={{ padding: '1.25rem', fontWeight: '700', color: '#475569' }}>{ret.purchase_number}</td>
@@ -811,7 +811,7 @@ const BusinessPurchases = () => {
                                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
                                         >
                                             <option value="">-- Select Active Supplier --</option>
-                                            {suppliersList.map(s => (
+                                            {suppliersList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
                                                 <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>{s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''}</option>
                                             ))}
                                         </select>
@@ -861,7 +861,7 @@ const BusinessPurchases = () => {
                                     <button type="button" onClick={handleAddItemField} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Row</button>
                                 </div>
 
-                                {formItems.map((item, idx) => (
+                                {formItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item, idx) => (
                                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Product Name</label>
@@ -888,7 +888,7 @@ const BusinessPurchases = () => {
                                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#1B6B3A' }}
                                             >
                                                 <option value="">-- Select Product --</option>
-                                                {catalogProducts.map(p => (
+                                                {catalogProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(p => (
                                                     <option key={p.id || p.product_id} value={p.id || p.product_id}>{p.name || p.product_name} {p.sku ? `[${p.sku}]` : ''}</option>
                                                 ))}
                                             </select>
@@ -979,7 +979,7 @@ const BusinessPurchases = () => {
                                                 style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #DCF2E4', background: 'white' }}
                                             >
                                                 <option value="">-- Select Bank Account --</option>
-                                                {bankAccounts.map(acc => (
+                                                {bankAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
                                                     <option key={acc.id} value={acc.id}>{acc.bank_name} - ₹{acc.current_balance.toLocaleString()}</option>
                                                 ))}
                                             </select>

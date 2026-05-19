@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ordersService } from '../services/ordersService';
 import { crmService } from '../services/crmService';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 import { 
     ShoppingCart, 
@@ -453,7 +454,7 @@ const BusinessSalesOrders = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredOrders.map((row, idx) => (
+                                {filteredOrders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -527,7 +528,7 @@ const BusinessSalesOrders = () => {
                                 <p style={{ color: '#64748B', fontSize: '0.9rem' }}>No pending orders found.</p>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {pendingOrdersList.map(o => (
+                                    {pendingOrdersList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(o => (
                                         <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px' }}>
                                             <div>
                                                 <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem' }}>{o.customer}</p>
@@ -555,7 +556,7 @@ const BusinessSalesOrders = () => {
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {delayedDeliveriesList.map(o => (
+                                    {delayedDeliveriesList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(o => (
                                         <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FEF2F2', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #FEE2E2' }}>
                                             <div>
                                                 <p style={{ fontWeight: '750', color: '#991B1B', fontSize: '0.95rem' }}>{o.customer}</p>
@@ -581,7 +582,7 @@ const BusinessSalesOrders = () => {
                                 <p style={{ color: '#64748B', fontSize: '0.9rem' }}>No cancelled orders recorded.</p>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {cancelledOrdersList.map(o => (
+                                    {cancelledOrdersList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(o => (
                                         <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px' }}>
                                             <div>
                                                 <p style={{ fontWeight: '750', color: '#64748B', fontSize: '0.95rem' }}>{o.customer}</p>
@@ -626,7 +627,7 @@ const BusinessSalesOrders = () => {
                                 <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>Top Customers Contribution</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                {topCustomers.map((cust, i) => (
+                                {topCustomers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((cust, i) => (
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
@@ -647,7 +648,7 @@ const BusinessSalesOrders = () => {
                                 <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>Most Ordered Products</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {mostOrderedProducts.map((prod, i) => (
+                                {mostOrderedProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((prod, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', fontWeight: '700' }}>
                                         <span style={{ color: '#475569' }}>{prod.name}</span>
                                         <span style={{ background: '#F0FDF4', color: '#15803D', padding: '0.25rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>{prod.qty} Units</span>

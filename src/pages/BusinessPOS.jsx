@@ -32,6 +32,7 @@ import { posService } from '../services/posService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessPOS = () => {
     const queryClient = useQueryClient();
@@ -562,7 +563,7 @@ const BusinessPOS = () => {
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
                             <AnimatePresence>
-                                {filteredProducts.map(prod => {
+                                {filteredProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => {
                                     const isOutOfStock = (prod.quantity || 0) <= 0;
                                     const isLowStock = (prod.quantity || 0) > 0 && (prod.quantity || 0) < 10;
                                     
@@ -676,7 +677,7 @@ const BusinessPOS = () => {
                 {heldCarts.length > 0 && (
                     <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>HELD CARTS:</span>
-                        {heldCarts.map(hc => (
+                        {heldCarts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(hc => (
                             <div
                                 key={hc.id}
                                 style={{ 
@@ -740,7 +741,7 @@ const BusinessPOS = () => {
                             </div>
                             
                             <AnimatePresence initial={false}>
-                                {cart.map(item => (
+                                {cart.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(item => (
                                     <motion.div
                                         key={item.id}
                                         initial={{ opacity: 0, height: 0 }}

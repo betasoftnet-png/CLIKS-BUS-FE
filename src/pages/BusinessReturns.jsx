@@ -371,7 +371,7 @@ const BusinessReturns = () => {
         { key: 'status', label: 'Status', placeholder: 'e.g. Approved' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredSalesReturns.map((sr) => (
+                                {filteredSalesReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((sr) => (
                                     <tr key={sr.id || sr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{sr.return_number}</p>
@@ -457,7 +457,7 @@ const BusinessReturns = () => {
         { key: 'status', label: 'Status', placeholder: 'e.g. Approved' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredPurchaseReturns.map((pr) => (
+                                {filteredPurchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((pr) => (
                                     <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{pr.return_number}</p>
@@ -648,7 +648,7 @@ const BusinessReturns = () => {
                                     <button type="button" onClick={handleAddItemRow} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Product</button>
                                 </div>
 
-                                {formItems.map((item, idx) => (
+                                {formItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item, idx) => (
                                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Item Name</label>

@@ -356,7 +356,7 @@ const BusinessAccounting = () => {
             {/* Main Stats */}
             {/* Specialized Accounting Prime Stats Layout */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
-                {summaryStats.map((stat, idx) => (
+                {summaryStats.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((stat, idx) => (
                     <div 
                         key={idx} 
                         className="stat-card" 
@@ -456,7 +456,7 @@ const BusinessAccounting = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {expensesList.map((exp, i) => (
+                                    {expensesList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((exp, i) => (
                                         <tr key={i} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
                                             <td style={{ padding: '0.6rem 1rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#E0E7FF', color: '#4338CA', fontSize: '0.75rem', fontWeight: '800' }}>{exp.cat}</span></td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{exp.desc}</td>
@@ -654,7 +654,7 @@ const BusinessAccounting = () => {
 
                 {activeTab === 'gst' && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                        {gstReports.map((report, i) => (
+                        {gstReports.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((report, i) => (
                             <div key={i} style={{ border: '1px solid #E2E8F0', padding: '1.25rem', borderRadius: '12px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
                                     <div style={{ width: '36px', height: '36px', background: '#EFF6FF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
@@ -686,7 +686,7 @@ const BusinessAccounting = () => {
         { key: 'amount', label: 'Amount', placeholder: 'e.g. 5000' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {dayBook.map(entry => (
+                                {dayBook.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(entry => (
                                     <tr key={entry.id} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{entry.date}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{entry.category}</td>

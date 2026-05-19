@@ -377,7 +377,7 @@ const BusinessStock = () => {
         { key: 'alert_status', label: 'Alert Status', placeholder: 'e.g. Low' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredStocks.map((st) => {
+                                {filteredStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => {
                                     const isLow = st.current_stock <= st.reorder_level;
                                     const valuation = st.current_stock * st.average_cost;
                                     return (
@@ -428,7 +428,7 @@ const BusinessStock = () => {
                                 onChange={(e) => setSelectedHistoryProductId(e.target.value)} 
                                 style={{ padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#1E293B' }}
                             >
-                                {stocks.map(s => <option key={s.id} value={s.id}>{s.product_name}</option>)}
+                                {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name}</option>)}
                             </select>
                         </div>
                     </div>
@@ -445,7 +445,7 @@ const BusinessStock = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {movements.map((move) => (
+                            {movements.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((move) => (
                                 <tr key={move.movement_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{move.movement_id}</td>
                                     <td style={{ padding: '1rem', color: '#64748B' }}>{move.movement_date}</td>
@@ -487,7 +487,7 @@ const BusinessStock = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {transfers.map((trf) => (
+                            {transfers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((trf) => (
                                 <tr key={trf.transfer_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{trf.transfer_id}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700' }}>{trf.product_name}</td>
@@ -520,7 +520,7 @@ const BusinessStock = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {batches.map((bat) => {
+                            {batches.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bat) => {
                                 const daysLeft = Math.ceil((new Date(bat.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
                                 return (
                                     <tr key={bat.batch_number} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -558,7 +558,7 @@ const BusinessStock = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
                                 <select value={adjustmentForm.product_id} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {stocks.map(s => <option key={s.id} value={s.id}>{s.product_name} (Qty: {s.current_stock})</option>)}
+                                    {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name} (Qty: {s.current_stock})</option>)}
                                 </select>
                             </div>
                             <div>
@@ -598,20 +598,20 @@ const BusinessStock = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
                                 <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {stocks.map(s => <option key={s.id} value={s.id}>{s.product_name} (Avail: {s.available_stock} pcs)</option>)}
+                                    {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name} (Avail: {s.available_stock} pcs)</option>)}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Warehouse</label>
                                     <select value={transferForm.from_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, from_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        {dbWarehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Warehouse</label>
                                     <select value={transferForm.to_warehouse_id} onChange={(e) => setTransferForm({ ...transferForm, to_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {dbWarehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        {dbWarehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </select>
                                 </div>
                             </div>

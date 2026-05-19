@@ -22,6 +22,7 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { attendanceService } from '../services/attendanceService';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 
 
@@ -296,7 +297,7 @@ const BusinessAttendance = () => {
         { key: 'status', label: 'Status', placeholder: 'e.g. Present' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredLogs.map((log) => (
+                                {filteredLogs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((log) => (
                                     <tr key={log.attendance_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{log.attendance_id}</p>
@@ -348,7 +349,7 @@ const BusinessAttendance = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {shifts.map((s) => (
+                            {shifts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((s) => (
                                 <tr key={s.shift_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{s.shift_id}</td>
                                     <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>{s.shift_name}</td>
@@ -404,7 +405,7 @@ const BusinessAttendance = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {corrections.map((cor) => (
+                            {corrections.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((cor) => (
                                 <tr key={cor.correction_request_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{cor.correction_request_id}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700' }}>{cor.employee_name}</td>

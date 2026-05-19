@@ -29,6 +29,7 @@ import '../App.css';
 import { useQuery } from '@tanstack/react-query';
 import { settingsService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const INITIAL_DELIVERIES = [
     {
@@ -643,7 +644,7 @@ const BusinessDelivery = () => {
                                                     style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
                                                 >
                                                     <option value="" disabled>Assign Driver</option>
-                                                    {staff.map(s => (
+                                                    {staff.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
                                                         <option key={s.staff_id} value={s.staff_id}>{s.name} ({s.vehicle})</option>
                                                     ))}
                                                 </select>
@@ -679,7 +680,7 @@ const BusinessDelivery = () => {
         { key: '_actions', label: 'Action', noFilter: true }
     ]} onFilterChange={setColFilters} />
                         <tbody>
-                            {deliveries.map((dlv) => (
+                            {deliveries.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((dlv) => (
                                 <tr key={dlv.delivery_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750', color: '#0F172A' }}>{dlv.challan_number}</td>
                                     <td style={{ padding: '1rem' }}>
@@ -728,7 +729,7 @@ const BusinessDelivery = () => {
                 <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>👨💼 Delivery Staff Performance & Fleet Assignments</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-                        {staff.map((stf) => (
+                        {staff.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((stf) => (
                             <div key={stf.staff_id} style={{ background: '#FAFDFB', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E8F5EE' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                     <div>
@@ -954,7 +955,7 @@ const BusinessDelivery = () => {
                                             style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
                                         >
                                             <option value="">Select Internal Driver</option>
-                                            {staff.map(s => (
+                                            {staff.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
                                                 <option key={s.staff_id} value={s.staff_id}>{s.name} ({s.vehicle})</option>
                                             ))}
                                         </select>

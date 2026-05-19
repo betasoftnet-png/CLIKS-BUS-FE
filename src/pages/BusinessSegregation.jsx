@@ -25,6 +25,7 @@ import { businessSegregationService } from '../services';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessSegregation = () => {
     const queryClient = useQueryClient();
@@ -175,7 +176,7 @@ const BusinessSegregation = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredSegregations.map((seg) => (
+                                {filteredSegregations.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((seg) => (
                                     <tr key={seg.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

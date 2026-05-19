@@ -37,6 +37,7 @@ import { crmService } from '../services/crmService';
 import { settingsService } from '../services/settingsService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const AVATAR_COLORS = [
     { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue
@@ -573,7 +574,7 @@ const BusinessCRM = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredCustomers.map((row) => (
+                                {filteredCustomers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => { setSelectedProfileCustomer(row); setIsProfileModalOpen(true); }} title="View Customer Profile">
@@ -769,7 +770,7 @@ const BusinessCRM = () => {
                                 <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Top Customer Sales Contribution</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {customers.map((cust, i) => (
+                                {customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((cust, i) => (
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>

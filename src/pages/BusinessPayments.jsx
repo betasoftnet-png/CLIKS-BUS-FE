@@ -319,7 +319,7 @@ const BusinessPayments = () => {
         { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredReceivables.map((r) => (
+                                {filteredReceivables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((r) => (
                                     <tr key={r.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{r.payment_number}</p>
@@ -360,7 +360,7 @@ const BusinessPayments = () => {
         { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredPayables.map((p) => (
+                                {filteredPayables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((p) => (
                                     <tr key={p.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{p.payment_number}</p>
@@ -385,7 +385,7 @@ const BusinessPayments = () => {
             {/* Tab 3: Bank registers */}
             {activeTab === 'bank' && (
                 <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', paddingBottom: '1.5rem' }}>
-                    {accounts.map(acc => (
+                    {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
                         <div key={acc.bank_account_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                                 <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{acc.bank_account_id}</span>
@@ -426,7 +426,7 @@ const BusinessPayments = () => {
         { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
     ]} onFilterChange={setColFilters} />
                         <tbody>
-                            {overdues.map((ov) => (
+                            {overdues.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ov) => (
                                 <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{ov.customer_name}</td>
                                     <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
@@ -576,13 +576,13 @@ const BusinessPayments = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Account</label>
                                     <select value={transferForm.from_acc_id} onChange={(e) => setTransferForm({ ...transferForm, from_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {accounts.map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
+                                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Account</label>
                                     <select value={transferForm.to_acc_id} onChange={(e) => setTransferForm({ ...transferForm, to_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {accounts.map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
+                                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
                                     </select>
                                 </div>
                             </div>

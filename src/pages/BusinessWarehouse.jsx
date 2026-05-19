@@ -433,7 +433,7 @@ const BusinessWarehouse = () => {
             {/* Tab 1: Godown Profiles */}
             {activeTab === 'profiles' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-                    {warehouses.map((wh) => (
+                    {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((wh) => (
                         <div key={wh.warehouse_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                                 <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{wh.warehouse_code}</span>
@@ -519,7 +519,7 @@ const BusinessWarehouse = () => {
         { key: 'valuation', label: 'Sourcing Valuation', placeholder: 'e.g. 50000' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {whStocks.map((st) => (
+                                {whStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => (
                                     <tr key={st.wh_stock_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{st.warehouse_name}</p>
@@ -562,7 +562,7 @@ const BusinessWarehouse = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {inwards.map((inw) => (
+                            {inwards.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inw) => (
                                 <tr key={inw.inward_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{inw.inward_id}</td>
                                     <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{inw.purchase_id}</td>
@@ -599,7 +599,7 @@ const BusinessWarehouse = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {transfers.map((trf) => (
+                            {transfers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((trf) => (
                                 <tr key={trf.transfer_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{trf.transfer_id}</td>
                                     <td style={{ padding: '1rem' }}>{trf.source_warehouse}</td>
@@ -647,7 +647,7 @@ const BusinessWarehouse = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name</label>
                                 <select value={newInward.stock_id} onChange={(e) => setNewInward({ ...newInward, stock_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {dbStocks.map(s => <option key={s.id} value={s.id}>{s.name} (Current: {s.quantity} pcs)</option>)}
+                                    {dbStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.name} (Current: {s.quantity} pcs)</option>)}
                                 </select>
                             </div>
                             <div>
@@ -657,7 +657,7 @@ const BusinessWarehouse = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receiving Destination Warehouse</label>
                                 <select value={newInward.warehouse_id} onChange={(e) => setNewInward({ ...newInward, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
+                                    {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                 </select>
                             </div>
 
@@ -682,20 +682,20 @@ const BusinessWarehouse = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
                                 <select value={newTransfer.stock_id} onChange={(e) => setNewTransfer({ ...newTransfer, stock_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {dbStocks.map(s => <option key={s.id} value={s.id}>{s.name} (Avail: {s.quantity} pcs)</option>)}
+                                    {dbStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.name} (Avail: {s.quantity} pcs)</option>)}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Warehouse</label>
                                     <select value={newTransfer.source_warehouse_id} onChange={(e) => setNewTransfer({ ...newTransfer, source_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
+                                        {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Warehouse</label>
                                     <select value={newTransfer.destination_warehouse_id} onChange={(e) => setNewTransfer({ ...newTransfer, destination_warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
+                                        {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                     </select>
                                 </div>
                             </div>

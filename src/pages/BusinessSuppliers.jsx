@@ -35,6 +35,7 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 const BusinessSuppliers = () => {
     const queryClient = useQueryClient();
@@ -404,7 +405,7 @@ const BusinessSuppliers = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredSuppliers.map((sup) => {
+                                {filteredSuppliers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((sup) => {
                                     const supId = sup.id || sup.supplier_id;
                                     const supName = sup.name || sup.supplier_name || 'Unnamed Supplier';
                                     const supCode = sup.supplier_code || `SUP-${supId}`;
@@ -490,7 +491,7 @@ const BusinessSuppliers = () => {
                     <div style={{ background: 'white', padding: '1.5rem', borderRadius: '28px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
                         <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '1rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Select Supplier</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {suppliers.map(s => {
+                            {suppliers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => {
                                 const sId = s.id || s.supplier_id;
                                 const sName = s.name || s.supplier_name || 'Unnamed';
                                 const sBal = parseFloat(s.outstanding_balance || s.current_balance || 0);
@@ -597,7 +598,7 @@ const BusinessSuppliers = () => {
                         <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
                             <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Supplier Procurement Shares</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                {suppliers.map((s, idx) => (
+                                {suppliers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((s, idx) => (
                                     <div key={idx}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.35rem' }}>
                                             <span>{s.supplier_name}</span>
