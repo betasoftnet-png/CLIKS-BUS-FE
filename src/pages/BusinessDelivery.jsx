@@ -26,6 +26,8 @@ import {
     PenTool
 } from 'lucide-react';
 import '../App.css';
+import { useQuery } from '@tanstack/react-query';
+import { settingsService } from '../services';
 
 const INITIAL_DELIVERIES = [
     {
@@ -205,6 +207,14 @@ const INITIAL_STAFF = [
 ];
 
 const BusinessDelivery = () => {
+    // Fetch customization settings dynamically to enforce master configurations
+    const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
+
     const [deliveries, setDeliveries] = useState(() => {
         const local = localStorage.getItem('cliks_deliveries');
         return local ? JSON.parse(local) : INITIAL_DELIVERIES;
@@ -430,6 +440,36 @@ const BusinessDelivery = () => {
     const failedCount = deliveries.filter(d => d.delivery_status === 'Failed Attempt').length;
     const pendingCount = totalCount - deliveredCount - failedCount;
     const successRate = totalCount > 0 ? Math.round((deliveredCount / totalCount) * 100) : 100;
+
+    if (!isLoadingSettings && activeConfig.deliveryChallan === false) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '500px', background: '#F8FAFC', fontFamily: "'Inter', sans-serif", padding: '2rem' }}>
+                <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '3rem', borderRadius: '24px', maxWidth: '500px', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', margin: '0 auto 1.5rem', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.1)' }}>
+                        <Truck size={40} style={{ color: '#10B981' }} />
+                    </div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Logistics Engine Locked</h2>
+                    <p style={{ color: '#64748B', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '2rem', fontWeight: '500' }}>
+                        Delivery challans, shipment tracking, fleet performance, and reverse logistics are currently disabled. You can activate full Logistics & Challans anytime from the Engine Customizer panel.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                        <button 
+                            onClick={() => window.location.href = '/customization'}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                                background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
+                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)'
+                            }}
+                        >
+                            Activate Logistics Engine
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F9FCFA', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>

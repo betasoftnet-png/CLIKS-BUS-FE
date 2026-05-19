@@ -464,7 +464,18 @@ const BusinessWarehouse = () => {
                                 {confirmingDeleteId === wh.id ? (
                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); deleteWarehouseMutation.mutate(wh.id); setConfirmingDeleteId(null); }} 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                if (activeConfig.passcode) {
+                                                    const pin = prompt("Enter Security Passcode to authorize deletion:");
+                                                    if (pin !== "1234") {
+                                                        alert("Unauthorized: Incorrect security passcode.");
+                                                        return;
+                                                    }
+                                                }
+                                                deleteWarehouseMutation.mutate(wh.id); 
+                                                setConfirmingDeleteId(null); 
+                                            }} 
                                             style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '800' }}
                                         >
                                             Delete Godown

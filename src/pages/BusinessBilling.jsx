@@ -581,6 +581,12 @@ const BusinessBilling = () => {
             items: JSON.stringify(formData.items)
         };
 
+        if (activeConfig.addTime) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            payload.due_date = `${formData.due_date} (${timeStr})`;
+        }
+
         if (editingInvoice) {
             updateMutation.mutate({ id: editingInvoice.id, data: payload });
         } else {
@@ -635,6 +641,13 @@ const BusinessBilling = () => {
 
     const handleDelete = async (id) => {
         if (await customConfirm('Are you sure you want to delete this invoice?')) {
+            if (activeConfig.passcode) {
+                const pin = prompt("Enter Security Passcode to authorize deletion:");
+                if (pin !== "1234") {
+                    alert("Unauthorized: Incorrect security passcode.");
+                    return;
+                }
+            }
             deleteMutation.mutate(id);
         }
     };
@@ -882,11 +895,13 @@ const BusinessBilling = () => {
                                 transition: 'all 0.3s ease'
                             }}>
                                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
-                                    <input readOnly type="text" value={formData.invoice_number} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem' }} />
-                                </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.invoiceBillNo !== false ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '1rem' }}>
+                                {activeConfig.invoiceBillNo !== false && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
+                                        <input readOnly type="text" value={formData.invoice_number} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem' }} />
+                                    </div>
+                                )}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
                                     <select value={formData.invoice_type} onChange={(e) => setFormData({...formData, invoice_type: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
@@ -1018,8 +1033,19 @@ const BusinessBilling = () => {
                                 </div>
                                 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                                    {formData.items.map((item, idx) => (
-                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.5fr 70px 60px 70px 70px 70px 70px 30px', gap: '0.5rem', alignItems: 'end', padding: '0.6rem 0.75rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                    {formData.items.map((item, idx) => {
+                                        let gridCols = '1.5fr';
+                                        if (activeConfig.enableGst !== false) gridCols += ' 70px';
+                                        gridCols += ' 60px';
+                                        if (activeConfig.freeQty === true) gridCols += ' 60px';
+                                        gridCols += ' 65px';
+                                        gridCols += ' 75px';
+                                        if (activeConfig.txnDiscount !== false) gridCols += ' 60px';
+                                        if (activeConfig.txnTax !== false) gridCols += ' 65px';
+                                        gridCols += ' 30px';
+
+                                        return (
+                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0.5rem', alignItems: 'end', padding: '0.6rem 0.75rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DESCRIPTION</label>
                                                 <input 
@@ -1041,14 +1067,22 @@ const BusinessBilling = () => {
                                                     ))}
                                                 </datalist>
                                             </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>HSN</label>
-                                                <input type="text" value={item.hsn_code} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
-                                            </div>
+                                            {activeConfig.enableGst !== false && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>HSN</label>
+                                                    <input type="text" value={item.hsn_code || ''} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                </div>
+                                            )}
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
                                                 <input required type="number" value={item.quantity} onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
+                                            {activeConfig.freeQty === true && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
+                                                    <input type="number" placeholder="0" value={item.free_quantity || ''} onChange={(e) => handleItemChange(idx, 'free_quantity', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                </div>
+                                            )}
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
                                                 <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
@@ -1063,23 +1097,28 @@ const BusinessBilling = () => {
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE (₹)</label>
                                                 <input required type="number" value={item.price} onChange={(e) => handleItemChange(idx, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>
-                                                <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>GST %</label>
-                                                <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
-                                                    <option value={0}>0%</option>
-                                                    <option value={5}>5%</option>
-                                                    <option value={12}>12%</option>
-                                                    <option value={18}>18%</option>
-                                                    <option value={28}>28%</option>
-                                                </select>
-                                            </div>
+                                            {activeConfig.txnDiscount !== false && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>
+                                                    <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                </div>
+                                            )}
+                                            {activeConfig.txnTax !== false && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>GST %</label>
+                                                    <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
+                                                        <option value={0}>0%</option>
+                                                        <option value={5}>5%</option>
+                                                        <option value={12}>12%</option>
+                                                        <option value={18}>18%</option>
+                                                        <option value={28}>28%</option>
+                                                    </select>
+                                                </div>
+                                            )}
                                             <button type="button" onClick={() => removeItem(idx)} style={{ color: '#EF4444', border: 'none', background: 'transparent', cursor: 'pointer', paddingBottom: '0.4rem' }}><Trash2 size={16} /></button>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -1161,48 +1200,50 @@ const BusinessBilling = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
-                                                <Tag size={12} /> Loyalty Points
-                                            </label>
-                                            {selectedCustomerObject && (
-                                                <span style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '700' }}>Available: {selectedCustomerObject.loyalty_points || 0}</span>
-                                            )}
+                                    {activeConfig.loyalty !== false && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
+                                                    <Tag size={12} /> Loyalty Points
+                                                </label>
+                                                {selectedCustomerObject && (
+                                                    <span style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '700' }}>Available: {selectedCustomerObject.loyalty_points || 0}</span>
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                <input 
+                                                    type="number" 
+                                                    disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
+                                                    placeholder="Points to redeem"
+                                                    value={formData.redeemed_points || ''}
+                                                    onChange={(e) => {
+                                                        let val = parseInt(e.target.value) || 0;
+                                                        const maxAvail = selectedCustomerObject ? (selectedCustomerObject.loyalty_points || 0) : 0;
+                                                        if (val > maxAvail) val = maxAvail;
+                                                        if (val < 0) val = 0;
+                                                        
+                                                        // Create temporary updated state to calc totals accurately
+                                                        const tmp = { ...formData, redeemed_points: val };
+                                                        const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
+                                                        setFormData({ ...tmp, ...newTotals });
+                                                    }}
+                                                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem' }} 
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        if (!selectedCustomerObject) return;
+                                                        const maxAvail = selectedCustomerObject.loyalty_points || 0;
+                                                        const tmp = { ...formData, redeemed_points: maxAvail };
+                                                        const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
+                                                        setFormData({ ...tmp, ...newTotals });
+                                                    }}
+                                                    disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
+                                                    style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0) ? 0.5 : 1 }}
+                                                >Use Max</button>
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                            <input 
-                                                type="number" 
-                                                disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
-                                                placeholder="Points to redeem"
-                                                value={formData.redeemed_points || ''}
-                                                onChange={(e) => {
-                                                    let val = parseInt(e.target.value) || 0;
-                                                    const maxAvail = selectedCustomerObject ? (selectedCustomerObject.loyalty_points || 0) : 0;
-                                                    if (val > maxAvail) val = maxAvail;
-                                                    if (val < 0) val = 0;
-                                                    
-                                                    // Create temporary updated state to calc totals accurately
-                                                    const tmp = { ...formData, redeemed_points: val };
-                                                    const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
-                                                    setFormData({ ...tmp, ...newTotals });
-                                                }}
-                                                style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem' }} 
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => {
-                                                    if (!selectedCustomerObject) return;
-                                                    const maxAvail = selectedCustomerObject.loyalty_points || 0;
-                                                    const tmp = { ...formData, redeemed_points: maxAvail };
-                                                    const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
-                                                    setFormData({ ...tmp, ...newTotals });
-                                                }}
-                                                disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
-                                                style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0) ? 0.5 : 1 }}
-                                            >Use Max</button>
-                                        </div>
-                                    </div>
+                                    )}
 
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>

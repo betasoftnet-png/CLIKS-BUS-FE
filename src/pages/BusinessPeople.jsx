@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,9 +18,12 @@ import {
     Calendar, 
     Bell, 
     MessageSquare, 
-    CheckCircle2
+    CheckCircle2,
+    Edit2,
+    Tag
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
+import { settingsService } from '../services/settingsService';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 
@@ -35,9 +38,14 @@ const BusinessPeople = () => {
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
     const [selectedPersonId, setSelectedPersonId] = useState(null);
+    const [editingContactId, setEditingContactId] = useState(null);
+
+    // Customization Filters state
+    const [groupFilter, setGroupFilter] = useState('All');
+    const [statusFilter, setStatusFilter] = useState('All');
 
     // Forms input states
-    const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '' });
+    const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
     const [txForm, setTxForm] = useState({ person_id: '', type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
     const [reminderForm, setReminderForm] = useState({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
 
@@ -55,6 +63,32 @@ const BusinessPeople = () => {
         setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
         setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
     }, [selectedPersonId]);
+
+    // Settings Configuration
+    const { data: userSettings } = useQuery({
+        queryKey: ['business-settings'],
+        queryFn: settingsService.getSettings,
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
+
+    const getContactMeta = (contactInfo) => {
+        try {
+            if (contactInfo && (contactInfo.startsWith('{') || contactInfo.startsWith('['))) {
+                return JSON.parse(contactInfo);
+            }
+        } catch (e) {}
+        return {
+            status: contactInfo === 'inactive' ? 'inactive' : 'active',
+            loyalty_points: 0
+        };
+    };
+
+    const serializeContactMeta = (status, loyaltyPoints) => {
+        return JSON.stringify({
+            status: status || 'active',
+            loyalty_points: parseInt(loyaltyPoints) || 0
+        });
+    };
 
     // ── Queries ─────────────────────────────────────────────────────────────
     const { data: peopleRes = [], isLoading: isPeopleLoading } = useQuery({
@@ -119,8 +153,20 @@ const BusinessPeople = () => {
         onSuccess: () => {
             queryClient.invalidateQueries(['people-list']);
             setIsContactModalOpen(false);
-            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '' });
+            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
             alert('Contact added to your network.');
+        }
+    });
+
+    const updateContactMutation = useMutation({
+        mutationFn: (variables) => peopleService.updatePerson(variables.id, variables.data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries(['people-list']);
+            queryClient.invalidateQueries(['person-detail', variables.id]);
+            setIsContactModalOpen(false);
+            setEditingContactId(null);
+            setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
+            alert('Contact profile updated.');
         }
     });
 
@@ -179,7 +225,28 @@ const BusinessPeople = () => {
     // ── Handlers ────────────────────────────────────────────────────────────
     const handleSaveContact = (e) => {
         e.preventDefault();
-        createContactMutation.mutate(contactForm);
+        const meta = getContactMeta(contactForm.contact_info);
+        const payload = {
+            ...contactForm,
+            contact_info: serializeContactMeta(meta.status, meta.loyalty_points)
+        };
+        if (editingContactId) {
+            updateContactMutation.mutate({ id: editingContactId, data: payload });
+        } else {
+            createContactMutation.mutate(payload);
+        }
+    };
+
+    const handleSendWhatsAppReminder = (person, balance) => {
+        if (!person.phone) {
+            alert('No phone number registered for this contact.');
+            return;
+        }
+        const amtStr = formatCurr(Math.abs(balance));
+        const direction = balance >= 0 ? 'receivable outstanding balance' : 'payable balance';
+        const message = `Hello ${person.name},\n\nThis is a friendly reminder regarding our pending P2P ledger account status:\n\n*Current Balance:* ${amtStr} (${direction})\n\nPlease check and let me know. Thank you,\nCLIKS BUSINESS.`;
+        const whatsappUrl = `https://wa.me/${person.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
     };
 
     const handleDeleteContact = async (id) => {
@@ -255,10 +322,22 @@ const BusinessPeople = () => {
         return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    const filteredPeople = people.filter(p => 
-        (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.company || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const uniqueGroups = useMemo(() => {
+        const groups = new Set(['Family', 'Friends', 'Clients', 'Vendors', 'Staff']);
+        people.forEach(p => {
+            if (p.relationship) groups.add(p.relationship);
+        });
+        return Array.from(groups);
+    }, [people]);
+
+    const filteredPeople = people.filter(p => {
+        const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              (p.company || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesGroup = groupFilter === 'All' || p.relationship === groupFilter;
+        const meta = getContactMeta(p.contact_info);
+        const matchesStatus = statusFilter === 'All' || meta.status === statusFilter;
+        return matchesSearch && matchesGroup && matchesStatus;
+    });
 
     const filteredTx = transactions.filter(t =>
         (t.person_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -340,6 +419,31 @@ const BusinessPeople = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {activeTab === 'contacts' && activeConfig.partyGroup && (
+                        <select 
+                            value={groupFilter} 
+                            onChange={(e) => setGroupFilter(e.target.value)}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700', color: '#475569', outline: 'none', cursor: 'pointer' }}
+                        >
+                            <option value="All">All Groups</option>
+                            {uniqueGroups.map(g => (
+                                <option key={g} value={g}>{g}</option>
+                            ))}
+                        </select>
+                    )}
+
+                    {activeTab === 'contacts' && activeConfig.partyStatus && (
+                        <select 
+                            value={statusFilter} 
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700', color: '#475569', outline: 'none', cursor: 'pointer' }}
+                        >
+                            <option value="All">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    )}
+
                     <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -398,56 +502,127 @@ const BusinessPeople = () => {
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Profile Contact</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Classification</th>
+                                    {activeConfig.partyGroup && (
+                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Group Cluster</th>
+                                    )}
+                                    {activeConfig.partyStatus && (
+                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    )}
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Company / Link</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Phone / Email</th>
+                                    {activeConfig.loyalty && (
+                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Loyalty Points</th>
+                                    )}
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Net Exposure</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isPeopleLoading ? (
-                                    <tr><td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>Streaming network directory...</td></tr>
+                                    <tr><td colSpan={10} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>Streaming network directory...</td></tr>
                                 ) : filteredPeople.length === 0 ? (
-                                    <tr><td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Zero network contacts found. Start adding!</td></tr>
-                                ) : filteredPeople.map((p) => (
-                                    <tr key={p.id} 
-                                        style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
-                                        onClick={() => setSelectedPersonId(p.id)}
-                                        onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
-                                        onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
-                                    >
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                {renderAvatar(p.name, 42)}
-                                                <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', margin: 0 }}>{p.name}</p>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>{p.role_type}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B', fontWeight: '600' }}>{p.company || 'Individual'}</td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#475569' }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: '650' }}>{p.phone || 'N/A'}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{p.email || ''}</div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <span style={{ fontWeight: '900', fontSize: '1.1rem', color: parseFloat(p.net_balance || 0) >= 0 ? '#16A34A' : '#EF4444' }}>
-                                                {formatCurr(p.net_balance)}
-                                            </span>
-                                            <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>{parseFloat(p.net_balance || 0) >= 0 ? 'RECEIVABLE' : 'PAYABLE'}</div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDeleteContact(p.id); }}
-                                                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s' }}
-                                                onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
-                                                onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                    <tr><td colSpan={10} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Zero network contacts found. Start adding!</td></tr>
+                                ) : filteredPeople.map((p) => {
+                                    const meta = getContactMeta(p.contact_info);
+                                    const netBal = parseFloat(p.net_balance || 0);
+                                    return (
+                                        <tr key={p.id} 
+                                            style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
+                                            onClick={() => setSelectedPersonId(p.id)}
+                                            onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
+                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
+                                        >
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    {renderAvatar(p.name, 42)}
+                                                    <div>
+                                                        <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', margin: 0 }}>{p.name}</p>
+                                                        {activeConfig.payReminder && netBal !== 0 && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); handleSendWhatsAppReminder(p, netBal); }}
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', border: 'none', background: '#ECFDF5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '750', marginTop: '4px', cursor: 'pointer' }}
+                                                            >
+                                                                Send Reminder 💬
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>{p.role_type}</span>
+                                            </td>
+                                            {activeConfig.partyGroup && (
+                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                    {p.relationship ? (
+                                                        <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#FEF3C7', color: '#D97706', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>{p.relationship}</span>
+                                                    ) : (
+                                                        <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>None</span>
+                                                    )}
+                                                </td>
+                                            )}
+                                            {activeConfig.partyStatus && (
+                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: meta.status === 'active' ? '#ECFDF5' : '#FEE2E2', color: meta.status === 'active' ? '#047857' : '#EF4444', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>
+                                                        {meta.status}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            <td style={{ padding: '1.5rem 2rem', color: '#64748B', fontWeight: '600' }}>{p.company || 'Individual'}</td>
+                                            <td style={{ padding: '1.5rem 2rem', color: '#475569' }}>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '650' }}>{p.phone || 'N/A'}</div>
+                                                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{p.email || ''}</div>
+                                            </td>
+                                            {activeConfig.loyalty && (
+                                                <td style={{ padding: '1.5rem 2rem', textAlign: 'center' }}>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#F0FDF4', color: '#16A34A', border: '1px solid #DCFCE7', fontWeight: '800', fontSize: '0.72rem' }}>
+                                                        <Tag size={12} /> {meta.loyalty_points || 0} pts
+                                                    </span>
+                                                </td>
+                                            )}
+                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                                <span style={{ fontWeight: '900', fontSize: '1.1rem', color: netBal >= 0 ? '#16A34A' : '#EF4444' }}>
+                                                    {formatCurr(p.net_balance)}
+                                                </span>
+                                                <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>{netBal >= 0 ? 'RECEIVABLE' : 'PAYABLE'}</div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingContactId(p.id);
+                                                            setContactForm({
+                                                                name: p.name || '',
+                                                                role_type: p.role_type || 'friend',
+                                                                phone: p.phone || '',
+                                                                email: p.email || '',
+                                                                company: p.company || '',
+                                                                relationship: p.relationship || '',
+                                                                contact_info: p.contact_info || JSON.stringify({ status: 'active', loyalty_points: 0 })
+                                                            });
+                                                            setIsContactModalOpen(true);
+                                                        }}
+                                                        style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s' }}
+                                                        onMouseOver={(e) => e.currentTarget.style.color = '#7C3AED'}
+                                                        onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                        title="Edit Profile"
+                                                    >
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteContact(p.id); }}
+                                                        style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s' }}
+                                                        onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
+                                                        onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                        title="Delete Contact"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     )}
@@ -549,14 +724,14 @@ const BusinessPeople = () => {
                 </div>
             </div>
 
-            {/* Modal 1: Add People Contact */}
+            {/* Modal 1: Add/Edit People Contact */}
             <AnimatePresence>
                 {isContactModalOpen && (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
-                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Enroll New Contact</h3>
-                                <button onClick={() => setIsContactModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{editingContactId ? 'Edit Contact Profile' : 'Enroll New Contact'}</h3>
+                                <button onClick={() => { setIsContactModalOpen(false); setEditingContactId(null); setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' }); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
                             <form onSubmit={handleSaveContact} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
@@ -606,8 +781,67 @@ const BusinessPeople = () => {
                                         <input placeholder="name@example.com" type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                     </div>
                                 </div>
-                                <button type="submit" disabled={createContactMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', marginTop: '0.5rem' }}>
-                                    {createContactMutation.isPending ? 'Saving Contact...' : 'Create Contact Node'}
+
+                                {activeConfig.partyGroup && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Group / Relationship Cluster</label>
+                                        <select 
+                                            value={contactForm.relationship || ''} 
+                                            onChange={(e) => setContactForm({ ...contactForm, relationship: e.target.value })}
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
+                                        >
+                                            <option value="">No Group Cluster</option>
+                                            <option value="Family">Family</option>
+                                            <option value="Friends">Friends</option>
+                                            <option value="Clients">Clients</option>
+                                            <option value="Vendors">Vendors</option>
+                                            <option value="Staff">Staff</option>
+                                            <option value="Consultants">Consultants</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                {activeConfig.partyStatus && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
+                                        <select 
+                                            value={getContactMeta(contactForm.contact_info).status || 'active'} 
+                                            onChange={(e) => {
+                                                const meta = getContactMeta(contactForm.contact_info);
+                                                setContactForm({ 
+                                                    ...contactForm, 
+                                                    contact_info: serializeContactMeta(e.target.value, meta.loyalty_points) 
+                                                });
+                                            }}
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
+                                        >
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                {activeConfig.loyalty && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Initial Loyalty Points</label>
+                                        <input 
+                                            type="number" 
+                                            placeholder="0" 
+                                            value={getContactMeta(contactForm.contact_info).loyalty_points || 0} 
+                                            onChange={(e) => {
+                                                const meta = getContactMeta(contactForm.contact_info);
+                                                setContactForm({ 
+                                                    ...contactForm, 
+                                                    contact_info: serializeContactMeta(meta.status, e.target.value) 
+                                                });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        />
+                                    </div>
+                                )}
+
+                                <button type="submit" disabled={createContactMutation.isPending || updateContactMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                    {editingContactId ? (updateContactMutation.isPending ? 'Updating Profile...' : 'Save Profile Changes') : (createContactMutation.isPending ? 'Saving Contact...' : 'Create Contact Node')}
                                 </button>
                             </form>
                         </Motion.div>
@@ -717,9 +951,34 @@ const BusinessPeople = () => {
                                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                                         {renderAvatar(personDetails?.name, 80)}
                                         <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                                                 <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textTransform: 'uppercase' }}>{personDetails?.name}</h2>
                                                 <span style={{ padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>{personDetails?.role_type}</span>
+                                                {activeConfig.partyGroup && personDetails?.relationship && (
+                                                    <span style={{ padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#FEF3C7', color: '#D97706', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Group: {personDetails.relationship}</span>
+                                                )}
+                                                {activeConfig.partyStatus && (
+                                                    <span 
+                                                        onClick={() => {
+                                                            const meta = getContactMeta(personDetails.contact_info);
+                                                            const newStatus = meta.status === 'active' ? 'inactive' : 'active';
+                                                            const updatedMeta = serializeContactMeta(newStatus, meta.loyalty_points);
+                                                            updateContactMutation.mutate({
+                                                                id: personDetails.id,
+                                                                data: { ...personDetails, contact_info: updatedMeta }
+                                                            });
+                                                        }}
+                                                        style={{ padding: '0.25rem 0.75rem', borderRadius: '8px', background: getContactMeta(personDetails.contact_info).status === 'active' ? '#DCF2E4' : '#FEE2E2', color: getContactMeta(personDetails.contact_info).status === 'active' ? '#16A34A' : '#EF4444', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer' }}
+                                                        title="Click to toggle status"
+                                                    >
+                                                        {getContactMeta(personDetails.contact_info).status}
+                                                    </span>
+                                                )}
+                                                {activeConfig.loyalty && (
+                                                    <span style={{ padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#F0FDF4', color: '#16A34A', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', border: '1px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Tag size={10} /> {getContactMeta(personDetails.contact_info).loyalty_points || 0} pts
+                                                    </span>
+                                                )}
                                             </div>
                                             <div style={{ margin: 0, color: '#64748B', fontWeight: '600', display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
                                                 {personDetails?.company && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={14} /> {personDetails.company}</span>}
@@ -736,7 +995,45 @@ const BusinessPeople = () => {
                             <div style={{ padding: '2rem', overflowY: 'auto', flex: 1, background: '#FAFAF9' }}>
                                 {!isPersonDetailLoading && personDetails && (
                                     <>
-                                        {/* Exposure Card */}
+                                        {/* Loyalty & Action Center */}
+                                        {activeConfig.loyalty && (
+                                            <div style={{ background: '#F0FDF4', padding: '1.25rem 1.5rem', borderRadius: '24px', border: '1px solid #DCFCE7', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                                <div>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Loyalty Points Stand</span>
+                                                    <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.15rem', fontWeight: '900', color: '#166534' }}>{getContactMeta(personDetails.contact_info).loyalty_points || 0} Points Available</h4>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button 
+                                                        onClick={() => {
+                                                            const meta = getContactMeta(personDetails.contact_info);
+                                                            const updatedMeta = serializeContactMeta(meta.status, (meta.loyalty_points || 0) + 10);
+                                                            updateContactMutation.mutate({
+                                                                id: personDetails.id,
+                                                                data: { ...personDetails, contact_info: updatedMeta }
+                                                            });
+                                                        }}
+                                                        style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', background: '#16A34A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                    >
+                                                        +10 PTS
+                                                    </button>
+                                                    <button 
+                                                        disabled={(getContactMeta(personDetails.contact_info).loyalty_points || 0) < 10}
+                                                        onClick={() => {
+                                                            const meta = getContactMeta(personDetails.contact_info);
+                                                            const updatedMeta = serializeContactMeta(meta.status, Math.max(0, (meta.loyalty_points || 0) - 10));
+                                                            updateContactMutation.mutate({
+                                                                id: personDetails.id,
+                                                                data: { ...personDetails, contact_info: updatedMeta }
+                                                            });
+                                                        }}
+                                                        style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', background: '#EF4444', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', opacity: (getContactMeta(personDetails.contact_info).loyalty_points || 0) < 10 ? 0.5 : 1 }}
+                                                    >
+                                                        -10 PTS
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Exposure Card */}
                                         <div style={{ background: computedNetBalance >= 0 ? '#ECFDF5' : '#FEF2F2', padding: '1.75rem', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', border: '1.5px solid', borderColor: computedNetBalance >= 0 ? '#A7F3D0' : '#FCA5A5', boxShadow: '0 4px 10px -2px rgba(0,0,0,0.02)' }}>
                                             <div>
@@ -744,6 +1041,14 @@ const BusinessPeople = () => {
                                                 <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '2.25rem', fontWeight: '950', color: computedNetBalance >= 0 ? '#065F46' : '#991B1B', letterSpacing: '-0.03em' }}>
                                                     {formatCurr(computedNetBalance)}
                                                 </h3>
+                                                {activeConfig.payReminder && computedNetBalance !== 0 && (
+                                                    <button 
+                                                        onClick={() => handleSendWhatsAppReminder(personDetails, computedNetBalance)}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: computedNetBalance >= 0 ? '#D1FAE5' : '#FEE2E2', color: computedNetBalance >= 0 ? '#065F46' : '#991B1B', padding: '0.4rem 0.8rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: '800', marginTop: '0.75rem', cursor: 'pointer' }}
+                                                    >
+                                                        Send Payment Reminder 💬
+                                                    </button>
+                                                )}
                                             </div>
                                             <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: computedNetBalance >= 0 ? '#059669' : '#DC2626', boxShadow: '0 4px 6px rgba(0,0,0,0.04)' }}>
                                                 {computedNetBalance >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import { crmService } from '../services/crmService';
+import { settingsService } from '../services/settingsService';
 import { customConfirm } from '../utils/customConfirm';
 
 const AVATAR_COLORS = [
@@ -68,6 +69,20 @@ const BusinessCRM = () => {
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'reports'
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeConfig, setActiveConfig] = useState({});
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await settingsService.getSettings();
+                const data = res?.data || res || {};
+                setActiveConfig(data);
+            } catch (err) {
+                console.error("Failed to load settings:", err);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     // Handle instant Add Customer trigger from Dashboard
     const [searchParams, setSearchParams] = useSearchParams();
@@ -516,15 +531,17 @@ const BusinessCRM = () => {
                             />
                         </div>
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        <select 
-                            value={customerTypeFilter}
-                            onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                            style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
-                        >
-                            <option value="All">All Types</option>
-                            <option value="wholesale">Wholesale</option>
-                            <option value="retail">Retail</option>
-                        </select>
+                        {activeConfig.partyGroup !== false && (
+                            <select 
+                                value={customerTypeFilter}
+                                onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                                style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                            >
+                                <option value="All">All Types</option>
+                                <option value="wholesale">Wholesale</option>
+                                <option value="retail">Retail</option>
+                            </select>
+                        )}
                         <select 
                             value={balanceFilter}
                             onChange={(e) => setBalanceFilter(e.target.value)}
@@ -547,11 +564,13 @@ const BusinessCRM = () => {
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Business / Contact</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Type</th>
+                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTIN / Tax Details</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Limit</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Outstanding Balance</th>
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Credit Status</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Loyalty Points</th>
+                                    {activeConfig.loyalty !== false && (
+                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Loyalty Points</th>
+                                    )}
                                     <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -583,7 +602,9 @@ const BusinessCRM = () => {
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div>
                                                 <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.8rem', margin: 0 }}>{row.gstin || 'Unregistered'}</p>
-                                                <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{(row.customer_type || 'individual').toUpperCase()}</span>
+                                                {activeConfig.partyGroup !== false && (
+                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{(row.customer_type || 'individual').toUpperCase()}</span>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
@@ -603,12 +624,14 @@ const BusinessCRM = () => {
                                                 <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FFFBEB', color: '#B45309', fontSize: '0.7rem', fontWeight: '800' }}>SAFE CREDIT</span>
                                             ))}
                                         </td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem', background: '#F0FDF4', borderRadius: '6px', border: '1px solid #DCFCE7', width: 'max-content' }}>
-                                                <Tag size={12} color="#16A34A" />
-                                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#16A34A' }}>{row.loyalty_points || 0} pts</span>
-                                            </div>
-                                        </td>
+                                        {activeConfig.loyalty !== false && (
+                                            <td style={{ padding: '0.6rem 1rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem', background: '#F0FDF4', borderRadius: '6px', border: '1px solid #DCFCE7', width: 'max-content' }}>
+                                                    <Tag size={12} color="#16A34A" />
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#16A34A' }}>{row.loyalty_points || 0} pts</span>
+                                                </div>
+                                            </td>
+                                        )}
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right', position: 'relative' }}>
                                             <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                                                 <button 
@@ -791,13 +814,15 @@ const BusinessCRM = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shop / Business Name</label>
                                     <input type="text" value={formData.business_name} onChange={(e) => setFormData({...formData, business_name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Gupta Groceries Wholesale" />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Type</label>
-                                    <select value={formData.customer_type} onChange={(e) => setFormData({...formData, customer_type: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option value="wholesale">Wholesale</option>
-                                        <option value="retail">Retail</option>
-                                    </select>
-                                </div>
+                                {activeConfig.partyGroup !== false && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Type / Group</label>
+                                        <select value={formData.customer_type} onChange={(e) => setFormData({...formData, customer_type: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                            <option value="wholesale">Wholesale</option>
+                                            <option value="retail">Retail</option>
+                                        </select>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Contact Details */}
@@ -877,10 +902,21 @@ const BusinessCRM = () => {
                                         <option value="Email">Email</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Loyalty Points</label>
-                                    <input type="number" value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} placeholder="0" onChange={(e) => setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
-                                </div>
+                                {activeConfig.partyStatus !== false && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Account Status</label>
+                                        <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                )}
+                                {activeConfig.loyalty !== false && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Loyalty Points</label>
+                                        <input type="number" value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} placeholder="0" onChange={(e) => setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    </div>
+                                )}
                             </div>
                             </div>
 
@@ -983,7 +1019,9 @@ const BusinessCRM = () => {
                             </div>
                             <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <button onClick={() => window.print()} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Download size={16} /> Export PDF</button>
-                                <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
+                                {activeConfig.payReminder !== false && (
+                                    <button onClick={() => handleShareLedger(selectedParty)} className="crm-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '12px', border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}><Share2 size={16} /> Share</button>
+                                )}
                                 <button onClick={() => setIsLedgerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
                             </div>
                         </div>
@@ -1070,9 +1108,11 @@ const BusinessCRM = () => {
                                 })()}
                                 <div>
                                     <h2 style={{ fontSize: '1.6rem', fontWeight: '850', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{selectedProfileCustomer.name}</h2>
-                                    <span style={{ display: 'inline-flex', padding: '0.2rem 0.5rem', borderRadius: '6px', background: selectedProfileCustomer.status === 'inactive' ? '#F1F5F9' : '#E6F4EA', color: selectedProfileCustomer.status === 'inactive' ? '#64748B' : '#137333', fontSize: '0.75rem', fontWeight: '800', marginTop: '4px', textTransform: 'uppercase' }}>
-                                        {selectedProfileCustomer.status || 'ACTIVE'}
-                                    </span>
+                                    {activeConfig.partyStatus !== false && (
+                                        <span style={{ display: 'inline-flex', padding: '0.2rem 0.5rem', borderRadius: '6px', background: selectedProfileCustomer.status === 'inactive' ? '#F1F5F9' : '#E6F4EA', color: selectedProfileCustomer.status === 'inactive' ? '#64748B' : '#137333', fontSize: '0.75rem', fontWeight: '800', marginTop: '4px', textTransform: 'uppercase' }}>
+                                            {selectedProfileCustomer.status || 'ACTIVE'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <button onClick={() => setIsProfileModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s' }}><X size={18} /></button>
@@ -1094,10 +1134,12 @@ const BusinessCRM = () => {
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CUSTOMER CODE</p>
                                             <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.customer_code || 'N/A'}</p>
                                         </div>
-                                        <div>
-                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CUSTOMER TYPE</p>
-                                            <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800', textTransform: 'capitalize' }}>{selectedProfileCustomer.customer_type || 'Retail'}</p>
-                                        </div>
+                                        {activeConfig.partyGroup !== false && (
+                                            <div>
+                                                <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CUSTOMER TYPE</p>
+                                                <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800', textTransform: 'capitalize' }}>{selectedProfileCustomer.customer_type || 'Retail'}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1139,13 +1181,15 @@ const BusinessCRM = () => {
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>DUE DAYS</p>
                                             <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.due_days || 30} Days</p>
                                         </div>
-                                        <div>
-                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>LOYALTY POINTS</p>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '2px' }}>
-                                                <Tag size={14} color="#16A34A" />
-                                                <p style={{ fontSize: '0.95rem', color: '#16A34A', margin: 0, fontWeight: '900' }}>{selectedProfileCustomer.loyalty_points || 0} Points</p>
+                                        {activeConfig.loyalty !== false && (
+                                            <div>
+                                                <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>LOYALTY POINTS</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '2px' }}>
+                                                    <Tag size={14} color="#16A34A" />
+                                                    <p style={{ fontSize: '0.95rem', color: '#16A34A', margin: 0, fontWeight: '900' }}>{selectedProfileCustomer.loyalty_points || 0} Points</p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
