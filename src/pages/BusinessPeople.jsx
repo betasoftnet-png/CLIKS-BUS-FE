@@ -39,6 +39,7 @@ const BusinessPeople = () => {
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
     const [selectedPersonId, setSelectedPersonId] = useState(null);
     const [editingContactId, setEditingContactId] = useState(null);
+    const [editingTxId, setEditingTxId] = useState(null);
 
     // Customization Filters state
     const [groupFilter, setGroupFilter] = useState('All');
@@ -60,6 +61,7 @@ const BusinessPeople = () => {
     React.useEffect(() => {
         setIsInlineTxOpen(false);
         setIsInlineRemOpen(false);
+        setEditingTxId(null);
         setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
         setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
     }, [selectedPersonId]);
@@ -195,6 +197,22 @@ const BusinessPeople = () => {
         }
     });
 
+    const updateTxMutation = useMutation({
+        mutationFn: (data) => peopleService.updateTransaction(data.person_id, data.id, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries(['people-transactions-all']);
+            queryClient.invalidateQueries(['people-list']);
+            if (variables.person_id) {
+                queryClient.invalidateQueries(['person-transactions', variables.person_id]);
+                queryClient.invalidateQueries(['person-detail', variables.person_id]);
+            }
+            setIsInlineTxOpen(false);
+            setEditingTxId(null);
+            setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
+            alert('Transaction updated successfully.');
+        }
+    });
+
     const deleteTxMutation = useMutation({
         mutationFn: (txn) => peopleService.deleteTransaction(txn.person_id, txn.id),
         onSuccess: () => {
@@ -264,7 +282,11 @@ const BusinessPeople = () => {
     const handleSaveInlineTx = (e) => {
         e.preventDefault();
         if (!selectedPersonId) return alert('Target registry contact missing.');
-        createTxMutation.mutate({ ...inlineTxForm, person_id: selectedPersonId });
+        if (editingTxId) {
+            updateTxMutation.mutate({ ...inlineTxForm, person_id: selectedPersonId, id: editingTxId });
+        } else {
+            createTxMutation.mutate({ ...inlineTxForm, person_id: selectedPersonId });
+        }
     };
 
     const handleSaveInlineRem = (e) => {
@@ -1071,16 +1093,54 @@ const BusinessPeople = () => {
                                                         </div>
                                                     ) : (
                                                         (personTx.data || personTx || []).slice(0, 6).map((t, i) => (
-                                                            <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                            <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', gap: '1rem' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
                                                                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#334155' }}>{t.description || 'Registry entry'}</p>
                                                                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>{new Date(t.date).toLocaleDateString('en-IN')}</p>
                                                                 </div>
-                                                                <div style={{ textAlign: 'right' }}>
-                                                                    <span style={{ fontSize: '1.05rem', fontWeight: '900', color: t.type === 'lent' ? '#059669' : '#DC2626' }}>
-                                                                        {t.type === 'lent' ? '+' : '-'}{formatCurr(t.amount)}
-                                                                    </span>
-                                                                    <div style={{ fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase', color: t.type === 'lent' ? '#10B981' : '#EF4444', marginTop: '2px' }}>{t.type}</div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        <span style={{ fontSize: '1.05rem', fontWeight: '900', color: t.type === 'lent' ? '#059669' : '#DC2626' }}>
+                                                                            {t.type === 'lent' ? '+' : '-'}{formatCurr(t.amount)}
+                                                                        </span>
+                                                                        <div style={{ fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase', color: t.type === 'lent' ? '#10B981' : '#EF4444', marginTop: '2px' }}>{t.type}</div>
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', gap: '0.35rem', borderLeft: '1px solid #E2E8F0', paddingLeft: '0.75rem', alignItems: 'center' }}>
+                                                                        <button 
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setEditingTxId(t.id);
+                                                                                setInlineTxForm({
+                                                                                    type: t.type,
+                                                                                    amount: t.amount,
+                                                                                    date: new Date(t.date).toISOString().split('T')[0],
+                                                                                    description: t.description || ''
+                                                                                });
+                                                                                setIsInlineTxOpen(true);
+                                                                                setIsInlineRemOpen(false);
+                                                                            }}
+                                                                            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s', padding: '4px' }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.color = '#7C3AED'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                                            title="Edit Transaction"
+                                                                        >
+                                                                            <Edit2 size={15} />
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={(e) => { 
+                                                                                e.stopPropagation(); 
+                                                                                if (confirm('Are you sure you want to delete this transaction?')) {
+                                                                                    deleteTxMutation.mutate(t); 
+                                                                                }
+                                                                            }}
+                                                                            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s', padding: '4px' }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                                            title="Delete Transaction"
+                                                                        >
+                                                                            <Trash2 size={15} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         ))
@@ -1094,8 +1154,10 @@ const BusinessPeople = () => {
                                                 {isInlineTxOpen ? (
                                                     <Motion.div key="tx-form" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ background: '#F8FAFC', padding: '1.5rem', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#064E3B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Log New Entry</h4>
-                                                            <button type="button" onClick={() => setIsInlineTxOpen(false)} style={{ border: 'none', background: 'white', padding: '4px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={16} /></button>
+                                                            <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#064E3B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                                                {editingTxId ? 'Edit Registry Entry' : 'Log New Entry'}
+                                                            </h4>
+                                                            <button type="button" onClick={() => { setIsInlineTxOpen(false); setEditingTxId(null); setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' }); }} style={{ border: 'none', background: 'white', padding: '4px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={16} /></button>
                                                         </div>
                                                         <form onSubmit={handleSaveInlineTx} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                             <div>
@@ -1119,8 +1181,8 @@ const BusinessPeople = () => {
                                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>MEMO / NARRATIVE</label>
                                                                 <input placeholder="Registry note..." type="text" value={inlineTxForm.description} onChange={(e) => setInlineTxForm({ ...inlineTxForm, description: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} />
                                                             </div>
-                                                            <button type="submit" disabled={createTxMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
-                                                                {createTxMutation.isPending ? 'Saving...' : 'Submit Entry'}
+                                                            <button type="submit" disabled={createTxMutation.isPending || updateTxMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                                                {createTxMutation.isPending || updateTxMutation.isPending ? 'Saving...' : editingTxId ? 'Update Entry' : 'Submit Entry'}
                                                             </button>
                                                         </form>
                                                     </Motion.div>
@@ -1188,8 +1250,8 @@ const BusinessPeople = () => {
                             {/* Footer */}
                             <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #E2E8F0', background: 'white', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                                 {!isInlineRemOpen && (
-                                    <button onClick={() => { setIsInlineTxOpen(prev => !prev); setIsInlineRemOpen(false); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineTxOpen ? '#FEE2E2' : '#F1F5F9', border: 'none', color: isInlineTxOpen ? '#991B1B' : '#475569', fontWeight: '750', cursor: 'pointer' }}>
-                                        {isInlineTxOpen ? 'Cancel Entry' : 'Record Transaction'}
+                                    <button onClick={() => { setIsInlineTxOpen(prev => !prev); setIsInlineRemOpen(false); if (isInlineTxOpen) { setEditingTxId(null); setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' }); } }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineTxOpen ? '#FEE2E2' : '#F1F5F9', border: 'none', color: isInlineTxOpen ? '#991B1B' : '#475569', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {isInlineTxOpen ? 'Cancel Entry' : <><Plus size={15} /> Record Transaction</>}
                                     </button>
                                 )}
                                 {!isInlineTxOpen && (
