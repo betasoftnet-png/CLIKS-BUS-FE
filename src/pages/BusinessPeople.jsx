@@ -58,10 +58,16 @@ const BusinessPeople = () => {
     const [isInlineRemOpen, setIsInlineRemOpen] = useState(false);
     const [inlineRemForm, setInlineRemForm] = useState({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
 
+    // Ledger search inside person detail modal
+    const [ledgerSearchTerm, setLedgerSearchTerm] = useState('');
+    const [showLedgerSearch, setShowLedgerSearch] = useState(false);
+
     React.useEffect(() => {
         setIsInlineTxOpen(false);
         setIsInlineRemOpen(false);
         setEditingTxId(null);
+        setLedgerSearchTerm('');
+        setShowLedgerSearch(false);
         setInlineTxForm({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
         setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
     }, [selectedPersonId]);
@@ -1079,74 +1085,348 @@ const BusinessPeople = () => {
 
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem' }}>
                                             {/* Recent Ledger List */}
-                                            <div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                                    <h4 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Direct Ledger Activity</h4>
-                                                    <ArrowLeftRight size={16} style={{ color: '#94A3B8' }} />
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                    {isPersonTxLoading ? (
-                                                        <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>Loading transactions...</p>
-                                                    ) : (!personTx || (personTx.data ? personTx.data.length === 0 : personTx.length === 0)) ? (
-                                                        <div style={{ padding: '2rem', border: '2px dashed #E2E8F0', borderRadius: '16px', textAlign: 'center', background: 'white' }}>
-                                                            <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>Zero financial assets logged.</p>
-                                                        </div>
-                                                    ) : (
-                                                        (personTx.data || personTx || []).slice(0, 6).map((t, i) => (
-                                                            <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', gap: '1rem' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                                                                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#334155' }}>{t.description || 'Registry entry'}</p>
-                                                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>{new Date(t.date).toLocaleDateString('en-IN')}</p>
-                                                                </div>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                                    <div style={{ textAlign: 'right' }}>
-                                                                        <span style={{ fontSize: '1.05rem', fontWeight: '900', color: t.type === 'lent' ? '#059669' : '#DC2626' }}>
-                                                                            {t.type === 'lent' ? '+' : '-'}{formatCurr(t.amount)}
-                                                                        </span>
-                                                                        <div style={{ fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase', color: t.type === 'lent' ? '#10B981' : '#EF4444', marginTop: '2px' }}>{t.type}</div>
-                                                                    </div>
-                                                                    <div style={{ display: 'flex', gap: '0.35rem', borderLeft: '1px solid #E2E8F0', paddingLeft: '0.75rem', alignItems: 'center' }}>
-                                                                        <button 
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setEditingTxId(t.id);
-                                                                                setInlineTxForm({
-                                                                                    type: t.type,
-                                                                                    amount: t.amount,
-                                                                                    date: new Date(t.date).toISOString().split('T')[0],
-                                                                                    description: t.description || ''
-                                                                                });
-                                                                                setIsInlineTxOpen(true);
-                                                                                setIsInlineRemOpen(false);
-                                                                            }}
-                                                                            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s', padding: '4px' }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.color = '#7C3AED'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                                                            title="Edit Transaction"
-                                                                        >
-                                                                            <Edit2 size={15} />
-                                                                        </button>
-                                                                        <button 
-                                                                            onClick={(e) => { 
-                                                                                e.stopPropagation(); 
-                                                                                if (confirm('Are you sure you want to delete this transaction?')) {
-                                                                                    deleteTxMutation.mutate(t); 
-                                                                                }
-                                                                            }}
-                                                                            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s', padding: '4px' }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                                                            title="Delete Transaction"
-                                                                        >
-                                                                            <Trash2 size={15} />
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
+                                           <div>
+    <div
+        style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '0.75rem'
+        }}
+    >
+        <h4
+            style={{
+                fontSize: '0.95rem',
+                fontWeight: '900',
+                color: '#1E293B',
+                margin: 0,
+                textTransform: 'uppercase',
+                letterSpacing: '0.02em'
+            }}
+        >
+            Direct Ledger Activity
+        </h4>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+                onClick={() => {
+                    setShowLedgerSearch(prev => !prev);
+
+                    if (showLedgerSearch) {
+                        setLedgerSearchTerm('');
+                    }
+                }}
+                style={{
+                    background: 'none',
+                    border: 'none',
+                    color: showLedgerSearch ? '#1B6B3A' : '#94A3B8',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex'
+                }}
+                title="Search entries"
+            >
+                <Search size={16} />
+            </button>
+
+            <ArrowLeftRight size={16} style={{ color: '#94A3B8' }} />
+        </div>
+    </div>
+
+    {showLedgerSearch && (
+        <div style={{ marginBottom: '0.75rem' }}>
+            <input
+                type="text"
+                placeholder="Search by amount, date, or memo..."
+                value={ledgerSearchTerm}
+                onChange={(e) => setLedgerSearchTerm(e.target.value)}
+                autoFocus
+                style={{
+                    width: '100%',
+                    padding: '0.6rem 1rem',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    outline: 'none',
+                    fontSize: '0.82rem',
+                    fontWeight: '600',
+                    color: '#1E293B',
+                    background: 'white',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                    boxSizing: 'border-box'
+                }}
+            />
+        </div>
+    )}
+
+    <div
+        style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem',
+            maxHeight: '320px',
+            overflowY: 'auto'
+        }}
+    >
+        {isPersonTxLoading ? (
+            <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>
+                Loading transactions...
+            </p>
+        ) : (!personTx ||
+          (personTx.data
+              ? personTx.data.length === 0
+              : personTx.length === 0)) ? (
+            <div
+                style={{
+                    padding: '2rem',
+                    border: '2px dashed #E2E8F0',
+                    borderRadius: '16px',
+                    textAlign: 'center',
+                    background: 'white'
+                }}
+            >
+                <p
+                    style={{
+                        margin: 0,
+                        color: '#94A3B8',
+                        fontSize: '0.85rem',
+                        fontStyle: 'italic',
+                        fontWeight: '600'
+                    }}
+                >
+                    Zero financial assets logged.
+                </p>
+            </div>
+        ) : (
+            (() => {
+                const allTx = personTx.data || personTx || [];
+
+                const filtered = ledgerSearchTerm.trim()
+                    ? allTx.filter(t => {
+                          const term = ledgerSearchTerm.toLowerCase().trim();
+
+                          const matchDesc = (t.description || '')
+                              .toLowerCase()
+                              .includes(term);
+
+                          const matchAmt = String(t.amount).includes(term);
+
+                          const matchDate = new Date(t.date)
+                              .toLocaleDateString('en-IN')
+                              .includes(term);
+
+                          const matchType = (t.type || '')
+                              .toLowerCase()
+                              .includes(term);
+
+                          return (
+                              matchDesc ||
+                              matchAmt ||
+                              matchDate ||
+                              matchType
+                          );
+                      })
+                    : allTx;
+
+                return filtered.length === 0 ? (
+                    <div
+                        style={{
+                            padding: '1.5rem',
+                            border: '2px dashed #E2E8F0',
+                            borderRadius: '16px',
+                            textAlign: 'center',
+                            background: 'white'
+                        }}
+                    >
+                        <p
+                            style={{
+                                margin: 0,
+                                color: '#94A3B8',
+                                fontSize: '0.85rem',
+                                fontStyle: 'italic',
+                                fontWeight: '600'
+                            }}
+                        >
+                            No matching entries found for "
+                            {ledgerSearchTerm}"
+                        </p>
+                    </div>
+                ) : (
+                    filtered.map((t, i) => (
+                        <div
+                            key={i}
+                            style={{
+                                padding: '1.1rem 1.25rem',
+                                background: 'white',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '16px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
+                                gap: '1rem'
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.25rem',
+                                    flex: 1
+                                }}
+                            >
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        fontSize: '0.9rem',
+                                        fontWeight: '800',
+                                        color: '#334155'
+                                    }}
+                                >
+                                    {t.description || 'Registry entry'}
+                                </p>
+
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        fontSize: '0.75rem',
+                                        color: '#94A3B8',
+                                        fontWeight: '600'
+                                    }}
+                                >
+                                    {new Date(t.date).toLocaleDateString(
+                                        'en-IN'
+                                    )}
+                                </p>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem'
+                                }}
+                            >
+                                <div style={{ textAlign: 'right' }}>
+                                    <span
+                                        style={{
+                                            fontSize: '1.05rem',
+                                            fontWeight: '900',
+                                            color:
+                                                t.type === 'lent'
+                                                    ? '#059669'
+                                                    : '#DC2626'
+                                        }}
+                                    >
+                                        {t.type === 'lent' ? '+' : '-'}
+                                        {formatCurr(t.amount)}
+                                    </span>
+
+                                    <div
+                                        style={{
+                                            fontSize: '0.65rem',
+                                            fontWeight: '850',
+                                            textTransform: 'uppercase',
+                                            color:
+                                                t.type === 'lent'
+                                                    ? '#10B981'
+                                                    : '#EF4444',
+                                            marginTop: '2px'
+                                        }}
+                                    >
+                                        {t.type}
+                                    </div>
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        gap: '0.35rem',
+                                        borderLeft: '1px solid #E2E8F0',
+                                        paddingLeft: '0.75rem',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+
+                                            setEditingTxId(t.id);
+
+                                            setInlineTxForm({
+                                                type: t.type,
+                                                amount: t.amount,
+                                                date: new Date(t.date)
+                                                    .toISOString()
+                                                    .split('T')[0],
+                                                description:
+                                                    t.description || ''
+                                            });
+
+                                            setIsInlineTxOpen(true);
+                                            setIsInlineRemOpen(false);
+                                        }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: '#94A3B8',
+                                            cursor: 'pointer',
+                                            transition: 'color 0.2s',
+                                            padding: '4px'
+                                        }}
+                                        onMouseOver={(e) =>
+                                            (e.currentTarget.style.color =
+                                                '#7C3AED')
+                                        }
+                                        onMouseOut={(e) =>
+                                            (e.currentTarget.style.color =
+                                                '#94A3B8')
+                                        }
+                                        title="Edit Transaction"
+                                    >
+                                        <Edit2 size={15} />
+                                    </button>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+
+                                            if (
+                                                confirm(
+                                                    'Are you sure you want to delete this transaction?'
+                                                )
+                                            ) {
+                                                deleteTxMutation.mutate(t);
+                                            }
+                                        }}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: '#94A3B8',
+                                            cursor: 'pointer',
+                                            transition: 'color 0.2s',
+                                            padding: '4px'
+                                        }}
+                                        onMouseOver={(e) =>
+                                            (e.currentTarget.style.color =
+                                                '#EF4444')
+                                        }
+                                        onMouseOut={(e) =>
+                                            (e.currentTarget.style.color =
+                                                '#94A3B8')
+                                        }
+                                        title="Delete Transaction"
+                                    >
+                                        <Trash2 size={15} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                );
+            })()
+        )}
+    </div>
+</div>
 
                                             {/* Specific Reminder Flows */}
                                             {/* Right Column: Reminders OR Inline Transaction Form OR Inline Reminder Form */}
