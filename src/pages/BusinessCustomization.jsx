@@ -193,7 +193,6 @@ const BusinessCustomization = () => {
         { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', shadow: 'rgba(16, 185, 129, 0.2)' },
         { id: 'party', label: 'Contacts', icon: Users, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadow: 'rgba(236, 72, 153, 0.2)' },
         { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #0F172A 0%, #020617 100%)', shadow: 'rgba(15, 23, 42, 0.2)' },
-        { id: 'reminders', label: 'Reminders', icon: Bell, gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', shadow: 'rgba(239, 68, 68, 0.2)' },
         { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #F59E0B 0%, #B45309 100%)', shadow: 'rgba(245, 158, 11, 0.2)' },
         { id: 'settings', label: 'Settings', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #64748B 0%, #334155 100%)', shadow: 'rgba(100, 116, 139, 0.2)' }
     ];
@@ -207,7 +206,6 @@ const BusinessCustomization = () => {
             case 'gst': return renderGst();
             case 'party': return renderParty();
             case 'accounting': return renderAccounting();
-            case 'reminders': return renderReminders();
             case 'betaClub': return renderBetaClub();
             case 'settings': return renderSettings();
             default: return null;
@@ -388,49 +386,6 @@ const BusinessCustomization = () => {
             </CustomizationCard>
         </div>
     );
-
-    const renderReminders = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', padding: '2rem 0' }}>
-            {/* Promotion Banner */}
-            <div style={{ width: '100%', background: 'linear-gradient(100deg, #2563EB 0%, #1D4ED8 100%)', borderRadius: '16px', padding: '1.5rem 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 10px 30px rgba(37, 99, 235, 0.2)' }}>
-                <div style={{ position: 'relative', zIndex: 2 }}>
-                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Master Your Customer Follow-ups!</h2>
-                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#BFDBFE' }}>Watch how to reduce outstanding dues by 40% with automated SMS/WhatsApp triggers.</p>
-                </div>
-                <button onClick={() => alert('Demo simulation starting in window...')} style={{ position: 'relative', zIndex: 2, background: '#EF4444', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '50px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={14} /></div>
-                    PLAY DEMO VIDEO
-                </button>
-                <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '200px', height: '200px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
-            </div>
-
-            {/* Feature Visualizer */}
-            <div style={{ textAlign: 'center', maxWidth: '500px', marginTop: '1rem' }}>
-                <div style={{ background: '#FFFBEB', width: '160px', height: '160px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', border: '1px solid #FDE68A', boxShadow: 'inset 0 0 20px rgba(251, 191, 36, 0.1)' }}>
-                    <Bell size={60} color="#D97706" strokeWidth={1.5} className={!config.serviceReminders ? "animate-pulse" : ""} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>Automated Service & Payment Reminders <span style={{ background: '#EF4444', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle', marginLeft: '0.5rem' }}>NEW</span></h3>
-                <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.5rem', lineHeight: '1.5' }}>⏰ Never miss a renewal | 🤝 Retain existing clientele | 📈 Accelerate Cash flow.</p>
-                
-                <button 
-                    onClick={() => handleToggle('serviceReminders')}
-                    style={{ 
-                        marginTop: '1.5rem', padding: '0.85rem 2rem', 
-                        background: config.serviceReminders ? '#DCF2E4' : '#EF4444', 
-                        color: config.serviceReminders ? '#15803D' : 'white',
-                        border: 'none', borderRadius: '10px', fontWeight: '800', fontSize: '0.9rem',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-                        boxShadow: config.serviceReminders ? 'none' : '0 6px 20px rgba(239, 68, 68, 0.25)'
-                    }}
-                >
-                    <Bell size={18} />
-                    {config.serviceReminders ? 'ENABLED & RUNNING' : 'ENABLE SERVICE REMINDERS NOW'}
-                </button>
-            </div>
-        </div>
-    );
-
     const renderGeneral = () => (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
             <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
