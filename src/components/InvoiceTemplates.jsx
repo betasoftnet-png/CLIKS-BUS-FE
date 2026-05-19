@@ -65,87 +65,153 @@ export const InvoiceTemplates = {
     // =====================================================
     // 1. STANDARD TAX INVOICE (PRODUCTION LEVEL A)
     // =====================================================
-    standard: ({ data, business }) => {
+    standard: ({ data, business, config = {} }) => {
         const items = getParsedItems(data.items);
+        const themeColor = config?.accentColor || '#BE185D';
         return (
-            <div style={{ fontFamily: "'Inter', sans-serif", padding: '30px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0F172A', paddingBottom: '20px', marginBottom: '25px' }}>
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em' }}>TAX INVOICE</h2>
-                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>ORIGINAL FOR RECIPIENT</span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#1E293B' }}>Invoice #: {data.invoice_number}</div>
-                        <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>Date: {data.due_date}</div>
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', gap: '40px' }}>
-                    <div style={{ flex: 1.5 }}>
-                        <h3 style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Issued By</h3>
-                        <h4 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: '0 0 4px 0' }}>{business?.business_name || business?.name}</h4>
-                        <p style={{ fontSize: '12px', color: '#475569', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-line' }}>{business?.address}</p>
-                        <div style={{ marginTop: '8px', fontSize: '12px' }}>
-                            <span style={{ fontWeight: '700', color: '#1E293B' }}>GSTIN:</span> <span style={{ color: '#0F172A', fontWeight: '800' }}>{business?.gstin || 'N/A'}</span>
+            <div style={{ fontFamily: "'Inter', sans-serif", padding: '40px', background: '#fff', border: '1px solid #E5E7EB', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.06)', position: 'relative', overflow: 'hidden' }}>
+                {/* Beautiful Accent Bar at top */}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: `linear-gradient(90deg, ${themeColor} 0%, ${themeColor}CC 100%)` }}></div>
+                
+                {/* Top Header Section */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '25px', marginBottom: '30px', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '4px', height: '42px', background: themeColor, borderRadius: '4px' }}></div>
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', textTransform: 'uppercase' }}>Tax Invoice</h2>
+                            <span style={{ fontSize: '10px', color: themeColor, fontWeight: '850', letterSpacing: '0.08em' }}>ORIGINAL FOR RECIPIENT</span>
                         </div>
                     </div>
-                    <div style={{ flex: 1, textAlign: 'right' }}>
-                        <h3 style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Bill To</h3>
-                        <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: '0 0 4px 0' }}>{data.client_name}</h4>
-                        <p style={{ fontSize: '12px', color: '#475569', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-line' }}>{data.billing_address}</p>
-                        {data.client_gstin && <div style={{ marginTop: '8px', fontSize: '12px' }}><span style={{ fontWeight: '700' }}>GSTIN:</span> {data.client_gstin}</div>}
+                    <div style={{ background: '#F8FAFC', padding: '12px 20px', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '900', color: '#0F172A' }}>INVOICE: <span style={{ color: themeColor }}>{data.invoice_number}</span></div>
+                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700', marginTop: '4px' }}>DATE: {data.due_date}</div>
                     </div>
                 </div>
 
-                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '25px', overflow: 'hidden', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                {/* Issued By & Bill To Details */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '50px', marginBottom: '35px', padding: '0 5px' }}>
+                    <div style={{ borderLeft: `3px solid #E2E8F0`, paddingLeft: '15px' }}>
+                        <h3 style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>Issued By</h3>
+                        <h4 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: '0 0 6px 0', letterSpacing: '-0.01em' }}>{business?.business_name || business?.name}</h4>
+                        <p style={{ fontSize: '12px', color: '#475569', margin: 0, lineHeight: '1.6', whiteSpace: 'pre-line' }}>{business?.address}</p>
+                        <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                            <span style={{ fontWeight: '800', color: '#64748B' }}>GSTIN:</span> <span style={{ color: '#0F172A', fontWeight: '800' }}>{business?.gstin || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div style={{ borderLeft: `3px solid ${themeColor}30`, paddingLeft: '15px' }}>
+                        <h3 style={{ fontSize: '10px', color: themeColor, fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.05em' }}>Bill To</h3>
+                        <h4 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: '0 0 6px 0', letterSpacing: '-0.01em' }}>{data.client_name}</h4>
+                        <p style={{ fontSize: '12px', color: '#475569', margin: 0, lineHeight: '1.6', whiteSpace: 'pre-line' }}>{data.billing_address}</p>
+                        {data.client_gstin && (
+                            <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                                <span style={{ fontWeight: '800', color: '#64748B' }}>GSTIN:</span> <span style={{ color: '#0F172A', fontWeight: '800' }}>{data.client_gstin}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Items Table */}
+                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '35px', overflow: 'hidden', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
                     <thead>
-                        <tr style={{ background: '#F8FAFC' }}>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '45%' }}>Description</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '13%' }}>HSN</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '10%' }}>Qty</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '15%' }}>Rate</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '17%' }}>Amount</th>
+                        <tr style={{ background: '#1E293B' }}>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '45%' }}>Description</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '13%' }}>HSN</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '10%' }}>Qty</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '15%' }}>Rate</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase', width: '17%' }}>Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map((item, i) => (
-                            <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                <td style={{ padding: '14px 15px', borderBottom: '1px solid #F1F5F9', wordBreak: 'break-word' }}>
+                            <tr key={i} style={{ background: i % 2 === 1 ? '#F8FAFC' : '#FFFFFF' }}>
+                                <td style={{ padding: '14px 15px', borderBottom: '1px solid #E2E8F0', wordBreak: 'break-word' }}>
                                     <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{item.description}</div>
                                     <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>{item.details || ''}</div>
                                 </td>
-                                <td style={{ padding: '14px 15px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>{item.hsn_code || '-'}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>{item.quantity}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'center', borderBottom: '1px solid #E2E8F0', fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>{item.hsn_code || '-'}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>{item.quantity}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
-                        <tr style={{ background: '#F8FAFC' }}>
+                        <tr style={{ background: `${themeColor}05` }}>
                             <td colSpan="3" style={{ padding: '15px', fontSize: '11px', color: '#64748B', fontWeight: '600' }}>
-                                <div style={{ textTransform: 'uppercase', marginBottom: '4px' }}>Total In Words</div>
-                                <div style={{ color: '#1E293B', fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4' }}>{numberToWords(data.total_amount)}</div>
+                                <div style={{ textTransform: 'uppercase', marginBottom: '4px', fontSize: '9px', fontWeight: '850', color: themeColor, letterSpacing: '0.05em' }}>Total In Words</div>
+                                <div style={{ color: '#1E293B', fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4', fontWeight: '700' }}>{numberToWords(data.total_amount)}</div>
                             </td>
                             <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: '800', color: '#64748B', whiteSpace: 'nowrap', width: '15%' }}>Total</td>
-                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '18px', fontWeight: '950', color: '#0F172A', whiteSpace: 'nowrap', width: '17%' }}>{formatCurrency(data.total_amount)}</td>
+                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '20px', fontWeight: '950', color: themeColor, whiteSpace: 'nowrap', width: '17%' }}>{formatCurrency(data.total_amount)}</td>
                         </tr>
                     </tfoot>
                 </table>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
+                {/* Footer Section: Bank Account Details & Authorized Signatory */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '40px', alignItems: 'flex-start' }}>
                     <div>
-                        <BankDetails data={business} style={{ border: '1px solid #F1F5F9', background: '#F9FAFB' }} />
-                        <div style={{ marginTop: '15px' }}><TermsFooter /></div>
+                        {/* Bank Details Container */}
+                        <div style={{ border: '1px solid #E2E8F0', borderRadius: '10px', background: '#F8FAFC', padding: '18px', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: themeColor }}></div>
+                            <h4 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: '800', color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: themeColor }}></span>
+                                Bank Account Details
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px 12px', fontSize: '12px' }}>
+                                <span style={{ color: '#64748B', fontWeight: '700' }}>Bank Name:</span>
+                                <span style={{ color: '#0F172A', fontWeight: '800' }}>{business?.bank_name || 'HDFC BANK'}</span>
+                                
+                                <span style={{ color: '#64748B', fontWeight: '700' }}>Account No:</span>
+                                <span style={{ color: '#0F172A', fontWeight: '800', fontFamily: 'monospace', fontSize: '13px' }}>{business?.bank_acc_no || 'XXXX XXXX XXXX 1234'}</span>
+                                
+                                <span style={{ color: '#64748B', fontWeight: '700' }}>IFSC Code:</span>
+                                <span style={{ color: '#0F172A', fontWeight: '800', fontFamily: 'monospace', fontSize: '13px' }}>{business?.bank_ifsc || 'HDFC000XXXX'}</span>
+                                
+                                <span style={{ color: '#64748B', fontWeight: '700' }}>Branch:</span>
+                                <span style={{ color: '#0F172A', fontWeight: '800' }}>{business?.bank_branch || 'Main Branch'}</span>
+                            </div>
+                        </div>
+
+                        {/* Terms and Conditions */}
+                        <div style={{ marginTop: '15px' }}>
+                            <h5 style={{ margin: '0 0 5px 0', fontSize: '9px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Terms & Conditions</h5>
+                            <ol style={{ margin: 0, paddingLeft: '12px', fontSize: '10px', color: '#64748B', lineHeight: '1.5' }}>
+                                <li>Subject to local jurisdiction.</li>
+                                <li>Goods once sold will not be taken back.</li>
+                                <li>Interest @18% p.a. will be charged on delayed payments.</li>
+                            </ol>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end' }}>
-                        <SignatoryBox company={business?.business_name || business?.name} />
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', height: '100%', minHeight: '150px' }}>
+                        {/* Signature Area with delicate Stamp */}
+                        <div style={{ textAlign: 'center', width: '200px' }}>
+                            <div style={{ height: '65px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '8px' }}>
+                                {/* Dynamic Verification Stamp */}
+                                <div style={{ 
+                                    position: 'absolute', border: `2px dashed ${themeColor}60`, borderRadius: '50%', 
+                                    width: '62px', height: '62px', display: 'flex', flexDirection: 'column', 
+                                    alignItems: 'center', justifyContent: 'center', transform: 'rotate(-10deg)', 
+                                    color: themeColor, fontSize: '8px', fontWeight: '900',
+                                    letterSpacing: '0.03em', background: `${themeColor}02`
+                                }}>
+                                    <span style={{ fontSize: '7px' }}>CLIKSPAY</span>
+                                    <span style={{ borderBottom: `1px solid ${themeColor}`, width: '80%', display: 'block', margin: '2px 0' }}></span>
+                                    <span>SECURE</span>
+                                </div>
+                            </div>
+                            <div style={{ borderTop: `1px solid #E2E8F0`, paddingTop: '8px', fontSize: '11px', fontWeight: '800', color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                Authorized Signatory
+                            </div>
+                            <div style={{ fontSize: '9px', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>
+                                For {business?.business_name || business?.name}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         );
     },
-
     // =====================================================
     // 2. PREMIUM MODERN (CLEAN LINES, NO HEAVY BORDERS)
     // =====================================================
