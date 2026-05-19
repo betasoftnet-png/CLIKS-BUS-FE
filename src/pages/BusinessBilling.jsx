@@ -58,7 +58,17 @@ const BusinessBilling = () => {
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
-    
+    const barcodeInputRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (isModalOpen && activeConfig?.quickEntry) {
+            const timer = setTimeout(() => {
+                barcodeInputRef.current?.focus();
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [isModalOpen, activeConfig?.quickEntry]);
+
     // Sophisticated Custom Template Builder Configuration
     const [isCustomizerModalOpen, setIsCustomizerModalOpen] = useState(false);
     const [customConfig, setCustomConfig] = useState({
@@ -502,6 +512,13 @@ const BusinessBilling = () => {
     };
 
     const handleEdit = (invoice) => {
+        if (activeConfig.passcodeTxn) {
+            const pin = prompt("Enter Security Passcode to authorize transaction edit:");
+            if (pin !== "1234") {
+                alert("Unauthorized: Incorrect security passcode.");
+                return;
+            }
+        }
         setEditingInvoice(invoice);
         const parsedItems = invoice.items ? (typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items) : [];
         setFormData({
@@ -564,7 +581,7 @@ const BusinessBilling = () => {
         if (activeConfig.blockParties) {
             const exists = customers.some(c => c.name === formData.client_name);
             if (!exists) {
-                alert(`Lock Party Generation Active: "${formData.client_name}" is a new client record. Creating new parties directly within invoice forms is restricted.`);
+                alert(`Lock Contact Generation Active: "${formData.client_name}" is a new contact record. Creating new contacts directly within invoice forms is restricted.`);
                 return;
             }
         }
@@ -662,7 +679,7 @@ const BusinessBilling = () => {
 
     const handleDelete = async (id) => {
         if (await customConfirm('Are you sure you want to delete this invoice?')) {
-            if (activeConfig.passcode) {
+            if (activeConfig.passcode || activeConfig.passcodeTxn) {
                 const pin = prompt("Enter Security Passcode to authorize deletion:");
                 if (pin !== "1234") {
                     alert("Unauthorized: Incorrect security passcode.");
@@ -957,7 +974,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${3 + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${3 + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0) + (activeConfig.ewayBill ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
                                     <input 
@@ -994,6 +1011,12 @@ const BusinessBilling = () => {
                                         <input type="text" value={formData.customer_po_number || ''} onChange={(e) => setFormData({...formData, customer_po_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="PO-12345" />
                                     </div>
                                 )}
+                                {activeConfig.ewayBill && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>E-way Bill No.</label>
+                                        <input type="text" value={formData.eway_bill_number || ''} onChange={(e) => setFormData({...formData, eway_bill_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="12-digit number" />
+                                    </div>
+                                )}
                             </div>
 
                             {activeConfig.billingType !== 'lite' && (
@@ -1016,6 +1039,7 @@ const BusinessBilling = () => {
                                         <div style={{ position: 'relative' }}>
                                             <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                                             <input 
+                                                ref={barcodeInputRef}
                                                 placeholder="Quick Scan / Barcode" 
                                                 style={{ padding: '0.4rem 0.75rem 0.4rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.75rem', width: '160px' }}
                                                 onKeyDown={(e) => {
@@ -1293,9 +1317,30 @@ const BusinessBilling = () => {
                                     )}
 
                                     {activeConfig.dueDates !== false && (
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
-                                            <input required type="date" value={formData.due_date || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.5rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Terms</label>
+                                                <select 
+                                                    onChange={(e) => {
+                                                        const days = parseInt(e.target.value);
+                                                        if (!isNaN(days)) {
+                                                            const d = new Date();
+                                                            d.setDate(d.getDate() + days);
+                                                            setFormData({ ...formData, due_date: d.toISOString().split('T')[0] });
+                                                        }
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.5rem 0.5rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px', background: 'white', outline: 'none' }}
+                                                >
+                                                    <option value="0">Due on Receipt</option>
+                                                    <option value="15">Net 15 Days</option>
+                                                    <option value="30">Net 30 Days</option>
+                                                    <option value="60">Net 60 Days</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
+                                                <input required type="date" value={formData.due_date || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px' }} />
+                                            </div>
                                         </div>
                                     )}
                                 </div>
