@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
     TrendingUp, 
     Plus, 
@@ -19,7 +19,9 @@ import {
     Smartphone,
     Layers,
     Tag,
-    Trash
+    Trash,
+    ChevronDown,
+    Filter
 } from 'lucide-react';
 import '../App.css';
 
@@ -34,6 +36,14 @@ const BusinessExpenses = () => {
     const [modeFilter, setModeFilter] = useState('All');
     const [columnFilters, setColumnFilters] = useState({ voucher: '', date: '', category: '', payee: '', subtotal: '', itc: '', total: '', mode: '' });
     const updateColumnFilter = (col, val) => setColumnFilters(prev => ({ ...prev, [col]: val }));
+    const [openFilterCols, setOpenFilterCols] = useState({});
+    const toggleColFilter = (key) => {
+        setOpenFilterCols(prev => {
+            const isOpen = !!prev[key];
+            if (isOpen) updateColumnFilter(key, ''); // clear on close
+            return { ...prev, [key]: !isOpen };
+        });
+    };
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -356,38 +366,95 @@ const BusinessExpenses = () => {
                     <div style={{ overflowX: 'visible', overflowY: 'visible', padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Voucher No</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Description</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Payee / Merchant</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GST Subtotal</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>ITC Tax Claim</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Total Paid</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Mode</th>
-                                </tr>
-                                <tr style={{ borderBottom: '2px solid #E2E8F0', background: '#F8FAFC' }}>
-                                    {[
-                                        { key: 'voucher', placeholder: 'Filter...' },
-                                        { key: 'date', placeholder: 'dd/mm/yyyy' },
-                                        { key: 'category', placeholder: 'Filter...' },
-                                        { key: 'payee', placeholder: 'Filter...' },
-                                        { key: 'subtotal', placeholder: '₹ amt' },
-                                        { key: 'itc', placeholder: '₹ amt' },
-                                        { key: 'total', placeholder: '₹ amt' },
-                                        { key: 'mode', placeholder: 'Filter...' }
-                                    ].map(col => (
-                                        <th key={col.key} style={{ padding: '0.3rem 0.5rem' }}>
-                                            <input
-                                                type="text"
-                                                placeholder={col.placeholder}
-                                                value={columnFilters[col.key]}
-                                                onChange={(e) => updateColumnFilter(col.key, e.target.value)}
-                                                style={{ width: '100%', padding: '0.3rem 0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.72rem', fontWeight: '600', color: '#475569', background: 'white', boxSizing: 'border-box' }}
-                                            />
-                                        </th>
-                                    ))}
-                                </tr>
+                                {(() => {
+                                    const cols = [
+                                        { key: 'voucher',   label: 'Voucher No',          placeholder: 'e.g. EXP-001' },
+                                        { key: 'date',      label: 'Date',                placeholder: 'e.g. 2026-05' },
+                                        { key: 'category',  label: 'Category Description',placeholder: 'e.g. Rent' },
+                                        { key: 'payee',     label: 'Payee / Merchant',    placeholder: 'e.g. Vendor' },
+                                        { key: 'subtotal',  label: 'GST Subtotal',        placeholder: 'e.g. 5000' },
+                                        { key: 'itc',       label: 'ITC Tax Claim',       placeholder: 'e.g. 900' },
+                                        { key: 'total',     label: 'Total Paid',          placeholder: 'e.g. 10000' },
+                                        { key: 'mode',      label: 'Mode',                placeholder: 'e.g. UPI' },
+                                    ];
+                                    const hasAnyOpen = cols.some(c => openFilterCols[c.key]);
+                                    return (
+                                        <>
+                                            <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                {cols.map(col => {
+                                                    const isOpen = !!openFilterCols[col.key];
+                                                    const hasValue = !!columnFilters[col.key];
+                                                    return (
+                                                        <th key={col.key} style={{ padding: '0.5rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                                <span>{col.label}</span>
+                                                                <button
+                                                                    onClick={() => toggleColFilter(col.key)}
+                                                                    title={`Filter by ${col.label}`}
+                                                                    style={{
+                                                                        background: isOpen || hasValue ? '#EDE9FE' : 'transparent',
+                                                                        border: '1px solid ' + (isOpen || hasValue ? '#7C3AED' : '#E2E8F0'),
+                                                                        borderRadius: '5px',
+                                                                        cursor: 'pointer',
+                                                                        padding: '2px 4px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        color: isOpen || hasValue ? '#7C3AED' : '#CBD5E1',
+                                                                        transition: 'all 0.15s',
+                                                                        flexShrink: 0,
+                                                                    }}
+                                                                >
+                                                                    <Filter size={10} />
+                                                                    <ChevronDown size={9} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                                                </button>
+                                                            </div>
+                                                        </th>
+                                                    );
+                                                })}
+                                            </tr>
+                                            {hasAnyOpen && (
+                                                <tr style={{ borderBottom: '2px solid #7C3AED22', background: '#FAFAFA' }}>
+                                                    {cols.map(col => (
+                                                        <th key={col.key} style={{ padding: '0.25rem 0.5rem' }}>
+                                                            {openFilterCols[col.key] ? (
+                                                                <div style={{ position: 'relative' }}>
+                                                                    <input
+                                                                        autoFocus
+                                                                        type="text"
+                                                                        placeholder={col.placeholder}
+                                                                        value={columnFilters[col.key]}
+                                                                        onChange={(e) => updateColumnFilter(col.key, e.target.value)}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            padding: '0.3rem 1.4rem 0.3rem 0.5rem',
+                                                                            borderRadius: '6px',
+                                                                            border: '1.5px solid #7C3AED',
+                                                                            outline: 'none',
+                                                                            fontSize: '0.72rem',
+                                                                            fontWeight: '600',
+                                                                            color: '#1E293B',
+                                                                            background: 'white',
+                                                                            boxSizing: 'border-box',
+                                                                            boxShadow: '0 0 0 3px rgba(124,58,237,0.08)',
+                                                                        }}
+                                                                    />
+                                                                    {columnFilters[col.key] && (
+                                                                        <button
+                                                                            onClick={() => updateColumnFilter(col.key, '')}
+                                                                            style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 0, display: 'flex' }}
+                                                                        >
+                                                                            <X size={10} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ) : null}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </thead>
                             <tbody>
                                 {filteredExpenses.map((ex) => (
