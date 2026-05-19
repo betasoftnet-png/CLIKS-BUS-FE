@@ -1198,7 +1198,7 @@ const BusinessPeople = () => {
             </div>
         ) : (
             (() => {
-                const allTx = personTx.data || personTx || [];
+                const allTx = [...(personTx.data || personTx || [])].sort((a, b) => Number(a.id) - Number(b.id));
 
                 const filtered = ledgerSearchTerm.trim()
                     ? allTx.filter(t => {
