@@ -28,8 +28,8 @@ import { useAuth } from '../context';
  * @param {string} [props.redirectTo='/'] - Where to redirect if not authenticated
  * @returns {React.ReactElement}
  */
-export function ProtectedRoute({ children, redirectTo = '/' }) {
-    const { isAuthenticated, isLoading } = useAuth();
+export function ProtectedRoute({ children, role, redirectTo = '/' }) {
+    const { isAuthenticated, user, isLoading } = useAuth();
     const location = useLocation();
 
     // -------------------------------------------------------------------------
@@ -56,6 +56,15 @@ export function ProtectedRoute({ children, redirectTo = '/' }) {
                 replace
             />
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Role Authorization Check
+    // -------------------------------------------------------------------------
+
+    if (role && (!user || user.role !== role)) {
+        // Logged in but lacks role authorization: redirect to safe dashboard
+        return <Navigate to="/dashboard" replace />;
     }
 
     // -------------------------------------------------------------------------

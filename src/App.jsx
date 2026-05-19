@@ -123,20 +123,32 @@ function AppContent() {
                     <Route path="/faq" element={<FAQ />} />
 
                     {/* Admin Control Center */}
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                    <Route path="/admin/users" element={<AdminUsers />} />
-                    <Route path="/admin/moderation" element={<AdminModeration />} />
-                    <Route path="/admin/logs" element={<AdminAuditLogs />} />
-                    <Route path="/admin/settings" element={<AdminSettings />} />
-                    <Route path="/admin/sales" element={<AdminSales />} />
-                    <Route path="/admin/sales-team" element={<AdminSalesTeam />} />
-                    <Route path="/admin/sales-leads" element={<AdminSalesLeads />} />
-                    <Route path="/admin/faq" element={<FAQ />} />
+                    <Route path="/admin/*" element={
+                      <ProtectedRoute role="admin">
+                        <Routes>
+                          <Route path="dashboard" element={<AdminDashboard />} />
+                          <Route path="users" element={<AdminUsers />} />
+                          <Route path="moderation" element={<AdminModeration />} />
+                          <Route path="logs" element={<AdminAuditLogs />} />
+                          <Route path="settings" element={<AdminSettings />} />
+                          <Route path="sales" element={<AdminSales />} />
+                          <Route path="sales-team" element={<AdminSalesTeam />} />
+                          <Route path="sales-leads" element={<AdminSalesLeads />} />
+                          <Route path="faq" element={<FAQ />} />
+                        </Routes>
+                      </ProtectedRoute>
+                    } />
 
                     {/* Sales Representative Workspaces */}
-                    <Route path="/sales-portal/dashboard" element={<SalesDashboard />} />
-                    <Route path="/sales-portal/leads" element={<SalesLeads />} />
-                    <Route path="/sales-portal/faq" element={<FAQ />} />
+                    <Route path="/sales-portal/*" element={
+                      <ProtectedRoute role="sales_agent">
+                        <Routes>
+                          <Route path="dashboard" element={<SalesDashboard />} />
+                          <Route path="leads" element={<SalesLeads />} />
+                          <Route path="faq" element={<FAQ />} />
+                        </Routes>
+                      </ProtectedRoute>
+                    } />
 
                     {/* Restructured Business Modules */}
                     <Route path="/dashboard" element={<BusinessDashboard />} />
