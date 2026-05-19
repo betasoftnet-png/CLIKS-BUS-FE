@@ -16,7 +16,9 @@ import {
     AlertTriangle, 
     Clock, 
     User,
-    ChevronDown
+    ChevronDown,
+    Mail,
+    Globe
 } from 'lucide-react';
 
 const FAQ = () => {
@@ -264,25 +266,101 @@ const FAQ = () => {
 
                 </div>
 
-                {/* Right Column: Frequently Asked Questions */}
-                <div style={{ background: 'white', padding: '2.25rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
-                        <div style={{ padding: '8px', background: '#EFF6FF', color: '#3B82F6', borderRadius: '10px' }}>
-                            <HelpCircle size={20} />
+                {/* Right Column: Frequently Asked Questions & Contact Info */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    
+                    {/* Frequently Asked Questions */}
+                    <div style={{ background: 'white', padding: '2.25rem', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
+                            <div style={{ padding: '8px', background: '#EFF6FF', color: '#3B82F6', borderRadius: '10px' }}>
+                                <HelpCircle size={20} />
+                            </div>
+                            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Frequently Asked Questions</h2>
                         </div>
-                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Frequently Asked Questions</h2>
+
+                        <AccordionRoot>
+                            {faqs.map((faq, index) => (
+                                <AccordionItem key={index}>
+                                    <AccordionTrigger>{faq.question}</AccordionTrigger>
+                                    <AccordionContent>
+                                        <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>{faq.answer}</p>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </AccordionRoot>
                     </div>
 
-                    <AccordionRoot>
-                        {faqs.map((faq, index) => (
-                            <AccordionItem key={index}>
-                                <AccordionTrigger>{faq.question}</AccordionTrigger>
-                                <AccordionContent>
-                                    <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>{faq.answer}</p>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </AccordionRoot>
+                    {/* Cliks Direct Support Card */}
+                    <div style={{ 
+                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                        padding: '2.25rem', 
+                        borderRadius: '24px', 
+                        color: 'white', 
+                        boxShadow: '0 10px 30px rgba(27, 107, 58, 0.1)', 
+                        position: 'relative', 
+                        overflow: 'hidden' 
+                    }}>
+                        <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '120px', height: '120px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%', pointerEvents: 'none' }} />
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div style={{ padding: '8px', background: 'rgba(255,255,255,0.1)', color: '#A7F3D0', borderRadius: '10px' }}>
+                                <Mail size={20} />
+                            </div>
+                            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#F0FDF4', margin: 0 }}>Direct Support Coordinates</h2>
+                        </div>
+                        
+                        <p style={{ color: '#A7F3D0', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1.5rem 0', fontWeight: 500 }}>
+                            Need instant answers or have specialized billing queries? Get in touch directly via our channels below:
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <a 
+                                href="mailto:support@beta-softnet.com" 
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.75rem', 
+                                    textDecoration: 'none', 
+                                    color: 'white',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    padding: '1rem',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    transition: 'all 0.25s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                                    e.currentTarget.style.borderColor = '#A7F3D0';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                                }}
+                            >
+                                <Mail size={18} style={{ color: '#A7F3D0' }} />
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#A7F3D0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Support</div>
+                                    <div style={{ fontSize: '0.95rem', fontWeight: 750 }}>support@beta-softnet.com</div>
+                                </div>
+                            </a>
+
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.75rem', 
+                                background: 'rgba(255,255,255,0.05)',
+                                padding: '1rem',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                                <Globe size={18} style={{ color: '#A7F3D0' }} />
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', color: '#A7F3D0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Official Portal</div>
+                                    <a href="https://cliksbusiness.com" target="_blank" rel="noreferrer" style={{ fontSize: '0.95rem', fontWeight: 750, color: 'white', textDecoration: 'none' }}>cliksbusiness.com</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
