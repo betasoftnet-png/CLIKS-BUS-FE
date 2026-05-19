@@ -12,15 +12,32 @@ import {
     CheckCircle,
     Zap,
     RefreshCw,
-    BarChart3
+    BarChart3,
+    Plus,
+    X,
+    Users,
+    DollarSign
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 
 const AdminSalesLeads = () => {
     const [loading, setLoading] = useState(true);
     const [leads, setLeads] = useState([]);
+    const [agents, setAgents] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [showModal, setShowModal] = useState(false);
+
+    // Form states for enlisting prospect by admin
+    const [businessName, setBusinessName] = useState('');
+    const [contactName, setContactName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [estValue, setEstValue] = useState('0.0');
+    const [notes, setNotes] = useState('');
+    const [agentId, setAgentId] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState('');
 
     const fetchGlobalLeads = async () => {
         setLoading(true);
@@ -36,9 +53,51 @@ const AdminSalesLeads = () => {
         }
     };
 
+    const fetchAgents = async () => {
+        try {
+            const res = await adminService.getSalesAgents();
+            if (res) {
+                setAgents(res);
+            }
+        } catch (err) {
+            console.error("Failed to query agents list:", err);
+        }
+    };
+
     useEffect(() => {
         fetchGlobalLeads();
+        fetchAgents();
     }, []);
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setFormError('');
+        try {
+            await adminService.createGlobalLead({
+                business_name: businessName,
+                contact_name: contactName,
+                email,
+                phone,
+                estimated_value: parseFloat(estValue),
+                notes,
+                agent_id: agentId
+            });
+            setShowModal(false);
+            setBusinessName('');
+            setContactName('');
+            setEmail('');
+            setPhone('');
+            setEstValue('0.0');
+            setNotes('');
+            setAgentId('');
+            fetchGlobalLeads();
+        } catch (err) {
+            setFormError(err.response?.data?.error?.message || 'Failed to stream new prospect vector.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const getStatusPill = (status) => {
         const clean = (status || 'NEW').toUpperCase();
@@ -87,7 +146,13 @@ const AdminSalesLeads = () => {
                     <h1 style={{ fontSize: '2.5rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Global Leads Matrix</h1>
                     <p style={{ color: '#64748B', margin: '0.5rem 0 0 0', fontWeight: 500 }}>Bird's-eye view of representative outreach, prospecting velocity, and acquisition conversion flows.</p>
                 </div>
-                <div className="dashboard-header-actions">
+                <div className="dashboard-header-actions" style={{ display: 'flex', gap: '1rem' }}>
+                    <button 
+                        onClick={() => setShowModal(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', borderRadius: '12px', background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79,70,229,0.2)' }}
+                    >
+                        <Plus size={16} /> Log New Prospect
+                    </button>
                     <button 
                         onClick={fetchGlobalLeads}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', borderRadius: '12px', background: 'white', border: '1px solid #E2E8F0', color: '#0F172A', fontWeight: '700', cursor: 'pointer' }}
@@ -222,6 +287,84 @@ const AdminSalesLeads = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Admin Create Lead Modal */}
+            {showModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ background: 'white', borderRadius: '28px', padding: '2rem', width: '90%', maxWidth: '480px', boxShadow: '0 20px 60px rgba(79, 70, 229, 0.15)', position: 'relative' }}>
+                        <button onClick={() => setShowModal(false)} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer' }}>
+                            <X size={20} />
+                        </button>
+                        
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 850, color: '#1E293B', margin: '0 0 0.5rem 0' }}>Log New Prospect</h3>
+                        <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: 500, margin: '0 0 1.5rem 0' }}>Assign a new lead vector to an active platform sales representative.</p>
+
+                        {formError && (
+                            <div style={{ background: '#FEF2F2', color: '#EF4444', padding: '0.75rem', borderRadius: '12px', fontWeight: 750, fontSize: '0.8rem', marginBottom: '1rem' }}>
+                                {formError}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Target Business Name</label>
+                                <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '0.85rem', outline: 'none' }} placeholder="e.g. Apex Retailers" required />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Assign to Sales Representative</label>
+                                <select 
+                                    value={agentId} 
+                                    onChange={(e) => setAgentId(e.target.value)} 
+                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '0.85rem', outline: 'none', background: 'white', cursor: 'pointer' }}
+                                    required
+                                >
+                                    <option value="">Select Representative...</option>
+                                    {agents.map(agent => (
+                                        <option key={agent.id} value={agent.id}>{agent.name} ({agent.email})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Contact Name</label>
+                                    <input type="text" value={contactName} onChange={(e) => setContactName(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '0.85rem', outline: 'none' }} placeholder="Sanjay Mehta" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Est. Value (₹)</label>
+                                    <input type="number" min="0" step="100" value={estValue} onChange={(e) => setEstValue(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 700, fontSize: '0.85rem', outline: 'none' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Work Email</label>
+                                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '0.85rem', outline: 'none' }} placeholder="sanjay@apex.com" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Contact Phone</label>
+                                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 600, fontSize: '0.85rem', outline: 'none' }} placeholder="9876543210" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 900, color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Outreach Notes</label>
+                                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontWeight: 500, fontSize: '0.85rem', minHeight: '80px', resize: 'vertical', outline: 'none' }} placeholder="Met owner today. Interested in accounting modules..."></textarea>
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                disabled={saving}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.85rem', background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 850, fontSize: '0.95rem', cursor: 'pointer', marginTop: '1rem', boxShadow: '0 4px 15px rgba(79,70,229,0.3)' }}
+                            >
+                                {saving ? <RefreshCw size={18} className="animate-spin" /> : 'Commit Prospect Record'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

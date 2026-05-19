@@ -106,6 +106,10 @@ export const adminService = {
         const res = await apiClient.get('/admin/sales/leads');
         return res.data;
     },
+    createGlobalLead: async (data) => {
+        const res = await apiClient.post('/admin/sales/leads', data);
+        return res.data;
+    },
     // Public Access (No Auth Header Strict Check Required)
     getActiveAnnouncement: async () => {
         const res = await apiClient.get('/public/announcement');
