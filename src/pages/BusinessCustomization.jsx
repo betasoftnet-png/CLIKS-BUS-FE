@@ -47,9 +47,14 @@ const BusinessCustomization = () => {
         invoiceBillNo: true, 
         addTime: false, 
         cashSale: false, 
+        billingName: false,
+        customerPo: false,
         inclusiveTax: true, 
         displayPurchase: true, 
+        showLast5Sale: false,
+        showLast5Purchase: false,
         freeQty: false,
+        countItems: false,
         txnTax: false, 
         txnDiscount: false, 
         roundOff: true, 
@@ -57,6 +62,19 @@ const BusinessCustomization = () => {
         prefixSale: 'INV-',
         prefixPurchase: 'PO-',
         prefixCredit: 'CN-',
+        prefixSaleOrder: 'SO-',
+        prefixEstimate: 'EST-',
+        prefixChallan: 'DC-',
+        prefixProforma: 'PRO-',
+        prefixPaymentIn: 'PAY-',
+        ewayBill: false,
+        quickEntry: false,
+        noInvoicePreview: false,
+        passcodeTxn: false,
+        discountPayments: false,
+        linkPayments: false,
+        dueDates: false,
+        showProfitSale: false,
 
         // PRINT CONFIGS
         printerType: 'regular', 
@@ -115,7 +133,8 @@ const BusinessCustomization = () => {
                 setConfig(prev => {
                     const merged = {
                         ...prev,
-                        ...dbSettings
+                        ...dbSettings,
+                        ...(dbSettings.settings || {})
                     };
                     
                     // Fallback empty profile settings to registered account details
@@ -172,7 +191,7 @@ const BusinessCustomization = () => {
         { id: 'transaction', label: 'Transaction', icon: FileText, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'print', label: 'Print', icon: Printer, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadow: 'rgba(139, 92, 246, 0.2)' },
         { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', shadow: 'rgba(16, 185, 129, 0.2)' },
-        { id: 'party', label: 'Party', icon: Users, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadow: 'rgba(236, 72, 153, 0.2)' },
+        { id: 'party', label: 'Contacts', icon: Users, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadow: 'rgba(236, 72, 153, 0.2)' },
         { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #0F172A 0%, #020617 100%)', shadow: 'rgba(15, 23, 42, 0.2)' },
         { id: 'reminders', label: 'Reminders', icon: Bell, gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', shadow: 'rgba(239, 68, 68, 0.2)' },
         { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #F59E0B 0%, #B45309 100%)', shadow: 'rgba(245, 158, 11, 0.2)' },
@@ -421,7 +440,7 @@ const BusinessCustomization = () => {
                         <Divider />
                         <PremiumToggleItem label="Prevent Negative Inventory" desc="Restrict invoicing items when stock level <= 0." active={config.negativeStock} onToggle={() => handleToggle('negativeStock')} />
                         <Divider />
-                        <PremiumToggleItem label="Lock Party Generation" desc="Prevent new party records within standard transaction forms." active={config.blockParties} onToggle={() => handleToggle('blockParties')} />
+                        <PremiumToggleItem label="Lock Contact Generation" desc="Prevent new customer/supplier records within standard transaction forms." active={config.blockParties} onToggle={() => handleToggle('blockParties')} />
                     </div>
                 </CustomizationCard>
                 <CustomizationCard title="Operational Features" icon={Truck}>
@@ -465,79 +484,153 @@ const BusinessCustomization = () => {
     );
 
     const renderTransaction = () => (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
-            <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Transaction Header & Table" icon={LayoutGrid}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <h4 style={{ fontSize: '0.85rem', color: '#94A3B8', textTransform: 'uppercase', margin: '0 0 0.5rem 0' }}>Header Logic</h4>
-                            <CheckboxWithLabel label="Include Invoice/Bill No." checked={config.invoiceBillNo} onChange={() => handleToggle('invoiceBillNo')} />
-                            <CheckboxWithLabel label="Timestamp Transactions" checked={config.addTime} onChange={() => handleToggle('addTime')} />
-                            <CheckboxWithLabel label="Set Cash Sale as Default" checked={config.cashSale} onChange={() => handleToggle('cashSale')} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <h4 style={{ fontSize: '0.85rem', color: '#94A3B8', textTransform: 'uppercase', margin: '0 0 0.5rem 0' }}>Items Grid</h4>
-                            <CheckboxWithLabel label="Inclusive/Exclusive Tax Toggle" checked={config.inclusiveTax} onChange={() => handleToggle('inclusiveTax')} />
-                            <CheckboxWithLabel label="Show Purchase Price to Staff" checked={config.displayPurchase} onChange={() => handleToggle('displayPurchase')} />
-                            <CheckboxWithLabel label="Manage Free Item Quantities" checked={config.freeQty} onChange={() => handleToggle('freeQty')} />
-                        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Top Row: Header, Items, and Totals */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <CustomizationCard title="Transaction Header" icon={LayoutGrid}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <CheckboxWithLabel label="Invoice/Bill No." checked={config.invoiceBillNo} onChange={() => handleToggle('invoiceBillNo')} />
+                        <CheckboxWithLabel label="Add Time on Transactions" checked={config.addTime} onChange={() => handleToggle('addTime')} />
+                        <CheckboxWithLabel label="Cash Sale by default" checked={config.cashSale} onChange={() => handleToggle('cashSale')} />
+                        <CheckboxWithLabel label="Billing Name of Contacts" checked={config.billingName} onChange={() => handleToggle('billingName')} />
+                        <CheckboxWithLabel label="Customers P.O. Details on Transactions" checked={config.customerPo} onChange={() => handleToggle('customerPo')} />
                     </div>
                 </CustomizationCard>
-                <CustomizationCard title="Billing Calculations" icon={Sliders}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <h4 style={{ fontSize: '0.85rem', color: '#94A3B8', textTransform: 'uppercase', margin: 0 }}>Discounts</h4>
-                            <CheckboxWithLabel label="Transaction-wise General Tax" checked={config.txnTax} onChange={() => handleToggle('txnTax')} />
-                            <CheckboxWithLabel label="Transaction-level Discount %" checked={config.txnDiscount} onChange={() => handleToggle('txnDiscount')} />
-                            <PremiumToggleItem label="Auto Total Round Off" active={config.roundOff} onToggle={() => handleToggle('roundOff')} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <h4 style={{ fontSize: '0.85rem', color: '#94A3B8', textTransform: 'uppercase', margin: 0 }}>Billing Mode</h4>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <div onClick={() => handleTextChange('billingType', 'lite')} style={{ flex: 1, padding: '0.75rem', border: config.billingType === 'lite' ? '2px solid #3B82F6' : '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer', background: config.billingType === 'lite' ? '#EFF6FF' : 'white', transition: 'all 0.2s' }}>
-                                    <span style={{ fontWeight: '800', fontSize: '0.85rem', color: config.billingType === 'lite' ? '#1D4ED8' : '#475569' }}>Lite Sale</span>
-                                </div>
-                                <div onClick={() => handleTextChange('billingType', 'full')} style={{ flex: 1, padding: '0.75rem', border: config.billingType === 'full' ? '2px solid #3B82F6' : '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer', background: config.billingType === 'full' ? '#EFF6FF' : 'white', transition: 'all 0.2s' }}>
-                                    <span style={{ fontWeight: '800', fontSize: '0.85rem', color: config.billingType === 'full' ? '#1D4ED8' : '#475569' }}>Full Sale</span>
-                                </div>
-                            </div>
-                        </div>
+
+                <CustomizationCard title="Items Table" icon={Sliders}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <CheckboxWithLabel label="Inclusive/Exclusive Tax on Rate(Price/Unit)" checked={config.inclusiveTax} onChange={() => handleToggle('inclusiveTax')} />
+                        <CheckboxWithLabel label="Display Purchase Price of Items" checked={config.displayPurchase} onChange={() => handleToggle('displayPurchase')} />
+                        <CheckboxWithLabel label="Show last 5 Sale Price of Items" checked={config.showLast5Sale} onChange={() => handleToggle('showLast5Sale')} />
+                        <CheckboxWithLabel label="Show last 5 Purchase Price of Items" checked={config.showLast5Purchase} onChange={() => handleToggle('showLast5Purchase')} />
+                        <CheckboxWithLabel label="Free Item Quantity" checked={config.freeQty} onChange={() => handleToggle('freeQty')} />
+                        <CheckboxWithLabel label="Count" checked={config.countItems} onChange={() => handleToggle('countItems')} />
+                    </div>
+                </CustomizationCard>
+
+                <CustomizationCard title="Taxes, Discount & Totals" icon={Calculator}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <CheckboxWithLabel label="Transaction wise Tax" checked={config.txnTax} onChange={() => handleToggle('txnTax')} />
+                        <CheckboxWithLabel label="Transaction wise Discount" checked={config.txnDiscount} onChange={() => handleToggle('txnDiscount')} />
+                        <CheckboxWithLabel label="Round Off Total" checked={config.roundOff} onChange={() => handleToggle('roundOff')} />
                     </div>
                 </CustomizationCard>
             </div>
-            <div style={{ gridColumn: 'span 4' }}>
-                <CustomizationCard title="Tracking Prefixes" icon={Edit}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+
+            {/* Bottom Row: More Features, Prefixes, and Billing Type */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <CustomizationCard title="More Transaction Features" icon={Sliders}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <CheckboxWithLabel label="E-way bill no" checked={config.ewayBill} onChange={() => handleToggle('ewayBill')} />
+                        <CheckboxWithLabel label="Quick Entry" checked={config.quickEntry} onChange={() => handleToggle('quickEntry')} />
+                        <CheckboxWithLabel label="Do not Show Invoice Preview" checked={config.noInvoicePreview} onChange={() => handleToggle('noInvoicePreview')} />
+                        <CheckboxWithLabel label="Enable Passcode for transaction edit/delete" checked={config.passcodeTxn} onChange={() => handleToggle('passcodeTxn')} />
+                        <CheckboxWithLabel label="Discount During Payments" checked={config.discountPayments} onChange={() => handleToggle('discountPayments')} />
+                        <CheckboxWithLabel label="Link Payments to Invoices" checked={config.linkPayments} onChange={() => handleToggle('linkPayments')} />
+                        <CheckboxWithLabel label="Due Dates and Payment Terms" checked={config.dueDates} onChange={() => handleToggle('dueDates')} />
+                        <CheckboxWithLabel label="Show Profit while making Sale Invoice" checked={config.showProfitSale} onChange={() => handleToggle('showProfitSale')} />
+                    </div>
+                </CustomizationCard>
+
+                <CustomizationCard title="Transaction Prefixes" icon={Edit}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Sale Invoice</label>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Sale</label>
                             <input 
                                 type="text" 
-                                placeholder="E.g. INV-" 
                                 style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
-                                value={config.prefixSale}
+                                value={config.prefixSale || ''}
                                 onChange={(e) => handleTextChange('prefixSale', e.target.value)}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Purchase Order</label>
-                            <input 
-                                type="text" 
-                                placeholder="E.g. PO-" 
-                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
-                                value={config.prefixPurchase}
-                                onChange={(e) => handleTextChange('prefixPurchase', e.target.value)}
                             />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Credit Note</label>
                             <input 
                                 type="text" 
-                                placeholder="E.g. CN-" 
                                 style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
-                                value={config.prefixCredit}
+                                value={config.prefixCredit || ''}
                                 onChange={(e) => handleTextChange('prefixCredit', e.target.value)}
                             />
                         </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Sale Order</label>
+                            <input 
+                                type="text" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixSaleOrder || ''}
+                                onChange={(e) => handleTextChange('prefixSaleOrder', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Purchase Order</label>
+                            <input 
+                                type="text" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixPurchase || ''}
+                                onChange={(e) => handleTextChange('prefixPurchase', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Estimate</label>
+                            <input 
+                                type="text" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixEstimate || ''}
+                                onChange={(e) => handleTextChange('prefixEstimate', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Proforma Invoice</label>
+                            <input 
+                                type="text" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixProforma || ''}
+                                onChange={(e) => handleTextChange('prefixProforma', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Delivery Challan</label>
+                            <input 
+                                type="text" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixChallan || ''}
+                                onChange={(e) => handleTextChange('prefixChallan', e.target.value)}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Payment In</label>
+                            <input 
+                                type="text" 
+                                style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.8rem' }} 
+                                value={config.prefixPaymentIn || ''}
+                                onChange={(e) => handleTextChange('prefixPaymentIn', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </CustomizationCard>
+
+                <CustomizationCard title="Billing Type" icon={Sliders}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input 
+                                type="radio" 
+                                name="billingType" 
+                                checked={config.billingType === 'lite'} 
+                                onChange={() => handleTextChange('billingType', 'lite')} 
+                                style={{ accentColor: '#1B6B3A' }}
+                            />
+                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Lite Sale</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input 
+                                type="radio" 
+                                name="billingType" 
+                                checked={config.billingType === 'full'} 
+                                onChange={() => handleTextChange('billingType', 'full')} 
+                                style={{ accentColor: '#1B6B3A' }}
+                            />
+                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Full Sale</span>
+                        </label>
                     </div>
                 </CustomizationCard>
             </div>
@@ -637,7 +730,7 @@ const BusinessCustomization = () => {
         <CustomizationCard title="CRM Features" icon={Users}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <PremiumToggleItem label="Party Group Clustering" active={config.partyGroup} onToggle={() => handleToggle('partyGroup')} />
+                    <PremiumToggleItem label="Contact Group Clustering" active={config.partyGroup} onToggle={() => handleToggle('partyGroup')} />
                     <PremiumToggleItem label="Active Status Badging" active={config.partyStatus} onToggle={() => handleToggle('partyStatus')} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

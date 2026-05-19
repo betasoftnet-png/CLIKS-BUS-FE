@@ -22,6 +22,16 @@
     font-weight: 400;
 }
 
+[data-theme='dark'] {
+    --bg-color: #020804;
+    --text-main: #ECFDF5;
+    --text-muted: #A7F3D0;
+    --card-bg: #06150B;
+    --border-color: #064E3B;
+    --primary: #10B981;
+    --primary-hover: #34D399;
+}
+
 html {
     font-size: 14.5px;
 }

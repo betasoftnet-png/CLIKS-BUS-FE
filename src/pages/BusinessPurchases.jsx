@@ -30,7 +30,7 @@ import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { purchasesService, productsService, suppliersService } from '../services';
+import { purchasesService, productsService, suppliersService, settingsService } from '../services';
 import '../App.css';
 
 const BusinessPurchases = () => {
@@ -44,6 +44,14 @@ const BusinessPurchases = () => {
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
 
+    // Fetch customization settings dynamically to enforce master configurations
+    const { data: userSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
+
     // Handle instant PO creation launch via Quick Actions Shortcut
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
@@ -53,6 +61,16 @@ const BusinessPurchases = () => {
             setSearchParams({}, { replace: true });
         }
     }, [searchParams, setSearchParams]);
+
+    React.useEffect(() => {
+        if (isCreateModalOpen && activeConfig) {
+            const prefix = createDocType === 'PO' ? (activeConfig.prefixPurchase || 'PO-') : (createDocType === 'RETURN' ? (activeConfig.prefixCredit || 'RET-') : 'BILL-');
+            setFormHeader(prev => ({
+                ...prev,
+                purchase_number: `${prefix}${Date.now().toString().slice(-4)}`
+            }));
+        }
+    }, [isCreateModalOpen, createDocType, activeConfig]);
 
     const queryClient = useQueryClient();
 
@@ -373,19 +391,19 @@ const BusinessPurchases = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
-                        onClick={() => { setCreateDocType('PO'); setFormHeader({ ...formHeader, purchase_number: `PO-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
+                        onClick={() => { setCreateDocType('PO'); setIsCreateModalOpen(true); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Plus size={15} /> New PO
                     </button>
                     <button 
-                        onClick={() => { setCreateDocType('BILL'); setFormHeader({ ...formHeader, purchase_number: `BILL-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
+                        onClick={() => { setCreateDocType('BILL'); setIsCreateModalOpen(true); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Plus size={15} /> New Purchase Bill
                     </button>
                     <button 
-                        onClick={() => { setCreateDocType('RETURN'); setFormHeader({ ...formHeader, purchase_number: `RET-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
+                        onClick={() => { setCreateDocType('RETURN'); setIsCreateModalOpen(true); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#8B5CF6', border: '1px solid #EDE9FE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Plus size={15} /> Purchase Return

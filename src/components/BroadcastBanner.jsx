@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Megaphone, X, AlertOctagon, Info, AlertTriangle } from 'lucide-react';
 import { adminService } from '../services/adminService';
+import { settingsService } from '../services';
 
 const BroadcastBanner = () => {
     const [announcement, setAnnouncement] = useState(null);
     const [visible, setVisible] = useState(true);
     const [sessionDismissed, setSessionDismissed] = useState(false);
+
+    const { data: settings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings
+    });
+
+    const activeConfig = settings?.data || settings;
+    const notificationsEnabled = activeConfig?.notifications !== false;
 
     useEffect(() => {
         const fetchActiveAlert = async () => {
@@ -33,7 +43,7 @@ const BroadcastBanner = () => {
         return () => clearInterval(interval);
     }, []);
 
-    if (!announcement || !visible || sessionDismissed) return null;
+    if (!notificationsEnabled || !announcement || !visible || sessionDismissed) return null;
 
     const handleDismiss = () => {
         setVisible(false);

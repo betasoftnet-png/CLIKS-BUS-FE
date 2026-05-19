@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import AuditPanel from '../components/AuditPanel';
 import ReferralModal from '../components/ReferralModal';
 import '../App.css';
+import { useQuery } from '@tanstack/react-query';
+import { settingsService } from '../services';
 
 import BroadcastBanner from '../components/BroadcastBanner';
 
@@ -11,6 +13,22 @@ const MainLayout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [isReferralOpen, setIsReferralOpen] = useState(false);
+
+    const { data: userSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+
+    const activeConfig = userSettings?.data || userSettings || {};
+
+    useEffect(() => {
+        if (activeConfig.darkMode) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+        }
+    }, [activeConfig.darkMode]);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);

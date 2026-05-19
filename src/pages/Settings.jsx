@@ -17,18 +17,23 @@ const Settings = () => {
         dataSharing: false
     });
 
-    const { data: _serverSettings, isLoading } = useQuery({
+    const { data: serverSettings, isLoading } = useQuery({
         queryKey: ['settings'],
-        queryFn: settingsService.getSettings,
-        onSuccess: (data) => {
-            if (data.settings) {
-                setLocalSettings(prev => ({ ...prev, ...data.settings }));
-            }
-        }
+        queryFn: settingsService.getSettings
     });
 
+    React.useEffect(() => {
+        if (serverSettings) {
+            const settingsObj = serverSettings.data || serverSettings;
+            setLocalSettings(prev => ({
+                ...prev,
+                ...settingsObj
+            }));
+        }
+    }, [serverSettings]);
+
     const mutation = useMutation({
-        mutationFn: (data) => settingsService.updateSettings({ settings: data }),
+        mutationFn: (data) => settingsService.updateSettings(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
         }

@@ -99,12 +99,14 @@ const BusinessBilling = () => {
         if (isModalOpen && !editingInvoice && activeConfig) {
             const prefix = activeConfig.prefixSale || 'INV-';
             const defaultTaxType = activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive';
-            const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Cash';
+            const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Bank';
             setFormData(prev => ({
                 ...prev,
                 invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
                 tax_type: defaultTaxType,
-                payment_mode: defaultPayMode
+                payment_mode: defaultPayMode,
+                client_name: activeConfig.cashSale ? 'Cash Customer' : prev.client_name,
+                client_email: activeConfig.cashSale ? 'cash@customer.local' : prev.client_email
             }));
         }
     }, [isModalOpen, editingInvoice, activeConfig]);
@@ -446,8 +448,8 @@ const BusinessBilling = () => {
         const prefix = activeConfig.prefixSale || 'INV-';
         setFormData({
             invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
-            client_name: '',
-            client_email: '',
+            client_name: activeConfig.cashSale ? 'Cash Customer' : '',
+            client_email: activeConfig.cashSale ? 'cash@customer.local' : '',
             client_gstin: '',
             billing_address: '',
             shipping_address: '',
@@ -461,7 +463,7 @@ const BusinessBilling = () => {
             round_off: 0,
             status: 'Unpaid',
             due_date: new Date().toISOString().split('T')[0],
-            payment_mode: activeConfig.cashSale ? 'Cash' : 'Cash',
+            payment_mode: activeConfig.cashSale ? 'Cash' : 'Bank',
             invoice_type: 'GST',
             tax_type: activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive',
             redeemed_points: 0,
@@ -941,7 +943,7 @@ const BusinessBilling = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Email</label>
-                                    <input required type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                    <input required={activeConfig.billingType !== 'lite'} type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client GSTIN</label>
@@ -955,16 +957,18 @@ const BusinessBilling = () => {
                                 )}
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Billing Address</label>
-                                    <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
+                            {activeConfig.billingType !== 'lite' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Billing Address</label>
+                                        <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
+                                        <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
-                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
-                                </div>
-                            </div>
+                            )}
 
                             <div style={{ marginTop: '0.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -1059,7 +1063,7 @@ const BusinessBilling = () => {
                                                 <datalist id="inventory-suggestions">
                                                     {/* Real Product Catalog Items */}
                                                     {catalogProducts.map(prod => (
-                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0}</option>
+                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} {activeConfig.displayPurchase && `- Purchase Price: ₹${prod.purchase_price || 0}`}</option>
                                                     ))}
                                                     {/* Legacy Generic Inventory items fallback */}
                                                     {inventoryItems.map(inv => (
