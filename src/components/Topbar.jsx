@@ -52,7 +52,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const navItems = [
         { name: 'Books', url: '/dashboard', icon: BookOpen, active: activeModule === 'books' },
         { name: 'Payments', url: '/payments/people', icon: Calculator, active: isFinanceActive },
-        { name: 'Social', url: '/social/betaclub', icon: Users, active: isSocialActive },
+        { name: 'Social', url: '/social/meetup', icon: Users, active: isSocialActive },
     ];
 
     return (
