@@ -625,7 +625,7 @@ const BusinessMeetup = () => {
                 {isCreateModalOpen && (
                     <div style={{
                         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(30, 58, 138, 0.4)', backdropFilter: 'blur(8px)',
+                        backgroundColor: 'rgba(0, 74, 173, 0.4)', backdropFilter: 'blur(8px)',
                         zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
                     }}>
                         <Motion.div 
@@ -639,7 +639,7 @@ const BusinessMeetup = () => {
                                 <X size={18} />
                             </button>
 
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1E40AF', marginBottom: '1.75rem', letterSpacing: '-0.02em' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#004aad', marginBottom: '1.75rem', letterSpacing: '-0.02em' }}>
                                 Host New Executive Meetup
                             </h2>
 
@@ -712,7 +712,7 @@ const BusinessMeetup = () => {
                                             value={newEvent.max_seats}
                                             onChange={(e) => setNewEvent({...newEvent, max_seats: parseInt(e.target.value) || 100})}
                                             placeholder="e.g. 100"
-                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '700', color: '#1E40AF' }}
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '700', color: '#004aad' }}
                                         />
                                     </div>
                                 </div>
@@ -753,10 +753,10 @@ const BusinessMeetup = () => {
                                     type="submit" disabled={createMutation.isPending}
                                     style={{
                                         marginTop: '1rem', width: '100%', padding: '1.1rem',
-                                        background: '#1E40AF',
+                                        background: '#004aad',
                                         color: 'white', border: 'none', borderRadius: '16px',
                                         fontWeight: '850', fontSize: '1.1rem', cursor: 'pointer',
-                                        boxShadow: '0 10px 20px rgba(30, 64, 175, 0.2)'
+                                        boxShadow: '0 10px 20px rgba(0, 74, 173, 0.2)'
                                     }}
                                 >
                                     {createMutation.isPending ? 'Distributing Session...' : 'Authorize Panel Broadcast'}
