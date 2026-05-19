@@ -28,6 +28,11 @@ import SalesLogin from './pages/salesAgent/SalesLogin';
 import SalesDashboard from './pages/salesAgent/SalesDashboard';
 import SalesLeads from './pages/salesAgent/SalesLeads';
 
+// Customer Support Section Imports
+import SupportLogin from './pages/support/SupportLogin';
+import SupportDashboard from './pages/support/SupportDashboard';
+import AdminSupportTeam from './pages/admin/AdminSupportTeam';
+
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
 import BusinessInventory from './pages/BusinessInventory';
@@ -105,6 +110,12 @@ function AppContent() {
           </Suspense>
         } />
 
+        <Route path="/support/login" element={
+          <Suspense fallback={<PageLoader />}>
+            <SupportLogin />
+          </Suspense>
+        } />
+
         {/* Public Pass Verification Gate */}
         <Route path="/verify-pass" element={<VerifyPass />} />
         
@@ -134,6 +145,7 @@ function AppContent() {
                           <Route path="sales" element={<AdminSales />} />
                           <Route path="sales-team" element={<AdminSalesTeam />} />
                           <Route path="sales-leads" element={<AdminSalesLeads />} />
+                          <Route path="support-team" element={<AdminSupportTeam />} />
                           <Route path="faq" element={<FAQ />} />
                         </Routes>
                       </ProtectedRoute>
@@ -145,6 +157,16 @@ function AppContent() {
                         <Routes>
                           <Route path="dashboard" element={<SalesDashboard />} />
                           <Route path="leads" element={<SalesLeads />} />
+                          <Route path="faq" element={<FAQ />} />
+                        </Routes>
+                      </ProtectedRoute>
+                    } />
+
+                    {/* Customer Support Representative Workspaces */}
+                    <Route path="/support-portal/*" element={
+                      <ProtectedRoute role="support_agent">
+                        <Routes>
+                          <Route path="dashboard" element={<SupportDashboard />} />
                           <Route path="faq" element={<FAQ />} />
                         </Routes>
                       </ProtectedRoute>

@@ -50,7 +50,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
 
-const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false }) => {
+const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false }) => {
     const IconComp = item.icon;
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
@@ -59,11 +59,11 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
 
     const isBetaClub = item.label === 'BETA Club';
 
-    // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange
-    let primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : '#1B6B3A');
-    let activeBg = isSales ? '#FFF7ED' : (isAdmin ? '#EEF2FF' : '#DCF2E4');
-    let activeText = isActive ? '#ffffff' : (isSales ? '#EA580C' : (isAdmin ? '#1E293B' : '#111827'));
-    let darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : '#135029');
+    // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange vs Support Blue
+    let primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : (isSupport ? '#3B82F6' : '#1B6B3A'));
+    let activeBg = isSales ? '#FFF7ED' : (isAdmin ? '#EEF2FF' : (isSupport ? '#EFF6FF' : '#DCF2E4'));
+    let activeText = isActive ? '#ffffff' : (isSales ? '#EA580C' : (isAdmin ? '#1E293B' : (isSupport ? '#3B82F6' : '#111827')));
+    let darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : (isSupport ? '#1D4ED8' : '#135029'));
     
     if (isBetaClub) {
         primaryColor = '#FFD700'; // Vibrant gold icon (#FFD700)
@@ -78,10 +78,13 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             backgroundStyle = 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)';
         } else if (isAdmin) {
             backgroundStyle = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)';
+        } else if (isSupport) {
+            backgroundStyle = 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)';
         } else if (isBetaClub) {
             backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient
             primaryColor = '#FFD700'; // Keep the icon vibrant gold when active
             activeText = '#FFD700'; // Pure gold text when active as requested
+            darkTextColor = '#D97706'; // Warm golden amber for subheader labels
         } else {
             backgroundStyle = '#1B6B3A';
         }
@@ -155,8 +158,8 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                 fontSize: isChild ? '0.85rem' : '0.92rem',
                 background: backgroundStyle,
                 color: activeText,
-                borderLeft: isChild && isActive ? `3px solid ${isSales ? '#EA580C' : (isAdmin ? '#3730A3' : '#135029')}` : 'none',
-                boxShadow: isActive && (isAdmin || isSales) ? `0 4px 12px ${isSales ? 'rgba(234, 88, 12, 0.2)' : 'rgba(79, 70, 229, 0.2)'}` : 'none'
+                borderLeft: isChild && isActive ? `3px solid ${isSales ? '#EA580C' : (isAdmin ? '#3730A3' : (isSupport ? '#1D4ED8' : '#135029'))}` : 'none',
+                boxShadow: isActive && (isAdmin || isSales || isSupport) ? `0 4px 12px ${isSales ? 'rgba(234, 88, 12, 0.2)' : (isAdmin ? 'rgba(79, 70, 229, 0.2)' : 'rgba(59, 130, 246, 0.2)')}` : 'none'
             }}
         >
             <div className="flex items-center gap-3">
@@ -177,8 +180,11 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/admin/sales-team')) return 'Sales Team';
         if (path.includes('/admin/sales-leads')) return 'Leads Matrix';
         if (path.includes('/admin/sales')) return 'Platform Sales';
+        if (path.includes('/admin/support-team')) return 'Support Desk';
         if (path.includes('/sales-portal/dashboard')) return 'Sales Overview';
         if (path.includes('/sales-portal/leads')) return 'My Prospects';
+        if (path.includes('/support-portal/dashboard')) return 'Support Overview';
+        if (path.includes('/support-portal/faq')) return 'FAQ Registry';
         if (path.includes('/admin/moderation')) return 'Feed Monitor';
         if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
@@ -243,6 +249,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const isFinanceMode = activeModule === 'payments';
     const isAdminMode = location.pathname.includes('/admin/');
     const isSalesAgentMode = location.pathname.includes('/sales-portal/');
+    const isSupportAgentMode = location.pathname.includes('/support-portal/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
     const [openMenus, setOpenMenus] = useState({});
@@ -260,6 +267,13 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     { label: 'Leads Matrix', icon: FileCheck, path: '/admin/sales-leads' }
                 ]
             },
+            {
+                label: 'Support Control',
+                icon: HelpCircle,
+                children: [
+                    { label: 'Support Desk', icon: Users, path: '/admin/support-team' }
+                ]
+            },
             { label: 'Feed Monitor', icon: ShieldAlert, path: '/admin/moderation' },
             { label: 'Audit Trail', icon: FileCheck, path: '/admin/logs' },
             { label: 'Engine Overrides', icon: Sliders, path: '/admin/settings' }
@@ -267,6 +281,10 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         salesAgent: [
             { label: 'Sales Overview', icon: LayoutDashboard, path: '/sales-portal/dashboard' },
             { label: 'My Prospects', icon: Users, path: '/sales-portal/leads' }
+        ],
+        supportAgent: [
+            { label: 'Support Overview', icon: LayoutDashboard, path: '/support-portal/dashboard' },
+            { label: 'Help Desk FAQ', icon: HelpCircle, path: '/support-portal/faq' }
         ],
         standard: [
             { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -409,6 +427,21 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 toggleMenu={toggleMenu} 
                                 handleItemClick={handleItemClick} 
                                 isSales={true} 
+                            />
+                        ))}
+                    </>
+                ) : isSupportAgentMode ? (
+                    <>
+                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#3B82F6', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SUPPORT DESK</div>
+                        {navigationConfig.supportAgent.map(item => (
+                            <MenuItem 
+                                key={item.label} 
+                                item={item} 
+                                activeItem={activeItem} 
+                                openMenus={openMenus} 
+                                toggleMenu={toggleMenu} 
+                                handleItemClick={handleItemClick} 
+                                isSupport={true} 
                             />
                         ))}
                     </>

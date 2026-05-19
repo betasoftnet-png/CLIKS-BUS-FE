@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/authService';
 import { adminService } from '../services/adminService';
+import { supportService } from '../services/supportService';
 import { AuthContext } from './auth-context';
 
 
@@ -82,6 +83,19 @@ export const AuthProvider = ({ children }) => {
         return data;
     };
 
+    const supportAgentLogin = async (email, password) => {
+        const data = await supportService.supportAgentLogin(email, password);
+        const { accessToken, user: newUser } = data;
+
+        localStorage.setItem('books_auth_token', accessToken);
+        setToken(accessToken);
+        setUser(newUser);
+
+        queryClient.invalidateQueries();
+
+        return data;
+    };
+
     const impersonateLogin = async (userId) => {
         // Trigger the high-trust impersonation link
         const data = await adminService.impersonateUser(userId);
@@ -118,6 +132,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         ssoLogin,
         adminLogin,
+        supportAgentLogin,
         impersonateLogin,
         mockLogin,
         logout,
