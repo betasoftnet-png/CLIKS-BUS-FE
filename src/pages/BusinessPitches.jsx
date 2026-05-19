@@ -120,22 +120,18 @@ export default function BusinessPitches() {
             {/* Slim, Beautiful Modern Header */}
             <div style={{
                 flexShrink: 0,
-                background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)',
+                background: '#1E3A8A',
                 borderRadius: '20px',
                 padding: '1.5rem 2rem',
                 color: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: '0 10px 25px -5px rgba(6, 78, 59, 0.15)',
+                boxShadow: '0 10px 25px -5px rgba(30, 58, 138, 0.15)',
                 marginBottom: '1.25rem',
                 position: 'relative',
                 overflow: 'hidden'
             }}>
-                {/* Subtle Background Glows for Premium Aesthetic */}
-                <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '180px', height: '180px', background: 'rgba(5, 150, 105, 0.3)', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: '-50px', left: '-30px', width: '140px', height: '140px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '50%', filter: 'blur(50px)', pointerEvents: 'none' }} />
-
                 <div style={{ position: 'relative', zIndex: 2 }}>
                     <div style={{
                         display: 'inline-flex',
@@ -150,7 +146,7 @@ export default function BusinessPitches() {
                         fontWeight: '700',
                         letterSpacing: '0.05em',
                         border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#34d399'
+                        color: '#60A5FA'
                     }}>
                         <TrendingUp size={13} />
                         <span>VENTURE CONNECT</span>
@@ -158,7 +154,7 @@ export default function BusinessPitches() {
                     <h1 style={{ fontSize: '1.75rem', fontWeight: '850', marginBottom: '0.25rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         SME Deal Marketplace
                     </h1>
-                    <p style={{ fontSize: '0.9rem', color: '#a7f3d0', maxWidth: '500px', margin: 0, opacity: 0.85 }}>
+                    <p style={{ fontSize: '0.9rem', color: '#BFDBFE', maxWidth: '500px', margin: 0, opacity: 0.85 }}>
                         Connect directly with verified founders, review pitches, and contact owners instantly.
                     </p>
                 </div>

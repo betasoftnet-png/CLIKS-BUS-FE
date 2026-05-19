@@ -177,17 +177,17 @@ const BusinessMeetup = () => {
 
             {/* Header Presentation Board */}
             <div style={{
-                background: '#1E40AF',
+                background: '#004aad',
                 borderRadius: '16px',
                 padding: '1.25rem 1.75rem',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: '0 8px 24px rgba(30, 64, 175, 0.08)',
+                boxShadow: '0 8px 24px rgba(0, 74, 173, 0.08)',
                 marginBottom: '1.25rem'
             }}>
                 {/* Animated Background Accents */}
-                <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', filter: 'blur(70px)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(0, 74, 173, 0.15)', filter: 'blur(70px)', pointerEvents: 'none' }} />
 
                 <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
@@ -217,7 +217,7 @@ const BusinessMeetup = () => {
                         onClick={() => setIsCreateModalOpen(true)}
                         style={{
                             background: 'white',
-                            color: '#1E40AF',
+                            color: '#004aad',
                             border: 'none',
                             padding: '0.75rem 1.25rem',
                             borderRadius: '10px',
@@ -252,7 +252,7 @@ const BusinessMeetup = () => {
                                 fontWeight: '800',
                                 cursor: 'pointer',
                                 border: 'none',
-                                background: filter === tab ? '#1E40AF' : 'transparent',
+                                background: filter === tab ? '#004aad' : 'transparent',
                                 color: filter === tab ? 'white' : '#64748B',
                                 transition: 'all 0.2s ease'
                             }}
@@ -287,12 +287,12 @@ const BusinessMeetup = () => {
             {/* Events List Workspace */}
             {isLoading ? (
                 <div style={{ textAlign: 'center', padding: '6rem' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #DBEAFE', borderTopColor: '#1E40AF', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #DBEAFE', borderTopColor: '#004aad', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
                     <p style={{ color: '#64748B', fontWeight: '700' }}>Aggregating regional meetups...</p>
                 </div>
             ) : filteredEvents.length === 0 ? (
                 <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '6rem 2rem', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
-                    <div style={{ width: '70px', height: '70px', borderRadius: '24px', background: '#EFF6FF', color: '#1E40AF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                    <div style={{ width: '70px', height: '70px', borderRadius: '24px', background: '#EFF6FF', color: '#004aad', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                         <Calendar size={32} />
                     </div>
                     <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>No active panels found</h3>
