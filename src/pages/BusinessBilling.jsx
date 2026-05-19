@@ -580,6 +580,16 @@ const BusinessBilling = () => {
         }
     };
 
+    const handlePreviewPDF = (invoice) => {
+        try {
+            localStorage.setItem('cliks_invoice_preview_data', JSON.stringify(invoice));
+            localStorage.setItem('cliks_invoice_preview_template', activeTemplate);
+            localStorage.setItem('cliks_invoice_preview_config', JSON.stringify(customConfig));
+        } catch (error) {
+            console.error('Failed to store invoice data for preview:', error);
+        }
+    };
+
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
@@ -738,6 +748,20 @@ const BusinessBilling = () => {
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
                                                 <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={14} /></button>
                                                 <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={14} /></button>
+                                                <a 
+                                                    href="/sales/invoice/preview" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    onClick={() => handlePreviewPDF(inv)} 
+                                                    title="Preview PDF in New Tab" 
+                                                    style={{ 
+                                                        width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', 
+                                                        background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', 
+                                                        justifyContent: 'center', cursor: 'pointer', textDecoration: 'none' 
+                                                    }}
+                                                >
+                                                    <Eye size={14} />
+                                                </a>
                                                 <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#BE185D', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={14} /></button>
                                                 <button onClick={() => handleEdit(inv)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
                                                 <button onClick={() => handleDelete(inv.id)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
@@ -1576,6 +1600,22 @@ const BusinessBilling = () => {
                                 <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, fontWeight: '500' }}>Document Ref: <span style={{ fontWeight: '800', color: '#334155' }}>{viewingInvoice.invoice_number}</span></p>
                             </div>
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <a 
+                                    href="/sales/invoice/preview" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    onClick={() => handlePreviewPDF(viewingInvoice)} 
+                                    style={{ 
+                                        display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                                        padding: '0.6rem 1.25rem', borderRadius: '10px', 
+                                        background: '#3B82F6', color: 'white', border: 'none', 
+                                        fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                                        textDecoration: 'none'
+                                    }}
+                                >
+                                    <Eye size={16} /> Open PDF Preview
+                                </a>
                                 <button 
                                     onClick={() => handlePrint(viewingInvoice)} 
                                     style={{ 

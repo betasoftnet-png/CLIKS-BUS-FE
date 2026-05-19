@@ -97,27 +97,27 @@ export const InvoiceTemplates = {
                     </div>
                 </div>
 
-                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '25px', overflow: 'hidden', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '25px', overflow: 'hidden', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                     <thead>
                         <tr style={{ background: '#F8FAFC' }}>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>Description</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>HSN</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>Qty</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>Rate</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0' }}>Amount</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '45%' }}>Description</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '13%' }}>HSN</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '10%' }}>Qty</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '15%' }}>Rate</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'right', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', borderBottom: '1px solid #E2E8F0', width: '17%' }}>Amount</th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map((item, i) => (
                             <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                <td style={{ padding: '14px 15px', borderBottom: '1px solid #F1F5F9' }}>
+                                <td style={{ padding: '14px 15px', borderBottom: '1px solid #F1F5F9', wordBreak: 'break-word' }}>
                                     <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{item.description}</div>
                                     <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>{item.details || ''}</div>
                                 </td>
-                                <td style={{ padding: '14px 15px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontSize: '13px', color: '#475569' }}>{item.hsn_code || '-'}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', fontWeight: '600' }}>{item.quantity}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>{item.hsn_code || '-'}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>{item.quantity}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                <td style={{ padding: '14px 15px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontSize: '13px', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -125,10 +125,10 @@ export const InvoiceTemplates = {
                         <tr style={{ background: '#F8FAFC' }}>
                             <td colSpan="3" style={{ padding: '15px', fontSize: '11px', color: '#64748B', fontWeight: '600' }}>
                                 <div style={{ textTransform: 'uppercase', marginBottom: '4px' }}>Total In Words</div>
-                                <div style={{ color: '#1E293B', fontStyle: 'italic' }}>{numberToWords(data.total_amount)}</div>
+                                <div style={{ color: '#1E293B', fontStyle: 'italic', wordBreak: 'break-word', lineHeight: '1.4' }}>{numberToWords(data.total_amount)}</div>
                             </td>
-                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: '800', color: '#64748B' }}>Total</td>
-                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '18px', fontWeight: '950', color: '#0F172A' }}>{formatCurrency(data.total_amount)}</td>
+                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: '800', color: '#64748B', whiteSpace: 'nowrap', width: '15%' }}>Total</td>
+                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '18px', fontWeight: '950', color: '#0F172A', whiteSpace: 'nowrap', width: '17%' }}>{formatCurrency(data.total_amount)}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -178,36 +178,36 @@ export const InvoiceTemplates = {
                         <div style={{ fontSize: '13px', color: '#555', whiteSpace: 'pre-line' }}>{data.shipping_address || 'As above'}</div>
                     </div>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', marginBottom: '30px' }}>
                     <thead>
                         <tr style={{ borderTop: '1px solid #ccc', borderBottom: '2px solid #1E3A8A', background: '#F8FAFC' }}>
-                            <th style={{ padding: '15px 10px', textAlign: 'left', fontSize: '12px' }}>ITEMS & DESCRIPTION</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px' }}>QTY</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px' }}>RATE</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px' }}>TAX%</th>
-                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px' }}>AMOUNT</th>
+                            <th style={{ padding: '15px 10px', textAlign: 'left', fontSize: '12px', width: '45%' }}>ITEMS & DESCRIPTION</th>
+                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '10%' }}>QTY</th>
+                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '15%' }}>RATE</th>
+                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '13%' }}>TAX%</th>
+                            <th style={{ padding: '15px 10px', textAlign: 'right', fontSize: '12px', width: '17%' }}>AMOUNT</th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.map((item, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                                <td style={{ padding: '15px 10px' }}>
+                                <td style={{ padding: '15px 10px', wordBreak: 'break-word' }}>
                                     <div style={{ fontWeight: '700', fontSize: '14px' }}>{item.description}</div>
                                     <div style={{ fontSize: '11px', color: '#666' }}>HSN: {item.hsn_code || 'N/A'}</div>
                                 </td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px' }}>{item.quantity}</td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px' }}>{parseFloat(item.price).toFixed(2)}</td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px' }}>{item.tax_rate}%</td>
-                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>{parseFloat(item.total).toFixed(2)}</td>
+                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.quantity}</td>
+                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{parseFloat(item.price).toFixed(2)}</td>
+                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.tax_rate}%</td>
+                                <td style={{ padding: '15px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700', whiteSpace: 'nowrap' }}>{parseFloat(item.total).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ width: '350px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '14px' }}><span>Sub Total:</span><span>{formatCurrency(data.amount)}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '14px', borderBottom: '1px solid #eee' }}><span>Tax Amount:</span><span>{formatCurrency(data.tax_amount)}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', fontSize: '20px', fontWeight: '900', color: '#1E3A8A' }}><span>Total:</span><span>{formatCurrency(data.total_amount)}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '14px', whiteSpace: 'nowrap' }}><span>Sub Total:</span><span>{formatCurrency(data.amount)}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '14px', borderBottom: '1px solid #eee', whiteSpace: 'nowrap' }}><span>Tax Amount:</span><span>{formatCurrency(data.tax_amount)}</span></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', fontSize: '20px', fontWeight: '900', color: '#1E3A8A', whiteSpace: 'nowrap' }}><span>Total:</span><span>{formatCurrency(data.total_amount)}</span></div>
                     </div>
                 </div>
                 <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
