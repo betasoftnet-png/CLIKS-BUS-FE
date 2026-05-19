@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { warehouseService, stockService } from '../services';
+import { warehouseService, stockService, settingsService } from '../services';
 import { apiClient } from '../api/client';
 import { 
     Warehouse as WarehouseIcon, 
@@ -29,6 +29,14 @@ import '../App.css';
 
 const BusinessWarehouse = () => {
     const queryClient = useQueryClient();
+    // Fetch customization settings dynamically to enforce master configurations
+    const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
+
     const [activeTab, setActiveTab] = useState('profiles'); // 'profiles', 'stock', 'operations', 'transfers'
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -303,7 +311,35 @@ const BusinessWarehouse = () => {
         alert(`Transfer ${trfId} marked complete! Stock landed at destination warehouse.`);
     };
 
-
+    if (!isLoadingSettings && activeConfig.godown === false) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '500px', background: '#F8FAFC', fontFamily: "'Inter', sans-serif", padding: '2rem' }}>
+                <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '3rem', borderRadius: '24px', maxWidth: '500px', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: '#FDF2F8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EC4899', margin: '0 auto 1.5rem', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.1)' }}>
+                        <WarehouseIcon size={40} style={{ color: '#EC4899' }} />
+                    </div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Multi-Warehouse Management Locked</h2>
+                    <p style={{ color: '#64748B', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '2rem', fontWeight: '500' }}>
+                        The Godowns, Locations, and Logistics module is currently disabled. You can activate this feature instantly from your advanced personalization control panel to start managing bulk godowns and transfers.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                        <button 
+                            onClick={() => window.location.href = '/customization'}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                                background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
+                            }}
+                        >
+                            <Sliders size={16} /> Enable Godown Links
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const totalWarehouseValue = whStocks.reduce((sum, s) => sum + s.warehouse_stock_value, 0);
 

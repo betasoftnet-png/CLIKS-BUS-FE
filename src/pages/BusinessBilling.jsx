@@ -34,7 +34,8 @@ import {
     inventoryService, 
     crmService, 
     profileService, 
-    productsService 
+    productsService,
+    settingsService
 } from '../services';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
@@ -77,6 +78,14 @@ const BusinessBilling = () => {
         queryFn: profileService.getProfile,
         refetchOnWindowFocus: false
     });
+
+    // Fetch customization settings dynamically to enforce master configurations
+    const { data: userSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
     // Auto-trigger invoice creation workflow via query param instruction
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
@@ -85,6 +94,20 @@ const BusinessBilling = () => {
             setSearchParams({}, { replace: true });
         }
     }, [searchParams, setSearchParams]);
+
+    React.useEffect(() => {
+        if (isModalOpen && !editingInvoice && activeConfig) {
+            const prefix = activeConfig.prefixSale || 'INV-';
+            const defaultTaxType = activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive';
+            const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Cash';
+            setFormData(prev => ({
+                ...prev,
+                invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
+                tax_type: defaultTaxType,
+                payment_mode: defaultPayMode
+            }));
+        }
+    }, [isModalOpen, editingInvoice, activeConfig]);
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -147,7 +170,7 @@ const BusinessBilling = () => {
             const prc = parseFloat(item.price) || 0;
             const discPct = parseFloat(item.discount_percent) || 0;
             const discAmt = parseFloat(item.discount_amount) || 0;
-            const txRate = parseFloat(item.tax_rate) || 0;
+            const txRate = activeConfig.enableGst === false ? 0 : (parseFloat(item.tax_rate) || 0);
 
             const basePrice = qty * prc;
             
@@ -177,7 +200,7 @@ const BusinessBilling = () => {
         const rawTotal = (parseFloat(subtotal) || 0) + (parseFloat(totalTax) || 0);
         const redeemedAmt = parseFloat(currentFormData.redeemed_points) || 0; // 1 pt = 1 Re
         const adjustedTotal = rawTotal - redeemedAmt;
-        const roundedTotal = Math.max(0, Math.round(adjustedTotal));
+        const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
         
         // Rule: Earn 1 point per 100₹ of final bill
@@ -420,8 +443,9 @@ const BusinessBilling = () => {
         setEditingInvoice(null);
         setShowLivePreview(false); // Reset live preview mode
         setSelectedCustomerObject(null);
+        const prefix = activeConfig.prefixSale || 'INV-';
         setFormData({
-            invoice_number: `INV-${Date.now().toString().slice(-6)}`,
+            invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
             client_name: '',
             client_email: '',
             client_gstin: '',
@@ -437,9 +461,9 @@ const BusinessBilling = () => {
             round_off: 0,
             status: 'Unpaid',
             due_date: new Date().toISOString().split('T')[0],
-            payment_mode: 'Cash',
+            payment_mode: activeConfig.cashSale ? 'Cash' : 'Cash',
             invoice_type: 'GST',
-            tax_type: 'Exclusive',
+            tax_type: activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive',
             redeemed_points: 0,
             earned_points: 0,
             items: [{ 
@@ -497,6 +521,41 @@ const BusinessBilling = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         
+        // ── Validation Checks from master customization configurations ──
+        if (activeConfig.negativeStock) {
+            for (const item of formData.items) {
+                if (item.product_id) {
+                    const prod = catalogProducts.find(p => String(p.id) === String(item.product_id));
+                    if (prod && (prod.quantity || 0) < item.quantity) {
+                        alert(`Negative Inventory Restricted: "${item.description}" has only ${prod.quantity || 0} units left in stock, but you requested ${item.quantity}.`);
+                        return;
+                    }
+                } else if (item.inventory_id) {
+                    const inv = inventoryItems.find(i => String(i.id) === String(item.inventory_id));
+                    if (inv && (inv.quantity || 0) < item.quantity) {
+                        alert(`Negative Inventory Restricted: "${item.description}" has only ${inv.quantity || 0} units left in stock, but you requested ${item.quantity}.`);
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (activeConfig.blockParties) {
+            const exists = customers.some(c => c.name === formData.client_name);
+            if (!exists) {
+                alert(`Lock Party Generation Active: "${formData.client_name}" is a new client record. Creating new parties directly within invoice forms is restricted.`);
+                return;
+            }
+        }
+
+        if (activeConfig.hsnCode) {
+            const missingHSN = formData.items.some(item => !item.hsn_code || !item.hsn_code.trim());
+            if (missingHSN) {
+                alert(`Force HSN Mandatory: All billed invoice items must include a valid HSN/SAC code.`);
+                return;
+            }
+        }
+
         // Derive Status Logic
         const total = parseFloat(formData.total_amount) || 0;
         const paid = parseFloat(formData.paid_amount) || 0;
@@ -848,7 +907,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.placeSupply ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
                                     <input 
@@ -873,6 +932,12 @@ const BusinessBilling = () => {
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client GSTIN</label>
                                     <input type="text" value={formData.client_gstin} onChange={(e) => setFormData({...formData, client_gstin: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="Optional" />
                                 </div>
+                                {activeConfig.placeSupply && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Place of Supply</label>
+                                        <input type="text" value={formData.place_of_supply || ''} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="e.g. Maharashtra" />
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

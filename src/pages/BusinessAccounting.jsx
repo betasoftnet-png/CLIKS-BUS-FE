@@ -25,10 +25,19 @@ import {
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingService } from '../services/accountingService';
-import { gstService } from '../services';
+import { gstService, settingsService } from '../services';
 import * as XLSX from 'xlsx';
 
 const BusinessAccounting = () => {
+    const queryClient = useQueryClient();
+    // Fetch customization settings dynamically to enforce master configurations
+    const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
+
     const [activeTab, setActiveTab] = useState('p&l'); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -40,7 +49,7 @@ const BusinessAccounting = () => {
     const [exportToDate, setExportToDate] = useState(new Date().toISOString().split('T')[0]);
     const [exportFormat, setExportFormat] = useState('xlsx');
 
-    const queryClient = useQueryClient();
+
 
     // Queries
     const { data: dbPL } = useQuery({
@@ -237,6 +246,36 @@ const BusinessAccounting = () => {
                              (parseFloat(dbBalanceSheet?.liabilities?.gst_payable) || 0) +
                              (parseFloat(dbBalanceSheet?.liabilities?.loans) || 0) +
                              (parseFloat(dbBalanceSheet?.liabilities?.equity) || 0);
+
+    if (!isLoadingSettings && activeConfig.accountingModule === false) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '500px', background: '#F8FAFC', fontFamily: "'Inter', sans-serif", padding: '2rem' }}>
+                <div style={{ background: 'white', border: '1px solid #E2E8F0', padding: '3rem', borderRadius: '24px', maxWidth: '500px', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', margin: '0 auto 1.5rem', boxShadow: '0 8px 16px rgba(124, 58, 237, 0.1)' }}>
+                        <Calculator size={40} style={{ color: '#7C3AED' }} />
+                    </div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Double Entry Accounting Locked</h2>
+                    <p style={{ color: '#64748B', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '2rem', fontWeight: '500' }}>
+                        The general ledgers, trial balances, and Profit & Loss sheet features are currently disabled. You can activate full Double Entry Accounting anytime from the Engine Customizer panel.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                        <button 
+                            onClick={() => window.location.href = '/customization'}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', 
+                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)'
+                            }}
+                        >
+                            Activate Accounting Engine
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#FFFFFF', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>

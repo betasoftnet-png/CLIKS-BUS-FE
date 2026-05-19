@@ -9,7 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
 import { Toggle } from '../components/ui/toggle';
-import { settingsService } from '../services';
+import { settingsService, profileService } from '../services';
 import { customPrompt } from '../utils/customConfirm';
 
 const BusinessCustomization = () => {
@@ -95,15 +95,42 @@ const BusinessCustomization = () => {
     useEffect(() => {
         const loadMasterConfig = async () => {
             try {
-                const res = await settingsService.getSettings();
-                const payload = res?.data || res;
-                if (payload && typeof payload === 'object') {
-                    // Safely merge payload on top of current local structures
-                    setConfig(prev => ({
-                        ...prev,
-                        ...payload
-                    }));
+                const [settingsRes, profileRes] = await Promise.allSettled([
+                    settingsService.getSettings(),
+                    profileService.getProfile()
+                ]);
+                
+                let dbSettings = {};
+                if (settingsRes.status === 'fulfilled') {
+                    const res = settingsRes.value;
+                    dbSettings = res?.data || res || {};
                 }
+
+                let userProfile = {};
+                if (profileRes.status === 'fulfilled') {
+                    const res = profileRes.value;
+                    userProfile = res?.data || res || {};
+                }
+
+                setConfig(prev => {
+                    const merged = {
+                        ...prev,
+                        ...dbSettings
+                    };
+                    
+                    // Fallback empty profile settings to registered account details
+                    if (!merged.companyName || merged.companyName === 'My Primary Firm') {
+                        merged.companyName = userProfile.business_name || userProfile.name || 'My Primary Firm';
+                    }
+                    if (!merged.email) {
+                        merged.email = userProfile.email || '';
+                    }
+                    if (!merged.phone) {
+                        merged.phone = userProfile.phone || '';
+                    }
+                    
+                    return merged;
+                });
             } catch (err) {
                 console.warn('[Settings Engine] Cloud node offline. Operating locally.', err);
             }
