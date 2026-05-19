@@ -781,9 +781,74 @@ const BusinessSplitCollect = () => {
                                 
                                 {/* LEFT SIDE: Ledger Expenses List */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Logged Expenses</h3>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '900', color: '#1E293B', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Logged Expenses</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            {/* Search Toggle */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                <AnimatePresence>
+                                                    {showDetailSearch && (
+                                                        <Motion.input
+                                                            initial={{ width: 0, opacity: 0 }}
+                                                            animate={{ width: 140, opacity: 1 }}
+                                                            exit={{ width: 0, opacity: 0 }}
+                                                            type="text"
+                                                            placeholder="Search expenses..."
+                                                            value={detailSearchQuery}
+                                                            onChange={(e) => setDetailSearchQuery(e.target.value)}
+                                                            style={{
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid #CBD5E1',
+                                                                fontSize: '0.75rem',
+                                                                outline: 'none',
+                                                                fontWeight: '600'
+                                                            }}
+                                                        />
+                                                    )}
+                                                </AnimatePresence>
+                                                <button 
+                                                    onClick={() => {
+                                                        setShowDetailSearch(!showDetailSearch);
+                                                        if (showDetailSearch) setDetailSearchQuery('');
+                                                     }}
+                                                     title="Search expenses"
+                                                     style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.45rem', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                 >
+                                                     <Search size={14} />
+                                                 </button>
+                                             </div>
+
+                                             {/* Share Icon */}
+                                             <button 
+                                                 onClick={handleShareGroup}
+                                                 title="Share Split Summary"
+                                                 style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.45rem', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                             >
+                                                 <Share2 size={14} />
+                                             </button>
+
+                                             {/* PDF Download Icon */}
+                                             <button 
+                                                 onClick={handleDownloadPDF}
+                                                 title="Download Statement (PDF)"
+                                                 style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.45rem', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                             >
+                                                 <Download size={14} />
+                                             </button>
+                                         </div>
+                                     </div>
                                     
-                                    {activeSplit.expenses.length === 0 ? (
+                                    {(() => {
+                                        const filteredExpenses = (activeSplit.expenses || []).filter(e => {
+                                            if (!detailSearchQuery.trim()) return true;
+                                            const term = detailSearchQuery.toLowerCase().trim();
+                                            return e.title.toLowerCase().includes(term) ||
+                                                   e.paidBy.toLowerCase().includes(term) ||
+                                                   String(e.amount).includes(term) ||
+                                                   (e.attachment || '').toLowerCase().includes(term);
+                                        });
+                                        return filteredExpenses.length === 0 ? (
                                         <div style={{ border: '2px dashed #E2E8F0', borderRadius: '24px', background: 'white', padding: '3.5rem 2rem', textAlign: 'center' }}>
                                             <Receipt size={36} style={{ color: '#CBD5E1', marginBottom: '0.75rem' }} />
                                             <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#334155', margin: '0 0 0.15rem 0' }}>No Expenses Logged</h4>
