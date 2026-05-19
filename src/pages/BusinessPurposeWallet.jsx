@@ -14,7 +14,8 @@ import {
     ArrowRight,
     Sparkles,
     Lock,
-    History
+    History,
+    Search
 } from 'lucide-react';
 import { goalWalletService } from '../services';
 import '../App.css';
@@ -34,6 +35,8 @@ const BusinessPurposeWallet = () => {
 
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyWalletId, setHistoryWalletId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     // Fetch Singular Wallet Details & History
     const { data: historyWalletRes, isLoading: isHistoryLoading } = useQuery({
@@ -133,6 +136,15 @@ const BusinessPurposeWallet = () => {
     const totalTarget = wallets.reduce((sum, w) => sum + parseFloat(w.target_amount || 0), 0);
     const globalProgress = totalTarget > 0 ? Math.round((totalAllocated / totalTarget) * 100) : 0;
 
+    const filteredWallets = wallets.filter(wallet => {
+        if (!searchTerm.trim()) return true;
+        const term = searchTerm.toLowerCase();
+        return (
+            (wallet.name || '').toLowerCase().includes(term) ||
+            (wallet.description || '').toLowerCase().includes(term)
+        );
+    });
+
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Main Title Bar */}
@@ -153,6 +165,71 @@ const BusinessPurposeWallet = () => {
                             <Target size={24} />
                         </div>
                         <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', letterSpacing: '-0.02em', margin: 0 }}>Segregation Wallets</h1>
+                        
+                        <button 
+                            onClick={() => {
+                                setShowSearch(!showSearch);
+                                if (showSearch) setSearchTerm('');
+                            }}
+                            style={{
+                                background: showSearch ? '#DCF2E4' : 'transparent',
+                                border: 'none',
+                                color: '#064E3B',
+                                cursor: 'pointer',
+                                padding: '8px',
+                                borderRadius: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                                marginLeft: '0.5rem'
+                            }}
+                            title="Search Wallets"
+                        >
+                            <Search size={22} style={{ opacity: showSearch ? 1 : 0.6 }} />
+                        </button>
+
+                        {showSearch && (
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginLeft: '1rem', animation: 'fadeIn 0.2s ease' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '12px', color: '#64748B' }} />
+                                <input 
+                                    type="text"
+                                    placeholder="Search wallets by name or rationale..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    autoFocus
+                                    style={{
+                                        padding: '0.6rem 1.25rem 0.6rem 2.25rem',
+                                        borderRadius: '12px',
+                                        border: '1px solid #BBF7D0',
+                                        outline: 'none',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '600',
+                                        color: '#1E293B',
+                                        width: '260px',
+                                        background: 'white',
+                                        boxShadow: '0 4px 10px rgba(0,0,0,0.02)'
+                                    }}
+                                />
+                                {searchTerm && (
+                                    <button 
+                                        onClick={() => setSearchTerm('')}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '10px',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#94A3B8',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            padding: '2px'
+                                        }}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <p style={{ color: '#475569', fontSize: '1.05rem', fontWeight: '500', margin: 0 }}>Create target-based wallets to isolate and secure funds for specific business needs.</p>
                 </div>
@@ -249,9 +326,36 @@ const BusinessPurposeWallet = () => {
                         Create First Segregated Wallet
                     </button>
                 </div>
+            ) : filteredWallets.length === 0 ? (
+                <div style={{ 
+                    background: 'white', 
+                    borderRadius: '24px', 
+                    border: '1px solid #E2E8F0', 
+                    padding: '5rem 2rem', 
+                    textAlign: 'center',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.02)'
+                }}>
+                    <div style={{ 
+                        width: '60px', 
+                        height: '60px', 
+                        borderRadius: '20px', 
+                        background: '#F1F5F9', 
+                        color: '#94A3B8', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        margin: '0 auto 1.25rem auto' 
+                    }}>
+                        <Search size={24} />
+                    </div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#1F2937', marginBottom: '0.5rem' }}>No Matching Wallets</h3>
+                    <p style={{ color: '#6B7280', maxWidth: '380px', margin: '0 auto', fontWeight: '500', fontSize: '0.9rem' }}>
+                        We couldn't find any segregated wallets matching "{searchTerm}". Check the spelling or clear the filter.
+                    </p>
+                </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>
-                    {wallets.map((wallet) => {
+                    {filteredWallets.map((wallet) => {
                         const isCompleted = wallet.status === 'completed';
                         const current = parseFloat(wallet.current_amount || 0);
                         const target = parseFloat(wallet.target_amount || 1);
