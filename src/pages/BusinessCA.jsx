@@ -24,11 +24,7 @@ export default function BusinessCA() {
     // Module 3: CS Vault States
     const [resolutions, setResolutions] = useState(() => {
         const saved = localStorage.getItem('cliks_cs_resolutions');
-        return saved ? JSON.parse(saved) : [
-            { id: 1, title: "Adoption of Annual Financial Statements", type: "Ordinary", status: "Approved", date: "2026-05-10" },
-            { id: 2, title: "Appointment of Statutory Auditors", type: "Ordinary", status: "Approved", date: "2026-05-12" },
-            { id: 3, title: "Authorization of Related Party Transactions", type: "Special", status: "Pending Approval", date: "2026-05-18" }
-        ];
+        return saved ? JSON.parse(saved) : [];
     });
     const [newResolutionTitle, setNewResolutionTitle] = useState('');
     const [newResolutionType, setNewResolutionType] = useState('Ordinary');
@@ -38,13 +34,9 @@ export default function BusinessCA() {
     const [forecastPeriod, setForecastPeriod] = useState(6); // months
     const [clientNotes, setClientNotes] = useState(() => {
         const saved = localStorage.getItem('cliks_ca_client_notes');
-        return saved ? JSON.parse(saved) : {
-            101: "Active compliance files loaded. Revenue reconciliation complete.",
-            102: "Q2 audit files pending board approval. General ledger aligned.",
-            103: "High hazard spike identified in travel ledger, review requested.",
-            104: "Clean transaction history. Delaware franchise sync accomplished."
-        };
+        return saved ? JSON.parse(saved) : {};
     });
+
     const [activeNoteInput, setActiveNoteInput] = useState('');
 
     // ── Live Connected Queries ──
@@ -105,18 +97,16 @@ export default function BusinessCA() {
             setScanResults({
                 amlScore: `${score.toFixed(1)}% Compliant`,
                 anomaliesFound: highRisk.length,
-                itemsChecked: Math.max(12, liveExpenses.length),
-                flaggedExpenses: highRisk.length > 0 ? highRisk.map(h => ({
+                itemsChecked: liveExpenses.length,
+                flaggedExpenses: highRisk.map(h => ({
                     id: h.id,
                     desc: h.notes || `Large expense under ${h.category}`,
                     amount: `₹${parseFloat(h.amount).toLocaleString()}`,
                     type: h.amount > 15000 ? "High Risk Spike" : "Slight Anomaly"
-                })) : [
-                    { id: 1, desc: "Unvouched Travel reimbursement to Board", amount: "₹4,250", type: "Slight Anomaly" },
-                    { id: 2, desc: "Uncategorized Cash outflow to offshore entity", amount: "₹15,00,000", type: "High Risk AML Alert" }
-                ]
+                }))
             });
         }
+
     });
 
     const handleStandardChange = (std) => {
@@ -192,24 +182,20 @@ export default function BusinessCA() {
         status: c.type || "Active",
         risk: c.notes?.toLowerCase().includes('high') ? 'High' : (c.notes?.toLowerCase().includes('medium') ? 'Medium' : 'Low'),
         revenue: `₹${(Math.random() * 2000000 + 500000).toLocaleString(undefined, {maximumFractionDigits: 0})}`
-    })) : [
-        { id: 101, name: "Apex Technologies Pvt Ltd", industry: "SaaS & Software", status: "Active", risk: "Low", revenue: "₹4,50,000" },
-        { id: 102, name: "Global Trade Logistics Inc", industry: "Supply Chain", status: "Active", risk: "Medium", revenue: "₹12,00,000" },
-        { id: 103, name: "Vanguard Retail Ventures", industry: "E-Commerce", status: "Pending Audit", risk: "High", revenue: "₹8,90,000" },
-        { id: 104, name: "Zenith Real Estate Group", industry: "Real Estate", status: "Active", risk: "Low", revenue: "₹31,00,000" }
-    ];
+    })) : [];
 
-    const activeClientData = clientsList.find(c => c.id === selectedClient) || clientsList[0];
+    const activeClientData = clientsList.find(c => c.id === selectedClient) || clientsList[0] || { id: 0, name: "No Active Client", industry: "N/A", status: "N/A", risk: "Low", revenue: "₹0" };
 
     // Compute live values or fallback gracefully
-    const computedOutwardTaxable = gst3bData?.outward_taxable || 425000;
-    const computedTotalOutputTax = gst3bData?.total_output_tax || 76500;
-    const computedEligibleItc = gst3bData?.total_eligible_itc || 42500;
-    const computedNetPayableCGST = gst3bData?.net_payable_cgst || 17000;
-    const computedNetPayableSGST = gst3bData?.net_payable_sgst || 17000;
+    const computedOutwardTaxable = gst3bData?.outward_taxable || 0;
+    const computedTotalOutputTax = gst3bData?.total_output_tax || 0;
+    const computedEligibleItc = gst3bData?.total_eligible_itc || 0;
+    const computedNetPayableCGST = gst3bData?.net_payable_cgst || 0;
+    const computedNetPayableSGST = gst3bData?.net_payable_sgst || 0;
 
-    const computedGrossRevenue = profitLoss?.gross_revenue || 850000;
+    const computedGrossRevenue = profitLoss?.gross_revenue || 0;
     const computedTaxUS = Math.round(computedGrossRevenue * 0.21);
+
 
     return (
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', backgroundColor: '#F8FAFC', minHeight: '85vh', fontFamily: 'Inter, sans-serif' }}>
@@ -549,7 +535,7 @@ export default function BusinessCA() {
                                         <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Switch seamlessly between business entities under your management desk without data token crossover.</p>
                                         
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-                                            {clientsList.map(c => (
+                                            {clientsList.length > 0 ? clientsList.map(c => (
                                                 <button 
                                                     key={c.id} 
                                                     onClick={() => setSelectedClient(c.id)}
@@ -569,8 +555,13 @@ export default function BusinessCA() {
                                                         <span>Revenue: <strong>{c.revenue}</strong></span>
                                                     </div>
                                                 </button>
-                                            ))}
+                                            )) : (
+                                                <div style={{ padding: '24px', textAlign: 'center', border: '1px dashed #CBD5E1', borderRadius: '10px', color: '#64748B', fontSize: '12px', fontWeight: '600' }}>
+                                                    No client contacts registered. Go to Contacts to add a client.
+                                                </div>
+                                            )}
                                         </div>
+
                                     </div>
 
                                     {/* Financial Forecasting & Notes Desk */}
