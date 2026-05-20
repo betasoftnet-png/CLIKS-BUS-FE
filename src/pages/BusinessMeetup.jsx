@@ -44,6 +44,8 @@ const BusinessMeetup = () => {
         return localStorage.getItem('cliks_preferred_meetup_category') || 'Finance';
     });
 
+    const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
+
     const [gpsState, setGpsState] = useState(null);
     const [plusCode, setPlusCode] = useState(null);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
@@ -351,23 +353,120 @@ const BusinessMeetup = () => {
                         <h1 style={{ fontSize: '1.6rem', fontWeight: '950', letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
                             Founders Meetup & Executive Events
                         </h1>
-                        {gpsState && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem' }}>
-                                <span style={{
-                                    background: 'rgba(255, 255, 255, 0.1)',
-                                    padding: '0.25rem 0.5rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: '700',
-                                    color: 'rgba(255, 255, 255, 0.9)',
+                        <div style={{ position: 'relative', marginTop: '0.5rem', display: 'inline-block' }}>
+                            <button 
+                                onClick={() => setIsLocationMenuOpen(!isLocationMenuOpen)}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.15)',
+                                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                                    padding: '0.35rem 0.75rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    color: 'white',
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '4px'
-                                }}>
-                                    <MapPin size={12} color="#10B981" /> GPS Locked: {gpsState} {plusCode ? `(OLC Plus Code: ${plusCode})` : ''}
+                                    gap: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                                }}
+                                onMouseOver={e => {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                }}
+                                onMouseOut={e => {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                }}
+                            >
+                                <MapPin size={13} color="#10B981" />
+                                <span>
+                                    {gpsState ? `GPS Locked: ${gpsState} ${plusCode ? `(${plusCode})` : ''}` : 'Select Region / Lock GPS'}
                                 </span>
-                            </div>
-                        )}
+                                <span style={{ fontSize: '0.55rem', opacity: 0.8, marginLeft: '2px' }}>▼</span>
+                            </button>
+
+                            {isLocationMenuOpen && (
+                                <>
+                                    {/* Backdrop click closer */}
+                                    <div 
+                                        onClick={() => setIsLocationMenuOpen(false)}
+                                        style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'transparent' }} 
+                                    />
+                                    
+                                    {/* Dropdown Menu Overlay */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '110%',
+                                        left: 0,
+                                        background: 'white',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                        border: '1px solid #E2E8F0',
+                                        padding: '0.4rem',
+                                        minWidth: '220px',
+                                        zIndex: 999,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '2px'
+                                    }}>
+                                        <div style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', padding: '0.3rem 0.5rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
+                                            Select Matching Region
+                                        </div>
+                                        
+                                        {[
+                                            { label: '⚡ Detect GPS Location', state: 'GPS', plusCode: 'Auto' },
+                                            { label: '📍 Chennai, Tamil Nadu', state: 'Tamil Nadu', plusCode: '7J5X4W66+F9' },
+                                            { label: '📍 Mumbai, Maharashtra', state: 'Maharashtra', plusCode: '8FVC9G8F+6W' },
+                                            { label: '📍 Bengaluru, Karnataka', state: 'Karnataka', plusCode: '7J4VXH8R+5P' },
+                                            { label: '📍 Delhi NCR', state: 'Delhi', plusCode: '8F3C4R2V+8Q' }
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.state}
+                                                onClick={() => {
+                                                    if (opt.state === 'GPS') {
+                                                        requestLocation();
+                                                    } else {
+                                                        setGpsState(opt.state);
+                                                        setPlusCode(opt.plusCode);
+                                                        setLocationPermissionDenied(false);
+                                                    }
+                                                    setIsLocationMenuOpen(false);
+                                                }}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    textAlign: 'left',
+                                                    padding: '0.5rem 0.6rem',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: '750',
+                                                    color: '#334155',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '1px',
+                                                    transition: 'all 0.15s ease',
+                                                    width: '100%'
+                                                }}
+                                                onMouseOver={e => {
+                                                    e.currentTarget.style.background = '#F1F5F9';
+                                                    e.currentTarget.style.color = '#004aad';
+                                                }}
+                                                onMouseOut={e => {
+                                                    e.currentTarget.style.background = 'transparent';
+                                                    e.currentTarget.style.color = '#334155';
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '0.75rem' }}>{opt.label}</span>
+                                                <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontWeight: '500' }}>Plus Code: {opt.plusCode}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                     <button 
                         onClick={() => setIsCreateModalOpen(true)}
