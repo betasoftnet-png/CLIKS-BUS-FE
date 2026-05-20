@@ -20,7 +20,9 @@ import {
     DollarSign,
     CreditCard,
     Share2,
-    Download
+    Download,
+    Pin,
+    MoreVertical
 } from 'lucide-react';
 import '../App.css';
 import splitExpenseService from '../services/splitExpenseService';
@@ -32,6 +34,18 @@ const BusinessSplitCollect = () => {
     // ── State Management ───────────────────────────────────────────────────
     const [splits, setSplits] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [pinnedSplitIds, setPinnedSplitIds] = useState(() => {
+        const saved = localStorage.getItem('cliks_pinned_splits');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [activeMenuId, setActiveMenuId] = useState(null);
+
+    useEffect(() => {
+        const handleGlobalClick = () => setActiveMenuId(null);
+        window.addEventListener('click', handleGlobalClick);
+        return () => window.removeEventListener('click', handleGlobalClick);
+    }, []);
 
     const [selectedSplitId, setSelectedSplitId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -672,72 +686,166 @@ const BusinessSplitCollect = () => {
                                 </div>
                             ) : (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-                                    {filteredSplits.map(s => {
-                                        const groupTotal = s.expenses.reduce((sum, e) => sum + e.amount, 0);
-                                        return (
-                                            <div 
-                                                key={s.id} 
-                                                onClick={() => setSelectedSplitId(s.id)}
-                                                style={{ 
-                                                    background: 'white', 
-                                                    borderRadius: '20px', 
-                                                    border: '1.5px solid #E2E8F0', 
-                                                    padding: '1.5rem', 
-                                                    cursor: 'pointer',
-                                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
-                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                    position: 'relative',
-                                                    overflow: 'hidden'
-                                                }}
-                                                onMouseOver={(e) => {
-                                                    e.currentTarget.style.borderColor = '#1B6B3A';
-                                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)';
-                                                }}
-                                                onMouseOut={(e) => {
-                                                    e.currentTarget.style.borderColor = '#E2E8F0';
-                                                    e.currentTarget.style.transform = 'translateY(0)';
-                                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
-                                                }}
-                                            >
-                                                {/* Card Header */}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                                                    <div>
-                                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>{s.title}</h3>
-                                                        <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px', marginTop: '4px', display: 'inline-block' }}>
-                                                            {s.currency}
-                                                        </span>
+                                    {filteredSplits
+                                        .sort((a, b) => {
+                                            const aPinned = pinnedSplitIds.includes(a.id);
+                                            const bPinned = pinnedSplitIds.includes(b.id);
+                                            if (aPinned && !bPinned) return -1;
+                                            if (!aPinned && bPinned) return 1;
+                                            return 0;
+                                        })
+                                        .map(s => {
+                                            const groupTotal = s.expenses.reduce((sum, e) => sum + e.amount, 0);
+                                            const isPinned = pinnedSplitIds.includes(s.id);
+                                            return (
+                                                <div 
+                                                    key={s.id} 
+                                                    onClick={() => setSelectedSplitId(s.id)}
+                                                    style={{ 
+                                                        background: 'white', 
+                                                        borderRadius: '20px', 
+                                                        border: '1.5px solid #E2E8F0', 
+                                                        padding: '1.5rem', 
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                        position: 'relative',
+                                                        overflow: 'hidden'
+                                                    }}
+                                                    onMouseOver={(e) => {
+                                                        e.currentTarget.style.borderColor = '#1B6B3A';
+                                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)';
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        e.currentTarget.style.borderColor = '#E2E8F0';
+                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
+                                                    }}
+                                                >
+                                                    {/* Card Header */}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                                        <div>
+                                                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                {s.title}
+                                                                {isPinned && (
+                                                                    <Pin size={12} style={{ color: '#004aad', transform: 'rotate(45deg)' }} />
+                                                                )}
+                                                            </h3>
+                                                            <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px', marginTop: '4px', display: 'inline-block' }}>
+                                                                {s.currency}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveMenuId(activeMenuId === s.id ? null : s.id);
+                                                                }}
+                                                                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '6px 10px', borderRadius: '8px' }}
+                                                                onMouseOver={(e) => e.currentTarget.style.color = '#004aad'}
+                                                                onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            
+                                                            {activeMenuId === s.id && (
+                                                                <div style={{
+                                                                    position: 'absolute',
+                                                                    right: 0,
+                                                                    top: '100%',
+                                                                    background: 'white',
+                                                                    borderRadius: '12px',
+                                                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                                                                    border: '1px solid #E2E8F0',
+                                                                    padding: '6px',
+                                                                    zIndex: 100,
+                                                                    minWidth: '160px',
+                                                                    textAlign: 'left'
+                                                                }}>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const next = pinnedSplitIds.includes(s.id)
+                                                                                ? pinnedSplitIds.filter(id => id !== s.id)
+                                                                                : [...pinnedSplitIds, s.id];
+                                                                            setPinnedSplitIds(next);
+                                                                            localStorage.setItem('cliks_pinned_splits', JSON.stringify(next));
+                                                                            setActiveMenuId(null);
+                                                                        }}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '8px',
+                                                                            width: '100%',
+                                                                            padding: '8px 12px',
+                                                                            border: 'none',
+                                                                            background: 'none',
+                                                                            color: '#334155',
+                                                                            fontSize: '0.85rem',
+                                                                            fontWeight: '600',
+                                                                            cursor: 'pointer',
+                                                                            borderRadius: '8px',
+                                                                            transition: 'background 0.2s'
+                                                                        }}
+                                                                        onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                    >
+                                                                        <Pin size={14} style={{ color: '#004aad', transform: isPinned ? 'rotate(45deg)' : 'none' }} />
+                                                                        {isPinned ? 'Unpin Ticket' : 'Pin to top'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleDeleteGroup(s.id);
+                                                                            setActiveMenuId(null);
+                                                                        }}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '8px',
+                                                                            width: '100%',
+                                                                            padding: '8px 12px',
+                                                                            border: 'none',
+                                                                            background: 'none',
+                                                                            color: '#EF4444',
+                                                                            fontSize: '0.85rem',
+                                                                            fontWeight: '600',
+                                                                            cursor: 'pointer',
+                                                                            borderRadius: '8px',
+                                                                            transition: 'background 0.2s'
+                                                                        }}
+                                                                        onMouseOver={(e) => e.currentTarget.style.background = '#FEF2F2'}
+                                                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                    >
+                                                                        <Trash2 size={14} style={{ color: '#EF4444' }} />
+                                                                        Delete Ticket
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteGroup(s.id); }}
-                                                        style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
-                                                        onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
-                                                        onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    
+                                                    <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                        {s.description || 'No description provided.'}
+                                                    </p>
+                                                    
+                                                    {/* Card Footer Statistics */}
+                                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#1B6B3A' }}>
+                                                            <Users size={14} />
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>{s.participants.length} Members</span>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Spent</span>
+                                                            <span style={{ fontSize: '1.05rem', fontWeight: '950', color: '#064E3B' }}>
+                                                                {s.currencySymbol}{groupTotal.toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-
-                                                <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                                    {s.description || 'No description provided.'}
-                                                </p>
-
-                                                {/* Card Footer Statistics */}
-                                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#1B6B3A' }}>
-                                                        <Users size={14} />
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>{s.participants.length} Members</span>
-                                                    </div>
-                                                    <div style={{ textAlign: 'right' }}>
-                                                        <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Spent</span>
-                                                        <span style={{ fontSize: '1.05rem', fontWeight: '950', color: '#064E3B' }}>
-                                                            {s.currencySymbol}{groupTotal.toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                 </div>
                             )}
                         </Motion.div>
