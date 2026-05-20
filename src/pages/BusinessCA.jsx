@@ -6,7 +6,7 @@ import {
     RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock, 
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building
 } from 'lucide-react';
-import { accountingService, gstService, contactsService } from '../services';
+import { accountingService, gstService, contactsService, caService } from '../services';
 
 export default function BusinessCA() {
     const [activeTab, setActiveTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
@@ -36,6 +36,16 @@ export default function BusinessCA() {
     // Module 4: Consultant Desk States
     const [selectedClient, setSelectedClient] = useState(101);
     const [forecastPeriod, setForecastPeriod] = useState(6); // months
+    const [clientNotes, setClientNotes] = useState(() => {
+        const saved = localStorage.getItem('cliks_ca_client_notes');
+        return saved ? JSON.parse(saved) : {
+            101: "Active compliance files loaded. Revenue reconciliation complete.",
+            102: "Q2 audit files pending board approval. General ledger aligned.",
+            103: "High hazard spike identified in travel ledger, review requested.",
+            104: "Clean transaction history. Delaware franchise sync accomplished."
+        };
+    });
+    const [activeNoteInput, setActiveNoteInput] = useState('');
 
     // ── Live Connected Queries ──
     const { data: liveExpenses = [] } = useQuery({
@@ -63,7 +73,7 @@ export default function BusinessCA() {
         retry: false
     });
 
-    // E-filing sync mutation
+    // ── Mutations ──
     const fileMutation = useMutation({
         mutationFn: () => gstService.fileGstr3b(),
         onSuccess: () => {
@@ -74,24 +84,24 @@ export default function BusinessCA() {
         }
     });
 
-    // Dynamic compliance scan trigger
-    const triggerComplianceScan = () => {
-        setIsScanning(true);
-        setScanProgress(0);
-        setScanResults(null);
-    };
+    const auditMutation = useMutation({
+        mutationFn: (std) => caService.applyCrossBorderAudit(std)
+    });
 
-    useEffect(() => {
-        let timer;
-        if (isScanning && scanProgress < 100) {
-            timer = setTimeout(() => setScanProgress(p => p + 10), 150);
-        } else if (isScanning && scanProgress === 100) {
-            setIsScanning(false);
-            
-            // Scan logic analyzing real expenses
+    const scanMutation = useMutation({
+        mutationFn: () => caService.runComplianceScan(),
+        onSuccess: (data) => {
+            setScanResults({
+                amlScore: `${data.compliance}% Compliant`,
+                anomaliesFound: data.issues,
+                itemsChecked: data.itemsChecked,
+                flaggedExpenses: data.flaggedExpenses
+            });
+        },
+        onError: () => {
+            // Fallback scan analysis logic based on live expenses if network fails
             const highRisk = liveExpenses.filter(e => parseFloat(e.amount) > 5000);
             const score = highRisk.length === 0 ? 100 : Math.max(70, 100 - highRisk.length * 4.5);
-            
             setScanResults({
                 amlScore: `${score.toFixed(1)}% Compliant`,
                 anomaliesFound: highRisk.length,
@@ -103,12 +113,34 @@ export default function BusinessCA() {
                     type: h.amount > 15000 ? "High Risk Spike" : "Slight Anomaly"
                 })) : [
                     { id: 1, desc: "Unvouched Travel reimbursement to Board", amount: "₹4,250", type: "Slight Anomaly" },
-                    { id: 2, desc: "Uncategorized Cash outflow to offshore entity", amount: "₹15,000", type: "High Risk spike" }
+                    { id: 2, desc: "Uncategorized Cash outflow to offshore entity", amount: "₹15,00,000", type: "High Risk AML Alert" }
                 ]
             });
         }
+    });
+
+    const handleStandardChange = (std) => {
+        setAccountingStandard(std);
+        auditMutation.mutate(std);
+    };
+
+    // Dynamic compliance scan trigger
+    const triggerComplianceScan = () => {
+        setIsScanning(true);
+        setScanProgress(0);
+        setScanResults(null);
+    };
+
+    useEffect(() => {
+        let timer;
+        if (isScanning && scanProgress < 100) {
+            timer = setTimeout(() => setScanProgress(p => p + 10), 100);
+        } else if (isScanning && scanProgress === 100) {
+            setIsScanning(false);
+            scanMutation.mutate();
+        }
         return () => clearTimeout(timer);
-    }, [isScanning, scanProgress, liveExpenses]);
+    }, [isScanning, scanProgress]);
 
     // Dynamic portal sync trigger
     const triggerPortalSync = () => {
@@ -138,6 +170,18 @@ export default function BusinessCA() {
         setResolutions(updated);
         localStorage.setItem('cliks_cs_resolutions', JSON.stringify(updated));
         setNewResolutionTitle('');
+    };
+
+    const handleAddClientNote = (e) => {
+        e.preventDefault();
+        if (!activeNoteInput.trim()) return;
+        const updated = {
+            ...clientNotes,
+            [selectedClient]: activeNoteInput
+        };
+        setClientNotes(updated);
+        localStorage.setItem('cliks_ca_client_notes', JSON.stringify(updated));
+        setActiveNoteInput('');
     };
 
     // Client portfolio derived from real contacts
@@ -210,10 +254,10 @@ export default function BusinessCA() {
                                         <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Select the accounting pipeline architecture required for auditing cross-border files automatically matching corporate base tokens.</p>
                                         
                                         <div style={{ display: 'flex', gap: '12px' }}>
-                                            <button onClick={() => setAccountingStandard('IFRS')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'IFRS' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'IFRS' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'IFRS' ? '#004aad' : '#475569' }}>
+                                            <button onClick={() => handleStandardChange('IFRS')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'IFRS' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'IFRS' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'IFRS' ? '#004aad' : '#475569' }}>
                                                 IFRS (Global GAAP)
                                             </button>
-                                            <button onClick={() => setAccountingStandard('GAAP')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'GAAP' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'GAAP' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'GAAP' ? '#004aad' : '#475569' }}>
+                                            <button onClick={() => handleStandardChange('GAAP')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'GAAP' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'GAAP' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'GAAP' ? '#004aad' : '#475569' }}>
                                                 US GAAP (GAAP-US)
                                             </button>
                                         </div>
@@ -408,7 +452,7 @@ export default function BusinessCA() {
                                     <form onSubmit={handleAddResolution} style={{ display: 'flex', gap: '12px', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                         <input 
                                             type="text" 
-                                            placeholder="Enter new Resolution description (e.g. Appointment of directors)..." 
+                                            placeholder="Enter new Resolution description (e.g. Adoption of annual finances)..." 
                                             value={newResolutionTitle} 
                                             onChange={(e) => setNewResolutionTitle(e.target.value)} 
                                             style={{ flex: 3, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', fontWeight: '600' }}
@@ -497,7 +541,7 @@ export default function BusinessCA() {
 
                         {activeTab === 'consultant' && (
                             <Motion.div key="consultant" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px' }}>
                                     
                                     {/* Multi-Tenant Client Portfolio */}
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -529,50 +573,79 @@ export default function BusinessCA() {
                                         </div>
                                     </div>
 
-                                    {/* Financial Forecasting Engine */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
-                                                Cash Flow &amp; Financial Forecasting Desk
-                                            </h3>
-                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                <button onClick={() => setForecastPeriod(3)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 3 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 3 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>3M</button>
-                                                <button onClick={() => setForecastPeriod(6)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 6 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 6 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>6M</button>
-                                                <button onClick={() => setForecastPeriod(12)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 12 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 12 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>12M</button>
+                                    {/* Financial Forecasting & Notes Desk */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
+                                                    Cash Flow &amp; Financial Forecasting Desk
+                                                </h3>
+                                                <div style={{ display: 'flex', gap: '6px' }}>
+                                                    <button onClick={() => setForecastPeriod(3)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 3 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 3 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>3M</button>
+                                                    <button onClick={() => setForecastPeriod(6)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 6 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 6 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>6M</button>
+                                                    <button onClick={() => setForecastPeriod(12)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 12 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 12 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>12M</button>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '8px', background: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '12px' }}>
+                                                <span>Active Client Model: <strong>{activeClientData.name}</strong></span>
+                                                <span style={{ color: '#CBD5E1' }}>|</span>
+                                                <span>Industry Benchmark Risk: <strong style={{ color: activeClientData.risk === 'Low' ? '#16A34A' : '#D97706' }}>{activeClientData.risk}</strong></span>
+                                            </div>
+
+                                            {/* Simulated Bar Graph using CSS flexboxes and divs */}
+                                            <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px 10px 10px 10px' }}>
+                                                {Array.from({ length: forecastPeriod }).map((_, idx) => {
+                                                    // Dynamic forecast generator algorithm
+                                                    const baseRev = parseInt(activeClientData.revenue.replace(/[^0-9]/g, '')) || 500;
+                                                    const multiplier = activeClientData.risk === 'High' ? 0.95 : 1.08;
+                                                    const predictedValue = Math.round(baseRev * Math.pow(multiplier, idx));
+                                                    const maxCapacity = baseRev * Math.pow(1.08, 12);
+                                                    const barHeightPercent = Math.max(10, Math.min(95, (predictedValue / maxCapacity) * 80));
+
+                                                    return (
+                                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '30px' }}>
+                                                            <div style={{ fontSize: '9px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>₹{predictedValue.toLocaleString()}</div>
+                                                            <div style={{ 
+                                                                width: '100%', 
+                                                                height: `${barHeightPercent}%`, 
+                                                                background: 'linear-gradient(180deg, #4788E6 0%, #004aad 100%)', 
+                                                                borderRadius: '6px 6px 0 0',
+                                                                boxShadow: '0 2px 4px rgba(0, 74, 173, 0.25)',
+                                                                transition: 'height 0.3s ease-out'
+                                                            }} />
+                                                            <div style={{ fontSize: '9px', fontWeight: '750', color: '#64748B', marginTop: '6px' }}>M{idx + 1}</div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
-                                        <div style={{ display: 'flex', gap: '8px', background: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '12px' }}>
-                                            <span>Active Client Model: <strong>{activeClientData.name}</strong></span>
-                                            <span style={{ color: '#CBD5E1' }}>|</span>
-                                            <span>Industry Benchmark Risk: <strong style={{ color: activeClientData.risk === 'Low' ? '#16A34A' : '#D97706' }}>{activeClientData.risk}</strong></span>
-                                        </div>
+                                        {/* CA Advisory Notes & Recommendations Section */}
+                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>
+                                                    💼 CA Advisory &amp; Recommendation Ledger
+                                                </h3>
+                                                <span style={{ fontSize: '10px', background: '#F0F5FF', color: '#004aad', padding: '3px 8px', borderRadius: '4px', fontWeight: '700' }}>Active Workspace</span>
+                                            </div>
 
-                                        {/* Simulated Bar Graph using CSS flexboxes and divs */}
-                                        <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px 10px 10px 10px' }}>
-                                            {Array.from({ length: forecastPeriod }).map((_, idx) => {
-                                                // Dynamic forecast generator algorithm
-                                                const baseRev = parseInt(activeClientData.revenue.replace(/[^0-9]/g, '')) || 500;
-                                                const multiplier = activeClientData.risk === 'High' ? 0.95 : 1.08;
-                                                const predictedValue = Math.round(baseRev * Math.pow(multiplier, idx));
-                                                const maxCapacity = baseRev * Math.pow(1.08, 12);
-                                                const barHeightPercent = Math.max(10, Math.min(95, (predictedValue / maxCapacity) * 80));
+                                            <div style={{ padding: '14px', background: '#FFFDF0', border: '1px solid #FDE047', borderRadius: '10px', fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>
+                                                <strong>Current Advisory Note:</strong> {clientNotes[selectedClient] || "No advisory note recorded for this client entity yet."}
+                                            </div>
 
-                                                return (
-                                                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '30px' }}>
-                                                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>₹{predictedValue.toLocaleString()}</div>
-                                                        <div style={{ 
-                                                            width: '100%', 
-                                                            height: `${barHeightPercent}%`, 
-                                                            background: 'linear-gradient(180deg, #4788E6 0%, #004aad 100%)', 
-                                                            borderRadius: '6px 6px 0 0',
-                                                            boxShadow: '0 2px 4px rgba(0, 74, 173, 0.25)',
-                                                            transition: 'height 0.3s ease-out'
-                                                        }} />
-                                                        <div style={{ fontSize: '9px', fontWeight: '750', color: '#64748B', marginTop: '6px' }}>M{idx + 1}</div>
-                                                    </div>
-                                                );
-                                            })}
+                                            <form onSubmit={handleAddClientNote} style={{ display: 'flex', gap: '8px' }}>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Add professional recommendation / compliance action note..." 
+                                                    value={activeNoteInput} 
+                                                    onChange={(e) => setActiveNoteInput(e.target.value)} 
+                                                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px', outline: 'none', fontWeight: '600' }}
+                                                />
+                                                <button type="submit" style={{ padding: '10px 18px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '850', fontSize: '12px', cursor: 'pointer' }}>
+                                                    Save Note
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
