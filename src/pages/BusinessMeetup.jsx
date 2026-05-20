@@ -40,6 +40,10 @@ const BusinessMeetup = () => {
     const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
     const [rosterMeetupId, setRosterMeetupId] = useState(null);
 
+    const [preferredCategory, setPreferredCategory] = useState(() => {
+        return localStorage.getItem('cliks_preferred_meetup_category') || 'Finance';
+    });
+
     const [newEvent, setNewEvent] = useState({ 
         title: '', 
         type: 'Offline', 
@@ -114,6 +118,10 @@ const BusinessMeetup = () => {
             // Instantly locate the freshly joined meetup and present ticket pass overlay
             const targetMeetup = events.find(e => e.id === eventId);
             if (targetMeetup) {
+                if (targetMeetup.category) {
+                    setPreferredCategory(targetMeetup.category);
+                    localStorage.setItem('cliks_preferred_meetup_category', targetMeetup.category);
+                }
                 setSelectedTicketMeetup({ ...targetMeetup, attendees: (targetMeetup.attendees || 0) + 1 });
                 setIsTicketModalOpen(true);
             } else {
@@ -138,6 +146,8 @@ const BusinessMeetup = () => {
 
         if (filter === 'Upcoming') {
             if (evtDate < now && event.date) return false;
+        } else if (filter === 'Finance') {
+            if (event.category !== 'Finance') return false;
         } else if (filter === 'Workshops') {
             if (event.category !== 'Workshop') return false;
         } else if (filter === 'Webinars') {
@@ -156,6 +166,47 @@ const BusinessMeetup = () => {
         }
 
         return true;
+    });
+
+    // ── Personalization & Location Recommendation Engine ──
+    const getRecommendationScore = (event) => {
+        let score = 0;
+        
+        // 1. Preferred Category Boost
+        if (preferredCategory && event.category) {
+            if (event.category.toLowerCase() === preferredCategory.toLowerCase()) {
+                score += 150; // Highest weight
+            }
+        }
+        
+        // 2. Proximity/Location Based Match Boost
+        const profileState = currentUser.stateRegistered || currentUser.state || 'Maharashtra';
+        if (event.location && profileState) {
+            const evLoc = event.location.toLowerCase();
+            const uState = profileState.toLowerCase();
+            if (evLoc.includes(uState)) {
+                score += 100; // Location proximity match weight
+            }
+        }
+        
+        // 3. Popularity Boost
+        if (event.attendees) {
+            score += event.attendees * 2;
+        }
+
+        return score;
+    };
+
+    const sortedEvents = [...filteredEvents].sort((a, b) => {
+        const scoreA = getRecommendationScore(a);
+        const scoreB = getRecommendationScore(b);
+        
+        if (scoreA !== scoreB) {
+            return scoreB - scoreA; // Highest score goes first!
+        }
+        
+        // Secondary sort: chronological order (soonest/newest first)
+        return new Date(a.date) - new Date(b.date);
     });
 
     // Formatter Helper
@@ -241,10 +292,17 @@ const BusinessMeetup = () => {
             {/* Search and Control Panel */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', gap: '0.35rem', background: 'white', padding: '0.3rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
-                    {['All Events', 'Upcoming', 'Workshops', 'Webinars', 'My Events'].map((tab) => (
+                    {['All Events', 'Upcoming', 'Finance', 'Workshops', 'Webinars', 'My Events'].map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setFilter(tab)}
+                            onClick={() => {
+                                setFilter(tab);
+                                if (tab !== 'All Events' && tab !== 'Upcoming' && tab !== 'My Events') {
+                                    const cat = tab === 'Workshops' ? 'Workshop' : (tab === 'Webinars' ? 'Webinar' : tab);
+                                    setPreferredCategory(cat);
+                                    localStorage.setItem('cliks_preferred_meetup_category', cat);
+                                }
+                            }}
                             style={{
                                 padding: '0.45rem 0.9rem',
                                 borderRadius: '8px',
@@ -290,7 +348,7 @@ const BusinessMeetup = () => {
                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #E0EFFF', borderTopColor: '#004aad', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
                     <p style={{ color: '#64748B', fontWeight: '700' }}>Aggregating regional meetups...</p>
                 </div>
-            ) : filteredEvents.length === 0 ? (
+            ) : sortedEvents.length === 0 ? (
                 <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '6rem 2rem', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
                     <div style={{ width: '70px', height: '70px', borderRadius: '24px', background: '#E0EFFF', color: '#004aad', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                         <Calendar size={32} />
@@ -302,7 +360,7 @@ const BusinessMeetup = () => {
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-                    {filteredEvents.map((event) => {
+                    {sortedEvents.map((event) => {
                         const isHost = event.user_id === currentUser.id;
                         const hasJoined = event.has_joined === 1;
                         const maxSeats = event.max_seats || 100;
@@ -356,6 +414,23 @@ const BusinessMeetup = () => {
                                     <div style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'white', color: '#004aad', padding: '0.3rem 0.6rem', borderRadius: '6px', fontWeight: '900', fontSize: '0.7rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                                         {event.price || 'Free'}
                                     </div>
+
+                                    {/* Dynamic Personalization / Location Match Ribbons */}
+                                    {getRecommendationScore(event) >= 250 && (
+                                        <div style={{ position: 'absolute', bottom: '0.5rem', left: '1rem', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.58rem', fontWeight: '900', letterSpacing: '0.05em', boxShadow: '0 2px 5px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            🔥 PERFECT MATCH
+                                        </div>
+                                    )}
+                                    {getRecommendationScore(event) === 150 && (
+                                        <div style={{ position: 'absolute', bottom: '0.5rem', left: '1rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#1E293B', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.58rem', fontWeight: '900', letterSpacing: '0.05em', boxShadow: '0 2px 5px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            ⭐ TOP INTEREST
+                                        </div>
+                                    )}
+                                    {getRecommendationScore(event) === 100 && (
+                                        <div style={{ position: 'absolute', bottom: '0.5rem', left: '1rem', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.58rem', fontWeight: '900', letterSpacing: '0.05em', boxShadow: '0 2px 5px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            📍 NEAR YOU
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Card Detail Panel */}
@@ -699,6 +774,7 @@ const BusinessMeetup = () => {
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.95rem', fontWeight: '600' }}
                                         >
                                             <option value="Networking">Networking</option>
+                                            <option value="Finance">Finance</option>
                                             <option value="Workshop">Skill Panel</option>
                                             <option value="Webinar">Webcast/AMA</option>
                                             <option value="Social">Mixer/Social</option>
