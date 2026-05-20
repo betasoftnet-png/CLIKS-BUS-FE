@@ -48,6 +48,7 @@ const BusinessMeetup = () => {
 
     const [gpsState, setGpsState] = useState(null);
     const [plusCode, setPlusCode] = useState(null);
+    const [pincode, setPincode] = useState(null);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
 
     const requestLocation = () => {
@@ -66,6 +67,9 @@ const BusinessMeetup = () => {
                             }
                             if (data.plusCode) {
                                 setPlusCode(data.plusCode);
+                            }
+                            if (data.postcode) {
+                                setPincode(data.postcode);
                             }
                         })
                         .catch(err => {
@@ -382,7 +386,7 @@ const BusinessMeetup = () => {
                             >
                                 <MapPin size={13} color="#10B981" />
                                 <span>
-                                    {gpsState ? `GPS Locked: ${gpsState} ${plusCode ? `(${plusCode})` : ''}` : 'Select Region / Lock GPS'}
+                                    {gpsState ? `${gpsState}${pincode ? `, Pincode: ${pincode}` : ''}` : 'Select Region / Lock GPS'}
                                 </span>
                                 <span style={{ fontSize: '0.55rem', opacity: 0.8, marginLeft: '2px' }}>▼</span>
                             </button>
@@ -416,11 +420,11 @@ const BusinessMeetup = () => {
                                         </div>
                                         
                                         {[
-                                            { label: '⚡ Detect GPS Location', state: 'GPS', plusCode: 'Auto' },
-                                            { label: '📍 Chennai, Tamil Nadu', state: 'Tamil Nadu', plusCode: '7J5X4W66+F9' },
-                                            { label: '📍 Mumbai, Maharashtra', state: 'Maharashtra', plusCode: '8FVC9G8F+6W' },
-                                            { label: '📍 Bengaluru, Karnataka', state: 'Karnataka', plusCode: '7J4VXH8R+5P' },
-                                            { label: '📍 Delhi NCR', state: 'Delhi', plusCode: '8F3C4R2V+8Q' }
+                                            { label: '⚡ Detect GPS Location', state: 'GPS', plusCode: 'Auto', pincode: null },
+                                            { label: '📍 Chennai, Tamil Nadu', state: 'Tamil Nadu', plusCode: '7J5X4W66+F9', pincode: '600001' },
+                                            { label: '📍 Mumbai, Maharashtra', state: 'Maharashtra', plusCode: '8FVC9G8F+6W', pincode: '400001' },
+                                            { label: '📍 Bengaluru, Karnataka', state: 'Karnataka', plusCode: '7J4VXH8R+5P', pincode: '560001' },
+                                            { label: '📍 Delhi NCR', state: 'Delhi', plusCode: '8F3C4R2V+8Q', pincode: '110001' }
                                         ].map((opt) => (
                                             <button
                                                 key={opt.state}
@@ -430,6 +434,7 @@ const BusinessMeetup = () => {
                                                     } else {
                                                         setGpsState(opt.state);
                                                         setPlusCode(opt.plusCode);
+                                                        setPincode(opt.pincode);
                                                         setLocationPermissionDenied(false);
                                                     }
                                                     setIsLocationMenuOpen(false);
@@ -460,7 +465,9 @@ const BusinessMeetup = () => {
                                                 }}
                                             >
                                                 <span style={{ fontSize: '0.75rem' }}>{opt.label}</span>
-                                                <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontWeight: '500' }}>Plus Code: {opt.plusCode}</span>
+                                                <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontWeight: '500' }}>
+                                                    {opt.pincode ? `Pincode: ${opt.pincode}` : `Plus Code: ${opt.plusCode}`}
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
