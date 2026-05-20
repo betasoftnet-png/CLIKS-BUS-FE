@@ -108,43 +108,12 @@ const BusinessBilling = () => {
         }
     }, [searchParams, setSearchParams]);
 
-    const getPrefixForType = (type) => {
+    const getPrefixForType = React.useCallback((type) => {
         if (!activeConfig) return 'INV-';
         if (type === 'Proforma') return activeConfig.prefixProforma || 'PRO-';
         if (type === 'Quotation') return activeConfig.prefixEstimate || 'EST-';
         return activeConfig.prefixSale || 'INV-';
-    };
-
-    React.useEffect(() => {
-        if (isModalOpen && !editingInvoice && activeConfig) {
-            const prefix = getPrefixForType('GST');
-            const defaultTaxType = activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive';
-            const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Bank';
-            setFormData(prev => ({
-                ...prev,
-                invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
-                tax_type: defaultTaxType,
-                payment_mode: defaultPayMode,
-                client_name: activeConfig.cashSale ? 'Cash Customer' : prev.client_name,
-                client_email: activeConfig.cashSale ? 'cash@customer.local' : prev.client_email
-            }));
-        }
-    }, [isModalOpen, editingInvoice, activeConfig]);
-
-    const handleViewHistory = (invoice) => {
-        setSelectedHistoryInvoice(invoice);
-        setIsHistoryModalOpen(true);
-    };
-
-    const handlePrint = (invoice) => {
-        setPrintData(invoice);
-        setIsPrinting(true);
-        setTimeout(() => {
-            window.print();
-            setIsPrinting(false);
-            setPrintData(null);
-        }, 500);
-    };
+    }, [activeConfig]);
     const bankAccounts = paymentsStore.getBankAccounts();
     const [formData, setFormData] = useState(() => ({
         invoice_number: `INV-${Date.now().toString().slice(-6)}`,
@@ -180,6 +149,37 @@ const BusinessBilling = () => {
             total: 0 
         }]
     }));
+
+    React.useEffect(() => {
+        if (isModalOpen && !editingInvoice && activeConfig) {
+            const prefix = getPrefixForType('GST');
+            const defaultTaxType = activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive';
+            const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Bank';
+            setFormData(prev => ({
+                ...prev,
+                invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
+                tax_type: defaultTaxType,
+                payment_mode: defaultPayMode,
+                client_name: activeConfig.cashSale ? 'Cash Customer' : prev.client_name,
+                client_email: activeConfig.cashSale ? 'cash@customer.local' : prev.client_email
+            }));
+        }
+    }, [isModalOpen, editingInvoice, activeConfig, getPrefixForType]);
+
+    const handleViewHistory = (invoice) => {
+        setSelectedHistoryInvoice(invoice);
+        setIsHistoryModalOpen(true);
+    };
+
+    const handlePrint = (invoice) => {
+        setPrintData(invoice);
+        setIsPrinting(true);
+        setTimeout(() => {
+            window.print();
+            setIsPrinting(false);
+            setPrintData(null);
+        }, 500);
+    };
 
     // Calculate totals when items change
     const calculateTotals = (items, taxType, currentFormData = {}) => {
@@ -239,10 +239,10 @@ const BusinessBilling = () => {
     };
 
     const calculateEstimatedProfit = () => {
-        return items.reduce((acc, item) => {
-            const catalogItem = products?.find(p => p.id === item.product_id || p.name === item.name || p.product_name === item.name);
+        return (formData.items || []).reduce((acc, item) => {
+            const catalogItem = catalogProducts?.find(p => p.id === item.product_id || p.name === item.description || p.product_name === item.description);
             const purchase = parseFloat(item.purchase_price) || parseFloat(catalogItem?.purchase_price) || 0;
-            const saleRate = parseFloat(item.rate) || 0;
+            const saleRate = parseFloat(item.price) || 0;
             const qty = parseInt(item.quantity) || 0;
             return acc + (saleRate - purchase) * qty;
         }, 0);
@@ -1351,7 +1351,7 @@ const BusinessBilling = () => {
                                     {activeConfig.countItems === true && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                             <span>Items Count:</span>
-                                            <span>{items.length} items ({items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} Qty)</span>
+                                            <span>{formData.items.length} items ({formData.items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} Qty)</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>

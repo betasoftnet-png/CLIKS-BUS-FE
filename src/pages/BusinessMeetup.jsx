@@ -48,7 +48,6 @@ const BusinessMeetup = () => {
 
     const [gpsState, setGpsState] = useState(null);
     const [cityName, setCityName] = useState(null);
-    const [plusCode, setPlusCode] = useState(null);
     const [pincode, setPincode] = useState(null);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
 
@@ -69,9 +68,6 @@ const BusinessMeetup = () => {
                             }
                             if (city) {
                                 setCityName(city);
-                            }
-                            if (data.plusCode) {
-                                setPlusCode(data.plusCode);
                             }
                             if (data.postcode) {
                                 setPincode(data.postcode);
@@ -449,7 +445,6 @@ const BusinessMeetup = () => {
                                                     } else {
                                                         setCityName(opt.city);
                                                         setGpsState(opt.state);
-                                                        setPlusCode(opt.plusCode);
                                                         setPincode(opt.pincode);
                                                         setLocationPermissionDenied(false);
                                                     }

@@ -210,7 +210,7 @@ const BusinessMarketing = () => {
     const queryClient = useQueryClient();
 
     // 1. Fetch Campaigns from DB
-    const { data: campaigns = [], isLoading: isCampLoading } = useQuery({
+    const { data: campaigns = [] } = useQuery({
         queryKey: ['marketing-campaigns'],
         queryFn: marketingService.getCampaigns
     });
@@ -273,7 +273,7 @@ const BusinessMarketing = () => {
     });
 
     // 1. Fetch Customers to map audience
-    const { data: customerData = [], isLoading: isCustLoading } = useQuery({
+    const { data: customerData = [] } = useQuery({
         queryKey: ['marketing-customers'],
         queryFn: async () => {
             const res = await crmService.getCustomers();
@@ -331,7 +331,7 @@ const BusinessMarketing = () => {
                 campaign_owner: 'Admin',
                 assigned_salesperson: 'Sales Team',
             });
-        } catch (err) {
+        } catch {
             alert('Failed to create campaign');
         }
     };
@@ -344,7 +344,7 @@ const BusinessMarketing = () => {
                     setIsDetailsOpen(false);
                     setSelectedCampaign(null);
                 }
-            } catch (err) {
+            } catch {
                 alert('Failed to delete campaign');
             }
         }

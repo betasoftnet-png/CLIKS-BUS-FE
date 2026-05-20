@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -105,7 +105,7 @@ const BusinessPeople = () => {
             if (contactInfo && (contactInfo.startsWith('{') || contactInfo.startsWith('['))) {
                 return JSON.parse(contactInfo);
             }
-        } catch (e) {}
+        } catch {}
         return {
             status: contactInfo === 'inactive' ? 'inactive' : 'active',
             loyalty_points: 0

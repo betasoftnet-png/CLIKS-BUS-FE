@@ -53,7 +53,7 @@ const BusinessPurchases = () => {
         queryFn: settingsService.getSettings,
         refetchOnWindowFocus: false
     });
-    const activeConfig = userSettings?.data || userSettings || {};
+    const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
 
     // Handle instant PO creation launch via Quick Actions Shortcut
     const [searchParams, setSearchParams] = useSearchParams();
@@ -64,16 +64,6 @@ const BusinessPurchases = () => {
             setSearchParams({}, { replace: true });
         }
     }, [searchParams, setSearchParams]);
-
-    React.useEffect(() => {
-        if (isCreateModalOpen && activeConfig) {
-            const prefix = createDocType === 'PO' ? (activeConfig.prefixPurchase || 'PO-') : (createDocType === 'RETURN' ? (activeConfig.prefixCredit || 'RET-') : 'BILL-');
-            setFormHeader(prev => ({
-                ...prev,
-                purchase_number: `${prefix}${Date.now().toString().slice(-4)}`
-            }));
-        }
-    }, [isCreateModalOpen, createDocType, activeConfig]);
 
     const queryClient = useQueryClient();
 
@@ -173,6 +163,16 @@ const BusinessPurchases = () => {
         place_of_supply: 'Maharashtra',
         return_reason: 'Damaged Goods' // for returns
     }));
+
+    React.useEffect(() => {
+        if (isCreateModalOpen && activeConfig) {
+            const prefix = createDocType === 'PO' ? (activeConfig.prefixPurchase || 'PO-') : (createDocType === 'RETURN' ? (activeConfig.prefixCredit || 'RET-') : 'BILL-');
+            setFormHeader(prev => ({
+                ...prev,
+                purchase_number: `${prefix}${Date.now().toString().slice(-4)}`
+            }));
+        }
+    }, [isCreateModalOpen, createDocType, activeConfig]);
 
     const [formItems, setFormItems] = useState([
         {
