@@ -26,70 +26,7 @@ import '../App.css';
 import splitExpenseService from '../services/splitExpenseService';
 
 // Initial Seed Data for Split Groups
-const INITIAL_SPLITS = [
-    {
-        id: 'split-goa-2026',
-        title: 'Goa Weekend Getaway',
-        currency: 'INR',
-        currencySymbol: '₹',
-        description: 'Annual corporate retreat team gateway with colleagues.',
-        participants: ['You', 'Vishal', 'Amit', 'Rahul'],
-        created_at: '2026-05-18T10:00:00Z',
-        expenses: [
-            {
-                id: 'exp-1',
-                title: 'Beachside Villa Booking',
-                amount: 12000,
-                paidBy: 'You',
-                date: '2026-05-18',
-                attachment: 'villa_booking_receipt.pdf',
-                splitType: 'equal',
-                shares: { 'You': 3000, 'Vishal': 3000, 'Amit': 3000, 'Rahul': 3000 }
-            },
-            {
-                id: 'exp-2',
-                title: 'Sunset Dinner & Drinks',
-                amount: 4500,
-                paidBy: 'Vishal',
-                date: '2026-05-18',
-                attachment: 'dinner_invoice.png',
-                splitType: 'equal',
-                shares: { 'You': 1125, 'Vishal': 1125, 'Amit': 1125, 'Rahul': 1125 }
-            },
-            {
-                id: 'exp-3',
-                title: 'Scuba Diving Deposit',
-                amount: 8000,
-                paidBy: 'Amit',
-                date: '2026-05-19',
-                attachment: null,
-                splitType: 'custom',
-                shares: { 'You': 2500, 'Vishal': 1500, 'Amit': 2000, 'Rahul': 2000 }
-            }
-        ]
-    },
-    {
-        id: 'split-office-2026',
-        title: 'Office Friday Platters',
-        currency: 'INR',
-        currencySymbol: '₹',
-        description: 'Team dinner celebration at Office.',
-        participants: ['You', 'Aniket', 'Sneha'],
-        created_at: '2026-05-15T12:00:00Z',
-        expenses: [
-            {
-                id: 'exp-4',
-                title: 'Premium Sushi Platters',
-                amount: 6000,
-                paidBy: 'You',
-                date: '2026-05-15',
-                attachment: 'catering_sushi.pdf',
-                splitType: 'equal',
-                shares: { 'You': 2000, 'Aniket': 2000, 'Sneha': 2000 }
-            }
-        ]
-    }
-];
+const INITIAL_SPLITS = [];
 
 const BusinessSplitCollect = () => {
     // ── State Management ───────────────────────────────────────────────────
@@ -132,30 +69,12 @@ const BusinessSplitCollect = () => {
                 if (data && data.length > 0) {
                     setSplits(data);
                 } else {
-                    // Seed initial data to database if empty
-                    const seeded = [];
-                    for (const s of INITIAL_SPLITS) {
-                        try {
-                            const created = await splitExpenseService.createSplit(s);
-                            for (const exp of s.expenses) {
-                                await splitExpenseService.addExpense(created.id, exp);
-                            }
-                            seeded.push(created);
-                        } catch (seedErr) {
-                            console.error("Error seeding initial group:", seedErr);
-                        }
-                    }
-                    if (seeded.length > 0) {
-                        const freshData = await splitExpenseService.getSplits();
-                        setSplits(freshData);
-                    } else {
-                        setSplits(INITIAL_SPLITS);
-                    }
+                    setSplits([]);
                 }
             } catch (err) {
                 console.error("Error loading split data from backend:", err);
                 const saved = localStorage.getItem('cliks_splits_data');
-                setSplits(saved ? JSON.parse(saved) : INITIAL_SPLITS);
+                setSplits(saved ? JSON.parse(saved) : []);
             } finally {
                 setLoading(false);
             }
