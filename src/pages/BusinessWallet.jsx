@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { applyTableFilters } from '../utils/filterUtils';
+
 import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, X, Search, IndianRupee, Loader } from 'lucide-react';
 import { load } from '@cashfreepayments/cashfree-js';
 import { useLocation } from 'react-router-dom';
@@ -142,10 +142,18 @@ const BusinessWallet = () => {
         setIsModalOpen(false);
     };
 
-    const filteredHistory = history.filter(item => 
-        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredHistory = history.filter(item => {
+        const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.id.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchId = !colFilters.transaction_id || item.id.toLowerCase().includes(colFilters.transaction_id.toLowerCase());
+        const matchDate = !colFilters.date || item.date.toLowerCase().includes(colFilters.date.toLowerCase());
+        const matchDesc = !colFilters.description || item.description.toLowerCase().includes(colFilters.description.toLowerCase());
+        const matchDirection = !colFilters.direction || (item.type === 'CREDIT' ? 'in' : 'out').includes(colFilters.direction.toLowerCase());
+        const matchAmount = !colFilters.amount || String(item.amount).includes(colFilters.amount);
+
+        return matchesSearch && matchId && matchDate && matchDesc && matchDirection && matchAmount;
+    });
 
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>

@@ -76,7 +76,7 @@ const BusinessBilling = () => {
         queryFn: settingsService.getSettings,
         refetchOnWindowFocus: false
     });
-    const activeConfig = userSettings?.data || userSettings || {};
+    const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
 
     React.useEffect(() => {
         if (isModalOpen && activeConfig?.quickEntry) {

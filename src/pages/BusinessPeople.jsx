@@ -105,7 +105,9 @@ const BusinessPeople = () => {
             if (contactInfo && (contactInfo.startsWith('{') || contactInfo.startsWith('['))) {
                 return JSON.parse(contactInfo);
             }
-        } catch {}
+        } catch {
+            // fallback to default metadata
+        }
         return {
             status: contactInfo === 'inactive' ? 'inactive' : 'active',
             loyalty_points: 0

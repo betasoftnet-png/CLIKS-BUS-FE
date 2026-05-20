@@ -257,6 +257,12 @@ const SupportDashboard = () => {
                 </button>
             </div>
 
+            {error && (
+                <div style={{ width: '100%', maxWidth: '1100px', background: '#FEF2F2', border: '1px solid #FEE2E2', color: '#EF4444', padding: '0.85rem 1.25rem', borderRadius: '14px', marginBottom: '1.25rem', fontSize: '0.88rem', fontWeight: '700', boxSizing: 'border-box' }}>
+                    ⚠️ {error}
+                </div>
+            )}
+
             {/* Pipeline Stream list */}
             <div style={{ width: '100%', maxWidth: '1100px' }}>
                 {loading ? (

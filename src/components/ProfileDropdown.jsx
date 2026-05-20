@@ -17,6 +17,11 @@ export function ProfileDropdown({
     const [countrySearchQuery, setCountrySearchQuery] = useState("");
     const [selectedCountry, setSelectedCountry] = useState("India");
 
+    // Currency Selector State
+    const [isCurrencySelectorOpen, setIsCurrencySelectorOpen] = useState(false);
+    const [currencySearchQuery, setCountrySearchQueryCurrency] = useState("");
+    const [selectedCurrency, setSelectedCurrency] = useState("INR (₹)");
+
     const countries = [
         { name: "Afghanistan", flag: "🇦🇫" },
         { name: "Albania", flag: "🇦🇱" },
@@ -216,8 +221,36 @@ export function ProfileDropdown({
         { name: "Zimbabwe", flag: "🇿🇼" }
     ];
 
+    const currencies = [
+        { code: "AED", name: "UAE Dirham", symbol: "د.إ" },
+        { code: "AUD", name: "Australian Dollar", symbol: "$" },
+        { code: "BDT", name: "Bangladeshi Taka", symbol: "৳" },
+        { code: "CAD", name: "Canadian Dollar", symbol: "$" },
+        { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
+        { code: "EUR", name: "Euro", symbol: "€" },
+        { code: "GBP", name: "British Pound", symbol: "£" },
+        { code: "HKD", name: "Hong Kong Dollar", symbol: "$" },
+        { code: "INR", name: "Indian Rupee", symbol: "₹" },
+        { code: "JPY", name: "Japanese Yen", symbol: "¥" },
+        { code: "KWD", name: "Kuwaiti Dinar", symbol: "د.ك" },
+        { code: "LKR", name: "Sri Lankan Rupee", symbol: "₨" },
+        { code: "NPR", name: "Nepalese Rupee", symbol: "₨" },
+        { code: "NZD", name: "New Zealand Dollar", symbol: "$" },
+        { code: "OMR", name: "Oman Rial", symbol: "ر.ع." },
+        { code: "PKR", name: "Pakistani Rupee", symbol: "₨" },
+        { code: "QAR", name: "Qatari Rial", symbol: "ر.ق" },
+        { code: "SAR", name: "Saudi Riyal", symbol: "ر.س" },
+        { code: "SGD", name: "Singapore Dollar", symbol: "$" },
+        { code: "USD", name: "United States Dollar", symbol: "$" }
+    ];
+
     const filteredCountries = countries.filter(c => 
         c.name.toLowerCase().includes(countrySearchQuery.toLowerCase())
+    );
+
+    const filteredCurrencies = currencies.filter(c => 
+        c.code.toLowerCase().includes(currencySearchQuery.toLowerCase()) ||
+        c.name.toLowerCase().includes(currencySearchQuery.toLowerCase())
     );
 
     const displayEmail = user?.email || "Guest";
@@ -229,7 +262,9 @@ export function ProfileDropdown({
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setOpen(false);
                 setIsCountrySelectorOpen(false);
+                setIsCurrencySelectorOpen(false);
                 setCountrySearchQuery("");
+                setCountrySearchQueryCurrency("");
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -476,6 +511,66 @@ export function ProfileDropdown({
                                     )}
                                 </div>
                             </div>
+                        ) : isCurrencySelectorOpen ? (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <button 
+                                    onClick={() => { setIsCurrencySelectorOpen(false); setCountrySearchQueryCurrency(""); }}
+                                    style={styles.submenuHeader}
+                                >
+                                    <ArrowLeft size={16} />
+                                    <span>Select Currency</span>
+                                </button>
+                                
+                                <div style={styles.searchInputWrapper}>
+                                    <Search size={14} style={styles.searchIcon} />
+                                    <input 
+                                        type="text"
+                                        placeholder="Search currency..."
+                                        value={currencySearchQuery}
+                                        onChange={(e) => setCountrySearchQueryCurrency(e.target.value)}
+                                        style={styles.searchInput}
+                                        onClick={(e) => e.stopPropagation()}
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div style={styles.countryList}>
+                                    {filteredCurrencies.length > 0 ? (
+                                        filteredCurrencies.map((c) => (
+                                            <button
+                                                key={c.code}
+                                                onClick={() => {
+                                                    setSelectedCurrency(`${c.code} (${c.symbol})`);
+                                                    setIsCurrencySelectorOpen(false);
+                                                    setCountrySearchQueryCurrency("");
+                                                }}
+                                                style={styles.countryItem}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{ 
+                                                        fontSize: '11px', 
+                                                        fontWeight: '800', 
+                                                        background: '#f3f4f6', 
+                                                        padding: '2px 6px', 
+                                                        borderRadius: '4px',
+                                                        color: '#4b5563'
+                                                    }}>{c.symbol}</span>
+                                                    <span>{c.code} - {c.name}</span>
+                                                </div>
+                                                {selectedCurrency === `${c.code} (${c.symbol})` && (
+                                                    <span style={{ color: '#10B981', fontSize: '11px', fontWeight: '800' }}>✓</span>
+                                                )}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#9ca3af', fontWeight: '600' }}>
+                                            No currencies found
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         ) : (
                             <>
                                 <div style={styles.header}>
@@ -507,6 +602,7 @@ export function ProfileDropdown({
                                     </button>
 
                                     <button
+                                        onClick={() => setIsCurrencySelectorOpen(true)}
                                         style={styles.menuItem}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -514,7 +610,7 @@ export function ProfileDropdown({
                                         <Coins size={18} />
                                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                             <span>Currency</span>
-                                            <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>INR (₹)</span>
+                                            <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '550' }}>{selectedCurrency}</span>
                                         </div>
                                     </button>
 
