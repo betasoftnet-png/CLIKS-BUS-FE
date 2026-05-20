@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, Settings, LogOut, HelpCircle, User } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag } from "lucide-react";
 import { useAuth } from "../context";
 
 export function ProfileDropdown({
     onAccount,
-    onSettings,
-    onFAQ,
     onLogout,
 }) {
     const [open, setOpen] = useState(false);
@@ -168,23 +166,41 @@ export function ProfileDropdown({
                                 <User size={18} />
                                 Account Profile
                             </button>
+                            
                             <button
-                                onClick={() => { onSettings?.(); setOpen(false); }}
                                 style={styles.menuItem}
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
-                                <Settings size={18} />
-                                System Settings
+                                <Globe size={18} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                    <span>Language</span>
+                                    <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>English</span>
+                                </div>
                             </button>
+
                             <button
-                                onClick={() => { onFAQ?.(); setOpen(false); }}
                                 style={styles.menuItem}
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
-                                <HelpCircle size={18} />
-                                Help & Support
+                                <Coins size={18} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                    <span>Currency</span>
+                                    <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>INR (₹)</span>
+                                </div>
+                            </button>
+
+                            <button
+                                style={styles.menuItem}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <Flag size={18} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                    <span>Country</span>
+                                    <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>India</span>
+                                </div>
                             </button>
                             
                             <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '8px 0' }} />
