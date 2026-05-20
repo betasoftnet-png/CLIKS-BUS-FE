@@ -177,17 +177,17 @@ const BusinessMeetup = () => {
 
             {/* Header Presentation Board */}
             <div style={{
-                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                background: 'linear-gradient(135deg, #004aad 0%, #00337a 100%)',
                 borderRadius: '16px',
                 padding: '1.25rem 1.75rem',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
-                boxShadow: '0 8px 24px rgba(27, 107, 58, 0.08)',
+                boxShadow: '0 8px 24px rgba(0, 74, 173, 0.08)',
                 marginBottom: '1.25rem'
             }}>
                 {/* Animated Background Accents */}
-                <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(27, 107, 58, 0.15)', filter: 'blur(70px)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(0, 74, 173, 0.15)', filter: 'blur(70px)', pointerEvents: 'none' }} />
 
                 <div style={{ position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
@@ -217,7 +217,7 @@ const BusinessMeetup = () => {
                         onClick={() => setIsCreateModalOpen(true)}
                         style={{
                             background: 'white',
-                            color: '#1B6B3A',
+                            color: '#004aad',
                             border: 'none',
                             padding: '0.75rem 1.25rem',
                             borderRadius: '10px',
@@ -287,12 +287,12 @@ const BusinessMeetup = () => {
             {/* Events List Workspace */}
             {isLoading ? (
                 <div style={{ textAlign: 'center', padding: '6rem' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #D1FAE5', borderTopColor: '#1B6B3A', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #E0EFFF', borderTopColor: '#004aad', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
                     <p style={{ color: '#64748B', fontWeight: '700' }}>Aggregating regional meetups...</p>
                 </div>
             ) : filteredEvents.length === 0 ? (
                 <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '6rem 2rem', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.02)' }}>
-                    <div style={{ width: '70px', height: '70px', borderRadius: '24px', background: '#DCF2E4', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                    <div style={{ width: '70px', height: '70px', borderRadius: '24px', background: '#E0EFFF', color: '#004aad', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                         <Calendar size={32} />
                     </div>
                     <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>No active panels found</h3>
@@ -332,7 +332,7 @@ const BusinessMeetup = () => {
                                 {/* Sleek Condensed Card Art Cover */}
                                 <div style={{
                                     height: '75px',
-                                    background: '#1B6B3A',
+                                    background: '#004aad',
                                     position: 'relative',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -353,7 +353,7 @@ const BusinessMeetup = () => {
                                     </div>
 
                                     {/* Price Tag */}
-                                    <div style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'white', color: '#1B6B3A', padding: '0.3rem 0.6rem', borderRadius: '6px', fontWeight: '900', fontSize: '0.7rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ position: 'absolute', top: '0.75rem', right: '1rem', background: 'white', color: '#004aad', padding: '0.3rem 0.6rem', borderRadius: '6px', fontWeight: '900', fontSize: '0.7rem', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                                         {event.price || 'Free'}
                                     </div>
                                 </div>
@@ -364,7 +364,7 @@ const BusinessMeetup = () => {
                                         <span style={{
                                             display: 'inline-flex', alignItems: 'center', gap: '3px',
                                             padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                            background: '#DCF2E4', color: '#1B6B3A', fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase'
+                                            background: '#E0EFFF', color: '#004aad', fontSize: '0.65rem', fontWeight: '850', textTransform: 'uppercase'
                                         }}>
                                             {event.type || 'Offline'}
                                         </span>
@@ -397,7 +397,7 @@ const BusinessMeetup = () => {
                                         {/* Capacity visualizer */}
                                         <div style={{ marginTop: '0.15rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.35rem', fontSize: '0.68rem' }}>
                                             <span style={{ fontWeight: '800', color: '#64748B' }}>Seats:</span>
-                                            <span style={{ fontWeight: '900', color: isSoldOut ? '#DC2626' : '#1B6B3A' }}>
+                                            <span style={{ fontWeight: '900', color: isSoldOut ? '#DC2626' : '#004aad' }}>
                                                 {currentAttendees}/{maxSeats} Booked {isSoldOut && '(FULL)'}
                                             </span>
                                         </div>
@@ -421,7 +421,7 @@ const BusinessMeetup = () => {
                                                 {currentAttendees > 3 && (
                                                     <div style={{
                                                         width: '22px', height: '22px', borderRadius: '50%',
-                                                        background: '#1B6B3A', border: '2px solid white', marginLeft: '-6px',
+                                                        background: '#004aad', border: '2px solid white', marginLeft: '-6px',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         fontSize: '0.55rem', color: 'white', fontWeight: '900'
                                                     }}>
@@ -476,8 +476,8 @@ const BusinessMeetup = () => {
                                                 disabled={joinMutation.isPending}
                                                 style={{
                                                     padding: '0.55rem 1.1rem', border: 'none', borderRadius: '8px',
-                                                    color: 'white', background: '#1B6B3A', fontWeight: '800',
-                                                    cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(27,107,58,0.15)'
+                                                    color: 'white', background: '#004aad', fontWeight: '800',
+                                                    cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(0, 74, 173, 0.15)'
                                                 }}
                                             >
                                                 Reserve Entry
@@ -495,14 +495,14 @@ const BusinessMeetup = () => {
             {/* ── MODAL: Host Roster Registry Overlay ───────────────────────── */}
             <AnimatePresence>
                 {isRosterModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27, 107, 58, 0.4)', backdropFilter: 'blur(8px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
                         <Motion.div 
                             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                             style={{ background: 'white', borderRadius: '28px', width: '100%', maxWidth: '500px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}
                         >
                             <button onClick={() => { setIsRosterModalOpen(false); setRosterMeetupId(null); }} style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1B6B3A', marginBottom: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#004aad', marginBottom: '0.5rem' }}>
                                 <Crown size={20} />
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: '900', margin: 0 }}>Attendee Registry</h3>
                             </div>
@@ -510,7 +510,7 @@ const BusinessMeetup = () => {
 
                             {isRosterLoading ? (
                                 <div style={{ textAlign: 'center', padding: '3rem' }}>
-                                    <div style={{ width: '24px', height: '24px', border: '2px solid #D1FAE5', borderTopColor: '#1B6B3A', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 0.5rem' }} />
+                                    <div style={{ width: '24px', height: '24px', border: '2px solid #E0EFFF', borderTopColor: '#004aad', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 0.5rem' }} />
                                     <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '700' }}>Fetching registration records...</p>
                                 </div>
                             ) : attendeesList.length === 0 ? (
@@ -523,7 +523,7 @@ const BusinessMeetup = () => {
                                     {attendeesList.map((att, index) => (
                                         <div key={att.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', border: '1px solid #E2E8F0', borderRadius: '14px', background: '#F8FAFC' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1B6B3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#004aad', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem' }}>
                                                     {att.username?.charAt(0).toUpperCase() || 'U'}
                                                 </div>
                                                 <div>
@@ -546,13 +546,13 @@ const BusinessMeetup = () => {
             {/* ── MODAL: Cinematic Event Ticket Board Pass ──────────────────── */}
             <AnimatePresence>
                 {isTicketModalOpen && selectedTicketMeetup && (
-                    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(27, 107, 58, 0.4)', backdropFilter: 'blur(8px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
                         <Motion.div 
                             initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             style={{ width: '100%', maxWidth: '360px', position: 'relative' }}
                         >
                             {/* Ticket Header Branding */}
-                            <div style={{ background: '#1B6B3A', color: 'white', padding: '1.5rem', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', textAlign: 'center', position: 'relative', borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
+                            <div style={{ background: '#004aad', color: 'white', padding: '1.5rem', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', textAlign: 'center', position: 'relative', borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
                                 <button onClick={() => { setIsTicketModalOpen(false); setSelectedTicketMeetup(null); }} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                                 <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     <Globe size={16} />
@@ -565,13 +565,13 @@ const BusinessMeetup = () => {
                             <div style={{ background: 'white', padding: '2rem 1.75rem', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                                 
                                 {/* Left and Right Cutouts */}
-                                <div style={{ width: '24px', height: '24px', background: 'rgba(27, 107, 58, 0.4)', borderRadius: '50%', position: 'absolute', top: '-12px', left: '-12px' }} />
-                                <div style={{ width: '24px', height: '24px', background: 'rgba(27, 107, 58, 0.4)', borderRadius: '50%', position: 'absolute', top: '-12px', right: '-12px' }} />
+                                <div style={{ width: '24px', height: '24px', background: 'rgba(0, 74, 173, 0.2)', borderRadius: '50%', position: 'absolute', top: '-12px', left: '-12px' }} />
+                                <div style={{ width: '24px', height: '24px', background: 'rgba(0, 74, 173, 0.2)', borderRadius: '50%', position: 'absolute', top: '-12px', right: '-12px' }} />
 
                                 <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                                     <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Event Schedule</div>
                                     <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: '950', color: '#0F172A' }}>{selectedTicketMeetup.title}</h3>
-                                    <span style={{ background: '#DCF2E4', color: '#1B6B3A', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', textTransform: 'uppercase' }}>
+                                    <span style={{ background: '#E0EFFF', color: '#004aad', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', textTransform: 'uppercase' }}>
                                         Confirmed Attendee
                                     </span>
                                 </div>
@@ -599,7 +599,7 @@ const BusinessMeetup = () => {
                                             value={`${window.location.origin}/verify-pass?m=${selectedTicketMeetup.id}&u=${currentUser.id}`} 
                                             size={110}
                                             bgColor={"#ffffff"}
-                                            fgColor={"#1B6B3A"}
+                                            fgColor={"#004aad"}
                                             level={"H"}
                                         />
                                     </div>
@@ -610,7 +610,7 @@ const BusinessMeetup = () => {
 
                                 <button 
                                     onClick={() => alert("Feature Coming Soon: Ticket successfully exported as offline image payload!")}
-                                    style={{ width: '100%', marginTop: '1.5rem', padding: '0.9rem', border: 'none', borderRadius: '12px', background: '#1B6B3A', color: 'white', fontWeight: '850', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                                    style={{ width: '100%', marginTop: '1.5rem', padding: '0.9rem', border: 'none', borderRadius: '12px', background: '#004aad', color: 'white', fontWeight: '850', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
                                 >
                                     Download Pass
                                 </button>
@@ -625,7 +625,7 @@ const BusinessMeetup = () => {
                 {isCreateModalOpen && (
                     <div style={{
                         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(27, 107, 58, 0.4)', backdropFilter: 'blur(8px)',
+                        backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)',
                         zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
                     }}>
                         <Motion.div 
@@ -639,7 +639,7 @@ const BusinessMeetup = () => {
                                 <X size={18} />
                             </button>
 
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1B6B3A', marginBottom: '1.75rem', letterSpacing: '-0.02em' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#004aad', marginBottom: '1.75rem', letterSpacing: '-0.02em' }}>
                                 Host New Executive Meetup
                             </h2>
 
@@ -712,7 +712,7 @@ const BusinessMeetup = () => {
                                             value={newEvent.max_seats}
                                             onChange={(e) => setNewEvent({...newEvent, max_seats: parseInt(e.target.value) || 100})}
                                             placeholder="e.g. 100"
-                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '700', color: '#1B6B3A' }}
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '700', color: '#004aad' }}
                                         />
                                     </div>
                                 </div>
@@ -753,10 +753,10 @@ const BusinessMeetup = () => {
                                     type="submit" disabled={createMutation.isPending}
                                     style={{
                                         marginTop: '1rem', width: '100%', padding: '1.1rem',
-                                        background: '#1B6B3A',
+                                        background: '#004aad',
                                         color: 'white', border: 'none', borderRadius: '16px',
                                         fontWeight: '850', fontSize: '1.1rem', cursor: 'pointer',
-                                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)'
+                                        boxShadow: '0 10px 20px rgba(0, 74, 173, 0.2)'
                                     }}
                                 >
                                     {createMutation.isPending ? 'Distributing Session...' : 'Authorize Panel Broadcast'}
