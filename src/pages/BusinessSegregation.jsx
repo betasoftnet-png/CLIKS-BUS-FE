@@ -18,9 +18,9 @@ import {
     Search,
     Filter,
     Calendar,
-    ChevronRight,
-    Building,
-    Edit2
+    Edit2,
+    Pin,
+    MoreVertical
 } from 'lucide-react';
 import { businessSegregationService } from '../services';
 import '../App.css';
@@ -37,6 +37,18 @@ const BusinessSegregation = () => {
         description: '',
         allocations: [{ label: '', percentage: '', notes: '' }]
     });
+
+    const [pinnedSegregations, setPinnedSegregations] = useState(() => {
+        const saved = localStorage.getItem('cliks_pinned_segregations');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [activeMenuId, setActiveMenuId] = useState(null);
+
+    React.useEffect(() => {
+        const handleGlobalClick = () => setActiveMenuId(null);
+        window.addEventListener('click', handleGlobalClick);
+        return () => window.removeEventListener('click', handleGlobalClick);
+    }, []);
 
     // Fetch Segregations
     const { data: segregations = [], isLoading } = useQuery({
@@ -176,40 +188,145 @@ const BusinessSegregation = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredSegregations.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((seg) => (
-                                    <tr key={seg.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
-                                                    <Zap size={20} />
-                                                </div>
-                                                <span style={{ fontWeight: '750', color: '#1E293B' }}>{seg.name}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '500' }}>{seg.description || 'N/A'}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                {seg.allocations?.map((a, i) => (
-                                                    <span key={i} style={{ fontSize: '0.75rem', fontWeight: '800', background: '#F0FDF4', color: '#1B6B3A', padding: '0.25rem 0.6rem', borderRadius: '8px', border: '1px solid #DCF2E4' }}>
-                                                        {a.label}: {a.percentage}%
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '10px', background: '#F0FDF4', color: '#15803D', fontSize: '0.8rem', fontWeight: '800' }}>
-                                                <CheckCircle2 size={12} /> ACTIVE
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                                <button onClick={async () => { if(await customConfirm('Delete this strategy?')) deleteMutation.mutate(seg.id); }} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {filteredSegregations.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))
+                                    .sort((a, b) => {
+                                        const aPinned = pinnedSegregations.includes(a.id);
+                                        const bPinned = pinnedSegregations.includes(b.id);
+                                        if (aPinned && !bPinned) return -1;
+                                        if (!aPinned && bPinned) return 1;
+                                        return 0;
+                                    })
+                                    .map((seg) => {
+                                        const isPinned = pinnedSegregations.includes(seg.id);
+                                        return (
+                                            <tr key={seg.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
+                                                                <Zap size={20} />
+                                                            </div>
+                                                            {isPinned && (
+                                                                <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#004aad', color: 'white', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                                                                    <Pin size={10} style={{ transform: 'rotate(45deg)' }} />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <span style={{ fontWeight: '750', color: '#1E293B' }}>{seg.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                    <span style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '500' }}>{seg.description || 'N/A'}</span>
+                                                </td>
+                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        {seg.allocations?.map((a, i) => (
+                                                            <span key={i} style={{ fontSize: '0.75rem', fontWeight: '800', background: '#F0FDF4', color: '#1B6B3A', padding: '0.25rem 0.6rem', borderRadius: '8px', border: '1px solid #DCF2E4' }}>
+                                                                {a.label}: {a.percentage}%
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '10px', background: '#F0FDF4', color: '#15803D', fontSize: '0.8rem', fontWeight: '800' }}>
+                                                        <CheckCircle2 size={12} /> ACTIVE
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1.5rem 2rem', textAlign: 'right', position: 'relative' }}>
+                                                    <div style={{ display: 'inline-block', position: 'relative' }}>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveMenuId(activeMenuId === seg.id ? null : seg.id);
+                                                            }}
+                                                            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s', padding: '6px 12px', borderRadius: '8px' }}
+                                                            onMouseOver={(e) => e.currentTarget.style.color = '#004aad'}
+                                                            onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
+                                                        >
+                                                            <MoreVertical size={18} />
+                                                        </button>
+                                                        
+                                                        {activeMenuId === seg.id && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                right: 0,
+                                                                top: '100%',
+                                                                background: 'white',
+                                                                borderRadius: '12px',
+                                                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                                                                border: '1px solid #E2E8F0',
+                                                                padding: '6px',
+                                                                zIndex: 100,
+                                                                minWidth: '160px',
+                                                                textAlign: 'left'
+                                                            }}>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const next = pinnedSegregations.includes(seg.id)
+                                                                            ? pinnedSegregations.filter(id => id !== seg.id)
+                                                                            : [...pinnedSegregations, seg.id];
+                                                                        setPinnedSegregations(next);
+                                                                        localStorage.setItem('cliks_pinned_segregations', JSON.stringify(next));
+                                                                        setActiveMenuId(null);
+                                                                    }}
+                                                                    style={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '8px',
+                                                                        width: '100%',
+                                                                        padding: '8px 12px',
+                                                                        border: 'none',
+                                                                        background: 'none',
+                                                                        color: '#334155',
+                                                                        fontSize: '0.85rem',
+                                                                        fontWeight: '600',
+                                                                        cursor: 'pointer',
+                                                                        borderRadius: '8px',
+                                                                        transition: 'background 0.2s'
+                                                                    }}
+                                                                    onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                    onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                >
+                                                                    <Pin size={14} style={{ color: '#004aad', transform: isPinned ? 'rotate(45deg)' : 'none' }} />
+                                                                    {isPinned ? 'Unpin Strategy' : 'Pin to top'}
+                                                                </button>
+                                                                <button
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        if(await customConfirm('Delete this strategy?')) {
+                                                                            deleteMutation.mutate(seg.id);
+                                                                        }
+                                                                        setActiveMenuId(null);
+                                                                    }}
+                                                                    style={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '8px',
+                                                                        width: '100%',
+                                                                        padding: '8px 12px',
+                                                                        border: 'none',
+                                                                        background: 'none',
+                                                                        color: '#EF4444',
+                                                                        fontSize: '0.85rem',
+                                                                        fontWeight: '600',
+                                                                        cursor: 'pointer',
+                                                                        borderRadius: '8px',
+                                                                        transition: 'background 0.2s'
+                                                                    }}
+                                                                    onMouseOver={(e) => e.currentTarget.style.background = '#FEF2F2'}
+                                                                    onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                >
+                                                                    <Trash2 size={14} style={{ color: '#EF4444' }} />
+                                                                    Delete Strategy
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                             </tbody>
                         </table>
                     )}
