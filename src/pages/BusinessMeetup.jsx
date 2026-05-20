@@ -252,7 +252,7 @@ const BusinessMeetup = () => {
                                 fontWeight: '800',
                                 cursor: 'pointer',
                                 border: 'none',
-                                background: filter === tab ? '#004aad' : 'transparent',
+                                background: filter === tab ? '#475569' : 'transparent',
                                 color: filter === tab ? 'white' : '#64748B',
                                 transition: 'all 0.2s ease'
                             }}
