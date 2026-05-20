@@ -574,9 +574,17 @@ const BusinessPeople = () => {
                                         };
                                     })
                                     .filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))
+                                    .sort((a, b) => {
+                                        const aPinned = pinnedPeopleIds.includes(a.id);
+                                        const bPinned = pinnedPeopleIds.includes(b.id);
+                                        if (aPinned && !bPinned) return -1;
+                                        if (!aPinned && bPinned) return 1;
+                                        return 0;
+                                    })
                                     .map((p) => {
                                         const meta = getContactMeta(p.contact_info);
                                         const netBal = parseFloat(p.net_balance || 0);
+                                        const isPinned = pinnedPeopleIds.includes(p.id);
                                         return (
                                             <tr key={p.id} 
                                                 style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
@@ -586,7 +594,14 @@ const BusinessPeople = () => {
                                             >
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    {renderAvatar(p.name, 42)}
+                                                    <div style={{ position: 'relative' }}>
+                                                        {renderAvatar(p.name, 42)}
+                                                        {isPinned && (
+                                                            <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#004aad', color: 'white', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                                                                <Pin size={10} style={{ transform: 'rotate(45deg)' }} />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div>
                                                         <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', margin: 0 }}>{p.name}</p>
                                                         {activeConfig.payReminder && netBal !== 0 && (
@@ -637,39 +652,131 @@ const BusinessPeople = () => {
                                                 </span>
                                                 <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>{netBal >= 0 ? 'RECEIVABLE' : 'PAYABLE'}</div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right', position: 'relative' }}>
+                                                <div style={{ display: 'inline-block', position: 'relative' }}>
                                                     <button 
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setEditingContactId(p.id);
-                                                            setContactForm({
-                                                                name: p.name || '',
-                                                                role_type: p.role_type || 'friend',
-                                                                phone: p.phone || '',
-                                                                email: p.email || '',
-                                                                company: p.company || '',
-                                                                relationship: p.relationship || '',
-                                                                contact_info: p.contact_info || JSON.stringify({ status: 'active', loyalty_points: 0 })
-                                                            });
-                                                            setIsContactModalOpen(true);
+                                                            setActiveMenuId(activeMenuId === p.id ? null : p.id);
                                                         }}
-                                                        style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s' }}
-                                                        onMouseOver={(e) => e.currentTarget.style.color = '#7C3AED'}
+                                                        style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s', padding: '6px 12px', borderRadius: '8px' }}
+                                                        onMouseOver={(e) => e.currentTarget.style.color = '#004aad'}
                                                         onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                                        title="Edit Profile"
                                                     >
-                                                        <Edit2 size={18} />
+                                                        <MoreVertical size={18} />
                                                     </button>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteContact(p.id); }}
-                                                        style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', transition: 'color 0.2s' }}
-                                                        onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
-                                                        onMouseOut={(e) => e.currentTarget.style.color = '#94A3B8'}
-                                                        title="Delete Contact"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                                    
+                                                    {activeMenuId === p.id && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            right: 0,
+                                                            top: '100%',
+                                                            background: 'white',
+                                                            borderRadius: '12px',
+                                                            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                                                            border: '1px solid #E2E8F0',
+                                                            padding: '6px',
+                                                            zIndex: 100,
+                                                            minWidth: '160px',
+                                                            textAlign: 'left'
+                                                        }}>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const next = pinnedPeopleIds.includes(p.id)
+                                                                        ? pinnedPeopleIds.filter(id => id !== p.id)
+                                                                        : [...pinnedPeopleIds, p.id];
+                                                                    setPinnedPeopleIds(next);
+                                                                    localStorage.setItem('cliks_pinned_people', JSON.stringify(next));
+                                                                    setActiveMenuId(null);
+                                                                }}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    width: '100%',
+                                                                    padding: '8px 12px',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    color: '#334155',
+                                                                    fontSize: '0.85rem',
+                                                                    fontWeight: '600',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '8px',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                            >
+                                                                <Pin size={14} style={{ color: '#004aad', transform: isPinned ? 'rotate(45deg)' : 'none' }} />
+                                                                {isPinned ? 'Unpin Contact' : 'Pin to top'}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEditingContactId(p.id);
+                                                                    setContactForm({
+                                                                        name: p.name || '',
+                                                                        role_type: p.role_type || 'friend',
+                                                                        phone: p.phone || '',
+                                                                        email: p.email || '',
+                                                                        company: p.company || '',
+                                                                        relationship: p.relationship || '',
+                                                                        contact_info: p.contact_info || JSON.stringify({ status: 'active', loyalty_points: 0 })
+                                                                    });
+                                                                    setIsContactModalOpen(true);
+                                                                    setActiveMenuId(null);
+                                                                }}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    width: '100%',
+                                                                    padding: '8px 12px',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    color: '#334155',
+                                                                    fontSize: '0.85rem',
+                                                                    fontWeight: '600',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '8px',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                            >
+                                                                <Edit2 size={14} style={{ color: '#64748B' }} />
+                                                                Edit Profile
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteContact(p.id);
+                                                                    setActiveMenuId(null);
+                                                                }}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    width: '100%',
+                                                                    padding: '8px 12px',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    color: '#EF4444',
+                                                                    fontSize: '0.85rem',
+                                                                    fontWeight: '600',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '8px',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.background = '#FEF2F2'}
+                                                                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                            >
+                                                                <Trash2 size={14} style={{ color: '#EF4444' }} />
+                                                                Delete Contact
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
