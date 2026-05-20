@@ -447,7 +447,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     </>
                 ) : isSocialMode ? (
                     <>
-                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#94A3B8', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Social</div>
+                        {/* No "Social" title - removed per user request */}
                         {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
                     </>
                 ) : isFinanceMode ? (
