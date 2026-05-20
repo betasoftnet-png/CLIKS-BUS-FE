@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { settingsService } from '../services/settingsService';
+import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 
@@ -44,6 +46,11 @@ const BusinessPeople = () => {
     // Customization Filters state
     const [groupFilter, setGroupFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
+    const [colFilters, setColFilters] = useState({});
+
+    React.useEffect(() => {
+        setColFilters({});
+    }, [activeTab]);
 
     // Forms input states
     const [contactForm, setContactForm] = useState({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
@@ -526,40 +533,57 @@ const BusinessPeople = () => {
                     {/* TAB 1: Contacts List */}
                     {activeTab === 'contacts' && (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Profile Contact</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Classification</th>
-                                    {activeConfig.partyGroup && (
-                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Group Cluster</th>
-                                    )}
-                                    {activeConfig.partyStatus && (
-                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    )}
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Company / Link</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Phone / Email</th>
-                                    {activeConfig.loyalty && (
-                                        <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Loyalty Points</th>
-                                    )}
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Net Exposure</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}></th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead 
+                                columns={[
+                                    { key: 'name', label: 'Profile Contact', placeholder: 'Name...' },
+                                    { key: 'role_type', label: 'Classification', placeholder: 'Role...' },
+                                    ...(activeConfig.partyGroup ? [{ key: 'relationship', label: 'Group Cluster', placeholder: 'Group...' }] : []),
+                                    ...(activeConfig.partyStatus ? [{ key: 'status', label: 'Status', placeholder: 'Status...' }] : []),
+                                    { key: 'company', label: 'Company / Link', placeholder: 'Company...' },
+                                    { key: 'phone_email', label: 'Phone / Email', placeholder: 'Contact...' },
+                                    ...(activeConfig.loyalty ? [{ key: 'loyalty_points', label: 'Loyalty Points', placeholder: 'Points...', align: 'center' }] : []),
+                                    { key: 'net_balance', label: 'Net Exposure', placeholder: 'Exposure...', align: 'right' },
+                                    { key: '_actions', label: '', noFilter: true }
+                                ]} 
+                                onFilterChange={setColFilters} 
+                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem' }}
+                            />
                             <tbody>
                                 {isPeopleLoading ? (
                                     <tr><td colSpan={10} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>Streaming network directory...</td></tr>
-                                ) : filteredPeople.length === 0 ? (
+                                ) : filteredPeople
+                                    .map(p => {
+                                        const meta = getContactMeta(p.contact_info);
+                                        return {
+                                            ...p,
+                                            status: meta.status,
+                                            loyalty_points: meta.loyalty_points,
+                                            phone_email: `${p.phone || ''} ${p.email || ''}`
+                                        };
+                                    })
+                                    .filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 ? (
                                     <tr><td colSpan={10} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Zero network contacts found. Start adding!</td></tr>
-                                ) : filteredPeople.map((p) => {
-                                    const meta = getContactMeta(p.contact_info);
-                                    const netBal = parseFloat(p.net_balance || 0);
-                                    return (
-                                        <tr key={p.id} 
-                                            style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
-                                            onClick={() => setSelectedPersonId(p.id)}
-                                            onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
-                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
-                                        >
+                                ) : filteredPeople
+                                    .map(p => {
+                                        const meta = getContactMeta(p.contact_info);
+                                        return {
+                                            ...p,
+                                            status: meta.status,
+                                            loyalty_points: meta.loyalty_points,
+                                            phone_email: `${p.phone || ''} ${p.email || ''}`
+                                        };
+                                    })
+                                    .filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))
+                                    .map((p) => {
+                                        const meta = getContactMeta(p.contact_info);
+                                        const netBal = parseFloat(p.net_balance || 0);
+                                        return (
+                                            <tr key={p.id} 
+                                                style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
+                                                onClick={() => setSelectedPersonId(p.id)}
+                                                onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
+                                            >
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                     {renderAvatar(p.name, 42)}
@@ -658,22 +682,24 @@ const BusinessPeople = () => {
                     {/* TAB 2: Transactions Ledger */}
                     {activeTab === 'transactions' && (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Execution Date</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Network Contact</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Activity Description</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Classification</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Ledger Flow</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}></th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead 
+                                columns={[
+                                    { key: 'date', label: 'Execution Date', placeholder: 'Date...' },
+                                    { key: 'person_name', label: 'Network Contact', placeholder: 'Contact...' },
+                                    { key: 'description', label: 'Activity Description', placeholder: 'Description...' },
+                                    { key: 'type', label: 'Classification', placeholder: 'Type...' },
+                                    { key: 'amount', label: 'Ledger Flow', placeholder: 'Flow...', align: 'right' },
+                                    { key: '_actions', label: '', noFilter: true }
+                                ]} 
+                                onFilterChange={setColFilters} 
+                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem' }}
+                            />
                             <tbody>
                                 {isTxLoading ? (
                                     <tr><td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>Accessing Ledger Database...</td></tr>
-                                ) : filteredTx.length === 0 ? (
+                                ) : filteredTx.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 ? (
                                     <tr><td colSpan={6} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>No logged P2P activities found.</td></tr>
-                                ) : filteredTx.map((t) => (
+                                ) : filteredTx.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((t) => (
                                     <tr key={t.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem', color: '#64748B', fontWeight: '600' }}>{new Date(t.date).toLocaleDateString('en-IN')}</td>
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1E293B' }}>{t.person_name}</td>
@@ -703,21 +729,23 @@ const BusinessPeople = () => {
                     {/* TAB 3: Reminders & Tasks */}
                     {activeTab === 'reminders' && (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Maturity / Due Date</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Target Contact</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Memo Label</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Claim Cap</th>
-                                    <th style={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}></th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead 
+                                columns={[
+                                    { key: 'due_date', label: 'Maturity / Due Date', placeholder: 'Due Date...' },
+                                    { key: 'person_name', label: 'Target Contact', placeholder: 'Contact...' },
+                                    { key: 'title', label: 'Memo Label', placeholder: 'Memo...' },
+                                    { key: 'amount', label: 'Claim Cap', placeholder: 'Claim...', align: 'right' },
+                                    { key: '_actions', label: '', noFilter: true }
+                                ]} 
+                                onFilterChange={setColFilters} 
+                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem' }}
+                            />
                             <tbody>
                                 {isRemindersLoading ? (
                                     <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>Resolving dispatch statuses...</td></tr>
-                                ) : reminders.length === 0 ? (
+                                ) : reminders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 ? (
                                     <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Zero pending alerts scheduled.</td></tr>
-                                ) : reminders.map((r) => (
+                                ) : reminders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((r) => (
                                     <tr key={r.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem', color: '#E11D48', fontWeight: '800' }}>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
