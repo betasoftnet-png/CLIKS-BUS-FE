@@ -63,6 +63,21 @@ const BusinessBilling = () => {
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
     const barcodeInputRef = React.useRef(null);
 
+    // Fetch actual business profile for production-grade invoices
+    const { data: businessProfile } = useQuery({
+        queryKey: ['businessProfile'],
+        queryFn: profileService.getProfile,
+        refetchOnWindowFocus: false
+    });
+
+    // Fetch customization settings dynamically to enforce master configurations
+    const { data: userSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = userSettings?.data || userSettings || {};
+
     React.useEffect(() => {
         if (isModalOpen && activeConfig?.quickEntry) {
             const timer = setTimeout(() => {
@@ -84,21 +99,6 @@ const BusinessBilling = () => {
         showSignature: true,
         showHeaderStrip: true
     });
-
-    // Fetch actual business profile for production-grade invoices
-    const { data: businessProfile } = useQuery({
-        queryKey: ['businessProfile'],
-        queryFn: profileService.getProfile,
-        refetchOnWindowFocus: false
-    });
-
-    // Fetch customization settings dynamically to enforce master configurations
-    const { data: userSettings } = useQuery({
-        queryKey: ['settings'],
-        queryFn: settingsService.getSettings,
-        refetchOnWindowFocus: false
-    });
-    const activeConfig = userSettings?.data || userSettings || {};
     // Auto-trigger invoice creation workflow via query param instruction
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
