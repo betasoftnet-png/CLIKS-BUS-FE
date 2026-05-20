@@ -20,7 +20,9 @@ import {
     MessageSquare, 
     CheckCircle2,
     Edit2,
-    Tag
+    Tag,
+    Pin,
+    MoreVertical
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { settingsService } from '../services/settingsService';
@@ -68,6 +70,18 @@ const BusinessPeople = () => {
     // Ledger search inside person detail modal
     const [ledgerSearchTerm, setLedgerSearchTerm] = useState('');
     const [showLedgerSearch, setShowLedgerSearch] = useState(false);
+
+    const [pinnedPeopleIds, setPinnedPeopleIds] = useState(() => {
+        const saved = localStorage.getItem('cliks_pinned_people');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [activeMenuId, setActiveMenuId] = useState(null);
+
+    React.useEffect(() => {
+        const handleGlobalClick = () => setActiveMenuId(null);
+        window.addEventListener('click', handleGlobalClick);
+        return () => window.removeEventListener('click', handleGlobalClick);
+    }, []);
 
     React.useEffect(() => {
         setIsInlineTxOpen(false);
