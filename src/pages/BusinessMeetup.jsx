@@ -46,11 +46,13 @@ const BusinessMeetup = () => {
 
     const [gpsState, setGpsState] = useState(null);
     const [plusCode, setPlusCode] = useState(null);
+    const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
 
-    React.useEffect(() => {
+    const requestLocation = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    setLocationPermissionDenied(false);
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
@@ -70,9 +72,17 @@ const BusinessMeetup = () => {
                 },
                 (error) => {
                     console.warn('Geolocation access restricted by user:', error.message);
-                }
+                    setLocationPermissionDenied(true);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
+        } else {
+            setLocationPermissionDenied(true);
         }
+    };
+
+    React.useEffect(() => {
+        requestLocation();
     }, []);
 
     const [newEvent, setNewEvent] = useState({ 
@@ -260,6 +270,49 @@ const BusinessMeetup = () => {
             
             {/* Scrollable Main Content Wrapper */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '1.5rem' }}>
+
+            {locationPermissionDenied && (
+                <div style={{
+                    background: '#FEF2F2',
+                    border: '1px solid #FCA5A5',
+                    color: '#991B1B',
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '12px',
+                    marginBottom: '1.25rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.82rem',
+                    fontWeight: '750',
+                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.03)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <MapPin size={16} color="#DC2626" />
+                        <span>Location services are disabled or blocked. Enable location permissions in your browser to unlock real-time OLC Plus Code matchmaking.</span>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            setLocationPermissionDenied(false);
+                            requestLocation();
+                        }}
+                        style={{
+                            background: '#DC2626',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '8px',
+                            fontWeight: '800',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.background = '#B91C1C'}
+                        onMouseOut={e => e.currentTarget.style.background = '#DC2626'}
+                    >
+                        Enable Location
+                    </button>
+                </div>
+            )}
 
             {/* Header Presentation Board */}
             <div style={{
