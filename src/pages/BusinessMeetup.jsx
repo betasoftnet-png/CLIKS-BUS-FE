@@ -45,6 +45,7 @@ const BusinessMeetup = () => {
     });
 
     const [gpsState, setGpsState] = useState(null);
+    const [plusCode, setPlusCode] = useState(null);
 
     React.useEffect(() => {
         if (navigator.geolocation) {
@@ -58,6 +59,9 @@ const BusinessMeetup = () => {
                             const state = data.principalSubdivision;
                             if (state) {
                                 setGpsState(state);
+                            }
+                            if (data.plusCode) {
+                                setPlusCode(data.plusCode);
                             }
                         })
                         .catch(err => {
@@ -294,6 +298,23 @@ const BusinessMeetup = () => {
                         <h1 style={{ fontSize: '1.6rem', fontWeight: '950', letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
                             Founders Meetup & Executive Events
                         </h1>
+                        {gpsState && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem' }}>
+                                <span style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '700',
+                                    color: 'rgba(255, 255, 255, 0.9)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    <MapPin size={12} color="#10B981" /> GPS Locked: {gpsState} {plusCode ? `(OLC Plus Code: ${plusCode})` : ''}
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <button 
                         onClick={() => setIsCreateModalOpen(true)}
