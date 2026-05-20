@@ -34,6 +34,7 @@ import SupportDashboard from './pages/support/SupportDashboard';
 import AdminSupportTeam from './pages/admin/AdminSupportTeam';
 
 import BusinessDashboard from './pages/BusinessDashboard';
+import BusinessCA from './pages/BusinessCA';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
 import BusinessInventory from './pages/BusinessInventory';
 import BusinessBilling from './pages/BusinessBilling';
@@ -204,7 +205,7 @@ function AppContent() {
                     <Route path="/finance/accounting" element={<BusinessAccounting />} />
                     <Route path="/finance/gst" element={<BusinessGST />} />
                     <Route path="/marketing" element={<BusinessMarketing />} />
-                    <Route path="/ca" element={<BusinessPlaceholder title="CA Console" />} />
+                    <Route path="/ca" element={<BusinessCA />} />
                     <Route path="/sales/delivery" element={<BusinessDelivery />} />
                     <Route path="/manufacturing" element={<BusinessManufacturing />} />
                     <Route path="/reports" element={<BusinessReports />} />
