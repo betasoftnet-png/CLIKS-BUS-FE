@@ -47,6 +47,7 @@ const BusinessMeetup = () => {
     const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
 
     const [gpsState, setGpsState] = useState(null);
+    const [cityName, setCityName] = useState(null);
     const [plusCode, setPlusCode] = useState(null);
     const [pincode, setPincode] = useState(null);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
@@ -62,8 +63,12 @@ const BusinessMeetup = () => {
                         .then(res => res.json())
                         .then(data => {
                             const state = data.principalSubdivision;
+                            const city = data.city || data.locality || data.village;
                             if (state) {
                                 setGpsState(state);
+                            }
+                            if (city) {
+                                setCityName(city);
                             }
                             if (data.plusCode) {
                                 setPlusCode(data.plusCode);
@@ -232,11 +237,16 @@ const BusinessMeetup = () => {
         
         // 2. Proximity/Location Based Match Boost
         const profileState = gpsState || currentUser.stateRegistered || currentUser.state || 'Maharashtra';
+        const profileCity = cityName || '';
         if (event.location && profileState) {
             const evLoc = event.location.toLowerCase();
             const uState = profileState.toLowerCase();
-            if (evLoc.includes(uState)) {
-                score += 100; // Location proximity match weight
+            const uCity = profileCity.toLowerCase();
+            
+            if (uCity && evLoc.includes(uCity)) {
+                score += 150; // City proximity match booster
+            } else if (evLoc.includes(uState)) {
+                score += 100; // State match weight
             }
         }
         
@@ -386,7 +396,11 @@ const BusinessMeetup = () => {
                             >
                                 <MapPin size={13} color="#10B981" />
                                 <span>
-                                    {gpsState ? `${gpsState}${pincode ? `, Pincode: ${pincode}` : ''}` : 'Select Region / Lock GPS'}
+                                    {gpsState ? (
+                                        `${cityName ? `${cityName}, ` : ''}${gpsState}${pincode ? `, Pincode: ${pincode}` : ''}`
+                                    ) : (
+                                        'Select Region / Lock GPS'
+                                    )}
                                 </span>
                                 <span style={{ fontSize: '0.55rem', opacity: 0.8, marginLeft: '2px' }}>▼</span>
                             </button>
@@ -420,18 +434,20 @@ const BusinessMeetup = () => {
                                         </div>
                                         
                                         {[
-                                            { label: '⚡ Detect GPS Location', state: 'GPS', plusCode: 'Auto', pincode: null },
-                                            { label: '📍 Chennai, Tamil Nadu', state: 'Tamil Nadu', plusCode: '7J5X4W66+F9', pincode: '600001' },
-                                            { label: '📍 Mumbai, Maharashtra', state: 'Maharashtra', plusCode: '8FVC9G8F+6W', pincode: '400001' },
-                                            { label: '📍 Bengaluru, Karnataka', state: 'Karnataka', plusCode: '7J4VXH8R+5P', pincode: '560001' },
-                                            { label: '📍 Delhi NCR', state: 'Delhi', plusCode: '8F3C4R2V+8Q', pincode: '110001' }
+                                            { label: '⚡ Detect GPS Location', city: null, state: 'GPS', plusCode: 'Auto', pincode: null },
+                                            { label: '📍 Chennai, Tamil Nadu', city: 'Chennai', state: 'Tamil Nadu', plusCode: '7J5X4W66+F9', pincode: '600001' },
+                                            { label: '📍 Trichy, Tamil Nadu', city: 'Trichy', state: 'Tamil Nadu', plusCode: '7J4VQ456+7W', pincode: '620001' },
+                                            { label: '📍 Mumbai, Maharashtra', city: 'Mumbai', state: 'Maharashtra', plusCode: '8FVC9G8F+6W', pincode: '400001' },
+                                            { label: '📍 Bengaluru, Karnataka', city: 'Bengaluru', state: 'Karnataka', plusCode: '7J4VXH8R+5P', pincode: '560001' },
+                                            { label: '📍 Delhi NCR', city: 'Delhi NCR', state: 'Delhi', plusCode: '8F3C4R2V+8Q', pincode: '110001' }
                                         ].map((opt) => (
                                             <button
-                                                key={opt.state}
+                                                key={opt.label}
                                                 onClick={() => {
                                                     if (opt.state === 'GPS') {
                                                         requestLocation();
                                                     } else {
+                                                        setCityName(opt.city);
                                                         setGpsState(opt.state);
                                                         setPlusCode(opt.plusCode);
                                                         setPincode(opt.pincode);
