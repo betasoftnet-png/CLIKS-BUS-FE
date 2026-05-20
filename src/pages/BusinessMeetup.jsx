@@ -323,7 +323,7 @@ const BusinessMeetup = () => {
                 padding: '1.25rem 1.75rem',
                 color: 'white',
                 position: 'relative',
-                overflow: 'hidden',
+                overflow: 'visible',
                 boxShadow: '0 8px 24px rgba(0, 74, 173, 0.08)',
                 marginBottom: '1.25rem'
             }}>
