@@ -28,6 +28,7 @@ import {
     Split,
     Gift,
     Building,
+    Briefcase,
     Barcode,
     ChevronDown,
     ChevronRight,
@@ -58,6 +59,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
 
     const isBetaClub = item.label === 'BETA Club';
+    const isCa = item.label === 'CA';
 
     // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange vs Support Blue
     let primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : (isSupport ? '#3B82F6' : '#1B6B3A'));
@@ -70,6 +72,11 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         activeBg = '#FFFDF0'; // Soft golden background hover states
         activeText = '#FFD700'; // Set text color explicitly to gold
         darkTextColor = '#D97706'; // Warm golden amber for subheader labels
+    } else if (isCa) {
+        primaryColor = '#D4AF37'; // Elegant gold icon (#D4AF37)
+        activeBg = '#FFFDF0'; // Soft golden background hover states
+        activeText = '#D4AF37'; // Set text color explicitly to gold
+        darkTextColor = '#B8860B'; // Warm golden amber for subheader labels
     }
 
     let backgroundStyle = 'transparent';
@@ -85,6 +92,11 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             primaryColor = '#FFD700'; // Keep the icon vibrant gold when active
             activeText = '#FFD700'; // Pure gold text when active as requested
             darkTextColor = '#D97706'; // Warm golden amber for subheader labels
+        } else if (isCa) {
+            backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient
+            primaryColor = '#D4AF37'; // Keep the icon vibrant gold when active
+            activeText = '#D4AF37'; // Pure gold text when active as requested
+            darkTextColor = '#B8860B'; // Warm golden amber for subheader labels
         } else {
             backgroundStyle = '#1B6B3A';
         }
@@ -163,7 +175,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             }}
         >
             <div className="flex items-center gap-3">
-                <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub) ? '#ffffff' : primaryColor }} />
+                <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
                 <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{item.label}</span>
             </div>
         </button>
@@ -219,6 +231,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
         if (path.includes('/marketing')) return 'Marketing';
+        if (path.includes('/ca')) return 'CA';
         if (path.includes('/social/betaclub')) return 'BETA Club';
         if (path.includes('/social/meetup')) return 'Meetup';
         if (path.includes('/social/trading')) return 'Trading docs';
@@ -336,7 +349,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'POS Billing', icon: Monitor, path: '/pos' },
             { label: 'Reports', icon: BarChart3, path: '/reports' },
             { label: 'Barcode Gen', icon: Barcode, path: '/barcode' },
-            { label: 'Marketing', icon: Megaphone, path: '/marketing' }
+            { label: 'Marketing', icon: Megaphone, path: '/marketing' },
+            { label: 'CA', icon: Briefcase, path: '/ca', color: '#D4AF37' }
 
         ],
         social: [
