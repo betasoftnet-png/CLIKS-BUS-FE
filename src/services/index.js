@@ -39,4 +39,4 @@ export * from './calculatorService';
 export * from './mailService';
 export * from './marketingService';
 export * from './supportService';
-
+export * from './contactsService';
