@@ -23,6 +23,7 @@ import {
     Download
 } from 'lucide-react';
 import '../App.css';
+import splitExpenseService from '../services/splitExpenseService';
 
 // Initial Seed Data for Split Groups
 const INITIAL_SPLITS = [
@@ -48,31 +49,31 @@ const INITIAL_SPLITS = [
             {
                 id: 'exp-2',
                 title: 'Sunset Dinner & Drinks',
-                amount: 4000,
-                paidBy: 'Rahul',
-                date: '2026-05-19',
-                attachment: 'sunset_club_invoice.jpg',
-                splitType: 'custom',
-                shares: { 'You': 1500, 'Vishal': 1000, 'Amit': 1000, 'Rahul': 500 }
+                amount: 4500,
+                paidBy: 'Vishal',
+                date: '2026-05-18',
+                attachment: 'dinner_invoice.png',
+                splitType: 'equal',
+                shares: { 'You': 1125, 'Vishal': 1125, 'Amit': 1125, 'Rahul': 1125 }
             },
             {
                 id: 'exp-3',
-                title: 'SUV Car Rental',
-                amount: 3000,
+                title: 'Scuba Diving Deposit',
+                amount: 8000,
                 paidBy: 'Amit',
                 date: '2026-05-19',
-                attachment: 'car_rental_agreement.pdf',
-                splitType: 'equal',
-                shares: { 'You': 750, 'Vishal': 750, 'Amit': 750, 'Rahul': 750 }
+                attachment: null,
+                splitType: 'custom',
+                shares: { 'You': 2500, 'Vishal': 1500, 'Amit': 2000, 'Rahul': 2000 }
             }
         ]
     },
     {
-        id: 'split-office-lunch',
-        title: 'Project Kickoff Catering',
+        id: 'split-office-2026',
+        title: 'Office Friday Platters',
         currency: 'INR',
         currencySymbol: '₹',
-        description: 'Office catering for the tech development squad.',
+        description: 'Team dinner celebration at Office.',
         participants: ['You', 'Aniket', 'Sneha'],
         created_at: '2026-05-15T12:00:00Z',
         expenses: [
@@ -92,10 +93,8 @@ const INITIAL_SPLITS = [
 
 const BusinessSplitCollect = () => {
     // ── State Management ───────────────────────────────────────────────────
-    const [splits, setSplits] = useState(() => {
-        const saved = localStorage.getItem('cliks_splits_data');
-        return saved ? JSON.parse(saved) : INITIAL_SPLITS;
-    });
+    const [splits, setSplits] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const [selectedSplitId, setSelectedSplitId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -124,10 +123,45 @@ const BusinessSplitCollect = () => {
         shares: {} // Custom shares per participant
     });
 
-    // Save splits to localStorage whenever state changes
+    // Fetch splits from backend on mount
     useEffect(() => {
-        localStorage.setItem('cliks_splits_data', JSON.stringify(splits));
-    }, [splits]);
+        const loadSplits = async () => {
+            try {
+                setLoading(true);
+                const data = await splitExpenseService.getSplits();
+                if (data && data.length > 0) {
+                    setSplits(data);
+                } else {
+                    // Seed initial data to database if empty
+                    const seeded = [];
+                    for (const s of INITIAL_SPLITS) {
+                        try {
+                            const created = await splitExpenseService.createSplit(s);
+                            for (const exp of s.expenses) {
+                                await splitExpenseService.addExpense(created.id, exp);
+                            }
+                            seeded.push(created);
+                        } catch (seedErr) {
+                            console.error("Error seeding initial group:", seedErr);
+                        }
+                    }
+                    if (seeded.length > 0) {
+                        const freshData = await splitExpenseService.getSplits();
+                        setSplits(freshData);
+                    } else {
+                        setSplits(INITIAL_SPLITS);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading split data from backend:", err);
+                const saved = localStorage.getItem('cliks_splits_data');
+                setSplits(saved ? JSON.parse(saved) : INITIAL_SPLITS);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadSplits();
+    }, []);
 
     // Active Split Lookup
     const activeSplit = splits.find(s => s.id === selectedSplitId);
@@ -149,13 +183,14 @@ const BusinessSplitCollect = () => {
     };
 
     // ── Group Actions ──────────────────────────────────────────────────────
-    const handleCreateGroup = (e) => {
+    const handleCreateGroup = async (e) => {
         e.preventDefault();
         if (!groupForm.title.trim()) return alert('Please enter a group title.');
         if (groupForm.participants.length < 2) return alert('Please add at least one other participant.');
 
+        const tempId = 'split-' + Date.now();
         const newGroup = {
-            id: 'split-' + Date.now(),
+            id: tempId,
             title: groupForm.title,
             currency: groupForm.currency,
             currencySymbol: getCurrencySymbol(groupForm.currency),
@@ -165,7 +200,17 @@ const BusinessSplitCollect = () => {
             expenses: []
         };
 
-        setSplits([newGroup, ...splits]);
+        try {
+            const created = await splitExpenseService.createSplit(newGroup);
+            created.expenses = [];
+            setSplits([created, ...splits]);
+            setSelectedSplitId(created.id);
+        } catch (err) {
+            console.error("Error creating group on backend:", err);
+            setSplits([newGroup, ...splits]);
+            setSelectedSplitId(tempId);
+        }
+
         setIsCreateGroupModalOpen(false);
         setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
     };
@@ -191,8 +236,13 @@ const BusinessSplitCollect = () => {
         });
     };
 
-    const handleDeleteGroup = (groupId) => {
+    const handleDeleteGroup = async (groupId) => {
         if (window.confirm('Are you sure you want to delete this split group? All logged expenses will be lost.')) {
+            try {
+                await splitExpenseService.deleteSplit(groupId);
+            } catch (err) {
+                console.error("Error deleting group from backend:", err);
+            }
             setSplits(splits.filter(s => s.id !== groupId));
             setSelectedSplitId(null);
         }
@@ -218,7 +268,7 @@ const BusinessSplitCollect = () => {
         setIsAddExpenseModalOpen(true);
     };
 
-    const handleAddExpense = (e) => {
+    const handleAddExpense = async (e) => {
         e.preventDefault();
         if (!expenseForm.title.trim()) return alert('Please enter expense title.');
         const amount = parseFloat(expenseForm.amount);
@@ -256,22 +306,43 @@ const BusinessSplitCollect = () => {
             shares: finalShares
         };
 
-        const updatedSplits = splits.map(s => {
-            if (s.id === selectedSplitId) {
-                return {
-                    ...s,
-                    expenses: [newExpense, ...s.expenses]
-                };
-            }
-            return s;
-        });
+        try {
+            const createdExpense = await splitExpenseService.addExpense(selectedSplitId, newExpense);
+            const updatedSplits = splits.map(s => {
+                if (s.id === selectedSplitId) {
+                    return {
+                        ...s,
+                        expenses: [createdExpense, ...s.expenses]
+                    };
+                }
+                return s;
+            });
+            setSplits(updatedSplits);
+        } catch (err) {
+            console.error("Error saving expense to backend:", err);
+            // Fallback to local state update
+            const updatedSplits = splits.map(s => {
+                if (s.id === selectedSplitId) {
+                    return {
+                        ...s,
+                        expenses: [newExpense, ...s.expenses]
+                    };
+                }
+                return s;
+            });
+            setSplits(updatedSplits);
+        }
 
-        setSplits(updatedSplits);
         setIsAddExpenseModalOpen(false);
     };
 
-    const handleDeleteExpense = (expenseId) => {
+    const handleDeleteExpense = async (expenseId) => {
         if (window.confirm('Delete this expense?')) {
+            try {
+                await splitExpenseService.deleteExpense(selectedSplitId, expenseId);
+            } catch (err) {
+                console.error("Error deleting expense from backend:", err);
+            }
             const updatedSplits = splits.map(s => {
                 if (s.id === selectedSplitId) {
                     return {
@@ -369,7 +440,7 @@ const BusinessSplitCollect = () => {
     }, [activeSplit]);
 
     // Handle instant settlement log
-    const handleSettleDebt = (debt) => {
+    const handleSettleDebt = async (debt) => {
         if (!activeSplit) return;
         if (window.confirm(`Mark settlement: does ${debt.from} paid ${activeSplit.currencySymbol}${debt.amount.toLocaleString()} to ${debt.to}?`)) {
             // Settle creates a custom expense compensating the debt
@@ -393,17 +464,34 @@ const BusinessSplitCollect = () => {
                 }
             });
 
-            const updatedSplits = splits.map(s => {
-                if (s.id === selectedSplitId) {
-                    return {
-                        ...s,
-                        expenses: [settlementExpense, ...s.expenses]
-                    };
-                }
-                return s;
-            });
-            setSplits(updatedSplits);
-            alert('Settlement logged perfectly!');
+            try {
+                const createdSettlement = await splitExpenseService.addExpense(selectedSplitId, settlementExpense);
+                const updatedSplits = splits.map(s => {
+                    if (s.id === selectedSplitId) {
+                        return {
+                            ...s,
+                            expenses: [createdSettlement, ...s.expenses]
+                        };
+                    }
+                    return s;
+                });
+                setSplits(updatedSplits);
+                alert('Settlement logged perfectly!');
+            } catch (err) {
+                console.error("Error saving settlement to backend:", err);
+                // Fallback to local state update
+                const updatedSplits = splits.map(s => {
+                    if (s.id === selectedSplitId) {
+                        return {
+                            ...s,
+                            expenses: [settlementExpense, ...s.expenses]
+                        };
+                    }
+                    return s;
+                });
+                setSplits(updatedSplits);
+                alert('Settlement logged perfectly!');
+            }
         }
     };
 
@@ -644,7 +732,18 @@ const BusinessSplitCollect = () => {
                             </div>
 
                             {/* Splits Cards Grid */}
-                            {filteredSplits.length === 0 ? (
+                            {loading ? (
+                                <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+                                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                        <Motion.div
+                                            animate={{ rotate: 360 }}
+                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                            style={{ width: '36px', height: '36px', border: '3px solid #E2E8F0', borderTopColor: '#064E3B', borderRadius: '50%', margin: '0 auto 1rem auto' }}
+                                        />
+                                        <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '750' }}>Loading Split Tickets...</p>
+                                    </div>
+                                </div>
+                            ) : filteredSplits.length === 0 ? (
                                 <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
                                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                                         <Users size={48} style={{ color: '#CBD5E1', marginBottom: '1rem' }} />

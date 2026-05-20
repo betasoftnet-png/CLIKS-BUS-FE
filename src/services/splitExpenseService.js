@@ -18,6 +18,9 @@ export const splitExpenseService = {
     updateParticipant: async (splitId, participantId, data) => await apiClient.patch(`/split-expenses/${splitId}/participants/${participantId}`, data).then(res => res.data.data || res.data),
     deleteParticipant: async (splitId, participantId) => await apiClient.delete(`/split-expenses/${splitId}/participants/${participantId}`).then(res => res.data.data || res.data),
     settleParticipant: async (splitId, participantId) => await apiClient.patch(`/split-expenses/${splitId}/participants/${participantId}/settle`).then(res => res.data.data || res.data),
+    // Expenses
+    addExpense: async (splitId, data) => await apiClient.post(`/split-expenses/${splitId}/expenses`, data).then(res => res.data.data || res.data),
+    deleteExpense: async (splitId, expenseId) => await apiClient.delete(`/split-expenses/${splitId}/expenses/${expenseId}`).then(res => res.data.data || res.data),
 };
 
 export default splitExpenseService;
