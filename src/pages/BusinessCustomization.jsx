@@ -186,15 +186,15 @@ const BusinessCustomization = () => {
     };
 
     const tabs = [
-        { id: 'profile', label: 'Org Profile', icon: Building2, gradient: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)', shadow: 'rgba(79, 70, 229, 0.2)' },
-        { id: 'general', label: 'General', icon: Sliders, gradient: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)', shadow: 'rgba(27, 107, 58, 0.2)' },
+        { id: 'profile', label: 'Org Profile', icon: Building2, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'general', label: 'General', icon: Sliders, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'transaction', label: 'Transaction', icon: FileText, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'print', label: 'Print', icon: Printer, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadow: 'rgba(139, 92, 246, 0.2)' },
-        { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', shadow: 'rgba(16, 185, 129, 0.2)' },
-        { id: 'party', label: 'Contacts', icon: Users, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadow: 'rgba(236, 72, 153, 0.2)' },
-        { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #0F172A 0%, #020617 100%)', shadow: 'rgba(15, 23, 42, 0.2)' },
-        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #F59E0B 0%, #B45309 100%)', shadow: 'rgba(245, 158, 11, 0.2)' },
-        { id: 'settings', label: 'Settings', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #64748B 0%, #334155 100%)', shadow: 'rgba(100, 116, 139, 0.2)' }
+        { id: 'print', label: 'Print', icon: Printer, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'party', label: 'Contacts', icon: Users, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'settings', label: 'Settings', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' }
     ];
 
     const renderContent = () => {
