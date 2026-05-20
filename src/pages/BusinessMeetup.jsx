@@ -44,6 +44,33 @@ const BusinessMeetup = () => {
         return localStorage.getItem('cliks_preferred_meetup_category') || 'Finance';
     });
 
+    const [gpsState, setGpsState] = useState(null);
+
+    React.useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                        .then(res => res.json())
+                        .then(data => {
+                            const state = data.principalSubdivision;
+                            if (state) {
+                                setGpsState(state);
+                            }
+                        })
+                        .catch(err => {
+                            console.warn('Geolocation reverse geocoding request interrupted:', err);
+                        });
+                },
+                (error) => {
+                    console.warn('Geolocation access restricted by user:', error.message);
+                }
+            );
+        }
+    }, []);
+
     const [newEvent, setNewEvent] = useState({ 
         title: '', 
         type: 'Offline', 
@@ -146,6 +173,10 @@ const BusinessMeetup = () => {
 
         if (filter === 'Upcoming') {
             if (evtDate < now && event.date) return false;
+        } else if (filter === 'Technology') {
+            if (event.category !== 'Technology') return false;
+        } else if (filter === 'Science') {
+            if (event.category !== 'Science') return false;
         } else if (filter === 'Finance') {
             if (event.category !== 'Finance') return false;
         } else if (filter === 'Workshops') {
@@ -180,7 +211,7 @@ const BusinessMeetup = () => {
         }
         
         // 2. Proximity/Location Based Match Boost
-        const profileState = currentUser.stateRegistered || currentUser.state || 'Maharashtra';
+        const profileState = gpsState || currentUser.stateRegistered || currentUser.state || 'Maharashtra';
         if (event.location && profileState) {
             const evLoc = event.location.toLowerCase();
             const uState = profileState.toLowerCase();
@@ -292,7 +323,7 @@ const BusinessMeetup = () => {
             {/* Search and Control Panel */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', gap: '0.35rem', background: 'white', padding: '0.3rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
-                    {['All Events', 'Upcoming', 'Finance', 'Workshops', 'Webinars', 'My Events'].map((tab) => (
+                    {['All Events', 'Upcoming', 'Technology', 'Science', 'Finance', 'Workshops', 'Webinars', 'My Events'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => {
@@ -774,6 +805,8 @@ const BusinessMeetup = () => {
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.95rem', fontWeight: '600' }}
                                         >
                                             <option value="Networking">Networking</option>
+                                            <option value="Technology">Technology</option>
+                                            <option value="Science">Science</option>
                                             <option value="Finance">Finance</option>
                                             <option value="Workshop">Skill Panel</option>
                                             <option value="Webinar">Webcast/AMA</option>
