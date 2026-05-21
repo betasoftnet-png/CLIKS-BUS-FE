@@ -323,7 +323,7 @@ export default function BusinessCA() {
     };
 
     // Module 1: Auditor Hub States
-    const [accountingStandard, setAccountingStandard] = useState('IFRS'); // IFRS | GAAP
+    const [_accountingStandard, setAccountingStandard] = useState('IFRS'); // IFRS | GAAP
     const [isScanning, setIsScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
     const [scanResults, setScanResults] = useState(null);
@@ -420,7 +420,7 @@ export default function BusinessCA() {
 
     });
 
-    const handleStandardChange = (std) => {
+    const _handleStandardChange = (std) => {
         setAccountingStandard(std);
         auditMutation.mutate(std);
     };
@@ -590,12 +590,13 @@ export default function BusinessCA() {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', background: '#F1F5F9', padding: '4px', borderRadius: '10px' }}>
+                {/* Tab switcher commented out per user request */}
+                {/* <div style={{ display: 'flex', gap: '8px', background: '#F1F5F9', padding: '4px', borderRadius: '10px' }}>
                     <button onClick={() => setActiveTab('auditor')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'auditor' ? '#FFFFFF' : 'transparent', color: activeTab === 'auditor' ? '#004aad' : '#64748B', boxShadow: activeTab === 'auditor' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>📊 Auditor Hub</button>
                     <button onClick={() => setActiveTab('ca_cpa')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'ca_cpa' ? '#FFFFFF' : 'transparent', color: activeTab === 'ca_cpa' ? '#004aad' : '#64748B', boxShadow: activeTab === 'ca_cpa' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>🏛️ Tax Engine</button>
                     <button onClick={() => setActiveTab('cs_vault')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'cs_vault' ? '#FFFFFF' : 'transparent', color: activeTab === 'cs_vault' ? '#004aad' : '#64748B', boxShadow: activeTab === 'cs_vault' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>🔒 CS Vault</button>
                     <button onClick={() => setActiveTab('consultant')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'consultant' ? '#FFFFFF' : 'transparent', color: activeTab === 'consultant' ? '#004aad' : '#64748B', boxShadow: activeTab === 'consultant' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>💼 Consultant Desk</button>
-                </div>
+                </div> */}
             </div>
 
             {/* Main Area */}
@@ -722,9 +723,9 @@ export default function BusinessCA() {
                     <AnimatePresence mode="wait">
                         {activeTab === 'auditor' && (
                             <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                                    {/* Cross-Border Standards Toggler */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+                                    {/* Cross-Border Standards Toggler commented out per user request */}
+                                    {/* <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Cross-Border Auditing</h3>
                                             <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '2px 8px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0' }}>Active Standard</span>
@@ -743,7 +744,7 @@ export default function BusinessCA() {
                                         <div style={{ padding: '12px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: '12px', color: '#475569' }}>
                                             <strong>Rules Applied:</strong> {accountingStandard === 'IFRS' ? 'Uses international accounting rules for accurate financial reporting.' : 'Uses US accounting rules for accurate financial reporting.'}
                                         </div>
-                                    </div>
+                                    </div> */}
 
                                     {/* Compliance Check Engine */}
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
