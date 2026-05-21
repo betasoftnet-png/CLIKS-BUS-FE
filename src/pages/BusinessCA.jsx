@@ -17,7 +17,6 @@ export default function BusinessCA() {
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
 
     // --- Business to Personal CA Connection States ---
-    const [invitedCAs, setInvitedCAs] = useState([]);
     const [inviteEmailInput, setInviteEmailInput] = useState('');
 
     // --- Personal CA Zoho Practice States ---
@@ -145,42 +144,15 @@ export default function BusinessCA() {
     const handleInviteCA = (e) => {
         e.preventDefault();
         if (!inviteEmailInput.trim() || !inviteEmailInput.includes('@')) return;
-        const newInvite = {
-            id: Date.now(),
-            email: inviteEmailInput.trim(),
-            clientName: 'Cliks Business Client (Acme Corp)',
-            status: 'Pending',
-            timestamp: new Date().toLocaleString()
-        };
-        setInvitedCAs([...invitedCAs, newInvite]);
-        setInviteEmailInput('');
+        sendInviteMutation.mutate(inviteEmailInput.trim());
     };
 
     const handleAcceptInvitation = (inviteId) => {
-        setInvitedCAs(prev => prev.map(inv => {
-            if (inv.id === inviteId) {
-                return { ...inv, status: 'Accepted' };
-            }
-            return inv;
-        }));
-
-        // Automatically register the client on the Personal CA (Practice) Clients List
-        const newClient = {
-            id: inviteId,
-            name: 'Cliks Business Client (Acme Corp)',
-            email: 'business@cliks.com',
-            status: 'Active',
-            regime: 'New',
-            income: 7500000,
-            pendingFilings: 0
-        };
-        setPracticeClients(prev => [newClient, ...prev]);
+        acceptInviteMutation.mutate(inviteId);
     };
 
     const handleRevokeCA = (inviteId) => {
-        setInvitedCAs(prev => prev.filter(inv => inv.id !== inviteId));
-        // Remove the Cliks Business Client from practiceClients too
-        setPracticeClients(prev => prev.filter(c => c.name !== 'Cliks Business Client (Acme Corp)'));
+        revokeInviteMutation.mutate(inviteId);
     };
 
     const handleAddPracticeClient = (e) => {
@@ -376,6 +348,34 @@ export default function BusinessCA() {
         retry: false
     });
 
+    // CA Connection Queries
+    const { data: outgoingInvitations = [], refetch: refetchOutgoing } = useQuery({
+        queryKey: ['caInvitationsOutgoing'],
+        queryFn: () => caService.getOutgoingInvitations(),
+        retry: false
+    });
+
+    const { data: incomingInvitations = [], refetch: refetchIncoming } = useQuery({
+        queryKey: ['caInvitationsIncoming'],
+        queryFn: () => caService.getIncomingInvitations(),
+        retry: false
+    });
+
+    // Merge manual/mock practiceClients with accepted incoming DB invitations
+    const dbPracticeClients = incomingInvitations
+        .filter(inv => inv.status === 'Accepted')
+        .map(inv => ({
+            id: `db-${inv.id}`,
+            name: inv.sender_name || 'Cliks Business Client (Acme Corp)',
+            email: inv.sender_email || 'business@cliks.com',
+            status: 'Active',
+            regime: 'New',
+            income: 7500000,
+            pendingFilings: 0
+        }));
+
+    const allPracticeClients = [...dbPracticeClients, ...practiceClients];
+
     // ── Mutations ──
     const fileMutation = useMutation({
         mutationFn: () => gstService.fileGstr3b(),
@@ -389,6 +389,39 @@ export default function BusinessCA() {
 
     const auditMutation = useMutation({
         mutationFn: (std) => caService.applyCrossBorderAudit(std)
+    });
+
+    const sendInviteMutation = useMutation({
+        mutationFn: (email) => caService.sendInvitation(email),
+        onSuccess: () => {
+            refetchOutgoing();
+            setInviteEmailInput('');
+        },
+        onError: (err) => {
+            alert(err.response?.data?.message || err.message || 'Failed to send invitation');
+        }
+    });
+
+    const acceptInviteMutation = useMutation({
+        mutationFn: (id) => caService.acceptInvitation(id),
+        onSuccess: () => {
+            refetchIncoming();
+            refetchOutgoing();
+        },
+        onError: (err) => {
+            alert(err.response?.data?.message || err.message || 'Failed to accept invitation');
+        }
+    });
+
+    const revokeInviteMutation = useMutation({
+        mutationFn: (id) => caService.revokeInvitation(id),
+        onSuccess: () => {
+            refetchOutgoing();
+            refetchIncoming();
+        },
+        onError: (err) => {
+            alert(err.response?.data?.message || err.message || 'Failed to revoke/reject invitation');
+        }
     });
 
     const scanMutation = useMutation({
@@ -611,11 +644,11 @@ export default function BusinessCA() {
                                 <Users size={20} style={{ color: '#004aad' }} />
                                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
                             </div>
-                            {invitedCAs.some(inv => inv.status === 'Accepted') ? (
+                            {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
                                 <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <CheckCircle2 size={12} /> Connected CA Active
                                 </span>
-                            ) : invitedCAs.some(inv => inv.status === 'Pending') ? (
+                            ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
                                 <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <Clock size={12} className="animate-pulse" /> Pending Acceptance
                                 </span>
@@ -626,7 +659,7 @@ export default function BusinessCA() {
                             )}
                         </div>
 
-                        {invitedCAs.length === 0 ? (
+                        {outgoingInvitations.length === 0 ? (
                             // 1. DISCONNECTED / INVITE FORM STATE
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
@@ -671,14 +704,14 @@ export default function BusinessCA() {
                                     </div>
                                 </div>
                             </div>
-                        ) : invitedCAs.some(inv => inv.status === 'Pending') ? (
+                        ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
                             // 2. PENDING ACCEPTANCE STATE
-                            invitedCAs.filter(inv => inv.status === 'Pending').map(inv => (
+                            outgoingInvitations.filter(inv => inv.status === 'Pending').map(inv => (
                                 <div key={inv.id} style={{ padding: '16px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
                                             <span style={{ fontSize: '12.5px', color: '#78350F', fontWeight: '750' }}>Access invitation sent to: </span>
-                                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.email}</span>
+                                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.receiver_email}</span>
                                         </div>
                                         <button 
                                             onClick={() => handleRevokeCA(inv.id)} 
@@ -689,7 +722,7 @@ export default function BusinessCA() {
                                     </div>
                                     <div style={{ fontSize: '12px', color: '#B45309', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
                                         <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#D97706', marginRight: '4px' }} className="animate-ping"></span>
-                                        Sent: {inv.timestamp}
+                                        Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}
                                     </div>
                                     <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
                                         💡 <strong>How to Test:</strong> Switch to the <strong>Personal CA Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
@@ -698,7 +731,7 @@ export default function BusinessCA() {
                             ))
                         ) : (
                             // 3. CONNECTED STATE
-                            invitedCAs.filter(inv => inv.status === 'Accepted').map(inv => (
+                            outgoingInvitations.filter(inv => inv.status === 'Accepted').map(inv => (
                                 <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -706,8 +739,8 @@ export default function BusinessCA() {
                                                 <UserCheck size={20} />
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.email}</div>
-                                                <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.timestamp.split(',')[0]}</div>
+                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
+                                                <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
                                             </div>
                                         </div>
                                         <button 
@@ -1403,7 +1436,7 @@ export default function BusinessCA() {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                             <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Total Practice Clients</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{practiceClients.length}</div>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{allPracticeClients.length}</div>
                                             <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>Active Taxpayers Portal</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1502,7 +1535,7 @@ export default function BusinessCA() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {practiceClients.filter(c => c.name.toLowerCase().includes(activeClientSearch.toLowerCase()) || c.email.toLowerCase().includes(activeClientSearch.toLowerCase())).map(client => (
+                                                {allPracticeClients.filter(c => c.name.toLowerCase().includes(activeClientSearch.toLowerCase()) || c.email.toLowerCase().includes(activeClientSearch.toLowerCase())).map(client => (
                                                     <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
                                                         <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#F0FDF4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900' }}>{client.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
@@ -1541,7 +1574,7 @@ export default function BusinessCA() {
                             {personalTab === 'requests' && (
                                 <Motion.div key="requests" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {/* Incoming Client Connection Requests Portal */}
-                                    {invitedCAs.some(inv => inv.status === 'Pending') && (
+                                    {incomingInvitations.some(inv => inv.status === 'Pending') && (
                                         <div style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.05)' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1556,15 +1589,15 @@ export default function BusinessCA() {
                                                 The following business client has sent you an invitation request to access their transactional audit feed, verify taxes, and manage computations.
                                             </p>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                {invitedCAs.filter(inv => inv.status === 'Pending').map(inv => (
+                                                {incomingInvitations.filter(inv => inv.status === 'Pending').map(inv => (
                                                     <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
-                                                                <Building size={20} />
+                                                                 <Building size={20} />
                                                             </div>
                                                             <div>
-                                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A' }}>{inv.clientName}</div>
-                                                                <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>Sent to CA: {inv.email} • {inv.timestamp}</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A' }}>{inv.sender_name}</div>
+                                                                <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>Client: {inv.sender_email} • Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}</div>
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '10px' }}>
@@ -1847,7 +1880,7 @@ export default function BusinessCA() {
                                                     onChange={e => setTimerClient(e.target.value)}
                                                     style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', outline: 'none' }}
                                                 >
-                                                    {practiceClients.map(c => (
+                                                    {allPracticeClients.map(c => (
                                                         <option key={c.id} value={c.name}>{c.name}</option>
                                                     ))}
                                                 </select>
@@ -2310,7 +2343,7 @@ export default function BusinessCA() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
                                     <select value={newRequestClient} onChange={e=>setNewRequestClient(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
-                                        {practiceClients.map(c => (
+                                        {allPracticeClients.map(c => (
                                             <option key={c.id} value={c.name}>{c.name}</option>
                                         ))}
                                     </select>
@@ -2360,7 +2393,7 @@ export default function BusinessCA() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
                                     <select value={newTaskClient} onChange={e=>setNewTaskClient(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
-                                        {practiceClients.map(c => (
+                                        {allPracticeClients.map(c => (
                                             <option key={c.id} value={c.name}>{c.name}</option>
                                         ))}
                                     </select>
