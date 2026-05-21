@@ -824,99 +824,108 @@ export default function BusinessCA() {
                         )}
                     </div>
                     <AnimatePresence mode="wait">
-                        {activeTab === 'auditor' && (
-                            <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-                                    {/* Cross-Border Standards Toggler commented out per user request */}
-                                    {/* <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {activeTab === 'auditor' && (() => {
+                            const myClientTasks = practiceTasks.filter(task => 
+                                task.clientName && 
+                                myEmail && 
+                                task.clientName.toLowerCase() === myEmail.toLowerCase()
+                            );
+                            const pendingCount = myClientTasks.filter(t => t.status !== 'Completed').length;
+
+                            return (
+                                <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Cross-Border Auditing</h3>
-                                            <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '2px 8px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0' }}>Active Standard</span>
-                                        </div>
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Choose the accounting standard used for your business reports and audits.</p>
-                                        
-                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                            <button onClick={() => handleStandardChange('IFRS')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'IFRS' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'IFRS' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'IFRS' ? '#004aad' : '#475569' }}>
-                                                IFRS (Global GAAP)
-                                            </button>
-                                            <button onClick={() => handleStandardChange('GAAP')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'GAAP' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'GAAP' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'GAAP' ? '#004aad' : '#475569' }}>
-                                                US GAAP (GAAP-US)
-                                            </button>
-                                        </div>
-
-                                        <div style={{ padding: '12px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: '12px', color: '#475569' }}>
-                                            <strong>Rules Applied:</strong> {accountingStandard === 'IFRS' ? 'Uses international accounting rules for accurate financial reporting.' : 'Uses US accounting rules for accurate financial reporting.'}
-                                        </div>
-                                    </div> */}
-
-                                    {/* Compliance Check Engine commented out per user request */}
-                                    {/* <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>One-Click Compliance Check</h3>
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Scan invoices and transactions to check taxes, fraud risks, and compliance issues.</p>
-
-                                        <button onClick={triggerComplianceScan} disabled={isScanning} style={{ padding: '12px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'opacity 0.2s', opacity: isScanning ? 0.7 : 1 }}>
-                                            {isScanning ? <RefreshCw className="animate-spin" size={16} /> : <FileCheck size={16} />}
-                                            {isScanning ? `Checking Compliance (${scanProgress}%)` : "Start Compliance Check"}
-                                        </button>
-
-                                        {isScanning && (
-                                            <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
-                                                <div style={{ width: `${scanProgress}%`, height: '100%', background: '#004aad', transition: 'width 0.2s' }} />
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <CheckCircle2 size={20} style={{ color: '#004aad' }} />
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 CA-Assigned Compliance Checklist</h3>
                                             </div>
-                                        )}
-
-                                        {scanResults && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#475569' }}>
-                                                    <span>Audit Coverage: <strong>{scanResults.itemsChecked}</strong> records</span>
-                                                    <span style={{ color: '#16A34A', fontWeight: '700' }}>{scanResults.amlScore}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div> */}
-                                </div>
-
-                                {/* AI Fraud & Anomaly Visualizer commented out per user request */}
-                                {/* <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <ShieldAlert style={{ color: '#EF4444' }} size={20} />
-                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>AI Anomaly & Fraud Detection</h3>
-                                        </div>
-                                        <span style={{ fontSize: '11px', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '3px 10px', borderRadius: '20px', fontWeight: '750' }}>Real-time Monitoring Active</span>
-                                    </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', marginTop: '16px' }}>
-                                        <div style={{ padding: '16px', background: '#FFFBEB', borderRadius: '12px', border: '1px solid #FEF3C7', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            <div style={{ fontSize: '28px', fontWeight: '900', color: '#D97706' }}>{scanResults ? scanResults.anomaliesFound : 2}</div>
-                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#B45309' }}>Anomalies Flagged this Cycle</div>
-                                            <p style={{ fontSize: '11px', color: '#D97706', lineHeight: '1.5' }}>Unusual transactions detected based on recent business activity.</p>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            {scanResults ? (
-                                                scanResults.flaggedExpenses.map(item => (
-                                                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px' }}>
-                                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                            <AlertTriangle size={16} style={{ color: '#EF4444' }} />
-                                                            <div>
-                                                                <div style={{ fontSize: '13px', fontWeight: '750', color: '#991B1B' }}>{item.desc}</div>
-                                                                <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600', marginTop: '2px' }}>{item.type}</div>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ fontSize: '14px', fontWeight: '900', color: '#991B1B' }}>{item.amount}</div>
-                                                    </div>
-                                                ))
+                                            {pendingCount > 0 ? (
+                                                <span style={{ fontSize: '11px', background: '#FFF3C7', color: '#D97706', padding: '4px 10px', borderRadius: '20px', fontWeight: '800', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Clock size={12} className="animate-pulse" /> {pendingCount} Actions Required
+                                                </span>
                                             ) : (
-                                                <div style={{ padding: '24px', textAlign: 'center', border: '1px dashed #E2E8F0', borderRadius: '10px', fontSize: '12px', color: '#94A3B8', fontWeight: '600' }}>
-                                                    Click "Start Compliance Check" to run the anomaly detection module.
-                                                </div>
+                                                <span style={{ fontSize: '11px', background: '#ECFDF5', color: '#059669', padding: '4px 10px', borderRadius: '20px', fontWeight: '800', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <CheckCircle2 size={12} /> All Caught Up!
+                                                </span>
                                             )}
                                         </div>
+
+                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
+                                            These are the live compliance and audit actions assigned to your account by your connected CA. Mark them as 'Completed' or 'In Progress' to sync status in real time.
+                                        </p>
+
+                                        {myClientTasks.length === 0 ? (
+                                            <div style={{ padding: '48px 24px', textAlign: 'center', border: '1.5px dashed #E2E8F0', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                    <CheckCircle2 size={24} />
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: '0 0 4px 0' }}>No Active Tasks</h4>
+                                                    <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Your Chartered Accountant hasn't assigned any compliance checklists to your email yet.</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12px', fontWeight: '800' }}>
+                                                            <th style={{ padding: '14px 20px' }}>Task Details</th>
+                                                            <th style={{ padding: '14px 20px' }}>Due Date</th>
+                                                            <th style={{ padding: '14px 20px' }}>Priority</th>
+                                                            <th style={{ padding: '14px 20px' }}>Filing Status / Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {myClientTasks.map(task => (
+                                                            <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>
+                                                                <td style={{ padding: '16px 20px', fontWeight: '800', color: task.status === 'Completed' ? '#94A3B8' : '#0F172A', textDecoration: task.status === 'Completed' ? 'line-through' : 'none' }}>
+                                                                    {task.title}
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px', color: '#64748B', fontWeight: '500' }}>📅 {task.dueDate}</td>
+                                                                <td style={{ padding: '16px 20px' }}>
+                                                                    <span style={{
+                                                                        fontSize: '11px',
+                                                                        fontWeight: '800',
+                                                                        padding: '3px 8px',
+                                                                        borderRadius: '12px',
+                                                                        backgroundColor: task.priority === 'High' ? '#FEF2F2' : (task.priority === 'Medium' ? '#EFF6FF' : '#F1F5F9'),
+                                                                        color: task.priority === 'High' ? '#EF4444' : (task.priority === 'Medium' ? '#1D4ED8' : '#475569')
+                                                                    }}>{task.priority}</span>
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px' }}>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => toggleTaskStatus(task.id)}
+                                                                        style={{
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '6px',
+                                                                            padding: '6px 12px',
+                                                                            borderRadius: '8px',
+                                                                            border: '1.5px solid',
+                                                                            borderColor: task.status === 'Completed' ? '#BBF7D0' : (task.status === 'In Progress' ? '#BFDBFE' : '#CBD5E1'),
+                                                                            background: task.status === 'Completed' ? '#F0FDF4' : (task.status === 'In Progress' ? '#EFF6FF' : 'transparent'),
+                                                                            color: task.status === 'Completed' ? '#15803d' : (task.status === 'In Progress' ? '#1D4ED8' : '#475569'),
+                                                                            fontWeight: '800',
+                                                                            fontSize: '12px',
+                                                                            cursor: 'pointer',
+                                                                            transition: 'all 0.2s'
+                                                                        }}
+                                                                    >
+                                                                        {task.status === 'Completed' ? '✓ Completed' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')}
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
                                     </div>
-                                </div> */}
-                            </Motion.div>
-                        )}
+                                </Motion.div>
+                            );
+                        })()}
 
                         {activeTab === 'ca_cpa' && (
                             <Motion.div key="ca_cpa" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
