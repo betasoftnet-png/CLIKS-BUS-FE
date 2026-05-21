@@ -34,7 +34,6 @@ const MASTER_SHORTCUTS = [
     { id: 'expenses', label: 'Add Expense', path: '/finance/expenses?create=true', icon: TrendingUp, color: '#DC2626' },
     { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
     { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
-    // { id: 'bank_accounts', label: 'Bank Accounts', path: '/payments/bank-accounts?create=true', icon: Briefcase, color: '#4F46E5' }, // Will do in future
     
     // 🚀 Brand New Expansion Triggers
     { id: 'new_customer', label: 'Add Customer', path: '/sales/customers?create=true', icon: UserPlus, color: '#EC4899' },
@@ -43,13 +42,14 @@ const MASTER_SHORTCUTS = [
     { id: 'onboard_staff', label: 'Onboard Staff', path: '/hr/staff?create=true', icon: UserPlus, color: '#059669' },
     { id: 'gst_filing', label: 'GST Records', path: '/finance/gst', icon: BarChart3, color: '#F59E0B' },
     { id: 'marketing_hub', label: 'Marketing Hub', path: '/marketing', icon: Target, color: '#E11D48' },
+    { id: 'ca_hub', label: 'CA Audit Hub', path: '/ca', icon: Briefcase, color: '#004aad' },
 ];
 
 const BusinessDashboard = () => {
     const navigate = useNavigate();
     const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
         const saved = localStorage.getItem('cliks_dashboard_shortcuts');
-        return saved ? JSON.parse(saved) : ['new_invoice', 'sales_orders', 'new_product', 'pos_billing'];
+        return saved ? JSON.parse(saved) : MASTER_SHORTCUTS.map(s => s.id);
     });
     const [isModalOpen, setIsModalOpen] = useState(false);
 
