@@ -825,11 +825,20 @@ export default function BusinessCA() {
                     </div>
                     <AnimatePresence mode="wait">
                         {activeTab === 'auditor' && (() => {
-                            const myClientTasks = practiceTasks.filter(task => 
-                                task.clientName && 
-                                myEmail && 
-                                task.clientName.toLowerCase() === myEmail.toLowerCase()
-                            );
+                            // Find the connected CA's email dynamically from accepted invitations
+                            const connectedCa = outgoingInvitations.find(inv => inv.status === 'Accepted') || 
+                                                incomingInvitations.find(inv => inv.status === 'Accepted');
+                            const connectedCaEmail = connectedCa 
+                                ? (connectedCa.receiver_email === myEmail ? connectedCa.sender_email : connectedCa.receiver_email) 
+                                : null;
+
+                            const myClientTasks = practiceTasks.filter(task => {
+                                if (!task.clientName) return false;
+                                const clientNameLower = task.clientName.toLowerCase();
+                                const isMyEmail = myEmail && clientNameLower === myEmail.toLowerCase();
+                                const isConnectedCA = connectedCaEmail && clientNameLower === connectedCaEmail.toLowerCase();
+                                return isMyEmail || isConnectedCA;
+                            });
                             const pendingCount = myClientTasks.filter(t => t.status !== 'Completed').length;
 
                             return (
