@@ -1499,27 +1499,84 @@ export default function BusinessCA() {
                                         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                                             <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: '0 0 16px 0' }}>📋 Practice Activity Stream</h3>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                                <div style={{ display: 'flex', gap: '12px' }}>
-                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#15803d', marginTop: '6px' }} />
-                                                    <div>
-                                                        <div style={{ fontSize: '13px', fontWeight: '750', color: '#334155' }}>Aditya Birla Group return computation complete</div>
-                                                        <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>10 mins ago</div>
-                                                    </div>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '12px' }}>
-                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284C7', marginTop: '6px' }} />
-                                                    <div>
-                                                        <div style={{ fontSize: '13px', fontWeight: '750', color: '#334155' }}>Rohan Sharma uploaded Q1 Purchase Ledger</div>
-                                                        <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>2 hours ago</div>
-                                                    </div>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '12px' }}>
-                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#D97706', marginTop: '6px' }} />
-                                                    <div>
-                                                        <div style={{ fontSize: '13px', fontWeight: '750', color: '#334155' }}>Form 16 request issued to Priya Patel (SME)</div>
-                                                        <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>1 day ago</div>
-                                                    </div>
-                                                </div>
+                                                {(() => {
+                                                    const activities = [];
+
+                                                    // 1. Gather activities from requests
+                                                    practiceRequests.forEach(req => {
+                                                        let actionText = '';
+                                                        let color = '#D97706'; // orange for awaiting
+                                                        if (req.status === 'Approved') {
+                                                            actionText = `${req.client_name || 'Client'} successfully verified document: ${req.title}`;
+                                                            color = '#15803d'; // green
+                                                        } else if (req.status === 'Under Review') {
+                                                            actionText = `${req.client_name || 'Client'} uploaded document: ${req.title}`;
+                                                            color = '#0284C7'; // blue
+                                                        } else {
+                                                            actionText = `Request for ${req.title} issued to ${req.client_name || 'Client'}`;
+                                                            color = '#D97706';
+                                                        }
+                                                        activities.push({
+                                                            text: actionText,
+                                                            time: req.due_date ? `Due by ${req.due_date}` : 'Recently',
+                                                            color,
+                                                            timestamp: new Date(req.due_date || '').getTime() || 0
+                                                        });
+                                                    });
+
+                                                    // 2. Gather activities from tasks
+                                                    practiceTasks.forEach(task => {
+                                                        let actionText = '';
+                                                        let color = '#64748B';
+                                                        if (task.status === 'Completed') {
+                                                            actionText = `Task complete: "${task.title}" for ${task.client_name}`;
+                                                            color = '#15803d';
+                                                        } else if (task.status === 'In Progress') {
+                                                            actionText = `Working on: "${task.title}" for ${task.client_name}`;
+                                                            color = '#0284C7';
+                                                        } else {
+                                                            actionText = `Operations task queued: "${task.title}" for ${task.client_name}`;
+                                                            color = '#D97706';
+                                                        }
+                                                        activities.push({
+                                                            text: actionText,
+                                                            time: task.due_date ? `Due ${task.due_date}` : 'Awaiting',
+                                                            color,
+                                                            timestamp: new Date(task.due_date || '').getTime() || 0
+                                                        });
+                                                    });
+
+                                                    // 3. Gather activities from timesheets
+                                                    practiceTimesheets.forEach(ts => {
+                                                        activities.push({
+                                                            text: `Time logged: ${ts.duration || '00:00'} for ${ts.client_name} - ${ts.task_name}`,
+                                                            time: ts.date || 'Today',
+                                                            color: '#0284C7',
+                                                            timestamp: new Date(ts.date || '').getTime() || 0
+                                                        });
+                                                    });
+
+                                                    // Show up to 4 items
+                                                    const displayedActivities = activities.slice(0, 4);
+
+                                                    if (displayedActivities.length === 0) {
+                                                        return (
+                                                            <div style={{ fontSize: '13px', color: '#64748B', fontStyle: 'italic', padding: '10px 0' }}>
+                                                                No practice activities recorded yet. Add clients or create tasks to see live updates.
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return displayedActivities.map((act, idx) => (
+                                                        <div key={idx} style={{ display: 'flex', gap: '12px' }}>
+                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: act.color, marginTop: '6px', flexShrink: 0 }} />
+                                                            <div>
+                                                                <div style={{ fontSize: '13px', fontWeight: '750', color: '#334155' }}>{act.text}</div>
+                                                                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{act.time}</div>
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                })()}
                                             </div>
                                         </div>
 
@@ -2294,32 +2351,64 @@ export default function BusinessCA() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {[
-                                                        { name: 'Aditya Birla Group (Individual)', form: 'ITR-2', ay: 'AY 2026-27', status: 'Draft Ready', tax: 'Verified Exemption' },
-                                                        { name: 'Rohan Sharma', form: 'ITR-1', ay: 'AY 2026-27', status: 'Filed & Locked', tax: 'Verified Exemption' },
-                                                        { name: 'Priya Patel (SME)', form: 'ITR-4 Presumptive', ay: 'AY 2026-27', status: 'Under Auditor Review', tax: 'Awaiting Requisition' },
-                                                        { name: 'Vikram Malhotra', form: 'ITR-1 Exempt', ay: 'AY 2026-27', status: 'Verified & Signed', tax: 'Verified Exemption' },
-                                                    ].map((rep, idx) => (
-                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px', color: '#334155' }}>
-                                                            <td style={{ padding: '14px 8px', fontWeight: '800', color: '#0F172A' }}>{rep.name}</td>
-                                                            <td style={{ padding: '14px 8px', fontWeight: '600' }}>{rep.form}</td>
-                                                            <td style={{ padding: '14px 8px', color: '#64748B', fontWeight: '500' }}>{rep.ay}</td>
-                                                            <td style={{ padding: '14px 8px' }}>
-                                                                <span style={{
-                                                                    fontSize: '11px',
-                                                                    fontWeight: '800',
-                                                                    padding: '4px 10px',
-                                                                    borderRadius: '20px',
-                                                                    backgroundColor: rep.status.includes('Filed') || rep.status.includes('Signed') ? '#DCFCE7' : '#FEF3C7',
-                                                                    color: rep.status.includes('Filed') || rep.status.includes('Signed') ? '#15803d' : '#D97706',
-                                                                    border: `1px solid ${rep.status.includes('Filed') || rep.status.includes('Signed') ? '#BBF7D0' : '#FDE047'}`
-                                                                }}>
-                                                                    {rep.status}
-                                                                </span>
+                                                    {allPracticeClients.map((client, idx) => {
+                                                        // Derive form type dynamically
+                                                        let formType = 'ITR-1 Exempt';
+                                                        const nameLower = (client.name || '').toLowerCase();
+                                                        if (nameLower.includes('group') || nameLower.includes('birla') || nameLower.includes('corp')) {
+                                                            formType = 'ITR-2';
+                                                        } else if (nameLower.includes('sme') || nameLower.includes('consulting') || client.income > 3000000) {
+                                                            formType = 'ITR-4 Presumptive';
+                                                        } else if (client.regime === 'Old') {
+                                                            formType = 'ITR-1';
+                                                        }
+
+                                                        // Derive filing season status based on database status
+                                                        let seasonStatus = 'Draft Ready';
+                                                        const clientStatus = client.status || '';
+                                                        if (clientStatus === 'Active') {
+                                                            seasonStatus = 'Verified & Signed';
+                                                        } else if (clientStatus === 'Pending Filing') {
+                                                            seasonStatus = 'Filed & Locked';
+                                                        } else if (clientStatus === 'Documents Awaiting' || clientStatus === 'Documents Pending') {
+                                                            seasonStatus = 'Under Auditor Review';
+                                                        }
+
+                                                        // Derive exemption status
+                                                        let exemptionStatus = 'Verified Exemption';
+                                                        if (clientStatus === 'Documents Awaiting' || clientStatus === 'Documents Pending') {
+                                                            exemptionStatus = 'Awaiting Requisition';
+                                                        }
+
+                                                        return (
+                                                            <tr key={client.id || idx} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px', color: '#334155' }}>
+                                                                <td style={{ padding: '14px 8px', fontWeight: '800', color: '#0F172A' }}>{client.name}</td>
+                                                                <td style={{ padding: '14px 8px', fontWeight: '600' }}>{formType}</td>
+                                                                <td style={{ padding: '14px 8px', color: '#64748B', fontWeight: '500' }}>AY 2026-27</td>
+                                                                <td style={{ padding: '14px 8px' }}>
+                                                                    <span style={{
+                                                                        fontSize: '11px',
+                                                                        fontWeight: '800',
+                                                                        padding: '4px 10px',
+                                                                        borderRadius: '20px',
+                                                                        backgroundColor: seasonStatus.includes('Filed') || seasonStatus.includes('Signed') ? '#DCFCE7' : '#FEF3C7',
+                                                                        color: seasonStatus.includes('Filed') || seasonStatus.includes('Signed') ? '#15803d' : '#D97706',
+                                                                        border: `1px solid ${seasonStatus.includes('Filed') || seasonStatus.includes('Signed') ? '#BBF7D0' : '#FDE047'}`
+                                                                    }}>
+                                                                        {seasonStatus}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '14px 8px', fontWeight: '750', color: exemptionStatus.includes('Verified') ? '#15803d' : '#D97706' }}>{exemptionStatus}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                    {allPracticeClients.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} style={{ padding: '24px 8px', textAlign: 'center', color: '#64748B', fontStyle: 'italic' }}>
+                                                                No practice clients registered in workspace database.
                                                             </td>
-                                                            <td style={{ padding: '14px 8px', fontWeight: '750', color: rep.tax.includes('Verified') ? '#15803d' : '#D97706' }}>{rep.tax}</td>
                                                         </tr>
-                                                    ))}
+                                                    )}
                                                 </tbody>
                                             </table>
                                         </div>
