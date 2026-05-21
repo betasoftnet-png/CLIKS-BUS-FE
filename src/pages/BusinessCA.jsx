@@ -19,14 +19,12 @@ export default function BusinessCA() {
     // --- Business to Personal CA Connection States ---
     const [inviteEmailInput, setInviteEmailInput] = useState('');
 
-    // --- Personal CA Zoho Practice States ---
-    const [practiceClients, setPracticeClients] = useState([
-        { id: 1, name: 'Aditya Birla Group (Individual)', email: 'aditya@abg.com', status: 'Active', regime: 'New', income: 2400000, pendingFilings: 0 },
-        { id: 2, name: 'Rohan Sharma', email: 'rohan@sharma.in', status: 'Pending Filing', regime: 'Old', income: 1550000, pendingFilings: 1 },
-        { id: 3, name: 'Priya Patel (SME)', email: 'priya@patelconsulting.com', status: 'Documents Awaiting', regime: 'New', income: 3200000, pendingFilings: 2 },
-        { id: 4, name: 'Vikram Malhotra', email: 'vikram@malhotra.org', status: 'Active', regime: 'New', income: 850000, pendingFilings: 0 },
-        { id: 5, name: 'Ananya Roy', email: 'ananya@roy.net', status: 'Pending Filing', regime: 'Old', income: 1200000, pendingFilings: 1 },
-    ]);
+    // --- Personal CA Zoho Practice Queries & States ---
+    const { data: practiceClients = [], refetch: refetchClients } = useQuery({
+        queryKey: ['practiceClients'],
+        queryFn: () => caService.getClients(),
+        retry: false
+    });
 
     const [showAddClientModal, setShowAddClientModal] = useState(false);
     const [newClientName, setNewClientName] = useState('');
@@ -35,12 +33,11 @@ export default function BusinessCA() {
     const [newClientRegime, setNewClientRegime] = useState('New');
     const [newClientIncome, setNewClientIncome] = useState('');
 
-    const [practiceRequests, setPracticeRequests] = useState([
-        { id: 1, clientName: 'Priya Patel (SME)', title: 'Form 16 Q4 Upload', description: 'Please upload the employer issued Form 16 for Q4.', status: 'Awaiting Client', dueDate: '2026-06-15', priority: 'High', docType: 'Form 16', attachedFile: null },
-        { id: 2, clientName: 'Rohan Sharma', title: 'Q1 GST Purchase Ledger', description: 'Upload purchase bills and ledger for ITC reconciliation.', status: 'Under Review', dueDate: '2026-06-05', priority: 'High', docType: 'Excel Ledger', attachedFile: 'purchase_ledger_q1.xlsx' },
-        { id: 3, clientName: 'Ananya Roy', title: 'PAN & Aadhaar Scans', description: 'Required for updating filing profile.', status: 'Approved', dueDate: '2026-05-30', priority: 'Medium', docType: 'KYC Scans', attachedFile: 'kyc_docs_combined.pdf' },
-        { id: 4, clientName: 'Vikram Malhotra', title: 'Home Loan Interest Certificate', description: 'Certificate under Sec 24b for Old Regime exemption claims.', status: 'Awaiting Client', dueDate: '2026-06-20', priority: 'Low', docType: 'Interest Cert', attachedFile: null },
-    ]);
+    const { data: practiceRequests = [], refetch: refetchRequests } = useQuery({
+        queryKey: ['practiceRequests'],
+        queryFn: () => caService.getRequests(),
+        retry: false
+    });
 
     const [showAddRequestModal, setShowAddRequestModal] = useState(false);
     const [newRequestClient, setNewRequestClient] = useState('Priya Patel (SME)');
@@ -52,13 +49,11 @@ export default function BusinessCA() {
 
     const [selectedRequestForReview, setSelectedRequestForReview] = useState(null);
 
-    const [practiceTasks, setPracticeTasks] = useState([
-        { id: 1, clientName: 'Rohan Sharma', title: 'Draft ITR-1 Return', status: 'Pending', priority: 'High', dueDate: '2026-06-10' },
-        { id: 2, clientName: 'Priya Patel (SME)', title: 'GSTIN Inward ITC Reconciliation', status: 'In Progress', priority: 'High', dueDate: '2026-06-07' },
-        { id: 3, clientName: 'Vikram Malhotra', title: 'Verify TDS Forms 26AS & AIS', status: 'Completed', priority: 'Medium', dueDate: '2026-05-20' },
-        { id: 4, clientName: 'Aditya Birla Group (Individual)', title: 'Compute Capital Gains', status: 'Pending', priority: 'Medium', dueDate: '2026-06-18' },
-        { id: 5, clientName: 'Ananya Roy', title: 'Verify Sec 80C Investment Receipts', status: 'In Progress', priority: 'Low', dueDate: '2026-06-12' },
-    ]);
+    const { data: practiceTasks = [], refetch: refetchTasks } = useQuery({
+        queryKey: ['practiceTasks'],
+        queryFn: () => caService.getTasks(),
+        retry: false
+    });
 
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [newTaskClient, setNewTaskClient] = useState('Rohan Sharma');
@@ -66,12 +61,11 @@ export default function BusinessCA() {
     const [newTaskPriority, setNewTaskPriority] = useState('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
 
-    const [practiceTimesheets, setPracticeTimesheets] = useState([
-        { id: 1, clientName: 'Rohan Sharma', taskName: 'ITR-1 Draft Verification', date: '2026-05-20', duration: '01:45:00', billable: true },
-        { id: 2, clientName: 'Priya Patel (SME)', taskName: 'GSTR-3B Filing Preparation', date: '2026-05-19', duration: '02:30:00', billable: true },
-        { id: 3, clientName: 'Vikram Malhotra', taskName: 'TDS AIS Review', date: '2026-05-18', duration: '00:50:00', billable: false },
-        { id: 4, clientName: 'Ananya Roy', taskName: 'Advisory Consultation', date: '2026-05-15', duration: '01:15:00', billable: true },
-    ]);
+    const { data: practiceTimesheets = [], refetch: refetchTimesheets } = useQuery({
+        queryKey: ['practiceTimesheets'],
+        queryFn: () => caService.getTimesheets(),
+        retry: false
+    });
 
     // Timer States
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -81,20 +75,17 @@ export default function BusinessCA() {
 
     const [activeClientSearch, setActiveClientSearch] = useState('');
 
-    // Documents & Folders States
-    const [practiceFolders, setPracticeFolders] = useState([
-        { id: 1, name: 'ITR Filings FY2025-26', count: 8 },
-        { id: 2, name: 'GST Registers & Computations', count: 14 },
-        { id: 3, name: 'KYC & Client PAN Vault', count: 5 },
-        { id: 4, name: 'TDS Certificates & AIS Forms', count: 11 },
-    ]);
+    const { data: practiceFolders = [], refetch: refetchFolders } = useQuery({
+        queryKey: ['practiceFolders'],
+        queryFn: () => caService.getFolders(),
+        retry: false
+    });
 
-    const [practiceFiles, setPracticeFiles] = useState([
-        { id: 1, name: 'itr1_rohan_sharma_draft.xml', size: '42 KB', folderName: 'ITR Filings FY2025-26', date: '2026-05-20' },
-        { id: 2, name: 'gst_inward_itc_priya_q1.xlsx', size: '2.8 MB', folderName: 'GST Registers & Computations', date: '2026-05-19' },
-        { id: 3, name: 'pan_card_ananya_roy.pdf', size: '1.2 MB', folderName: 'KYC & Client PAN Vault', date: '2026-05-15' },
-        { id: 4, name: 'interest_cert_vikram_24b.pdf', size: '950 KB', folderName: 'TDS Certificates & AIS Forms', date: '2026-05-18' },
-    ]);
+    const { data: practiceFiles = [], refetch: refetchFiles } = useQuery({
+        queryKey: ['practiceFiles'],
+        queryFn: () => caService.getFiles(),
+        retry: false
+    });
 
     const [activeDocFolder, setActiveDocFolder] = useState('All');
     const [uploadProgress, setUploadProgress] = useState(null);
@@ -158,107 +149,61 @@ export default function BusinessCA() {
     const handleAddPracticeClient = (e) => {
         e.preventDefault();
         if (!newClientName.trim() || !newClientEmail.trim()) return;
-        const newClient = {
-            id: Date.now(),
-            name: newClientName,
-            email: newClientEmail,
+        addClientMutation.mutate({
+            name: newClientName.trim(),
+            email: newClientEmail.trim(),
             status: newClientStatus,
             regime: newClientRegime,
-            income: parseFloat(newClientIncome) || 0,
-            pendingFilings: newClientStatus === 'Active' ? 0 : 1
-        };
-        setPracticeClients([...practiceClients, newClient]);
-        setNewClientName('');
-        setNewClientEmail('');
-        setNewClientIncome('');
-        setShowAddClientModal(false);
+            income: parseFloat(newClientIncome) || 0
+        });
     };
 
     const handleAddPracticeRequest = (e) => {
         e.preventDefault();
         if (!newRequestTitle.trim()) return;
-        const newRequest = {
-            id: Date.now(),
+        addRequestMutation.mutate({
             clientName: newRequestClient,
-            title: newRequestTitle,
-            description: newRequestDesc,
-            status: 'Awaiting Client',
+            title: newRequestTitle.trim(),
+            description: newRequestDesc.trim(),
             dueDate: newRequestDueDate || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().split('T')[0],
             priority: newRequestPriority,
-            docType: newRequestDocType,
-            attachedFile: null
-        };
-        setPracticeRequests([newRequest, ...practiceRequests]);
-        setNewRequestTitle('');
-        setNewRequestDesc('');
-        setNewRequestDueDate('');
-        setShowAddRequestModal(false);
+            docType: newRequestDocType
+        });
     };
 
     const handleAddPracticeTask = (e) => {
         e.preventDefault();
         if (!newTaskTitle.trim()) return;
-        const newTask = {
-            id: Date.now(),
+        addTaskMutation.mutate({
             clientName: newTaskClient,
-            title: newTaskTitle,
-            status: 'Pending',
+            title: newTaskTitle.trim(),
             priority: newTaskPriority,
             dueDate: newTaskDueDate || new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString().split('T')[0]
-        };
-        setPracticeTasks([newTask, ...practiceTasks]);
-        setNewTaskTitle('');
-        setNewTaskDueDate('');
-        setShowAddTaskModal(false);
+        });
     };
 
     const simulateClientUpload = (requestId) => {
-        setPracticeRequests(requests => requests.map(r => {
-            if (r.id === requestId) {
-                return {
-                    ...r,
-                    status: 'Under Review',
-                    attachedFile: `simulated_upload_${r.docType.toLowerCase().replace(/\s+/g, '_')}_${Date.now().toString().slice(-4)}.pdf`
-                };
-            }
-            return r;
-        }));
+        uploadRequestDocMutation.mutate(requestId);
     };
 
     const approveUploadedDoc = (requestId) => {
-        setPracticeRequests(requests => requests.map(r => {
-            if (r.id === requestId) {
-                return { ...r, status: 'Approved' };
-            }
-            return r;
-        }));
+        approveRequestDocMutation.mutate(requestId);
     };
 
     const toggleTaskStatus = (taskId) => {
-        setPracticeTasks(tasks => tasks.map(t => {
-            if (t.id === taskId) {
-                const nextStatus = t.status === 'Pending' ? 'In Progress' : (t.status === 'In Progress' ? 'Completed' : 'Pending');
-                return { ...t, status: nextStatus };
-            }
-            return t;
-        }));
+        toggleTaskStatusMutation.mutate(taskId);
     };
 
     const handleSaveTimerSession = () => {
         if (timerSeconds === 0) return;
         const durationFormatted = formatTime(timerSeconds);
-        const newSession = {
-            id: Date.now(),
+        addTimesheetMutation.mutate({
             clientName: timerClient,
             taskName: timerTask.trim() || 'General Consulting Session',
             date: new Date().toISOString().split('T')[0],
             duration: durationFormatted,
             billable: true
-        };
-        setPracticeTimesheets([newSession, ...practiceTimesheets]);
-        setIsTimerRunning(false);
-        setTimerSeconds(0);
-        setTimerTask('');
+        });
     };
 
     const handleSimulateDocumentUpload = (e) => {
@@ -270,22 +215,12 @@ export default function BusinessCA() {
                 if (p >= 100) {
                     clearInterval(interval);
                     setTimeout(() => {
-                        const newFile = {
-                            id: Date.now(),
-                            name: uploadedFileName,
+                        addFileMutation.mutate({
+                            name: uploadedFileName.trim(),
                             size: '1.4 MB',
                             folderName: uploadTargetFolder,
                             date: new Date().toISOString().split('T')[0]
-                        };
-                        setPracticeFiles([newFile, ...practiceFiles]);
-                        setPracticeFolders(folders => folders.map(f => {
-                            if (f.name === uploadTargetFolder) {
-                                return { ...f, count: f.count + 1 };
-                            }
-                            return f;
-                        }));
-                        setUploadedFileName('');
-                        setUploadProgress(null);
+                        });
                     }, 400);
                     return 100;
                 }
@@ -374,7 +309,18 @@ export default function BusinessCA() {
             pendingFilings: 0
         }));
 
-    const allPracticeClients = [...dbPracticeClients, ...practiceClients];
+    // Combine database practice clients with dynamic accepted invitations and deduplicate by email
+    const allPracticeClientsRaw = [...dbPracticeClients, ...practiceClients];
+    const seenEmails = new Set();
+    const allPracticeClients = allPracticeClientsRaw.filter(c => {
+        if (!c.email) return true;
+        const emailLower = c.email.toLowerCase();
+        if (seenEmails.has(emailLower)) {
+            return false;
+        }
+        seenEmails.add(emailLower);
+        return true;
+    });
 
     // ── Mutations ──
     const fileMutation = useMutation({
@@ -422,6 +368,97 @@ export default function BusinessCA() {
         onError: (err) => {
             alert(err.response?.data?.message || err.message || 'Failed to revoke/reject invitation');
         }
+    });
+
+    // Practice Workspace Management Mutations
+    const addClientMutation = useMutation({
+        mutationFn: (client) => caService.addClient(client),
+        onSuccess: () => {
+            refetchClients();
+            setShowAddClientModal(false);
+            setNewClientName('');
+            setNewClientEmail('');
+            setNewClientIncome('');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to register client')
+    });
+
+    const addRequestMutation = useMutation({
+        mutationFn: (req) => caService.addRequest(req),
+        onSuccess: () => {
+            refetchRequests();
+            setShowAddRequestModal(false);
+            setNewRequestTitle('');
+            setNewRequestDesc('');
+            setNewRequestDueDate('');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to issue request')
+    });
+
+    const uploadRequestDocMutation = useMutation({
+        mutationFn: (id) => caService.uploadRequestDoc(id),
+        onSuccess: () => {
+            refetchRequests();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload document')
+    });
+
+    const approveRequestDocMutation = useMutation({
+        mutationFn: (id) => caService.approveRequestDoc(id),
+        onSuccess: () => {
+            refetchRequests();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to approve document')
+    });
+
+    const addTaskMutation = useMutation({
+        mutationFn: (task) => caService.addTask(task),
+        onSuccess: () => {
+            refetchTasks();
+            setShowAddTaskModal(false);
+            setNewTaskTitle('');
+            setNewTaskDueDate('');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to add task')
+    });
+
+    const toggleTaskStatusMutation = useMutation({
+        mutationFn: (id) => caService.toggleTaskStatus(id),
+        onSuccess: () => {
+            refetchTasks();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to update task status')
+    });
+
+    const addTimesheetMutation = useMutation({
+        mutationFn: (session) => caService.addTimesheet(session),
+        onSuccess: () => {
+            refetchTimesheets();
+            setIsTimerRunning(false);
+            setTimerSeconds(0);
+            setTimerTask('');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to save timesheet session')
+    });
+
+    const addFileMutation = useMutation({
+        mutationFn: (file) => caService.addFile(file),
+        onSuccess: () => {
+            refetchFiles();
+            refetchFolders();
+            setUploadedFileName('');
+            setUploadProgress(null);
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload file')
+    });
+
+    const deleteFileMutation = useMutation({
+        mutationFn: (id) => caService.deleteFile(id),
+        onSuccess: () => {
+            refetchFiles();
+            refetchFolders();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to delete file')
     });
 
     const scanMutation = useMutation({
@@ -2182,13 +2219,7 @@ export default function BusinessCA() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => {
-                                                                                setPracticeFiles(practiceFiles.filter(f => f.id !== file.id));
-                                                                                setPracticeFolders(folders => folders.map(f => {
-                                                                                    if (f.name === file.folderName) {
-                                                                                        return { ...f, count: Math.max(0, f.count - 1) };
-                                                                                    }
-                                                                                    return f;
-                                                                                }));
+                                                                                deleteFileMutation.mutate(file.id);
                                                                             }}
                                                                             style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', padding: '6px' }}
                                                                         >
