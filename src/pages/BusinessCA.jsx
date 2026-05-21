@@ -648,6 +648,28 @@ export default function BusinessCA() {
                                         <Plus size={16} /> Invite CA
                                     </button>
                                 </form>
+
+                                <div style={{ height: '1px', background: '#E2E8F0', margin: '8px 0' }} />
+
+                                <div>
+                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your CA:</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        {[
+                                            { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
+                                            { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
+                                            { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
+                                            { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
+                                        ].map((priv, idx) => (
+                                            <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
+                                                <span style={{ color: '#16A34A', marginTop: '2px', fontWeight: '800' }}>✓</span>
+                                                <div>
+                                                    <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
+                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ) : invitedCAs.some(inv => inv.status === 'Pending') ? (
                             // 2. PENDING ACCEPTANCE STATE
