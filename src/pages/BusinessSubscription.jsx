@@ -468,7 +468,7 @@ const BusinessSubscription = () => {
                             background: betaSubCategory === 'investor' ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' : 'white',
                             color: betaSubCategory === 'investor' ? 'white' : '#1E293B',
                             border: betaSubCategory === 'investor' ? 'none' : '1px solid #E2E8F0',
-                            padding: '1.5rem 2rem',
+                            padding: '1.25rem 2rem',
                             borderRadius: '24px',
                             cursor: 'pointer',
                             width: '280px',
@@ -478,12 +478,9 @@ const BusinessSubscription = () => {
                             transform: betaSubCategory === 'investor' ? 'scale(1.05) translateY(-4px)' : 'scale(1)'
                         }}
                     >
-                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                             <Crown size={20} /> Investor Club
                         </h4>
-                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: betaSubCategory === 'investor' ? 0.9 : 0.6, fontWeight: '500', lineHeight: 1.4 }}>
-                            Discover curated startup deals, review roadmaps, and back high-potential ideas.
-                        </p>
                     </div>
 
                     <div 
@@ -492,7 +489,7 @@ const BusinessSubscription = () => {
                             background: betaSubCategory === 'product' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white',
                             color: betaSubCategory === 'product' ? 'white' : '#1E293B',
                             border: betaSubCategory === 'product' ? 'none' : '1px solid #E2E8F0',
-                            padding: '1.5rem 2rem',
+                            padding: '1.25rem 2rem',
                             borderRadius: '24px',
                             cursor: 'pointer',
                             width: '280px',
@@ -502,12 +499,9 @@ const BusinessSubscription = () => {
                             transform: betaSubCategory === 'product' ? 'scale(1.05) translateY(-4px)' : 'scale(1)'
                         }}
                     >
-                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                             <Zap size={20} /> Products & Ideas
                         </h4>
-                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: betaSubCategory === 'product' ? 0.9 : 0.6, fontWeight: '500', lineHeight: 1.4 }}>
-                            List your roadmap, verify your venture deck, and connect directly with verified investors.
-                        </p>
                     </div>
                 </div>
             )}
