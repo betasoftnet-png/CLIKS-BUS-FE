@@ -18,6 +18,7 @@ import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSubscription = () => {
+    const [activeCategory, setActiveCategory] = useState('business');
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -73,67 +74,233 @@ const BusinessSubscription = () => {
         }
     };
 
-    const tiers = [
-        {
-            name: 'Starter Plan',
-            priceAnnually: 2999,
-            originalPrice: 4599,
-            desc: 'Ideal for small retail & emerging SMBs.',
-            icon: ShieldCheck,
-            color: '#1B6B3A',
-            badge: 'Basic',
-            features: [
-                'Unlimited Accounting & Day Book Logs',
-                'Live GST Filings & ITC Auto-Matching',
-                'Basic Warehousing (1 site)',
-                'Automated Payroll & Attendance Systems',
-                'Email Support'
-            ]
-        },
-        {
-            name: 'Growth Plan',
-            priceAnnually: 6999,
-            originalPrice: 9999,
-            desc: 'Built for scaling businesses and multi-site operations.',
-            icon: Zap,
-            color: '#064E3B',
-            badge: 'Most Popular',
-            features: [
-                'All features in Starter Plan',
-                'Multi-warehouse Routing (up to 3 sites)',
-                'Dedicated Bill of Materials (BOM)',
-                'API Webhook Access & ERP Syncing',
-                'Daily CA Data Exporting (CSV/Excel)',
-                'Priority Email & Live Chat Support'
-            ]
-        },
-        {
-            name: 'Elite Suite',
-            priceAnnually: 8999,
-            originalPrice: 15999,
-            desc: 'Absolute control for national distribution networks.',
-            icon: Crown,
-            color: '#0D9488',
-            badge: 'Ultimate Value',
-            features: [
-                'All features in Growth Plan',
-                'Uncapped active staff profiles',
-                'Custom White-Label Invoicing Layouts',
-                'Unlimited manufacturing batches & QC logs',
-                'Guaranteed 99.99% uptime SLA service',
-                'Dedicated CA Account Manager assistance',
-                'Priority 24/7/365 Direct VIP Phone Support'
-            ]
-        }
-    ];
+    const allTiers = {
+        business: [
+            {
+                name: 'Starter Plan',
+                priceAnnually: 2999,
+                originalPrice: 4599,
+                desc: 'Ideal for small retail & emerging SMBs.',
+                icon: ShieldCheck,
+                color: '#1B6B3A',
+                badge: 'Basic',
+                features: [
+                    'Unlimited Accounting & Day Book Logs',
+                    'Live GST Filings & ITC Auto-Matching',
+                    'Basic Warehousing (1 site)',
+                    'Automated Payroll & Attendance Systems',
+                    'Email Support'
+                ]
+            },
+            {
+                name: 'Growth Plan',
+                priceAnnually: 6999,
+                originalPrice: 9999,
+                desc: 'Built for scaling businesses and multi-site operations.',
+                icon: Zap,
+                color: '#064E3B',
+                badge: 'Most Popular',
+                features: [
+                    'All features in Starter Plan',
+                    'Multi-warehouse Routing (up to 3 sites)',
+                    'Dedicated Bill of Materials (BOM)',
+                    'API Webhook Access & ERP Syncing',
+                    'Daily CA Data Exporting (CSV/Excel)',
+                    'Priority Email & Live Chat Support'
+                ]
+            },
+            {
+                name: 'Elite Suite',
+                priceAnnually: 8999,
+                originalPrice: 15999,
+                desc: 'Absolute control for national distribution networks.',
+                icon: Crown,
+                color: '#0D9488',
+                badge: 'Ultimate Value',
+                features: [
+                    'All features in Growth Plan',
+                    'Uncapped active staff profiles',
+                    'Custom White-Label Invoicing Layouts',
+                    'Unlimited manufacturing batches & QC logs',
+                    'Guaranteed 99.99% uptime SLA service',
+                    'Dedicated CA Account Manager assistance',
+                    'Priority 24/7/365 Direct VIP Phone Support'
+                ]
+            }
+        ],
+        ca: [
+            {
+                name: 'CA Standard',
+                priceAnnually: 4999,
+                originalPrice: 6999,
+                desc: 'Perfect for independent practitioners and small firms.',
+                icon: ShieldCheck,
+                color: '#1E3A8A',
+                badge: 'Essential',
+                features: [
+                    'Manage up to 25 Active Client Ledgers',
+                    'Standard Multi-Client GST/ITR Reporting',
+                    'Direct Auditing & Daybook Verification Logs',
+                    'Automated Exporting to CSV/Excel formats',
+                    'Priority Email Support'
+                ]
+            },
+            {
+                name: 'CA Premium',
+                priceAnnually: 9999,
+                originalPrice: 14999,
+                desc: 'Designed for high-growth firms and collaborative auditing teams.',
+                icon: Zap,
+                color: '#2563EB',
+                badge: 'Most Recommended',
+                features: [
+                    'Manage up to 100 Active Client Ledgers',
+                    'Custom White-Labeled Client Report Generation',
+                    'Multi-User Staff Logins (up to 5 members)',
+                    'Automated Client Payment & Reminder Rules',
+                    'Live Chat Support & Direct API Sandbox Access'
+                ]
+            },
+            {
+                name: 'CA Enterprise',
+                priceAnnually: 19999,
+                originalPrice: 29999,
+                desc: 'Complete control and white-labeling for national firms.',
+                icon: Crown,
+                color: '#1D4ED8',
+                badge: 'All Inclusive',
+                features: [
+                    'Manage Unlimited Active Client Ledgers',
+                    'Fully Branded Dedicated Client Portal System',
+                    'Uncapped Staff Logins with Advanced Permissions',
+                    'Dedicated Account Executive & API/ERP Sync',
+                    'Priority 24/7/365 Direct VIP Phone Support'
+                ]
+            }
+        ],
+        betaclub: [
+            {
+                name: 'Beta Member',
+                priceAnnually: 1999,
+                originalPrice: 2999,
+                desc: 'Early access and foundational community membership.',
+                icon: ShieldCheck,
+                color: '#7C3AED',
+                badge: 'Club Starter',
+                features: [
+                    'Early access to new platform updates & beta tools',
+                    'Access to standard community mastermind forums',
+                    'Guaranteed invitation to local physical meetups',
+                    '10% direct discount on partner integration modules'
+                ]
+            },
+            {
+                name: 'Beta Executive',
+                priceAnnually: 4999,
+                originalPrice: 7999,
+                desc: 'High-impact advisory, networking, and co-branding access.',
+                icon: Zap,
+                color: '#6D28D9',
+                badge: 'Inner Circle',
+                features: [
+                    'All features and access of Beta Member tier',
+                    'Monthly 1-on-1 strategic growth consult calls',
+                    'Co-branding/Sponsorship visibility on main portal',
+                    'Direct feedback channel to product steering team',
+                    '20% lifetime discount on partner integrations'
+                ]
+            },
+            {
+                name: 'Beta Founding Partner',
+                priceAnnually: 14999,
+                originalPrice: 24999,
+                desc: 'The ultimate tier for founders, steering committee seat and VIP gala access.',
+                icon: Crown,
+                color: '#5B21B6',
+                badge: 'Founder Legacy',
+                features: [
+                    'All features and access of Beta Executive tier',
+                    'Lifetime subscription fee freeze guarantee',
+                    'VIP reserved seat at the Annual Founder\'s Gala',
+                    'Direct voting seat on feature steering committee',
+                    'Private Investor & VC Roundtable access pipelines'
+                ]
+            }
+        ]
+    };
 
     const invoices = [
         { id: 'INV-2026-041', date: '2026-05-01', tier: 'Growth Plan', amount: '₹6,999', status: 'Paid', method: 'UPI (Razorpay)' },
         { id: 'INV-2026-029', date: '2025-05-01', tier: 'Growth Plan', amount: '₹6,999', status: 'Paid', method: 'Bank Transfer' }
     ];
 
+    const getRenewalDetails = () => {
+        let foundTier = null;
+        for (const cat of Object.keys(allTiers)) {
+            const match = allTiers[cat].find(t => t.name === selectedTier);
+            if (match) {
+                foundTier = { ...match, category: cat };
+                break;
+            }
+        }
+        if (!foundTier) {
+            return {
+                price: '6,999',
+                desc: 'Your workspace is configured with high-performance ERP pipelines. All accounting, manufacturing, and HR modules are fully active.',
+                gradient: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
+                color: '#1B6B3A'
+            };
+        }
+        
+        let desc = '';
+        let gradient = '';
+        if (foundTier.category === 'business') {
+            desc = `Your workspace is configured with high-performance ERP pipelines under the Business ${foundTier.name} tier.`;
+            gradient = 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)';
+        } else if (foundTier.category === 'ca') {
+            desc = `Your workspace is configured with comprehensive auditor pipelines under the CA ${foundTier.name} tier.`;
+            gradient = 'linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%)';
+        } else {
+            desc = `Your workspace is configured with exclusive inner-circle pipelines under the Beta Club ${foundTier.name} tier.`;
+            gradient = 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)';
+        }
+        
+        return {
+            price: foundTier.priceAnnually.toLocaleString(),
+            desc: desc,
+            gradient: gradient,
+            color: foundTier.color
+        };
+    };
+
+    const renewal = getRenewalDetails();
+
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+            <style>{`
+                .sub-tab-btn {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .sub-tab-btn:hover {
+                    transform: translateY(-1px) scale(1.03);
+                    opacity: 0.95;
+                }
+                .plan-card {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .plan-card:hover {
+                    transform: translateY(-8px) !important;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08) !important;
+                }
+                .upgrade-btn {
+                    transition: all 0.2s ease-in-out;
+                }
+                .upgrade-btn:hover {
+                    opacity: 0.95;
+                    transform: scale(1.02);
+                }
+            `}</style>
+
             {/* Header */}
             <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -157,34 +324,86 @@ const BusinessSubscription = () => {
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Current Tier Widget */}
-            <div style={{ background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', borderRadius: '32px', padding: '2.5rem', color: 'white', marginBottom: '3rem', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(27, 107, 58, 0.15)' }}>
+            <div style={{ background: renewal.gradient, borderRadius: '32px', padding: '2.5rem', color: 'white', marginBottom: '3rem', position: 'relative', overflow: 'hidden', boxShadow: `0 20px 25px -5px ${renewal.color}25`, transition: 'all 0.5s ease' }}>
                 <div style={{ position: 'absolute', right: '-50px', top: '-50px', width: '250px', height: '250px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', pointerEvents: 'none' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2rem', position: 'relative', zIndex: 1 }}>
                     <div>
                         <span style={{ background: 'rgba(255,255,255,0.15)', padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem' }}>
                             <Sparkles size={14} /> Active Subscription Plan
                         </span>
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem' }}>Growth Plan</h2>
-                        <p style={{ color: '#DCF2E4', fontWeight: '600', maxWidth: '500px' }}>Your workspace is configured with high-performance ERP pipelines. All accounting, manufacturing, and HR modules are fully active.</p>
+                        <h2 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem' }}>{selectedTier}</h2>
+                        <p style={{ color: '#DCF2E4', fontWeight: '600', maxWidth: '500px' }}>{renewal.desc}</p>
                     </div>
                     <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '1.75rem 2.25rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', minWidth: '240px', textAlign: 'center' }}>
                         <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Next Automatic Renewal</p>
                         <h3 style={{ fontSize: '1.75rem', fontWeight: '900', marginBottom: '0.25rem' }}>01 May, 2027</h3>
-                        <p style={{ fontSize: '0.8rem', color: '#DCF2E4', fontWeight: '600' }}>Amount: ₹6,999 + GST</p>
+                        <p style={{ fontSize: '0.8rem', color: '#DCF2E4', fontWeight: '600' }}>Amount: ₹{renewal.price} + GST</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Custom Modern Tabs */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    background: 'rgba(220, 242, 228, 0.7)', 
+                    backdropFilter: 'blur(8px)',
+                    padding: '0.4rem', 
+                    borderRadius: '24px', 
+                    border: '1px solid rgba(27, 107, 58, 0.15)',
+                    boxShadow: '0 8px 32px 0 rgba(27, 107, 58, 0.04)',
+                    gap: '0.25rem'
+                }}>
+                    {[
+                        { id: 'business', label: 'Business', icon: ShieldCheck, color: '#1B6B3A' },
+                        { id: 'ca', label: 'CA (Auditor)', icon: Award, color: '#1E3A8A' },
+                        { id: 'betaclub', label: 'Beta Club', icon: Crown, color: '#7C3AED' }
+                    ].map((tab) => {
+                        const isTabActive = activeCategory === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                className="sub-tab-btn"
+                                onClick={() => setActiveCategory(tab.id)}
+                                style={{
+                                    padding: '0.75rem 2rem',
+                                    borderRadius: '20px',
+                                    border: 'none',
+                                    background: isTabActive 
+                                        ? `linear-gradient(135deg, ${tab.color} 0%, #0c0f1d 160%)` 
+                                        : 'transparent',
+                                    color: isTabActive ? 'white' : '#475569',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    transform: isTabActive ? 'scale(1.04)' : 'scale(1)',
+                                    boxShadow: isTabActive ? `0 10px 15px -3px ${tab.color}40` : 'none'
+                                }}
+                            >
+                                <tab.icon size={16} />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Pricing Tiers Selection Grid */}
             <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Upgrade Workspace Tier</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '4rem' }}>
-                {tiers.map((tier, idx) => {
+                {allTiers[activeCategory].map((tier, idx) => {
                     const price = tier.priceAnnually;
                     const isActive = tier.name === selectedTier;
                     const TierIcon = tier.icon;
                     return (
                         <div 
                             key={idx} 
+                            className="plan-card"
                             onClick={() => setSelectedTier(tier.name)}
                             style={{ 
                                 background: 'white', 
@@ -193,9 +412,8 @@ const BusinessSubscription = () => {
                                 padding: '2.5rem',
                                 position: 'relative',
                                 cursor: 'pointer',
-                                transition: 'all 0.25s',
-                                transform: isActive ? 'translateY(-8px)' : 'none',
-                                boxShadow: isActive ? `0 20px 25px -5px rgba(0,0,0,0.06)` : 'none'
+                                transform: isActive ? 'translateY(-6px)' : 'none',
+                                boxShadow: isActive ? `0 20px 25px -5px ${tier.color}15` : 'none'
                             }}
                         >
                             {isActive && (
@@ -224,19 +442,24 @@ const BusinessSubscription = () => {
                             </div>
 
                             <button 
-                                onClick={() => handleUpgrade(tier)}
+                                className="upgrade-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpgrade(tier);
+                                }}
                                 disabled={isProcessing}
                                 style={{ 
-                                width: '100%', 
-                                padding: '1rem', 
-                                borderRadius: '16px', 
-                                border: isActive ? 'none' : `1px solid ${tier.color}`,
-                                background: isActive ? `linear-gradient(135deg, ${tier.color} 0%, #064E3B 100%)` : (isProcessing ? '#94A3B8' : 'white'),
-                                color: isActive ? 'white' : tier.color,
-                                fontWeight: '800',
-                                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                marginBottom: '2rem'
-                            }}>
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    border: isActive ? 'none' : `1px solid ${tier.color}`,
+                                    background: isActive ? `linear-gradient(135deg, ${tier.color} 0%, #0c0f1d 160%)` : (isProcessing ? '#94A3B8' : 'white'),
+                                    color: isActive ? 'white' : tier.color,
+                                    fontWeight: '800',
+                                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                    marginBottom: '2rem'
+                                }}
+                            >
                                 {isActive ? 'Currently Active Plan' : (isProcessing ? 'Connecting...' : 'Upgrade Plan')}
                             </button>
 
