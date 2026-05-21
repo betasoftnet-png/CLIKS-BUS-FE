@@ -541,7 +541,7 @@ export default function BusinessCA() {
                         <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             CA Command Centre <span style={{ fontSize: '11px', fontWeight: '900', color: '#004aad', background: '#E0EBFF', border: '1px solid #C3DAFE', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' }}>Professional Layer</span>
                         </h1>
-                        <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Enterprise Audit, Compliance & Advisory Workspace</p>
+                        <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Manage audits, taxes, compliance, and client reports in one place.</p>
                     </div>
                 </div>
 
@@ -568,7 +568,7 @@ export default function BusinessCA() {
                                             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Cross-Border Auditing</h3>
                                             <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '2px 8px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0' }}>Active Standard</span>
                                         </div>
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Select the accounting pipeline architecture required for auditing cross-border files automatically matching corporate base tokens.</p>
+                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Choose the accounting standard used for your business reports and audits.</p>
                                         
                                         <div style={{ display: 'flex', gap: '12px' }}>
                                             <button onClick={() => handleStandardChange('IFRS')} style={{ flex: 1, padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '800', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: accountingStandard === 'IFRS' ? '#004aad' : '#E2E8F0', background: accountingStandard === 'IFRS' ? '#F0F5FF' : 'transparent', color: accountingStandard === 'IFRS' ? '#004aad' : '#475569' }}>
@@ -580,18 +580,18 @@ export default function BusinessCA() {
                                         </div>
 
                                         <div style={{ padding: '12px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: '12px', color: '#475569' }}>
-                                            <strong>Rules Applied:</strong> {accountingStandard === 'IFRS' ? 'Fair value measurements, principles-based reporting, and dynamic presentation mapping.' : 'Rules-based framework, LIFO inventory allowance, and explicit segment disclosures.'}
+                                            <strong>Rules Applied:</strong> {accountingStandard === 'IFRS' ? 'Uses international accounting rules for accurate financial reporting.' : 'Uses US accounting rules for accurate financial reporting.'}
                                         </div>
                                     </div>
 
                                     {/* Compliance Check Engine */}
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>One-Click Compliance Check</h3>
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Instantly parse client transactional data feeds to verify AML status, tax reconciliation matching, and systemic compliance parameters.</p>
+                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Scan invoices and transactions to check taxes, fraud risks, and compliance issues.</p>
 
                                         <button onClick={triggerComplianceScan} disabled={isScanning} style={{ padding: '12px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'opacity 0.2s', opacity: isScanning ? 0.7 : 1 }}>
                                             {isScanning ? <RefreshCw className="animate-spin" size={16} /> : <FileCheck size={16} />}
-                                            {isScanning ? `Scanning Transaction Feed (${scanProgress}%)` : "Run Compliance Scanner"}
+                                            {isScanning ? `Checking Compliance (${scanProgress}%)` : "Start Compliance Check"}
                                         </button>
 
                                         {isScanning && (
@@ -625,7 +625,7 @@ export default function BusinessCA() {
                                         <div style={{ padding: '16px', background: '#FFFBEB', borderRadius: '12px', border: '1px solid #FEF3C7', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                             <div style={{ fontSize: '28px', fontWeight: '900', color: '#D97706' }}>{scanResults ? scanResults.anomaliesFound : 2}</div>
                                             <div style={{ fontSize: '13px', fontWeight: '800', color: '#B45309' }}>Anomalies Flagged this Cycle</div>
-                                            <p style={{ fontSize: '11px', color: '#D97706', lineHeight: '1.5' }}>Transactions flagged with high variance scores compared to the past 12-month client behavioral index.</p>
+                                            <p style={{ fontSize: '11px', color: '#D97706', lineHeight: '1.5' }}>Unusual transactions detected based on recent business activity.</p>
                                         </div>
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -644,7 +644,7 @@ export default function BusinessCA() {
                                                 ))
                                             ) : (
                                                 <div style={{ padding: '24px', textAlign: 'center', border: '1px dashed #E2E8F0', borderRadius: '10px', fontSize: '12px', color: '#94A3B8', fontWeight: '600' }}>
-                                                    Click "Run Compliance Scanner" to run the anomaly detection module.
+                                                    Click "Start Compliance Check" to run the anomaly detection module.
                                                 </div>
                                             )}
                                         </div>
@@ -992,9 +992,9 @@ export default function BusinessCA() {
                     <div>
                         <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                             <Layers size={18} style={{ color: '#004aad' }} />
-                            Features You May Need
+                            Quick Tools
                         </h3>
-                        <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', fontWeight: '500', lineHeight: '1.4' }}>Quick access coordinates to crucial professional tools.</p>
+                        <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px', fontWeight: '500', lineHeight: '1.4' }}>Access important audit and tax features quickly.</p>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1026,9 +1026,9 @@ export default function BusinessCA() {
                                 <span style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>1. Compliance Scanner</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '24px' }}>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Validate GST/tax</span>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Detect missing invoices</span>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Match transactions</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Check GST and tax records</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Find missing invoices</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Verify transactions</span>
                             </div>
                         </div>
 
@@ -1057,9 +1057,9 @@ export default function BusinessCA() {
                                 <span style={{ fontSize: '13px', fontWeight: '800', color: '#0F172A' }}>2. Fraud Detection</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '24px' }}>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Large unusual transactions</span>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Duplicate invoices</span>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Offshore transfers</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Detect suspicious payments</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Find duplicate invoices</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Monitor international transfers</span>
                             </div>
                         </div>
 
@@ -1089,7 +1089,7 @@ export default function BusinessCA() {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '24px' }}>
                                 <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• GST calculations</span>
-                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• IFRS / US GAAP logic</span>
+                                <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• International accounting support</span>
                                 <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>• Tax reports</span>
                             </div>
                         </div>
