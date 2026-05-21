@@ -28,7 +28,7 @@ export default function BusinessCA() {
     const [showAddClientModal, setShowAddClientModal] = useState(false);
     const [newClientName, setNewClientName] = useState('');
     const [newClientEmail, setNewClientEmail] = useState('');
-    const [newClientStatus, setNewClientStatus] = useState('Active');
+    const newClientStatus = 'Active';
     const [newClientRegime, setNewClientRegime] = useState('New');
     const [newClientIncome, setNewClientIncome] = useState('');
 
@@ -2167,3 +2167,6 @@ export default function BusinessCA() {
                     )}
                 </div>
             )}
+        </div>
+    );
+}
