@@ -1130,33 +1130,36 @@ export default function BusinessCA() {
             </div>
             </>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '28px', alignItems: 'start', width: '100%' }}>
-                    {/* Zoho Practice Style Vertical Navigation Sidebar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+                    {/* Zoho Practice Style Horizontal Navigation Tab Bar */}
                     <div style={{ 
                         background: '#FFFFFF', 
                         borderRadius: '16px', 
                         border: '1px solid #E2E8F0', 
-                        padding: '20px 16px', 
+                        padding: '12px 20px', 
                         display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '24px', 
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '16px', 
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
                         position: 'sticky',
-                        top: '24px'
+                        top: '24px',
+                        zIndex: 10
                     }}>
-                        {/* Sidebar Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
-                                <User size={22} />
+                        {/* Tab Bar Header Brand Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
+                                <User size={18} />
                             </div>
                             <div>
-                                <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>CA Practice</h3>
-                                <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '750' }}>Zoho Practice Pro</span>
+                                <h3 style={{ fontSize: '13px', fontWeight: '850', color: '#0F172A', margin: 0, lineHeight: '1.2' }}>CA Practice</h3>
+                                <span style={{ fontSize: '10px', color: '#15803d', fontWeight: '750', lineHeight: '1' }}>Zoho Practice Pro</span>
                             </div>
                         </div>
 
-                        {/* Navigation Tabs */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {/* Navigation Tabs Horizontal Row */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {sidebarTabs.map((tab) => {
                                 const TabIcon = tab.icon;
                                 const isActive = personalTab === tab.id;
@@ -1167,17 +1170,16 @@ export default function BusinessCA() {
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '12px 14px',
-                                            borderRadius: '10px',
+                                            gap: '8px',
+                                            padding: '8px 14px',
+                                            borderRadius: '8px',
                                             border: 'none',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s',
                                             background: isActive ? '#F0FDF4' : 'transparent',
                                             color: isActive ? '#15803d' : '#475569',
                                             fontWeight: isActive ? '800' : '600',
-                                            fontSize: '13.5px',
-                                            textAlign: 'left'
+                                            fontSize: '12.5px'
                                         }}
                                         onMouseEnter={e => {
                                             if (!isActive) {
@@ -1192,18 +1194,16 @@ export default function BusinessCA() {
                                             }
                                         }}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <TabIcon size={18} style={{ color: isActive ? '#15803d' : '#64748B' }} />
-                                            <span>{tab.label}</span>
-                                        </div>
+                                        <TabIcon size={16} style={{ color: isActive ? '#15803d' : '#64748B' }} />
+                                        <span>{tab.label}</span>
                                         {/* Dynamic Badges */}
                                         {tab.id === 'requests' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
-                                            <span style={{ fontSize: '10.5px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '2px 6px', borderRadius: '10px' }}>
+                                            <span style={{ fontSize: '9.5px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 5px', borderRadius: '8px', marginLeft: '2px' }}>
                                                 {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
                                             </span>
                                         )}
                                         {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed').length > 0 && (
-                                            <span style={{ fontSize: '10.5px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '2px 6px', borderRadius: '10px' }}>
+                                            <span style={{ fontSize: '9.5px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 5px', borderRadius: '8px', marginLeft: '2px' }}>
                                                 {practiceTasks.filter(t => t.status !== 'Completed').length}
                                             </span>
                                         )}
@@ -1214,7 +1214,7 @@ export default function BusinessCA() {
                     </div>
 
                     {/* Main Content Workspace Container */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0, width: '100%' }}>
                         <AnimatePresence mode="wait">
                             {/* 1. HOME TAB */}
                             {personalTab === 'home' && (
