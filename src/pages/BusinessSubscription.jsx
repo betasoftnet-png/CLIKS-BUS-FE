@@ -19,6 +19,7 @@ import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSubscription = () => {
     const [activeCategory, setActiveCategory] = useState('business');
+    const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -416,8 +417,7 @@ const BusinessSubscription = () => {
                     {[
                         { id: 'business', label: 'Business', icon: ShieldCheck, color: '#1B6B3A' },
                         { id: 'ca', label: 'CA (Auditor)', icon: Award, color: '#1E3A8A' },
-                        { id: 'betaclub_investor', label: 'Beta Club (Investor)', icon: Crown, color: '#7C3AED' },
-                        { id: 'betaclub_product', label: 'Beta Club (Products & Ideas)', icon: Crown, color: '#DB2777' }
+                        { id: 'betaclub', label: 'Beta Club', icon: Crown, color: '#7C3AED' }
                     ].map((tab) => {
                         const isTabActive = activeCategory === tab.id;
                         return (
@@ -453,10 +453,69 @@ const BusinessSubscription = () => {
                 </div>
             </div>
 
+            {/* Nested Sub-selector when Beta Club is active */}
+            {activeCategory === 'betaclub' && (
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    gap: '2rem', 
+                    marginBottom: '3rem', 
+                    flexWrap: 'wrap' 
+                }}>
+                    <div 
+                        onClick={() => setBetaSubCategory('investor')}
+                        style={{
+                            background: betaSubCategory === 'investor' ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' : 'white',
+                            color: betaSubCategory === 'investor' ? 'white' : '#1E293B',
+                            border: betaSubCategory === 'investor' ? 'none' : '1px solid #E2E8F0',
+                            padding: '1.5rem 2rem',
+                            borderRadius: '24px',
+                            cursor: 'pointer',
+                            width: '280px',
+                            textAlign: 'center',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: betaSubCategory === 'investor' ? '0 15px 30px rgba(124, 58, 237, 0.25)' : 'none',
+                            transform: betaSubCategory === 'investor' ? 'scale(1.05) translateY(-4px)' : 'scale(1)'
+                        }}
+                    >
+                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Crown size={20} /> Investor Club
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: betaSubCategory === 'investor' ? 0.9 : 0.6, fontWeight: '500', lineHeight: 1.4 }}>
+                            Discover curated startup deals, review roadmaps, and back high-potential ideas.
+                        </p>
+                    </div>
+
+                    <div 
+                        onClick={() => setBetaSubCategory('product')}
+                        style={{
+                            background: betaSubCategory === 'product' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white',
+                            color: betaSubCategory === 'product' ? 'white' : '#1E293B',
+                            border: betaSubCategory === 'product' ? 'none' : '1px solid #E2E8F0',
+                            padding: '1.5rem 2rem',
+                            borderRadius: '24px',
+                            cursor: 'pointer',
+                            width: '280px',
+                            textAlign: 'center',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: betaSubCategory === 'product' ? '0 15px 30px rgba(236, 72, 153, 0.25)' : 'none',
+                            transform: betaSubCategory === 'product' ? 'scale(1.05) translateY(-4px)' : 'scale(1)'
+                        }}
+                    >
+                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Zap size={20} /> Products & Ideas
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: betaSubCategory === 'product' ? 0.9 : 0.6, fontWeight: '500', lineHeight: 1.4 }}>
+                            List your roadmap, verify your venture deck, and connect directly with verified investors.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Pricing Tiers Selection Grid */}
             <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Upgrade Workspace Tier</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '4rem' }}>
-                {allTiers[activeCategory].map((tier, idx) => {
+                {allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].map((tier, idx) => {
                     const price = tier.priceAnnually;
                     const isActive = tier.name === selectedTier;
                     const TierIcon = tier.icon;
