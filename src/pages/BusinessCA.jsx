@@ -16,6 +16,10 @@ export default function BusinessCA() {
     const [caMode, setCaMode] = useState('business'); // business | personal
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
 
+    // --- Business to Personal CA Connection States ---
+    const [invitedCAs, setInvitedCAs] = useState([]);
+    const [inviteEmailInput, setInviteEmailInput] = useState('');
+
     // --- Personal CA Zoho Practice States ---
     const [practiceClients, setPracticeClients] = useState([
         { id: 1, name: 'Aditya Birla Group (Individual)', email: 'aditya@abg.com', status: 'Active', regime: 'New', income: 2400000, pendingFilings: 0 },
@@ -136,6 +140,47 @@ export default function BusinessCA() {
         const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
         const secs = String(totalSeconds % 60).padStart(2, '0');
         return `${hrs}:${mins}:${secs}`;
+    };
+
+    const handleInviteCA = (e) => {
+        e.preventDefault();
+        if (!inviteEmailInput.trim() || !inviteEmailInput.includes('@')) return;
+        const newInvite = {
+            id: Date.now(),
+            email: inviteEmailInput.trim(),
+            clientName: 'Cliks Business Client (Acme Corp)',
+            status: 'Pending',
+            timestamp: new Date().toLocaleString()
+        };
+        setInvitedCAs([...invitedCAs, newInvite]);
+        setInviteEmailInput('');
+    };
+
+    const handleAcceptInvitation = (inviteId) => {
+        setInvitedCAs(prev => prev.map(inv => {
+            if (inv.id === inviteId) {
+                return { ...inv, status: 'Accepted' };
+            }
+            return inv;
+        }));
+
+        // Automatically register the client on the Personal CA (Practice) Clients List
+        const newClient = {
+            id: inviteId,
+            name: 'Cliks Business Client (Acme Corp)',
+            email: 'business@cliks.com',
+            status: 'Active',
+            regime: 'New',
+            income: 7500000,
+            pendingFilings: 0
+        };
+        setPracticeClients(prev => [newClient, ...prev]);
+    };
+
+    const handleRevokeCA = (inviteId) => {
+        setInvitedCAs(prev => prev.filter(inv => inv.id !== inviteId));
+        // Remove the Cliks Business Client from practiceClients too
+        setPracticeClients(prev => prev.filter(c => c.name !== 'Cliks Business Client (Acme Corp)'));
     };
 
     const handleAddPracticeClient = (e) => {
@@ -558,6 +603,122 @@ export default function BusinessCA() {
                 
                 {/* Left Column: Interactive Workspace */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                    {/* Accountant Connection Portal */}
+                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Users size={20} style={{ color: '#004aad' }} />
+                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
+                            </div>
+                            {invitedCAs.some(inv => inv.status === 'Accepted') ? (
+                                <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <CheckCircle2 size={12} /> Connected CA Active
+                                </span>
+                            ) : invitedCAs.some(inv => inv.status === 'Pending') ? (
+                                <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={12} className="animate-pulse" /> Pending Acceptance
+                                </span>
+                            ) : (
+                                <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
+                                    Not Connected
+                                </span>
+                            )}
+                        </div>
+
+                        {invitedCAs.length === 0 ? (
+                            // 1. DISCONNECTED / INVITE FORM STATE
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
+                                    Invite your Chartered Accountant (CA) to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
+                                </p>
+                                <form onSubmit={handleInviteCA} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                    <input 
+                                        type="email" 
+                                        required 
+                                        placeholder="Enter your CA's professional email address (e.g., ca@firm.com)" 
+                                        value={inviteEmailInput}
+                                        onChange={(e) => setInviteEmailInput(e.target.value)}
+                                        style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '500', outline: 'none', transition: 'all 0.2s' }}
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        style={{ padding: '12px 20px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
+                                    >
+                                        <Plus size={16} /> Invite CA
+                                    </button>
+                                </form>
+                            </div>
+                        ) : invitedCAs.some(inv => inv.status === 'Pending') ? (
+                            // 2. PENDING ACCEPTANCE STATE
+                            invitedCAs.filter(inv => inv.status === 'Pending').map(inv => (
+                                <div key={inv.id} style={{ padding: '16px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <span style={{ fontSize: '12.5px', color: '#78350F', fontWeight: '750' }}>Access invitation sent to: </span>
+                                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.email}</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleRevokeCA(inv.id)} 
+                                            style={{ background: 'transparent', border: 'none', color: '#B45309', fontSize: '12px', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        >
+                                            <Trash2 size={14} /> Cancel Request
+                                        </button>
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#B45309', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#D97706', marginRight: '4px' }} className="animate-ping"></span>
+                                        Sent: {inv.timestamp}
+                                    </div>
+                                    <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
+                                        💡 <strong>How to Test:</strong> Switch to the <strong>Personal CA Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            // 3. CONNECTED STATE
+                            invitedCAs.filter(inv => inv.status === 'Accepted').map(inv => (
+                                <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                <UserCheck size={20} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.email}</div>
+                                                <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.timestamp.split(',')[0]}</div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleRevokeCA(inv.id)} 
+                                            style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                        >
+                                            Revoke Access
+                                        </button>
+                                    </div>
+
+                                    {/* Privileges/What CA can do */}
+                                    <div>
+                                        <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '8px' }}>Security Clearance & Shared Privileges:</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            {[
+                                                { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
+                                                { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
+                                                { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
+                                                { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
+                                            ].map((priv, idx) => (
+                                                <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
+                                                    <span style={{ color: '#16A34A', marginTop: '2px' }}>✔</span>
+                                                    <div>
+                                                        <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
+                                                        <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                     <AnimatePresence mode="wait">
                         {activeTab === 'auditor' && (
                             <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1356,6 +1517,53 @@ export default function BusinessCA() {
                             {/* 3. CLIENT REQUESTS TAB */}
                             {personalTab === 'requests' && (
                                 <Motion.div key="requests" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    {/* Incoming Client Connection Requests Portal */}
+                                    {invitedCAs.some(inv => inv.status === 'Pending') && (
+                                        <div style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.05)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <Users size={20} style={{ color: '#16A34A' }} />
+                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#14532D', margin: 0 }}>📩 Incoming Client Connection Requests</h3>
+                                                </div>
+                                                <span style={{ fontSize: '11px', background: '#DCFCE7', color: '#15803d', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0' }}>
+                                                    Awaiting Action
+                                                </span>
+                                            </div>
+                                            <p style={{ fontSize: '13px', color: '#166534', margin: 0, lineHeight: '1.5', fontWeight: '500' }}>
+                                                The following business client has sent you an invitation request to access their transactional audit feed, verify taxes, and manage computations.
+                                            </p>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                {invitedCAs.filter(inv => inv.status === 'Pending').map(inv => (
+                                                    <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                                <Building size={20} />
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A' }}>{inv.clientName}</div>
+                                                                <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>Sent to CA: {inv.email} • {inv.timestamp}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                                            <button 
+                                                                onClick={() => handleAcceptInvitation(inv.id)}
+                                                                style={{ padding: '8px 16px', background: '#16A34A', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
+                                                            >
+                                                                <UserCheck size={14} /> Accept Invitation
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleRevokeCA(inv.id)}
+                                                                style={{ padding: '8px 16px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                            >
+                                                                Ignore
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>🤝 Outbound Document Requests Ledger</h2>
                                         <button onClick={() => setShowAddRequestModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
