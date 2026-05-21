@@ -7,7 +7,7 @@ import {
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet
 } from 'lucide-react';
-import { accountingService, gstService, contactsService, caService } from '../services';
+import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 
 export default function BusinessCA() {
     const [activeTab, setActiveTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
@@ -283,6 +283,14 @@ export default function BusinessCA() {
         retry: false
     });
 
+    // Fetch logged-in user profile to dynamically filter out self/CA email
+    const { data: profile } = useQuery({
+        queryKey: ['profile'],
+        queryFn: () => profileService.getProfile(),
+        retry: false
+    });
+    const myEmail = profile?.email || '';
+
     // CA Connection Queries
     const { data: outgoingInvitations = [], refetch: refetchOutgoing } = useQuery({
         queryKey: ['caInvitationsOutgoing'],
@@ -296,21 +304,24 @@ export default function BusinessCA() {
         retry: false
     });
 
-    // Merge manual/mock practiceClients with accepted incoming DB invitations
+    // Merge manual/mock practiceClients with accepted incoming DB invitations, filtering out CA's own email
     const dbPracticeClients = incomingInvitations
-        .filter(inv => inv.status === 'Accepted')
+        .filter(inv => inv.status === 'Accepted' && inv.sender_email && inv.sender_email.toLowerCase() !== myEmail.toLowerCase())
         .map(inv => ({
             id: `db-${inv.id}`,
             name: inv.sender_name || 'Cliks Business Client (Acme Corp)',
             email: inv.sender_email || 'business@cliks.com',
             status: 'Active',
             regime: 'New',
-            income: 7500000,
+            income: inv.income || (1500000 + ((inv.sender_email || '').length % 5) * 400000),
             pendingFilings: 0
         }));
 
-    // Combine database practice clients with dynamic accepted invitations and deduplicate by email
-    const allPracticeClientsRaw = [...dbPracticeClients, ...practiceClients];
+    // Combine database practice clients with dynamic accepted invitations, prioritizing DB clients for realistic values, and deduplicate by email, filtering out self/myEmail
+    const allPracticeClientsRaw = [
+        ...practiceClients.filter(c => c.email && c.email.toLowerCase() !== myEmail.toLowerCase()),
+        ...dbPracticeClients
+    ];
     const seenEmails = new Set();
     const allPracticeClients = allPracticeClientsRaw.filter(c => {
         if (!c.email) return true;
