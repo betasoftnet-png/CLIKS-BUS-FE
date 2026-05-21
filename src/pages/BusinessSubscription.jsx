@@ -178,34 +178,86 @@ const BusinessSubscription = () => {
                 ]
             }
         ],
-        betaclub: [
+        betaclub_investor: [
             {
-                name: 'Beta Member',
-                priceAnnually: 1999,
-                originalPrice: 2999,
-                desc: 'Early access and foundational community membership.',
+                name: 'Beta Angel',
+                priceAnnually: 4999,
+                originalPrice: 7999,
+                desc: 'Access curated startup directories and begin early-stage venture backing.',
                 icon: ShieldCheck,
                 color: '#7C3AED',
-                badge: 'Club Starter',
+                badge: 'Early Stage',
                 features: [
-                    'Early access to new platform updates & beta tools',
-                    'Access to standard community mastermind forums',
-                    'Guaranteed invitation to local physical meetups',
-                    '10% direct discount on partner integration modules'
+                    'Access to curated startup and deal directories',
+                    'Filter pitches by industry, funding goal, and equity share',
+                    'Direct contact channels with verified founders (up to 15/mo)',
+                    'Access to standard investor mastermind forums',
+                    'Real-time notifications for newly listed ventures'
                 ]
             },
             {
-                name: 'Beta Executive',
-                priceAnnually: 4999,
-                originalPrice: 7999,
-                desc: 'High-impact advisory, networking, and co-branding access.',
+                name: 'Beta Venture Partner',
+                priceAnnually: 9999,
+                originalPrice: 14999,
+                desc: 'Designed for professional angels, syndicate participants, and active investors.',
                 icon: Zap,
                 color: '#6D28D9',
-                badge: 'Inner Circle',
+                badge: 'Professional Dealflow',
                 features: [
-                    'All features and access of Beta Member tier',
-                    'Monthly 1-on-1 strategic growth consult calls',
-                    'Co-branding/Sponsorship visibility on main portal',
+                    'All features of Beta Angel tier',
+                    'Direct contact details for unlimited startup listings',
+                    'Interactive deal rooms & shared pitch folders',
+                    'Monthly co-investment circulars & VC partner access',
+                    '1-on-1 deal flow consultations with steering team'
+                ]
+            },
+            {
+                name: 'Beta Syndicate Lead',
+                priceAnnually: 24999,
+                originalPrice: 39999,
+                desc: 'Ultimate sovereign tier for syndicates, institutional offices, and active VC networks.',
+                icon: Crown,
+                color: '#5B21B6',
+                badge: 'VIP Sovereign',
+                features: [
+                    'All features of Beta Venture Partner tier',
+                    'Direct syndicate matching & co-investment structures',
+                    'VIP reserved seat at the Annual Founder\'s & Investor Gala',
+                    'Priority invitations to physical Family Office roundtables',
+                    'Dedicated investment analyst assistance & custom market research'
+                ]
+            }
+        ],
+        betaclub_product: [
+            {
+                name: 'Beta Innovator',
+                priceAnnually: 1999,
+                originalPrice: 2999,
+                desc: 'Early access for founders seeking foundational product testing & community reach.',
+                icon: ShieldCheck,
+                color: '#EC4899',
+                badge: 'Spark Launch',
+                features: [
+                    'Early access to new platform updates & beta tools',
+                    'Standard community mastermind forum access',
+                    'List 1 active roadmap/pitch in the Deal Marketplace',
+                    '10% direct discount on partner integration modules',
+                    'Standard investor-ready pitch templates & checklists'
+                ]
+            },
+            {
+                name: 'Beta Founder Premium',
+                priceAnnually: 4999,
+                originalPrice: 7999,
+                desc: 'High-impact visibility, top placement, and verified badge for active venture teams.',
+                icon: Zap,
+                color: '#DB2777',
+                badge: 'Venture Exposure',
+                features: [
+                    'All features of Beta Innovator tier',
+                    'List up to 3 active roadmaps/pitches in the Marketplace',
+                    'Top search placement inside the investor directory',
+                    'Verified checkmark badge after deck review',
                     'Direct feedback channel to product steering team',
                     '20% lifetime discount on partner integrations'
                 ]
@@ -214,16 +266,18 @@ const BusinessSubscription = () => {
                 name: 'Beta Founding Partner',
                 priceAnnually: 14999,
                 originalPrice: 24999,
-                desc: 'The ultimate tier for founders, steering committee seat and VIP gala access.',
+                desc: 'Sovereign founder tier with steering seat, lifetime fee freeze, and VIP gala entry.',
                 icon: Crown,
-                color: '#5B21B6',
+                color: '#BE185D',
                 badge: 'Founder Legacy',
                 features: [
-                    'All features and access of Beta Executive tier',
-                    'Lifetime subscription fee freeze guarantee',
+                    'All features of Beta Founder Premium tier',
+                    'Unlimited active roadmaps/pitches in the Marketplace',
+                    'Featured homepage and dashboard spotlight placement',
                     'VIP reserved seat at the Annual Founder\'s Gala',
                     'Direct voting seat on feature steering committee',
-                    'Private Investor & VC Roundtable access pipelines'
+                    'Private Pitch-to-VC roundtable access pipelines',
+                    'Lifetime subscription fee freeze guarantee'
                 ]
             }
         ]
@@ -260,9 +314,12 @@ const BusinessSubscription = () => {
         } else if (foundTier.category === 'ca') {
             desc = `Your workspace is configured with comprehensive auditor pipelines under the CA ${foundTier.name} tier.`;
             gradient = 'linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%)';
-        } else {
-            desc = `Your workspace is configured with exclusive inner-circle pipelines under the Beta Club ${foundTier.name} tier.`;
+        } else if (foundTier.category === 'betaclub_investor') {
+            desc = `Your workspace is configured with exclusive investor network pipelines under the Beta Club (Investor) ${foundTier.name} tier.`;
             gradient = 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)';
+        } else {
+            desc = `Your workspace is configured with high-exposure roadmap channels under the Beta Club (Products & Ideas) ${foundTier.name} tier.`;
+            gradient = 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)';
         }
         
         return {
@@ -352,12 +409,15 @@ const BusinessSubscription = () => {
                     borderRadius: '24px', 
                     border: '1px solid rgba(27, 107, 58, 0.15)',
                     boxShadow: '0 8px 32px 0 rgba(27, 107, 58, 0.04)',
-                    gap: '0.25rem'
+                    gap: '0.25rem',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center'
                 }}>
                     {[
                         { id: 'business', label: 'Business', icon: ShieldCheck, color: '#1B6B3A' },
                         { id: 'ca', label: 'CA (Auditor)', icon: Award, color: '#1E3A8A' },
-                        { id: 'betaclub', label: 'Beta Club', icon: Crown, color: '#7C3AED' }
+                        { id: 'betaclub_investor', label: 'Beta Club (Investor)', icon: Crown, color: '#7C3AED' },
+                        { id: 'betaclub_product', label: 'Beta Club (Products & Ideas)', icon: Crown, color: '#DB2777' }
                     ].map((tab) => {
                         const isTabActive = activeCategory === tab.id;
                         return (
