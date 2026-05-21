@@ -746,8 +746,8 @@ export default function BusinessCA() {
                                         </div>
                                     </div> */}
 
-                                    {/* Compliance Check Engine */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {/* Compliance Check Engine commented out per user request */}
+                                    {/* <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>One-Click Compliance Check</h3>
                                         <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Scan invoices and transactions to check taxes, fraud risks, and compliance issues.</p>
 
@@ -770,11 +770,11 @@ export default function BusinessCA() {
                                                 </div>
                                             </div>
                                         )}
-                                    </div>
+                                    </div> */}
                                 </div>
 
-                                {/* AI Fraud & Anomaly Visualizer */}
-                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                {/* AI Fraud & Anomaly Visualizer commented out per user request */}
+                                {/* <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <ShieldAlert style={{ color: '#EF4444' }} size={20} />
@@ -811,7 +811,7 @@ export default function BusinessCA() {
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                </div> */}
                             </Motion.div>
                         )}
 
