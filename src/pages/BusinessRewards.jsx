@@ -21,55 +21,55 @@ const BusinessRewards = () => {
     const premiumOffers = [
         {
             id: 'offer_1',
-            title: 'Wallet Load Reward',
-            description: 'Load ₹5,000 or more into your Cliks Wallet and claim a 2% flat discount on your next annual or monthly Cliks Pro subscription.',
+            title: 'Starter Wallet Load Reward',
+            description: 'Load ₹5,000 or more into your Cliks Wallet and claim a 2% flat discount on your next monthly or annual Cliks Pro subscription.',
             shortLabel: '2% OFF PRO',
-            type: 'wallet',
+            type: 'wallet_starter',
             icon: Wallet,
             badgeColor: '#ECFDF5',
             accentColor: '#10B981',
             textColor: '#065F46',
             actionLabel: 'Load Wallet Now',
-            link: '/payments/wallet'
+            link: '/payments/wallet?addMoney=true'
         },
         {
             id: 'offer_2',
-            title: 'Split & Collect Bonus',
-            description: 'Successfully record and reconcile your first split ledger with a business associate to claim extra bonus points instantly.',
-            shortLabel: '+200 POINTS',
-            type: 'split',
-            icon: Users,
-            badgeColor: '#EEF2FF',
-            accentColor: '#4F46E5',
-            textColor: '#3730A3',
-            actionLabel: 'Create Split Ticket',
-            link: '/payments/split-collect'
+            title: 'Silver Wallet Load Reward',
+            description: 'Load ₹10,000 or more into your Cliks Wallet and claim a 3.5% flat discount on your next monthly or annual Cliks Pro subscription.',
+            shortLabel: '3.5% OFF PRO',
+            type: 'wallet_silver',
+            icon: Coins,
+            badgeColor: '#EFF6FF',
+            accentColor: '#3B82F6',
+            textColor: '#1E40AF',
+            actionLabel: 'Load Wallet Now',
+            link: '/payments/wallet?addMoney=true'
         },
         {
             id: 'offer_3',
-            title: 'GST Premium Launch',
-            description: 'Submit your quarterly GST logs using Cliks Automated Ledger and receive exclusive priority audit scoring for free.',
-            shortLabel: 'FREE AUDIT',
-            type: 'gst',
-            icon: ShieldCheck,
+            title: 'Gold Wallet Load Reward',
+            description: 'Load ₹25,000 or more into your Cliks Wallet and claim a 5% flat discount on your next monthly or annual Cliks Pro subscription.',
+            shortLabel: '5% OFF PRO',
+            type: 'wallet_gold',
+            icon: BadgePercent,
             badgeColor: '#FFFBEB',
-            accentColor: '#D97706',
-            textColor: '#92400E',
-            actionLabel: 'Configure GST',
-            link: '/finance/gst'
+            accentColor: '#F59E0B',
+            textColor: '#78350F',
+            actionLabel: 'Load Wallet Now',
+            link: '/payments/wallet?addMoney=true'
         },
         {
             id: 'offer_4',
-            title: 'High-Value Ledger Perks',
-            description: 'Maintain an average quarterly wallet balance of ₹25,000+ to lock in premium business tier privileges and reduced transaction clearing delays.',
-            shortLabel: 'ELITE STATUS',
-            type: 'balance',
+            title: 'Platinum Wallet Load Reward',
+            description: 'Load ₹50,000 or more into your Cliks Wallet and claim an 8% flat discount on your next monthly or annual Cliks Pro subscription.',
+            shortLabel: '8% OFF PRO',
+            type: 'wallet_platinum',
             icon: Flame,
-            badgeColor: '#FEF2F2',
-            accentColor: '#EF4444',
-            textColor: '#991B1B',
-            actionLabel: 'Boost Balance',
-            link: '/payments/wallet'
+            badgeColor: '#FDF2F8',
+            accentColor: '#EC4899',
+            textColor: '#9D174D',
+            actionLabel: 'Load Wallet Now',
+            link: '/payments/wallet?addMoney=true'
         }
     ];
 

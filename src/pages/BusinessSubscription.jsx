@@ -382,26 +382,61 @@ const BusinessSubscription = () => {
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
             {/* Current Tier Widget */}
-            <div style={{ background: renewal.gradient, borderRadius: '32px', padding: '2.5rem', color: 'white', marginBottom: '3rem', position: 'relative', overflow: 'hidden', boxShadow: `0 20px 25px -5px ${renewal.color}25`, transition: 'all 0.5s ease' }}>
-                <div style={{ position: 'absolute', right: '-50px', top: '-50px', width: '250px', height: '250px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', pointerEvents: 'none' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '2rem', position: 'relative', zIndex: 1 }}>
-                    <div>
-                        <span style={{ background: 'rgba(255,255,255,0.15)', padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1.25rem' }}>
-                            <Sparkles size={14} /> Active Subscription Plan
-                        </span>
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem' }}>{selectedTier}</h2>
-                        <p style={{ color: '#DCF2E4', fontWeight: '600', maxWidth: '500px' }}>{renewal.desc}</p>
+            <div style={{ 
+                background: renewal.gradient, 
+                borderRadius: '24px', 
+                padding: '1.25rem 2rem', 
+                color: 'white', 
+                marginBottom: '2rem', 
+                position: 'relative', 
+                overflow: 'hidden', 
+                boxShadow: `0 12px 20px -8px ${renewal.color}30`, 
+                transition: 'all 0.5s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1.5rem'
+            }}>
+                <div style={{ position: 'absolute', right: '-50px', top: '-50px', width: '200px', height: '200px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%', pointerEvents: 'none' }} />
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.15)', width: '48px', height: '48px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Sparkles size={20} />
                     </div>
-                    <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '1.75rem 2.25rem', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', minWidth: '240px', textAlign: 'center' }}>
-                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Next Automatic Renewal</p>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: '900', marginBottom: '0.25rem' }}>01 May, 2027</h3>
-                        <p style={{ fontSize: '0.8rem', color: '#DCF2E4', fontWeight: '600' }}>Amount: ₹{renewal.price} + GST</p>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>Active Plan:</span>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, lineHeight: 1.2 }}>{selectedTier}</h2>
+                        </div>
+                        <p style={{ color: '#DCF2E4', fontWeight: '500', fontSize: '0.85rem', margin: 0, opacity: 0.95 }}>{renewal.desc}</p>
+                    </div>
+                </div>
+
+                <div style={{ 
+                    background: 'rgba(255, 255, 255, 0.1)', 
+                    padding: '0.75rem 1.5rem', 
+                    borderRadius: '16px', 
+                    border: '1px solid rgba(255,255,255,0.12)', 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.5rem',
+                    flexWrap: 'wrap'
+                }}>
+                    <div style={{ textAlign: 'left' }}>
+                        <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>Next Renewal</p>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>01 May, 2027</h3>
+                    </div>
+                    <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+                    <div style={{ textAlign: 'left' }}>
+                        <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>Renewal Amount</p>
+                        <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>₹{renewal.price} <span style={{ fontSize: '0.75rem', fontWeight: '500', opacity: 0.8 }}>+ GST</span></p>
                     </div>
                 </div>
             </div>
 
             {/* Custom Modern Tabs */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
                 <div style={{ 
                     display: 'flex', 
                     background: 'rgba(220, 242, 228, 0.7)', 
@@ -507,8 +542,8 @@ const BusinessSubscription = () => {
             )}
 
             {/* Pricing Tiers Selection Grid */}
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Upgrade Workspace Tier</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '4rem' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>Upgrade Workspace Tier</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
                 {allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].map((tier, idx) => {
                     const price = tier.priceAnnually;
                     const isActive = tier.name === selectedTier;
@@ -520,9 +555,9 @@ const BusinessSubscription = () => {
                             onClick={() => setSelectedTier(tier.name)}
                             style={{ 
                                 background: 'white', 
-                                borderRadius: '32px', 
+                                borderRadius: '24px', 
                                 border: isActive ? `3px solid ${tier.color}` : '1px solid #E2E8F0',
-                                padding: '2.5rem',
+                                padding: '1.75rem 2rem',
                                 position: 'relative',
                                 cursor: 'pointer',
                                 transform: isActive ? 'translateY(-6px)' : 'none',
@@ -530,17 +565,17 @@ const BusinessSubscription = () => {
                             }}
                         >
                             {isActive && (
-                                <span style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: tier.color, color: 'white', fontSize: '0.7rem', fontWeight: '800', padding: '0.4rem 0.8rem', borderRadius: '10px', textTransform: 'uppercase' }}>
+                                <span style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: tier.color, color: 'white', fontSize: '0.7rem', fontWeight: '800', padding: '0.4rem 0.8rem', borderRadius: '10px', textTransform: 'uppercase' }}>
                                     {tier.badge}
                                 </span>
                             )}
-                            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: `${tier.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tier.color, marginBottom: '1.5rem' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: `${tier.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tier.color, marginBottom: '1rem' }}>
                                 <TierIcon size={24} />
                             </div>
                             <h4 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{tier.name}</h4>
-                            <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', marginBottom: '2rem', minHeight: '40px' }}>{tier.desc}</p>
+                            <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', marginBottom: '1.25rem', minHeight: '34px' }}>{tier.desc}</p>
                             
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '1.25rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>₹{tier.originalPrice.toLocaleString()}</span>
                                     <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save ₹{(tier.originalPrice - price).toLocaleString()}</span>
@@ -563,21 +598,21 @@ const BusinessSubscription = () => {
                                 disabled={isProcessing}
                                 style={{ 
                                     width: '100%', 
-                                    padding: '1rem', 
+                                    padding: '0.85rem', 
                                     borderRadius: '16px', 
                                     border: isActive ? 'none' : `1px solid ${tier.color}`,
                                     background: isActive ? `linear-gradient(135deg, ${tier.color} 0%, #0c0f1d 160%)` : (isProcessing ? '#94A3B8' : 'white'),
                                     color: isActive ? 'white' : tier.color,
                                     fontWeight: '800',
                                     cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                    marginBottom: '2rem'
+                                    marginBottom: '1.25rem'
                                 }}
                             >
                                 {isActive ? 'Currently Active Plan' : (isProcessing ? 'Connecting...' : 'Upgrade Plan')}
                             </button>
 
-                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '2rem' }}>
-                                <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1E293B', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.05em' }}>What's Included</p>
+                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
+                                <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1E293B', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>What's Included</p>
                                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     {tier.features.map((feature, i) => (
                                         <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>
