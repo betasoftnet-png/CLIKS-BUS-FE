@@ -1131,86 +1131,82 @@ export default function BusinessCA() {
             </>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-                    {/* Zoho Practice Style Horizontal Navigation Tab Bar */}
+                    {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
                     <div style={{ 
                         background: '#FFFFFF', 
                         borderRadius: '16px', 
                         border: '1px solid #E2E8F0', 
-                        padding: '12px 20px', 
+                        padding: '10px 16px', 
                         display: 'flex', 
-                        flexWrap: 'wrap',
-                        justifyContent: 'space-between',
+                        gap: '6px',
                         alignItems: 'center',
-                        gap: '16px', 
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
                         position: 'sticky',
                         top: '24px',
-                        zIndex: 10
+                        zIndex: 10,
+                        overflowX: 'auto',
+                        whiteSpace: 'nowrap',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none' // For Firefox
                     }}>
-                        {/* Tab Bar Header Brand Badge */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d' }}>
-                                <User size={18} />
-                            </div>
-                            <div>
-                                <h3 style={{ fontSize: '13px', fontWeight: '850', color: '#0F172A', margin: 0, lineHeight: '1.2' }}>CA Practice</h3>
-                                <span style={{ fontSize: '10px', color: '#15803d', fontWeight: '750', lineHeight: '1' }}>Zoho Practice Pro</span>
-                            </div>
-                        </div>
+                        {/* Inline custom styles to hide scrollbar in Webkit browsers */}
+                        <style dangerouslySetInnerHTML={{__html: `
+                            div::-webkit-scrollbar {
+                                display: none;
+                            }
+                        `}} />
 
-                        {/* Navigation Tabs Horizontal Row */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {sidebarTabs.map((tab) => {
-                                const TabIcon = tab.icon;
-                                const isActive = personalTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setPersonalTab(tab.id)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            padding: '8px 14px',
-                                            borderRadius: '8px',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                            background: isActive ? '#F0FDF4' : 'transparent',
-                                            color: isActive ? '#15803d' : '#475569',
-                                            fontWeight: isActive ? '800' : '600',
-                                            fontSize: '12.5px'
-                                        }}
-                                        onMouseEnter={e => {
-                                            if (!isActive) {
-                                                e.currentTarget.style.background = '#F8FAFC';
-                                                e.currentTarget.style.color = '#0F172A';
-                                            }
-                                        }}
-                                        onMouseLeave={e => {
-                                            if (!isActive) {
-                                                e.currentTarget.style.background = 'transparent';
-                                                e.currentTarget.style.color = '#475569';
-                                            }
-                                        }}
-                                    >
-                                        <TabIcon size={16} style={{ color: isActive ? '#15803d' : '#64748B' }} />
-                                        <span>{tab.label}</span>
-                                        {/* Dynamic Badges */}
-                                        {tab.id === 'requests' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
-                                            <span style={{ fontSize: '9.5px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 5px', borderRadius: '8px', marginLeft: '2px' }}>
-                                                {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
-                                            </span>
-                                        )}
-                                        {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed').length > 0 && (
-                                            <span style={{ fontSize: '9.5px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 5px', borderRadius: '8px', marginLeft: '2px' }}>
-                                                {practiceTasks.filter(t => t.status !== 'Completed').length}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        {sidebarTabs.map((tab) => {
+                            const TabIcon = tab.icon;
+                            const isActive = personalTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setPersonalTab(tab.id)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        flexShrink: 0,
+                                        gap: '8px',
+                                        padding: '10px 16px',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        background: isActive ? '#F0FDF4' : 'transparent',
+                                        color: isActive ? '#15803d' : '#475569',
+                                        fontWeight: isActive ? '800' : '600',
+                                        fontSize: '13px'
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (!isActive) {
+                                            e.currentTarget.style.background = '#F8FAFC';
+                                            e.currentTarget.style.color = '#0F172A';
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (!isActive) {
+                                            e.currentTarget.style.background = 'transparent';
+                                            e.currentTarget.style.color = '#475569';
+                                        }
+                                    }}
+                                >
+                                    <TabIcon size={16} style={{ color: isActive ? '#15803d' : '#64748B' }} />
+                                    <span>{tab.label}</span>
+                                    {/* Dynamic Badges */}
+                                    {tab.id === 'requests' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
+                                        </span>
+                                    )}
+                                    {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {practiceTasks.filter(t => t.status !== 'Completed').length}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* Main Content Workspace Container */}
