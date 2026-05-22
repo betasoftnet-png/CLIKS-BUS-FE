@@ -20,8 +20,15 @@ import {
 import { goalWalletService } from '../services';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import { useCurrency } from '../context';
 
 const BusinessPurposeWallet = () => {
+    const { currency, formatCurrency } = useCurrency();
+    const CurrencyIcon = () => (
+        <span style={{ fontSize: '1.25rem', fontWeight: '950', fontFamily: 'inherit' }}>
+            {currency.symbol}
+        </span>
+    );
     const queryClient = useQueryClient();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isAddMoneyModalOpen, setIsAddMoneyModalOpen] = useState(false);
@@ -258,8 +265,8 @@ const BusinessPurposeWallet = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                 {[
                     { label: 'Target Wallets Active', value: activeWallets, icon: Target, color: '#059669', bg: '#ECFDF5' },
-                    { label: 'Total Isolated Funds', value: `₹${totalAllocated.toLocaleString('en-IN')}`, icon: IndianRupee, color: '#10B981', bg: '#DCF2E4' },
-                    { label: 'Goal Completion Target', value: `₹${totalTarget.toLocaleString('en-IN')}`, icon: TrendingUp, color: '#2563EB', bg: '#E0F2FE' },
+                    { label: 'Total Isolated Funds', value: formatCurrency(totalAllocated), icon: CurrencyIcon, color: '#10B981', bg: '#DCF2E4' },
+                    { label: 'Goal Completion Target', value: formatCurrency(totalTarget), icon: TrendingUp, color: '#2563EB', bg: '#E0F2FE' },
                     { label: 'Target Accomplishment', value: `${globalProgress}%`, icon: Sparkles, color: '#D97706', bg: '#FEF3C7' }
                 ].map((stat, idx) => (
                     <div key={idx} style={{ 
@@ -430,11 +437,11 @@ const BusinessPurposeWallet = () => {
                                     <div style={{ background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #F1F5F9', marginBottom: '1.5rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                                             <span style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '700' }}>Saved Allocated</span>
-                                            <span style={{ color: '#1E293B', fontSize: '0.85rem', fontWeight: '900' }}>₹{current.toLocaleString('en-IN')}</span>
+                                            <span style={{ color: '#1E293B', fontSize: '0.85rem', fontWeight: '900' }}>{formatCurrency(current)}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '700' }}>Target Ceiling</span>
-                                            <span style={{ color: '#1E293B', fontSize: '0.85rem', fontWeight: '900' }}>₹{target.toLocaleString('en-IN')}</span>
+                                            <span style={{ color: '#1E293B', fontSize: '0.85rem', fontWeight: '900' }}>{formatCurrency(target)}</span>
                                         </div>
                                     </div>
 
@@ -480,7 +487,7 @@ const BusinessPurposeWallet = () => {
 
                                         <button
                                             disabled={!canClaim}
-                                            onClick={async () => { if(await customConfirm(`Extract ₹${current} accumulated for "${wallet.name}" into main reserves?`)) claimMutation.mutate(wallet.id); }}
+                                            onClick={async () => { if(await customConfirm(`Extract ${formatCurrency(current)} accumulated for "${wallet.name}" into main reserves?`)) claimMutation.mutate(wallet.id); }}
                                             style={{ 
                                                 padding: '0.85rem', 
                                                 borderRadius: '12px', 
@@ -545,9 +552,9 @@ const BusinessPurposeWallet = () => {
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Target Cap Amount (INR)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Target Cap Amount ({currency.code})</label>
                                 <div style={{ position: 'relative' }}>
-                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#0F172A' }}>₹</span>
+                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#0F172A' }}>{currency.symbol}</span>
                                     <input 
                                         required 
                                         type="number" 
@@ -614,9 +621,9 @@ const BusinessPurposeWallet = () => {
 
                         <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Allocation Value (INR)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Allocation Value ({currency.code})</label>
                                 <div style={{ position: 'relative' }}>
-                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#0F172A' }}>₹</span>
+                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#0F172A' }}>{currency.symbol}</span>
                                     <input 
                                         required 
                                         autoFocus
@@ -688,7 +695,7 @@ const BusinessPurposeWallet = () => {
                                     <div style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{historyWallet.name}</div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                                         <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Total Isolated</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#059669' }}>₹{parseFloat(historyWallet.current_amount || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#059669' }}>{formatCurrency(parseFloat(historyWallet.current_amount || 0))}</span>
                                     </div>
                                 </div>
 
@@ -715,7 +722,7 @@ const BusinessPurposeWallet = () => {
                                                             {tx.type === 'debit' ? '🔻 OUT / DEBIT' : '🔹 IN / CREDIT'}
                                                         </div>
                                                         <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
-                                                            {tx.created_at ? new Date(tx.created_at).toLocaleString('en-IN', {
+                                                            {tx.created_at ? new Date(tx.created_at).toLocaleString(undefined, {
                                                                 day: '2-digit',
                                                                 month: 'short',
                                                                 year: 'numeric',
@@ -726,7 +733,7 @@ const BusinessPurposeWallet = () => {
                                                         </div>
                                                     </div>
                                                     <div style={{ fontSize: '0.95rem', fontWeight: '900', color: tx.type === 'debit' ? '#DC2626' : '#0F172A' }}>
-                                                        {tx.type === 'debit' ? '-' : '+'} ₹{parseFloat(tx.amount || 0).toLocaleString('en-IN')}
+                                                        {tx.type === 'debit' ? '-' : '+'} {formatCurrency(parseFloat(tx.amount || 0))}
                                                     </div>
                                                 </div>
                                             ))

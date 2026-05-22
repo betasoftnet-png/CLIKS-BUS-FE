@@ -8,8 +8,10 @@ import {
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
+import { useCurrency } from '../context';
 
 export default function BusinessCA() {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
     // Top-level workspace mode switcher
@@ -493,7 +495,7 @@ export default function BusinessCA() {
                 flaggedExpenses: highRisk.map(h => ({
                     id: h.id,
                     desc: h.notes || `Large expense under ${h.category}`,
-                    amount: `₹${parseFloat(h.amount).toLocaleString()}`,
+                    amount: formatCurrency(parseFloat(h.amount)),
                     type: h.amount > 15000 ? "High Risk Spike" : "Slight Anomaly"
                 }))
             });
@@ -528,7 +530,7 @@ export default function BusinessCA() {
 
     const deriveRevenue = (id) => {
         const seed = String(id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        return `₹${((seed * 2419) % 2000000 + 500000).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+        return formatCurrency((seed * 2419) % 2000000 + 500000);
     };
 
     // Dynamic portal sync trigger
@@ -583,7 +585,7 @@ export default function BusinessCA() {
         revenue: deriveRevenue(c.id)
     })) : [];
 
-    const activeClientData = clientsList.find(c => c.id === selectedClient) || clientsList[0] || { id: 0, name: "No Active Client", industry: "N/A", status: "N/A", risk: "Low", revenue: "₹0" };
+    const activeClientData = clientsList.find(c => c.id === selectedClient) || clientsList[0] || { id: 0, name: "No Active Client", industry: "N/A", status: "N/A", risk: "Low", revenue: formatCurrency(0) };
 
     // Compute live values or fallback gracefully
     const computedTotalOutputTax = gst3bData?.total_output_tax || 0;
@@ -832,16 +834,16 @@ export default function BusinessCA() {
                                                 <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
                                                     <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>GSTR-3B Status</div>
                                                     <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Ready to File</div>
-                                                    <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '4px' }}>₹{computedEligibleItc.toLocaleString()} ITC Auto-matched</div>
+                                                    <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '4px' }}>{formatCurrency(computedEligibleItc)} ITC Auto-matched</div>
                                                 </div>
                                                 <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
                                                     <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Total Tax Liability</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>₹{computedTotalOutputTax.toLocaleString()}</div>
+                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>{formatCurrency(computedTotalOutputTax)}</div>
                                                     <div style={{ fontSize: '11px', color: '#D97706', fontWeight: '600', marginTop: '4px' }}>Based on outward invoices</div>
                                                 </div>
                                                 <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
                                                     <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Net Payable CGST/SGST</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>₹{(computedNetPayableCGST + computedNetPayableSGST).toLocaleString()}</div>
+                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>{formatCurrency(computedNetPayableCGST + computedNetPayableSGST)}</div>
                                                     <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', marginTop: '4px' }}>Post ITC offset balance</div>
                                                 </div>
                                             </div>
@@ -1072,7 +1074,7 @@ export default function BusinessCA() {
 
                                                     return (
                                                         <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '30px' }}>
-                                                            <div style={{ fontSize: '9px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>₹{predictedValue.toLocaleString()}</div>
+                                                            <div style={{ fontSize: '9px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>{formatCurrency(predictedValue)}</div>
                                                             <div style={{ 
                                                                 width: '100%', 
                                                                 height: `${barHeightPercent}%`, 
@@ -1519,7 +1521,7 @@ export default function BusinessCA() {
                                                         </td>
                                                         <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '600' }}>{client.email}</td>
                                                         <td style={{ padding: '16px 20px', fontWeight: '750', color: '#1E293B' }}>{client.regime} Regime</td>
-                                                        <td style={{ padding: '16px 20px', fontWeight: '900', color: '#0F172A' }}>₹{client.income.toLocaleString()}</td>
+                                                        <td style={{ padding: '16px 20px', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(client.income)}</td>
                                                         <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                                                             {client.pendingFilings > 0 ? (
                                                                 <span style={{ background: '#FFFBEB', color: '#D97706', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', border: '1px solid #FEF3C7' }}>{client.pendingFilings} Pending</span>
@@ -2324,7 +2326,7 @@ export default function BusinessCA() {
                                         </select>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>EST. ANUAL INCOME (₹)</label>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>EST. ANNUAL INCOME ({currency.symbol})</label>
                                         <input type="number" value={newClientIncome} onChange={e=>setNewClientIncome(e.target.value)} required placeholder="1200000" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                     </div>
                                 </div>

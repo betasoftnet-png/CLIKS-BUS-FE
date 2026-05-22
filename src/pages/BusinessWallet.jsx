@@ -7,8 +7,10 @@ import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 
 const BusinessWallet = () => {
+    const { currency, formatCurrency } = useCurrency();
     // Persisted LocalState for the Wallet context
     const [balance, setBalance] = useState(() => {
         const saved = localStorage.getItem('cliks_wallet_balance');
@@ -73,9 +75,9 @@ const BusinessWallet = () => {
             return;
         }
 
-        const creditAmount = pts * 1.0; // 1 Point = ₹1.00
+        const creditAmount = pts * 1.0; // 1 Point = 1.00
         const now = new Date();
-        const formattedDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        const formattedDate = now.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
         
         const newTxId = `TX-PTS-${Date.now()}`;
         const newTx = {
@@ -91,14 +93,14 @@ const BusinessWallet = () => {
         setHistory(prev => [newTx, ...prev]);
         setPointsToConvert('');
         setIsModalOpen(false);
-        alert(`🎉 Successfully converted ${pts} reward points to ₹${creditAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}!`);
+        alert(`🎉 Successfully converted ${pts} reward points to ${formatCurrency(creditAmount)}!`);
     };
 
     const handleAddMoney = async (e) => {
         e.preventDefault();
         const amt = parseFloat(addForm.amount);
         if (isNaN(amt) || amt < 500) {
-            alert('Minimum load amount is ₹500.');
+            alert(`Minimum load amount is ${formatCurrency(500)}.`);
             return;
         }
 
@@ -172,7 +174,7 @@ const BusinessWallet = () => {
 
     const executeLocalWalletCredit = (amt, txnId) => {
         const now = new Date();
-        const formattedDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        const formattedDate = now.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
 
         const newTx = {
             id: txnId,
@@ -243,9 +245,9 @@ const BusinessWallet = () => {
                 <div>
                     <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Stored Balance</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
-                        <IndianRupee size={22} strokeWidth={3.5} style={{ color: '#064E3B' }} />
+                        <span style={{ fontSize: '1.75rem', fontWeight: '850', color: '#064E3B', marginRight: '2px' }}>{currency.symbol}</span>
                         <h2 style={{ fontSize: '2.25rem', fontWeight: '850', color: '#064E3B', margin: 0, letterSpacing: '-0.01em' }}>
-                            {balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
                     </div>
                 </div>
@@ -344,7 +346,7 @@ const BusinessWallet = () => {
                                                 </div>
                                             </td>
                                             <td style={{ padding: '1.25rem 2rem', textAlign: 'right', fontWeight: '900', color: isCredit ? '#059669' : '#DC2626', fontSize: '0.95rem' }}>
-                                                {isCredit ? '+' : '-'} ₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                {isCredit ? '+' : '-'} {formatCurrency(tx.amount)}
                                             </td>
                                         </tr>
                                     );
@@ -417,9 +419,9 @@ const BusinessWallet = () => {
                         {activeTab === 'gateway' ? (
                             <form onSubmit={handleAddMoney} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Load Amount (INR)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Load Amount ({currency.code})</label>
                                     <div style={{ position: 'relative' }}>
-                                        <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>₹</span>
+                                        <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>{currency.symbol}</span>
                                         <input 
                                             required 
                                             autoFocus
@@ -506,10 +508,10 @@ const BusinessWallet = () => {
                                         />
                                     </div>
                                     <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748B', fontWeight: '600', display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between' }}>
-                                        <span>Rate: 1 Pt = ₹1.00</span>
+                                        <span>Rate: 1 Pt = {currency.symbol}1.00</span>
                                         {pointsToConvert && !isNaN(parseInt(pointsToConvert)) && (
                                             <span style={{ color: '#059669', fontWeight: '800' }}>
-                                                You get: ₹{(parseInt(pointsToConvert) * 1.0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                You get: {formatCurrency(parseInt(pointsToConvert) * 1.0)}
                                             </span>
                                         )}
                                     </div>

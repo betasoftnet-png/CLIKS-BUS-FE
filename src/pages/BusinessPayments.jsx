@@ -26,8 +26,10 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
 import '../App.css';
+import { useCurrency } from '../context';
 
 const BusinessPayments = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('receivables');
     const [colFilters, setColFilters] = React.useState({}); // 'receivables', 'payables', 'bank', 'reminders'
     const [searchTerm, setSearchTerm] = useState('');
@@ -218,9 +220,9 @@ const BusinessPayments = () => {
             {/* Quick Metrics Cards */}
             <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
-                    { label: 'Outstanding Receivables', value: `₹${totalOutstandingReceivables.toLocaleString()}`, icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
-                    { label: 'Daily Collections', value: `₹${totalDailyCollections.toLocaleString()}`, icon: ArrowDownRight, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'Combined Balances', value: `₹${accounts.reduce((sum, a) => sum + a.current_balance, 0).toLocaleString()}`, icon: Wallet, color: '#3B82F6', bg: '#DBEAFE' },
+                    { label: 'Outstanding Receivables', value: formatCurrency(totalOutstandingReceivables), icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'Daily Collections', value: formatCurrency(totalDailyCollections), icon: ArrowDownRight, color: '#1B6B3A', bg: '#DCF2E4' },
+                    { label: 'Combined Balances', value: formatCurrency(accounts.reduce((sum, a) => sum + a.current_balance, 0)), icon: Wallet, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Efficiency Rate', value: '94.2%', icon: CheckCircle2, color: '#0D9488', bg: '#CCFBF1' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
@@ -328,8 +330,8 @@ const BusinessPayments = () => {
                                         <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{r.payment_date}</td>
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{r.customer_name}</td>
                                         <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{r.invoice_id}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>₹{r.total_amount.toLocaleString()}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#1B6B3A' }}>₹{r.paid_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(r.total_amount)}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#1B6B3A' }}>{formatCurrency(r.paid_amount)}</td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{r.payment_mode}</span>
                                         </td>
@@ -369,8 +371,8 @@ const BusinessPayments = () => {
                                         <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{p.payment_date}</td>
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{p.supplier_name}</td>
                                         <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{p.purchase_id}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>₹{p.total_amount.toLocaleString()}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#EF4444' }}>₹{p.paid_amount.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(p.total_amount)}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#EF4444' }}>{formatCurrency(p.paid_amount)}</td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{p.payment_mode}</span>
                                         </td>
@@ -398,7 +400,7 @@ const BusinessPayments = () => {
 
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
-                                <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>₹{acc.current_balance.toLocaleString()}</span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>{formatCurrency(acc.current_balance)}</span>
                             </div>
                         </div>
                     ))}
@@ -431,7 +433,7 @@ const BusinessPayments = () => {
                                 <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{ov.customer_name}</td>
                                     <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#EF4444' }}>₹{ov.pending_amount.toLocaleString()}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#EF4444' }}>{formatCurrency(ov.pending_amount)}</td>
                                     <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
                                     <td style={{ padding: '1rem' }}>
                                         <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{ov.overdue_days} Days Overdue</span>
@@ -477,12 +479,12 @@ const BusinessPayments = () => {
                                     <input required type="text" value={customerForm.invoice_id} onChange={(e) => setCustomerForm({ ...customerForm, invoice_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Amount</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Amount ({currency.symbol})</label>
                                     <input required type="number" value={customerForm.total_amount} onChange={(e) => setCustomerForm({ ...customerForm, total_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid amount (Receipt worth)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid amount (Receipt worth, {currency.symbol})</label>
                                 <input required type="number" value={customerForm.paid_amount} onChange={(e) => setCustomerForm({ ...customerForm, paid_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -531,12 +533,12 @@ const BusinessPayments = () => {
                                     <input required type="text" value={supplierForm.purchase_id} onChange={(e) => setSupplierForm({ ...supplierForm, purchase_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Due Amount</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Due Amount ({currency.symbol})</label>
                                     <input required type="number" value={supplierForm.total_amount} onChange={(e) => setSupplierForm({ ...supplierForm, total_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount (Outflow worth)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount (Outflow worth, {currency.symbol})</label>
                                 <input required type="number" value={supplierForm.paid_amount} onChange={(e) => setSupplierForm({ ...supplierForm, paid_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -588,7 +590,7 @@ const BusinessPayments = () => {
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Amount</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Amount ({currency.symbol})</label>
                                 <input required type="number" value={transferForm.amount} onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
