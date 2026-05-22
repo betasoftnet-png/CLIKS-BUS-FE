@@ -16,7 +16,10 @@ import {
 } from 'lucide-react';
 
 const BusinessRewards = () => {
-    const rewardPoints = 1450;
+    const rewardPoints = (() => {
+        const saved = localStorage.getItem('cliks_reward_points');
+        return saved ? parseInt(saved, 10) : 1450;
+    })();
 
     const premiumOffers = [
         {

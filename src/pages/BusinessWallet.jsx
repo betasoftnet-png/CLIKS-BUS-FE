@@ -31,6 +31,15 @@ const BusinessWallet = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const location = useLocation();
 
+    // Reward points state synced with localStorage
+    const [rewardPoints, setRewardPoints] = useState(() => {
+        const saved = localStorage.getItem('cliks_reward_points');
+        return saved ? parseInt(saved, 10) : 1450;
+    });
+
+    const [activeTab, setActiveTab] = useState('gateway'); // 'gateway' | 'points'
+    const [pointsToConvert, setPointsToConvert] = useState('');
+
     // Auto-open Add Money modal if navigated from sidebar button
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -47,6 +56,43 @@ const BusinessWallet = () => {
     useEffect(() => {
         localStorage.setItem('cliks_wallet_history', JSON.stringify(history));
     }, [history]);
+
+    useEffect(() => {
+        localStorage.setItem('cliks_reward_points', rewardPoints.toString());
+    }, [rewardPoints]);
+
+    const handleConvertPoints = (e) => {
+        e.preventDefault();
+        const pts = parseInt(pointsToConvert, 10);
+        if (isNaN(pts) || pts <= 0) {
+            alert('Please enter a valid amount of points to convert.');
+            return;
+        }
+        if (pts > rewardPoints) {
+            alert(`Insufficient points balance. You have ${rewardPoints} points.`);
+            return;
+        }
+
+        const creditAmount = pts * 1.0; // 1 Point = ₹1.00
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        
+        const newTxId = `TX-PTS-${Date.now()}`;
+        const newTx = {
+            id: newTxId,
+            type: 'CREDIT',
+            amount: creditAmount,
+            description: `Loyalty Points Conversion (${pts} Pts converted)`,
+            date: formattedDate
+        };
+
+        setRewardPoints(prev => prev - pts);
+        setBalance(prev => prev + creditAmount);
+        setHistory(prev => [newTx, ...prev]);
+        setPointsToConvert('');
+        setIsModalOpen(false);
+        alert(`🎉 Successfully converted ${pts} reward points to ₹${creditAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}!`);
+    };
 
     const handleAddMoney = async (e) => {
         e.preventDefault();
@@ -319,65 +365,179 @@ const BusinessWallet = () => {
                             <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}><X size={18} /></button>
                         </div>
 
-                        <form onSubmit={handleAddMoney} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Load Amount (INR)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>₹</span>
-                                    <input 
-                                        required 
-                                        autoFocus
-                                        type="number" 
-                                        min="500"
-                                        placeholder="500.00"
-                                        value={addForm.amount} 
-                                        onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} 
-                                        style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 2.2rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '750', color: '#0F172A' }} 
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Brief Note / Description</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="e.g. UPI Top-up, Bank Load"
-                                    value={addForm.description} 
-                                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1E293B' }} 
-                                />
-                            </div>
-
-                            <button 
-                                type="submit" 
-                                disabled={isProcessing}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '0.9rem', 
-                                    borderRadius: '12px', 
-                                    background: isProcessing ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
-                                    color: 'white', 
-                                    border: 'none', 
-                                    fontWeight: '850', 
-                                    fontSize: '1rem', 
-                                    cursor: isProcessing ? 'not-allowed' : 'pointer', 
-                                    boxShadow: isProcessing ? 'none' : '0 8px 16px rgba(27, 107, 58, 0.25)',
-                                    marginTop: '0.5rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
+                        {/* Elegant Tab Switcher */}
+                        <div style={{ 
+                            display: 'flex', 
+                            background: '#F1F5F9', 
+                            padding: '0.25rem', 
+                            borderRadius: '12px', 
+                            marginBottom: '1.5rem',
+                            gap: '0.25rem'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('gateway')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.6rem 0.5rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    fontWeight: '800',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer',
+                                    background: activeTab === 'gateway' ? 'white' : 'transparent',
+                                    color: activeTab === 'gateway' ? '#064E3B' : '#64748B',
+                                    boxShadow: activeTab === 'gateway' ? '0 2px 6px rgba(0,0,0,0.05)' : 'none',
+                                    transition: 'all 0.2s'
                                 }}
                             >
-                                {isProcessing ? (
-                                    <>
-                                        <Loader className="animate-spin" size={18} /> Connecting Gateway...
-                                    </>
-                                ) : (
-                                    'Confirm Load'
-                                )}
+                                UPI / Bank Load
                             </button>
-                        </form>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('points')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.6rem 0.5rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    fontWeight: '800',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer',
+                                    background: activeTab === 'points' ? 'white' : 'transparent',
+                                    color: activeTab === 'points' ? '#064E3B' : '#64748B',
+                                    boxShadow: activeTab === 'points' ? '0 2px 6px rgba(0,0,0,0.05)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Convert Points
+                            </button>
+                        </div>
+
+                        {activeTab === 'gateway' ? (
+                            <form onSubmit={handleAddMoney} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Load Amount (INR)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>₹</span>
+                                        <input 
+                                            required 
+                                            autoFocus
+                                            type="number" 
+                                            min="500"
+                                            placeholder="500.00"
+                                            value={addForm.amount} 
+                                            onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 2.2rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '750', color: '#0F172A' }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Brief Note / Description</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. UPI Top-up, Bank Load"
+                                        value={addForm.description} 
+                                        onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: '600', color: '#1E293B' }} 
+                                    />
+                                </div>
+
+                                <button 
+                                    type="submit" 
+                                    disabled={isProcessing}
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.9rem', 
+                                        borderRadius: '12px', 
+                                        background: isProcessing ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '850', 
+                                        fontSize: '1rem', 
+                                        cursor: isProcessing ? 'not-allowed' : 'pointer', 
+                                        boxShadow: isProcessing ? 'none' : '0 8px 16px rgba(27, 107, 58, 0.25)',
+                                        marginTop: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <Loader className="animate-spin" size={18} /> Connecting Gateway...
+                                        </>
+                                    ) : (
+                                        'Confirm Load'
+                                    )}
+                                </button>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleConvertPoints} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                {/* Points Balance Indicator */}
+                                <div style={{ 
+                                    background: '#F0FDF4', 
+                                    border: '1px solid #DCFCE7', 
+                                    borderRadius: '12px', 
+                                    padding: '0.85rem 1rem', 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center' 
+                                }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#15803D' }}>Current Reward Points:</span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '900', color: '#15803D' }}>{rewardPoints.toLocaleString()} Pts</span>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Points to Convert</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            required 
+                                            autoFocus
+                                            type="number" 
+                                            min="1"
+                                            max={rewardPoints}
+                                            placeholder="Enter points (e.g. 500)"
+                                            value={pointsToConvert} 
+                                            onChange={(e) => setPointsToConvert(e.target.value)} 
+                                            style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '750', color: '#0F172A' }} 
+                                        />
+                                    </div>
+                                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748B', fontWeight: '600', display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between' }}>
+                                        <span>Rate: 1 Pt = ₹1.00</span>
+                                        {pointsToConvert && !isNaN(parseInt(pointsToConvert)) && (
+                                            <span style={{ color: '#059669', fontWeight: '800' }}>
+                                                You get: ₹{(parseInt(pointsToConvert) * 1.0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button 
+                                    type="submit" 
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.9rem', 
+                                        borderRadius: '12px', 
+                                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '850', 
+                                        fontSize: '1rem', 
+                                        cursor: 'pointer', 
+                                        boxShadow: '0 8px 16px rgba(27, 107, 58, 0.25)',
+                                        marginTop: '0.5rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    Convert Points Now
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}
