@@ -24,10 +24,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { payrollService } from '../services/payrollService';
 import { staffingService } from '../services/staffingService';
 import FilterableTableHead from '../components/FilterableTableHead';
-
-
+import { useCurrency } from '../context';
 
 const BusinessPayroll = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('run');
     const [colFilters, setColFilters] = React.useState({}); // 'run', 'structures', 'compliance', 'loans'
     const [searchTerm, setSearchTerm] = useState('');
@@ -226,9 +226,9 @@ const BusinessPayroll = () => {
             {/* Modern Payroll Left-Accent Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Monthly Salary Expense', value: `₹${totalSalaryExpense.toLocaleString()}`, icon: CreditCard, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Compliance PF / ESI', value: `₹${totalCompliance.toLocaleString()} Filed`, icon: ShieldCheck, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Outstanding Loans', value: `₹${totalLoanOutstanding.toLocaleString()}`, icon: Sliders, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Monthly Salary Expense', value: formatCurrency(totalSalaryExpense), icon: CreditCard, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Compliance PF / ESI', value: `${formatCurrency(totalCompliance)} Filed`, icon: ShieldCheck, color: '#10B981', bg: '#ECFDF5' },
+                    { label: 'Outstanding Loans', value: formatCurrency(totalLoanOutstanding), icon: Sliders, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Total Payslips', value: `${payrollRecords.length} Generated`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '1.25rem 1.5rem 1.25rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', gap: '1rem' }}>
@@ -318,14 +318,14 @@ const BusinessPayroll = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Month: {rec.payroll_month}</span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#1E293B' }}>{rec.employee_name}</td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>₹{rec.basic_salary.toLocaleString()}</td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>{formatCurrency(rec.basic_salary)}</td>
                                             <td style={{ padding: '1.5rem 2rem', color: '#1B6B3A' }}>
-                                                ₹{(rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay).toLocaleString()}
+                                                {formatCurrency(rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay)}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', color: '#EF4444' }}>
-                                                -₹{deductions.toLocaleString()}
+                                                -{formatCurrency(deductions)}
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>₹{netPay.toLocaleString()}</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(netPay)}</td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{rec.bank_name}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{rec.account_number}</span>
@@ -373,10 +373,10 @@ const BusinessPayroll = () => {
                             {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
                                 <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
-                                    <td style={{ padding: '1rem' }}>₹{rec.basic_salary.toLocaleString()} / Month</td>
-                                    <td style={{ padding: '1rem', color: '#1B6B3A', fontWeight: '700' }}>₹{rec.hra_amount.toLocaleString()} / Month</td>
-                                    <td style={{ padding: '1rem' }}>₹{rec.special_allowance.toLocaleString()} / Month</td>
-                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>₹{((rec.basic_salary + rec.hra_amount + rec.special_allowance) * 12).toLocaleString()}</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(rec.basic_salary)} / Month</td>
+                                    <td style={{ padding: '1rem', color: '#1B6B3A', fontWeight: '700' }}>{formatCurrency(rec.hra_amount)} / Month</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(rec.special_allowance)} / Month</td>
+                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency((rec.basic_salary + rec.hra_amount + rec.special_allowance) * 12)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -405,7 +405,7 @@ const BusinessPayroll = () => {
                                     <td style={{ padding: '1rem', fontWeight: '700', fontFamily: 'monospace' }}>{rec.pan_number}</td>
                                     <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.uan_number || 'N/A'}</td>
                                     <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.esi_number || 'N/A'}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>₹{rec.pf_deduction.toLocaleString()} (Auto EPF 12%)</td>
+                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{formatCurrency(rec.pf_deduction)} (Auto EPF 12%)</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -434,10 +434,10 @@ const BusinessPayroll = () => {
                             {loans.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((l, idx) => (
                                 <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{l.employee_name}</td>
-                                    <td style={{ padding: '1rem' }}>₹{l.loan_amount.toLocaleString()}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#EF4444' }}>-₹{l.emi_amount.toLocaleString()} / Month</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>₹{l.remaining_balance.toLocaleString()}</td>
-                                    <td style={{ padding: '1rem' }}>₹{l.salary_advance.toLocaleString()}</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(l.loan_amount)}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#EF4444' }}>-{formatCurrency(l.emi_amount)} / Month</td>
+                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>{formatCurrency(l.remaining_balance)}</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(l.salary_advance)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -479,27 +479,27 @@ const BusinessPayroll = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Basic Base Salary (INR)</label>
-                                    <input required type="number" value={payForm.basic_salary} onChange={(e) => setPayForm({ ...payForm, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Basic Base Salary ({currency.symbol})</label>
+                                    <input required type="number" value={payForm.basic_salary} onChange={(e) => setPayForm({ ...payForm, basic_salary: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>HRA Allowance (INR)</label>
-                                    <input required type="number" value={payForm.hra_amount} onChange={(e) => setPayForm({ ...payForm, hra_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>HRA Allowance ({currency.symbol})</label>
+                                    <input required type="number" value={payForm.hra_amount} onChange={(e) => setPayForm({ ...payForm, hra_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Special Allowance</label>
-                                    <input required type="number" value={payForm.special_allowance} onChange={(e) => setPayForm({ ...payForm, special_allowance: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="number" value={payForm.special_allowance} onChange={(e) => setPayForm({ ...payForm, special_allowance: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bonus / Incentives</label>
-                                    <input required type="number" value={payForm.bonus_amount} onChange={(e) => setPayForm({ ...payForm, bonus_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="number" value={payForm.bonus_amount} onChange={(e) => setPayForm({ ...payForm, bonus_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Estimated TDS Income Tax Deduction</label>
-                                <input required type="number" value={payForm.tds_deduction} onChange={(e) => setPayForm({ ...payForm, tds_deduction: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input required type="number" value={payForm.tds_deduction} onChange={(e) => setPayForm({ ...payForm, tds_deduction: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
@@ -536,17 +536,17 @@ const BusinessPayroll = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Amount (INR)</label>
-                                    <input required type="number" value={loanForm.loan_amount} onChange={(e) => setLoanForm({ ...loanForm, loan_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Amount ({currency.symbol})</label>
+                                    <input required type="number" value={loanForm.loan_amount} onChange={(e) => setLoanForm({ ...loanForm, loan_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly EMI</label>
-                                    <input required type="number" value={loanForm.emi_amount} onChange={(e) => setLoanForm({ ...loanForm, emi_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="number" value={loanForm.emi_amount} onChange={(e) => setLoanForm({ ...loanForm, emi_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Immediate Salary Advance (INR)</label>
-                                <input required type="number" value={loanForm.salary_advance} onChange={(e) => setLoanForm({ ...loanForm, salary_advance: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Immediate Salary Advance ({currency.symbol})</label>
+                                <input required type="number" value={loanForm.salary_advance} onChange={(e) => setLoanForm({ ...loanForm, salary_advance: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>

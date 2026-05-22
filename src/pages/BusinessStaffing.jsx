@@ -35,6 +35,7 @@ import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 
 const INITIAL_EMPLOYEES = [
     {
@@ -114,6 +115,7 @@ const INITIAL_EMPLOYEES = [
 ];
 
 const BusinessStaffing = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
@@ -313,7 +315,7 @@ const BusinessStaffing = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Total Active Headcount', value: `${totalHeadcount} Employees`, icon: Users, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Monthly Basic Payroll', value: `₹${totalMonthlyPayroll.toLocaleString()}`, icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Monthly Basic Payroll', value: formatCurrency(totalMonthlyPayroll), icon: CreditCard, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Workforce Performance', value: `${averageRating} / 5.0 Rating`, icon: Award, color: '#8B5CF6', bg: '#F5F3FF' },
                     { label: 'Assigned Shifts', value: 'General (9AM - 6PM)', icon: Clock, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
@@ -489,7 +491,7 @@ const BusinessStaffing = () => {
                                 <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
                                     <td style={{ padding: '1rem' }}>{emp.salary_type}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>₹{emp.basic_salary.toLocaleString()}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(emp.basic_salary)}</td>
                                     <td style={{ padding: '1rem' }}>
                                         <p style={{ fontWeight: '700' }}>{emp.bank_name}</p>
                                         <span style={{ fontSize: '0.8rem', color: '#64748B' }}>A/c: {emp.account_number}</span>

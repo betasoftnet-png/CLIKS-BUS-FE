@@ -31,8 +31,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { returnsService } from '../services/returnsService';
 import '../App.css';
+import { useCurrency } from '../context';
 
 const BusinessReturns = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('sales');
     const [colFilters, setColFilters] = React.useState({}); // 'sales', 'purchase', 'warranty', 'stock'
     const [searchTerm, setSearchTerm] = useState('');
@@ -276,8 +278,8 @@ const BusinessReturns = () => {
             {/* Stats Dashboard */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Customer Refunds (Sales)', value: `₹${totalSalesReturnedAmt.toLocaleString()}`, icon: ArrowDownRight, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Recovered from Suppliers', value: `₹${totalPurchaseReturnedAmt.toLocaleString()}`, icon: RefreshCw, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Customer Refunds (Sales)', value: formatCurrency(totalSalesReturnedAmt), icon: ArrowDownRight, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Recovered from Suppliers', value: formatCurrency(totalPurchaseReturnedAmt), icon: RefreshCw, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Pending Inspections', value: pendingInspectionsCount, icon: ShieldAlert, color: '#F59E0B', bg: '#FEF3C7' },
                     { label: 'Stock Recalculations', value: 'Active', icon: Activity, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
@@ -394,7 +396,7 @@ const BusinessReturns = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '850', color: '#064E3B' }}>₹{sr.refund_amount.toLocaleString()}</p>
+                                                <p style={{ fontWeight: '850', color: '#064E3B' }}>{formatCurrency(sr.refund_amount)}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Mode: {sr.refund_mode}</span>
                                             </div>
                                         </td>
@@ -479,7 +481,7 @@ const BusinessReturns = () => {
                                             ))}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: '#B91C1C' }}>₹{pr.refund_amount.toLocaleString()}</span>
+                                            <span style={{ fontSize: '1.05rem', fontWeight: '850', color: '#B91C1C' }}>{formatCurrency(pr.refund_amount)}</span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <span style={{ 
@@ -668,7 +670,7 @@ const BusinessReturns = () => {
                                             <input required type="number" value={item.return_quantity} onChange={(e) => handleItemFieldChange(idx, 'return_quantity', parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Cost Price (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Cost Price ({currency.symbol})</label>
                                             <input required type="number" value={item.price} onChange={(e) => handleItemFieldChange(idx, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
                                         </div>
                                         {formItems.length > 1 && (
@@ -683,7 +685,7 @@ const BusinessReturns = () => {
                                 <span style={{ fontWeight: '800', color: '#1E293B' }}>Grand Total Refund / Credit Note Due:</span>
                                 {(() => {
                                     const totals = calculateTotals(formItems);
-                                    return <span style={{ fontWeight: '950', fontSize: '1.25rem', color: '#1B6B3A' }}>₹{totals.grandTotal.toLocaleString()}</span>;
+                                    return <span style={{ fontWeight: '950', fontSize: '1.25rem', color: '#1B6B3A' }}>{formatCurrency(totals.grandTotal)}</span>;
                                 })()}
                             </div>
 

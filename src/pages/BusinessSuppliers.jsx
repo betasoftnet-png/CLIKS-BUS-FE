@@ -36,8 +36,10 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 
 const BusinessSuppliers = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
@@ -305,9 +307,9 @@ const BusinessSuppliers = () => {
             {/* Premium Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
-                    { label: 'Outstanding Payables', value: `₹${totalPayablesSum.toLocaleString()}`, icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
-                    { label: 'Advance Supplier Outflows', value: `₹${totalAdvancePaymentsSum.toLocaleString()}`, icon: CheckCircle2, color: '#10B981', bg: '#DCF2E4' },
-                    { label: 'Total Procured Value', value: `₹${totalOutwardPurchasesSum.toLocaleString()}`, icon: Layers, color: '#3B82F6', bg: '#DBEAFE' },
+                    { label: 'Outstanding Payables', value: formatCurrency(totalPayablesSum), icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'Advance Supplier Outflows', value: formatCurrency(totalAdvancePaymentsSum), icon: CheckCircle2, color: '#10B981', bg: '#DCF2E4' },
+                    { label: 'Total Procured Value', value: formatCurrency(totalOutwardPurchasesSum), icon: Layers, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Registered Suppliers', value: suppliers.length, icon: Users, color: '#8B5CF6', bg: '#EDE9FE' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
@@ -446,13 +448,13 @@ const BusinessSuppliers = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div>
-                                                    <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Limit: ₹{supLimit.toLocaleString()}</p>
+                                                    <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Limit: {formatCurrency(supLimit)}</p>
                                                     <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Terms: {supTerms}</span>
                                                 </div>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <span style={{ fontSize: '1.1rem', fontWeight: '900', color: supBal > 0 ? '#EF4444' : '#15803D' }}>
-                                                    {supBal > 0 ? `₹${supBal.toLocaleString()}` : `₹${Math.abs(supBal).toLocaleString()} (Adv)`}
+                                                    {supBal > 0 ? formatCurrency(supBal) : `${formatCurrency(Math.abs(supBal))} (Adv)`}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
@@ -506,7 +508,7 @@ const BusinessSuppliers = () => {
                                         }}
                                     >
                                         <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.9rem' }}>{sName}</p>
-                                        <span style={{ fontSize: '0.8rem', color: sBal > 0 ? '#EF4444' : '#15803D', fontWeight: '700' }}>Payable: ₹{sBal.toLocaleString()}</span>
+                                        <span style={{ fontSize: '0.8rem', color: sBal > 0 ? '#EF4444' : '#15803D', fontWeight: '700' }}>Payable: {formatCurrency(sBal)}</span>
                                     </button>
                                 );
                             })}
@@ -548,13 +550,13 @@ const BusinessSuppliers = () => {
                                                 <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date}</td>
                                                 <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.reference_id}</td>
                                                 <td style={{ padding: '1rem 1.25rem', color: '#EF4444', fontWeight: '700' }}>
-                                                    {row.debit > 0 ? `₹${row.debit.toLocaleString()}` : '-'}
+                                                    {row.debit > 0 ? formatCurrency(row.debit) : '-'}
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem', color: '#15803D', fontWeight: '700' }}>
-                                                    {row.credit > 0 ? `₹${row.credit.toLocaleString()}` : '-'}
+                                                    {row.credit > 0 ? formatCurrency(row.credit) : '-'}
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#1E293B' }}>
-                                                    ₹{row.running_balance.toLocaleString()}
+                                                    {formatCurrency(row.running_balance)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -581,15 +583,15 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#FFF5F5', borderRadius: '16px', border: '1px solid #FEE2E2' }}>
                                     <span style={{ color: '#C53030', fontWeight: '700' }}>0–30 Days Overdue Bucket</span>
-                                    <span style={{ fontWeight: '900', color: '#C53030' }}>₹85,000</span>
+                                    <span style={{ fontWeight: '900', color: '#C53030' }}>{formatCurrency(85000)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#FFFBEB', borderRadius: '16px', border: '1px solid #FEF3C7' }}>
                                     <span style={{ color: '#B45309', fontWeight: '700' }}>31–60 Days Overdue Bucket</span>
-                                    <span style={{ fontWeight: '900', color: '#B45309' }}>₹35,000</span>
+                                    <span style={{ fontWeight: '900', color: '#B45309' }}>{formatCurrency(35000)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#F0FDF4', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
                                     <span style={{ color: '#15803D', fontWeight: '700' }}>61–90+ Days Overdue Bucket</span>
-                                    <span style={{ fontWeight: '900', color: '#15803D' }}>₹0</span>
+                                    <span style={{ fontWeight: '900', color: '#15803D' }}>{formatCurrency(0)}</span>
                                 </div>
                             </div>
                         </div>
@@ -602,7 +604,7 @@ const BusinessSuppliers = () => {
                                     <div key={idx}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.35rem' }}>
                                             <span>{s.supplier_name}</span>
-                                            <span>Total bought: ₹{s.total_purchases.toLocaleString()}</span>
+                                            <span>Total bought: {formatCurrency(s.total_purchases)}</span>
                                         </div>
                                         <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', background: '#1B6B3A', width: `${Math.min(100, (s.total_purchases / totalOutwardPurchasesSum) * 100)}%` }}></div>
@@ -620,7 +622,7 @@ const BusinessSuppliers = () => {
                                 <div key={idx} style={{ border: '1px solid #E2E8F0', padding: '1rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
                                         <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.9rem' }}>{s.supplier_name}</p>
-                                        <span style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '700' }}>Balance Due: ₹{s.current_balance.toLocaleString()}</span>
+                                        <span style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '700' }}>Balance Due: {formatCurrency(s.current_balance)}</span>
                                     </div>
                                     <button onClick={() => handleShareLedgerWhatsApp(s)} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#F0FDF4', color: '#15803D', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                         <Smartphone size={14} /> Send Alert
@@ -731,12 +733,12 @@ const BusinessSuppliers = () => {
                             {/* Opening & Credit settings */}
                             <div style={{ background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', border: '1px solid #DCF2E4' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Payable Balance (INR)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Payable Balance ({currency.symbol})</label>
                                     <input type="number" disabled={!!editingSupplier} value={formData.opening_balance} onChange={(e) => setFormData({ ...formData, opening_balance: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                     <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Keep positive if you owe them, negative for advance payment.</span>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit limit allowance (INR)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit limit allowance ({currency.symbol})</label>
                                     <input type="number" value={formData.credit_limit} onChange={(e) => setFormData({ ...formData, credit_limit: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
@@ -768,11 +770,11 @@ const BusinessSuppliers = () => {
                         <form onSubmit={handleRecordPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div style={{ background: '#FFF5F5', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #FEE2E2', display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: '700' }}>
                                 <span style={{ color: '#C53030' }}>Outstanding Balance Owed:</span>
-                                <span style={{ color: '#C53030' }}>₹{selectedSupplier.current_balance.toLocaleString()}</span>
+                                <span style={{ color: '#C53030' }}>{formatCurrency(selectedSupplier.current_balance)}</span>
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Paid Amount (INR)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Paid Amount ({currency.symbol})</label>
                                 <input required type="number" max={selectedSupplier.current_balance} value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.5rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
                             </div>
 

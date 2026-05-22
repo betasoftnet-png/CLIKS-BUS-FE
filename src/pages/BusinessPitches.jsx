@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pitchesService } from '../services/pitchesService';
+import { useCurrency } from '../context';
 import { 
     TrendingUp, 
     ShieldCheck, 
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 
 export default function BusinessPitches() {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio'
     const [searchTerm, setSearchTerm] = useState('');
@@ -711,7 +713,7 @@ export default function BusinessPitches() {
                                                         Goal
                                                     </div>
                                                     <div style={{ fontWeight: '800', fontSize: '0.95rem', color: '#0f172a' }}>
-                                                        ₹{(pitch.funding_target || 0).toLocaleString('en-IN')}
+                                                        {formatCurrency(pitch.funding_target || 0)}
                                                     </div>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
@@ -820,7 +822,7 @@ export default function BusinessPitches() {
                                             </span>
                                         </div>
                                         <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem' }}>
-                                            ₹{(pitch.funding_target || 0).toLocaleString('en-IN')} for {pitch.equity_offered}% Equity Share
+                                            {formatCurrency(pitch.funding_target || 0)} for {pitch.equity_offered}% Equity Share
                                         </p>
                                     </div>
 
@@ -953,7 +955,7 @@ export default function BusinessPitches() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Funding Request Amount (₹) *
+                                        Funding Request Amount ({currency.symbol}) *
                                     </label>
                                     <div style={{ position: 'relative' }}>
                                         <Coins size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />

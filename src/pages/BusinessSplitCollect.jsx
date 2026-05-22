@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
+import { useCurrency } from '../context';
 import {
     Plus,
     Search,
@@ -31,6 +32,7 @@ import splitExpenseService from '../services/splitExpenseService';
 const INITIAL_SPLITS = [];
 
 const BusinessSplitCollect = () => {
+    const { currency, formatCurrency } = useCurrency();
     // ── State Management ───────────────────────────────────────────────────
     const [splits, setSplits] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -57,7 +59,13 @@ const BusinessSplitCollect = () => {
     // Group Form State
     const [groupForm, setGroupForm] = useState({
         title: '',
-        currency: 'INR',
+        currency: (() => {
+            try {
+                return JSON.parse(localStorage.getItem('cliks_currency') || '{}')?.code || 'INR';
+            } catch (e) {
+                return 'INR';
+            }
+        })(),
         description: '',
         participants: ['You']
     });
@@ -111,7 +119,8 @@ const BusinessSplitCollect = () => {
             case 'USD': return '$';
             case 'EUR': return '€';
             case 'GBP': return '£';
-            default: return '₹';
+            case 'INR': return '₹';
+            default: return code === currency.code ? currency.symbol : '₹';
         }
     };
 
@@ -468,7 +477,7 @@ const BusinessSplitCollect = () => {
             return `
                 <tr>
                     <td><strong>${m}</strong></td>
-                    <td class="${balClass}" style="text-align: right;">${sign}${activeSplit.currencySymbol}${bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td class="${balClass}" style="text-align: right;">${sign}${activeSplit.currencySymbol}${bal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 </tr>
             `;
         }).join('');
@@ -1089,7 +1098,7 @@ const BusinessSplitCollect = () => {
                                                             fontSize: '0.88rem', 
                                                             color: bal > 0.01 ? '#059669' : bal < -0.01 ? '#DC2626' : '#64748B' 
                                                         }}>
-                                                            {bal > 0.01 ? '+' : ''}{activeSplit.currencySymbol}{bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                            {bal > 0.01 ? '+' : ''}{activeSplit.currencySymbol}{bal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                         </span>
                                                     </div>
                                                 );
@@ -1195,6 +1204,9 @@ const BusinessSplitCollect = () => {
                                             onChange={(e) => setGroupForm({ ...groupForm, currency: e.target.value })}
                                             style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none' }}
                                         >
+                                            {currency.code !== 'INR' && currency.code !== 'USD' && currency.code !== 'EUR' && currency.code !== 'GBP' && (
+                                                <option value={currency.code}>{currency.code} ({currency.symbol})</option>
+                                            )}
                                             <option value="INR">INR (₹)</option>
                                             <option value="USD">USD ($)</option>
                                             <option value="EUR">EUR (€)</option>

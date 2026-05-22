@@ -3,6 +3,7 @@ import { applyTableFilters } from '../utils/filterUtils';
 import { ordersService } from '../services/ordersService';
 import { crmService } from '../services/crmService';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 
 import { 
     ShoppingCart, 
@@ -33,6 +34,7 @@ import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 
 const BusinessSalesOrders = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
     const [statusFilter, setStatusFilter] = useState('All');
@@ -352,9 +354,9 @@ const BusinessSalesOrders = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Orders', value: activeOrdersCount, icon: ShoppingCart, color: '#7C3AED', bg: '#F3E8FF' },
-                    { label: 'Pending Value', value: `₹${totalPendingValue.toLocaleString('en-IN')}`, icon: Clock, color: '#B45309', bg: '#FFFBEB' },
+                    { label: 'Pending Value', value: formatCurrency(totalPendingValue), icon: Clock, color: '#B45309', bg: '#FFFBEB' },
                     { label: 'Confirmed (Ready)', value: readyToInvoiceCount, icon: Package, color: '#0369A1', bg: '#F0F9FF' },
-                    { label: 'Invoiced / Completed', value: `₹${invoicedThisMonth.toLocaleString('en-IN')}`, icon: CheckCircle2, color: '#15803D', bg: '#F0FDF4' }
+                    { label: 'Invoiced / Completed', value: formatCurrency(invoicedThisMonth), icon: CheckCircle2, color: '#15803D', bg: '#F0FDF4' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.5rem' }}>
@@ -474,10 +476,10 @@ const BusinessSalesOrders = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#7C3AED' }}>₹{parseFloat(row.grand_total || 0).toLocaleString('en-IN')}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#7C3AED' }}>{formatCurrency(parseFloat(row.grand_total || 0))}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0D9488' }}>₹{parseFloat(row.advance_amount || 0).toLocaleString('en-IN')}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0D9488' }}>{formatCurrency(parseFloat(row.advance_amount || 0))}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div style={{ 
@@ -535,7 +537,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>No: {o.order_number} | Due: {o.delivery_date}</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#7C3AED', fontSize: '1.05rem' }}>₹{parseFloat(o.grand_total || 0).toLocaleString('en-IN')}</p>
+                                                <p style={{ fontWeight: '850', color: '#7C3AED', fontSize: '1.05rem' }}>{formatCurrency(parseFloat(o.grand_total || 0))}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309' }}>{o.status.toUpperCase()}</span>
                                             </div>
                                         </div>
@@ -563,7 +565,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#991B1B' }}>Expected Delivery: <strong style={{ textDecoration: 'underline' }}>{o.delivery_date}</strong> (Delayed)</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#991B1B', fontSize: '1.05rem' }}>₹{parseFloat(o.grand_total || 0).toLocaleString('en-IN')}</p>
+                                                <p style={{ fontWeight: '850', color: '#991B1B', fontSize: '1.05rem' }}>{formatCurrency(parseFloat(o.grand_total || 0))}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444' }}>OVERDUE</span>
                                             </div>
                                         </div>
@@ -589,7 +591,7 @@ const BusinessSalesOrders = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>No: {o.order_number} | Date: {o.date}</span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#94A3B8', fontSize: '1.05rem', textDecoration: 'line-through' }}>₹{parseFloat(o.grand_total || 0).toLocaleString('en-IN')}</p>
+                                                <p style={{ fontWeight: '850', color: '#94A3B8', fontSize: '1.05rem', textDecoration: 'line-through' }}>{formatCurrency(parseFloat(o.grand_total || 0))}</p>
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444' }}>CANCELLED</span>
                                             </div>
                                         </div>
@@ -631,7 +633,7 @@ const BusinessSalesOrders = () => {
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
-                                            <span style={{ color: '#7C3AED' }}>₹{parseFloat(cust.value || 0).toLocaleString('en-IN')}</span>
+                                            <span style={{ color: '#7C3AED' }}>{formatCurrency(parseFloat(cust.value || 0))}</span>
                                         </div>
                                         <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, (cust.value / Math.max(...topCustomers.map(c => c.value))) * 100)}%` }}></div>
@@ -800,7 +802,7 @@ const BusinessSalesOrders = () => {
                                                 <option value={18}>18% GST</option>
                                                 <option value={28}>28% GST</option>
                                             </select>
-                                            <span style={{ fontWeight: '750', color: '#7C3AED', minWidth: '70px', textAlign: 'right', fontSize: '0.95rem' }}>₹{(item.total || 0).toLocaleString('en-IN')}</span>
+                                            <span style={{ fontWeight: '750', color: '#7C3AED', minWidth: '70px', textAlign: 'right', fontSize: '0.95rem' }}>{formatCurrency(item.total || 0)}</span>
                                             {formData.items.length > 1 && (
                                                 <button type="button" onClick={() => handleRemoveItem(idx)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}><Trash size={16} /></button>
                                             )}
@@ -818,11 +820,11 @@ const BusinessSalesOrders = () => {
                                     <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#7C3AED', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Payment & Charges</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Advance Amount Received (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Advance Amount Received ({currency.symbol})</label>
                                             <input type="number" value={formData.advance_amount === 0 ? '' : formData.advance_amount} onChange={(e) => setFormData({...formData, advance_amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Shipping / Delivery Charge (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Shipping / Delivery Charge ({currency.symbol})</label>
                                             <input type="number" value={formData.shipping_charge === 0 ? '' : formData.shipping_charge} onChange={(e) => {
                                                 const ship = parseFloat(e.target.value) || 0;
                                                 const updated = calculateTotals(formData.items, ship);
@@ -835,23 +837,23 @@ const BusinessSalesOrders = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '1rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Subtotal</span>
-                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.subtotal || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(formData.subtotal || 0)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Total Discount</span>
-                                        <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{(formData.total_discount || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ fontWeight: '700', color: '#EF4444' }}>- {formatCurrency(formData.total_discount || 0)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Total Tax (GST)</span>
-                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.total_tax || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(formData.total_tax || 0)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                                         <span style={{ color: '#64748B', fontWeight: '600' }}>Shipping Charge</span>
-                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>₹{(formData.shipping_charge || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(formData.shipping_charge || 0)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', borderTop: '2px solid #F1F5F9', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
                                         <span style={{ color: '#7C3AED' }}>Grand Total</span>
-                                        <span style={{ color: '#7C3AED' }}>₹{(formData.grand_total || 0).toLocaleString('en-IN')}</span>
+                                        <span style={{ color: '#7C3AED' }}>{formatCurrency(formData.grand_total || 0)}</span>
                                     </div>
                                 </div>
                             </div>

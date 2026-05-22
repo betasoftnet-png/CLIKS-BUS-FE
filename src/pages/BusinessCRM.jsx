@@ -38,6 +38,7 @@ import { crmService } from '../services/crmService';
 import { settingsService } from '../services/settingsService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 
 const AVATAR_COLORS = [
     { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue
@@ -56,6 +57,7 @@ const getAvatarColors = (name) => {
 };
 
 const BusinessCRM = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
     const [customerTypeFilter, setCustomerTypeFilter] = useState('All');
@@ -351,7 +353,7 @@ const BusinessCRM = () => {
     };
 
     const handleShareLedger = (party) => {
-        const message = `Hello ${party.name},\n\nPlease find your statement summary from ${party.business_name || 'Gupta Groceries'}:\n\n*Opening Balance:* ₹${party.opening_balance || 0}\n*Total Outstanding:* ₹${party.current_balance || 0}\n*Payment Terms:* ${party.due_days} Days\n\nPlease settle your outstanding dues. Thank you,\nCLIKS BUSINESS.`;
+        const message = `Hello ${party.name},\n\nPlease find your statement summary from ${party.business_name || 'Gupta Groceries'}:\n\n*Opening Balance:* ${formatCurrency(party.opening_balance || 0)}\n*Total Outstanding:* ${formatCurrency(party.current_balance || 0)}\n*Payment Terms:* ${party.due_days} Days\n\nPlease settle your outstanding dues. Thank you,\nCLIKS BUSINESS.`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };
@@ -467,8 +469,8 @@ const BusinessCRM = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Customers', value: customers.length, icon: User, color: '#7C3AED', bg: '#F3E8FF' },
-                    { label: 'Total Outstanding (Receivables)', value: `₹${(totalOutstanding || 0).toLocaleString()}`, icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
-                    { label: 'Advance Received', value: `₹${(totalAdvance || 0).toLocaleString()}`, icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
+                    { label: 'Total Outstanding (Receivables)', value: formatCurrency(totalOutstanding || 0), icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
+                    { label: 'Advance Received', value: formatCurrency(totalAdvance || 0), icon: Clock, color: '#0369A1', bg: '#F0F9FF' },
                     { label: 'Collection Efficiency', value: `${collectionEfficiency}%`, icon: Percent, color: '#0891B2', bg: '#CFFAFE' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.01)', cursor: 'default' }}>
@@ -607,11 +609,11 @@ const BusinessCRM = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>₹{(row.credit_limit || 0).toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>{formatCurrency(row.credit_limit || 0)}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ fontSize: '0.9rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#0891B2' : '#475569') }}>
-                                                {(row.current_balance || 0) > 0 ? `₹${(row.current_balance || 0).toLocaleString()}` : ((row.current_balance || 0) < 0 ? `- ₹${Math.abs(row.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
+                                                {(row.current_balance || 0) > 0 ? formatCurrency(row.current_balance || 0) : ((row.current_balance || 0) < 0 ? `- ${formatCurrency(Math.abs(row.current_balance || 0))} (Adv)` : formatCurrency(0))}
                                             </span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
@@ -712,7 +714,7 @@ const BusinessCRM = () => {
                                             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{c.business_name || ''} | Term: {c.due_days || 30} Days</span>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '0.9rem', margin: 0 }}>₹{(c.current_balance || 0).toLocaleString()}</p>
+                                            <p style={{ fontWeight: '850', color: '#B91C1C', fontSize: '0.9rem', margin: 0 }}>{formatCurrency(c.current_balance || 0)}</p>
                                             <span style={{ fontSize: '0.7rem', fontWeight: '800', color: (c.current_balance || 0) > (c.credit_limit || 0) ? '#EF4444' : '#B45309' }}>
                                                 {(c.current_balance || 0) > (c.credit_limit || 0) ? 'OVER CREDIT LIMIT' : 'CREDIT ACTIVE'}
                                             </span>
@@ -736,7 +738,7 @@ const BusinessCRM = () => {
                                 ].map((item, i) => (
                                     <div key={i} style={{ padding: '0.75rem', background: item.bg, borderRadius: '10px', textAlign: 'center' }}>
                                         <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem', margin: 0 }}>{item.bucket}</p>
-                                        <h4 style={{ fontSize: '1.1rem', fontWeight: '900', color: item.color, margin: 0 }}>₹{(item.val || 0).toLocaleString()}</h4>
+                                        <h4 style={{ fontSize: '1.1rem', fontWeight: '900', color: item.color, margin: 0 }}>{formatCurrency(item.val || 0)}</h4>
                                     </div>
                                 ))}
                             </div>
@@ -774,7 +776,7 @@ const BusinessCRM = () => {
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
-                                            <span style={{ color: '#7C3AED' }}>₹{(cust.total_sales || 0).toLocaleString()}</span>
+                                            <span style={{ color: '#7C3AED' }}>{formatCurrency(cust.total_sales || 0)}</span>
                                         </div>
                                         <div style={{ height: '5px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', background: 'linear-gradient(90deg, #7C3AED 0%, #0891B2 100%)', width: `${Math.min(100, ((cust.total_sales || 0) / Math.max(...customers.map(c => c.total_sales || 1))) * 100)}%` }}></div>
@@ -882,11 +884,11 @@ const BusinessCRM = () => {
                             {/* Financial Credit Controls */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Balance (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Balance ({currency.symbol})</label>
                                     <input type="number" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="0" onChange={(e) => setFormData({...formData, opening_balance: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Credit Limit (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Credit Limit ({currency.symbol})</label>
                                     <input type="number" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="50000" onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
@@ -957,7 +959,7 @@ const BusinessCRM = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                                    {paymentData.type === 'Payment In' ? 'Amount Received (Credit) (₹)' : 'Amount Paid (Debit) (₹)'}
+                                    {paymentData.type === 'Payment In' ? `Amount Received (Credit) (${currency.symbol})` : `Amount Paid (Debit) (${currency.symbol})`}
                                 </label>
                                 <input required type="number" value={paymentData.amount === 0 ? '' : paymentData.amount} placeholder="0" onChange={e => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#7C3AED', textAlign: 'center' }} />
                             </div>
@@ -1029,16 +1031,16 @@ const BusinessCRM = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
                             <div style={{ padding: '1.25rem', background: '#F8FAFC', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>OPENING BALANCE</p>
-                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>₹{(selectedParty.opening_balance || 0).toLocaleString()}</h3>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>{formatCurrency(selectedParty.opening_balance || 0)}</h3>
                             </div>
                             <div style={{ padding: '1.25rem', background: '#FEF2F2', borderRadius: '18px', border: '1px solid #FEE2E2' }}>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B91C1C', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>TOTAL CREDIT GIVEN</p>
-                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#B91C1C', margin: 0 }}>₹{selectedParty.total_sales?.toLocaleString() || 0}</h3>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#B91C1C', margin: 0 }}>{formatCurrency(selectedParty.total_sales || 0)}</h3>
                             </div>
                             <div style={{ padding: '1.25rem', background: (selectedParty.current_balance || 0) > 0 ? '#FEF2F2' : '#CFFAFE', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '800', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#0891B2', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>NET OUTSTANDING</p>
                                 <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: (selectedParty.current_balance || 0) > 0 ? '#B91C1C' : '#0891B2', margin: 0 }}>
-                                    {(selectedParty.current_balance || 0) > 0 ? `₹${(selectedParty.current_balance || 0).toLocaleString()}` : ((selectedParty.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedParty.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
+                                    {(selectedParty.current_balance || 0) > 0 ? formatCurrency(selectedParty.current_balance || 0) : ((selectedParty.current_balance || 0) < 0 ? `- ${formatCurrency(Math.abs(selectedParty.current_balance || 0))} (Adv)` : formatCurrency(0))}
                                 </h3>
                             </div>
                         </div>
@@ -1076,9 +1078,9 @@ const BusinessCRM = () => {
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{tx.reference}</td>
-                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444', fontSize: '0.85rem' }}>{(tx.debit || 0) > 0 ? `₹${(tx.debit || 0).toLocaleString()}` : '-'}</td>
-                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#0891B2', fontSize: '0.85rem' }}>{(tx.credit || 0) > 0 ? `₹${(tx.credit || 0).toLocaleString()}` : '-'}</td>
-                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#0891B2', fontSize: '0.9rem' }}>₹{(tx.balance || 0).toLocaleString()}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#EF4444', fontSize: '0.85rem' }}>{(tx.debit || 0) > 0 ? formatCurrency(tx.debit || 0) : '-'}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#0891B2', fontSize: '0.85rem' }}>{(tx.credit || 0) > 0 ? formatCurrency(tx.credit || 0) : '-'}</td>
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '900', color: (tx.balance || 0) > 0 ? '#B91C1C' : '#0891B2', fontSize: '0.9rem' }}>{formatCurrency(tx.balance || 0)}</td>
                                             </tr>
                                         ))
                                     )}
@@ -1168,12 +1170,12 @@ const BusinessCRM = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                         <div>
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CREDIT LIMIT</p>
-                                            <p style={{ fontSize: '0.95rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>₹{(selectedProfileCustomer.credit_limit || 0).toLocaleString()}</p>
+                                            <p style={{ fontSize: '0.95rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{formatCurrency(selectedProfileCustomer.credit_limit || 0)}</p>
                                         </div>
                                         <div>
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>OUTSTANDING BALANCE</p>
                                             <p style={{ fontSize: '1rem', color: (selectedProfileCustomer.current_balance || 0) > 0 ? '#B91C1C' : ((selectedProfileCustomer.current_balance || 0) < 0 ? '#0891B2' : '#475569'), margin: '2px 0 0 0', fontWeight: '900' }}>
-                                                {(selectedProfileCustomer.current_balance || 0) > 0 ? `₹${(selectedProfileCustomer.current_balance || 0).toLocaleString()}` : ((selectedProfileCustomer.current_balance || 0) < 0 ? `- ₹${Math.abs(selectedProfileCustomer.current_balance || 0).toLocaleString()} (Adv)` : '₹0.00')}
+                                                {(selectedProfileCustomer.current_balance || 0) > 0 ? formatCurrency(selectedProfileCustomer.current_balance || 0) : ((selectedProfileCustomer.current_balance || 0) < 0 ? `- ${formatCurrency(Math.abs(selectedProfileCustomer.current_balance || 0))} (Adv)` : formatCurrency(0))}
                                             </p>
                                         </div>
                                         <div>

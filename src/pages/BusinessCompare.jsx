@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useCurrency } from '../context';
 import { 
     Layers, 
     ArrowLeftRight, 
@@ -26,6 +27,7 @@ import { businessCompareService, businessPlanService } from '../services';
 import '../App.css';
 
 const BusinessCompare = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [selectedPlans, setSelectedPlans] = useState([]);
 
     // Fetch all plans for selection
@@ -89,7 +91,7 @@ const BusinessCompare = () => {
             {/* Periodic Stats Snapshot - Matching Gold Standard */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
-                    { label: 'Current Revenue', value: `₹${(periodic?.current.revenue || 0).toLocaleString()}`, icon: TrendingUp, color: '#1B6B3A', bg: '#DCF2E4' },
+                    { label: 'Current Revenue', value: formatCurrency(periodic?.current.revenue || 0), icon: TrendingUp, color: '#1B6B3A', bg: '#DCF2E4' },
                     { label: 'Target Achievement', value: '92%', icon: Target, color: '#0D9488', bg: '#CCFBF1' },
                     { label: 'Expense Ratio', value: '42%', icon: Activity, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Growth Index', value: `+${getGrowth(periodic?.current.revenue, periodic?.previous.revenue).toFixed(1)}%`, icon: Zap, color: '#8B5CF6', bg: '#EDE9FE' }
@@ -167,7 +169,7 @@ const BusinessCompare = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                         <div style={{ padding: '1.25rem', borderRadius: '20px', background: '#F8FAFC', border: '1px solid #F1F5F9' }}>
                                             <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Allocated Capital</p>
-                                            <h3 style={{ fontSize: '1.75rem', fontWeight: '900', color: '#064E3B' }}>₹{parseFloat(plan.total_budget || 0).toLocaleString()}</h3>
+                                            <h3 style={{ fontSize: '1.75rem', fontWeight: '900', color: '#064E3B' }}>{formatCurrency(plan.total_budget || 0)}</h3>
                                         </div>
                                         
                                         <div>
@@ -176,7 +178,7 @@ const BusinessCompare = () => {
                                                 <div key={idx} style={{ marginBottom: '1rem' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                                                         <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#475569', textTransform: 'capitalize' }}>{m.type}</span>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: '800', color: m.type === 'revenue' ? '#15803D' : '#EF4444' }}>₹{parseFloat(m.total || 0).toLocaleString()}</span>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: '800', color: m.type === 'revenue' ? '#15803D' : '#EF4444' }}>{formatCurrency(m.total || 0)}</span>
                                                     </div>
                                                     <div style={{ height: '6px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
                                                         <div style={{ width: '70%', height: '100%', background: m.type === 'revenue' ? '#15803D' : '#EF4444' }}></div>

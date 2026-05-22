@@ -27,8 +27,10 @@ import {
     Zap
 } from 'lucide-react';
 import '../App.css';
+import { useCurrency } from '../context';
 
 const BusinessStock = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('registry');
     const [colFilters, setColFilters] = React.useState({}); // 'registry', 'movement', 'warehouse', 'batch'
@@ -297,7 +299,7 @@ const BusinessStock = () => {
             {/* Modern Stock Accent Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Inventory Valuation (Cost basis)', value: `₹${totalInventoryValue.toLocaleString()}`, icon: DollarSign, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Total Inventory Valuation (Cost basis)', value: formatCurrency(totalInventoryValue), icon: DollarSign, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Low Stock Alerts (Reorder Level)', value: `${lowStockAlertsCount} Items`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
                     { label: 'Total Warehouses Registered', value: `${dbWarehouses.length} Registered`, icon: Warehouse, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Dynamic In-Transit Stock', value: `${transfers.length} Transfers`, icon: Activity, color: '#8B5CF6', bg: '#F5F3FF' }
@@ -398,8 +400,8 @@ const BusinessStock = () => {
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <span style={{ color: '#EF4444', fontWeight: '700' }}>{st.damaged_stock} Dmg</span> / <span style={{ color: '#B45309', fontWeight: '700' }}>{st.expired_stock} Exp</span>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>₹{st.average_cost.toLocaleString()}</td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>₹{valuation.toLocaleString()}</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(st.average_cost)}</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(valuation)}</td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <span style={{ 
                                                     display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',

@@ -30,8 +30,10 @@ import FilterableTableHead from '../components/FilterableTableHead';
 import { applyTableFilters } from '../utils/filterUtils';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import { useCurrency } from '../context';
 
 const BusinessPeople = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('contacts'); // 'contacts', 'transactions', 'reminders'
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -369,8 +371,7 @@ const BusinessPeople = () => {
     };
 
     const formatCurr = (val) => {
-        const num = parseFloat(val || 0);
-        return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return formatCurrency(val);
     };
 
     const uniqueGroups = useMemo(() => {
@@ -1059,7 +1060,7 @@ const BusinessPeople = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Value Cap Amount (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Value Cap Amount ({currency.symbol})</label>
                                     <input required type="number" placeholder="0.00" value={txForm.amount} onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '900' }} />
                                 </div>
                                 <div>
@@ -1600,7 +1601,7 @@ const BusinessPeople = () => {
                                                             </div>
                                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                                 <div>
-                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>AMOUNT (₹)</label>
+                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>AMOUNT ({currency.symbol})</label>
                                                                     <input required type="number" placeholder="0.00" value={inlineTxForm.amount} onChange={(e) => setInlineTxForm({ ...inlineTxForm, amount: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} />
                                                                 </div>
                                                                 <div>
@@ -1630,7 +1631,7 @@ const BusinessPeople = () => {
                                                             </div>
                                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                                 <div>
-                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>EXPECTED (₹)</label>
+                                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>EXPECTED ({currency.symbol})</label>
                                                                     <input required type="number" placeholder="0.00" value={inlineRemForm.amount} onChange={(e) => setInlineRemForm({ ...inlineRemForm, amount: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} />
                                                                 </div>
                                                                 <div>

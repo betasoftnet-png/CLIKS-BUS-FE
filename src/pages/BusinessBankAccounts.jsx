@@ -25,8 +25,10 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { paymentsStore } from '../lib/paymentsStore';
 import '../App.css';
+import { useCurrency } from '../context';
 
 const BusinessBankAccounts = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('accounts');
     const [colFilters, setColFilters] = React.useState({}); // 'accounts' or 'transactions'
     const [searchTerm, setSearchTerm] = useState('');
@@ -149,7 +151,7 @@ const BusinessBankAccounts = () => {
             {/* Quick Stats - Gold Standard Layout */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
-                    { label: 'Combined Bank Balance', value: `₹${totalBalance.toLocaleString()}`, icon: CreditCard, color: '#1B6B3A', bg: '#DCF2E4' },
+                    { label: 'Combined Bank Balance', value: formatCurrency(totalBalance), icon: CreditCard, color: '#1B6B3A', bg: '#DCF2E4' },
                     { label: 'Active Accounts', value: accounts.length, icon: Building, color: '#0D9488', bg: '#CCFBF1' },
                     { label: 'Total Ledger Entries', value: totalTransactions, icon: History, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Pending Clearances', value: '0', icon: ShieldCheck, color: '#8B5CF6', bg: '#EDE9FE' }
@@ -244,10 +246,10 @@ const BusinessBankAccounts = () => {
                                                 </div>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
-                                                <span style={{ color: '#64748B', fontSize: '1rem', fontWeight: '600' }}>₹{acc.opening_balance.toLocaleString()}</span>
+                                                <span style={{ color: '#64748B', fontSize: '1rem', fontWeight: '600' }}>{formatCurrency(acc.opening_balance)}</span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
-                                                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#1B6B3A' }}>₹{acc.current_balance.toLocaleString()}</span>
+                                                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#1B6B3A' }}>{formatCurrency(acc.current_balance)}</span>
                                             </td>
                                         </tr>
                                     ))}
@@ -302,7 +304,7 @@ const BusinessBankAccounts = () => {
                                                     fontSize: '1.1rem', fontWeight: '900', 
                                                     color: tx.type === 'income' ? '#15803D' : '#B91C1C'
                                                 }}>
-                                                    {tx.type === 'income' ? '+' : '-'} ₹{tx.amount.toLocaleString()}
+                                                    {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
                                                 </span>
                                             </td>
                                         </tr>
@@ -342,8 +344,8 @@ const BusinessBankAccounts = () => {
                                     <input required placeholder="HDFC0000123" value={accountForm.ifsc_code} onChange={e => setAccountForm({...accountForm, ifsc_code: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Opening Balance (₹)</label>
-                                    <input required type="number" placeholder="50000" value={accountForm.opening_balance} onChange={e => setAccountForm({...accountForm, opening_balance: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Opening Balance ({currency.symbol})</label>
+                                    <input required type="number" placeholder="50000" value={accountForm.opening_balance} onChange={e => setAccountForm({...accountForm, opening_balance: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
                                 </div>
                             </div>
                             <button type="submit" style={{ width: '100%', padding: '1.1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '1.05rem', marginTop: '1rem', cursor: 'pointer' }}>
@@ -386,8 +388,8 @@ const BusinessBankAccounts = () => {
                                     <input required placeholder="e.g. INV-102" value={txForm.reference_id} onChange={e => setTxForm({...txForm, reference_id: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount (₹)</label>
-                                    <input required type="number" placeholder="1000" value={txForm.amount} onChange={e => setTxForm({...txForm, amount: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount ({currency.symbol})</label>
+                                    <input required type="number" placeholder="1000" value={txForm.amount} onChange={e => setTxForm({...txForm, amount: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }} />
                                 </div>
                             </div>
                             <div>
@@ -395,7 +397,7 @@ const BusinessBankAccounts = () => {
                                 <select required value={txForm.bank_account_id} onChange={e => setTxForm({...txForm, bank_account_id: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white' }}>
                                     <option value="">-- Select Bank Account --</option>
                                     {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(a => (
-                                        <option key={a.id} value={a.id}>{a.bank_name} - ₹{a.current_balance.toLocaleString()}</option>
+                                        <option key={a.id} value={a.id}>{a.bank_name} - {formatCurrency(a.current_balance)}</option>
                                     ))}
                                 </select>
                             </div>

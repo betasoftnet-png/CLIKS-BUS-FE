@@ -66,7 +66,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     let activeBg = isSales ? '#FFF7ED' : (isAdmin ? '#EEF2FF' : (isSupport ? '#EFF6FF' : '#DCF2E4'));
     let activeText = isActive ? '#ffffff' : (isSales ? '#EA580C' : (isAdmin ? '#1E293B' : (isSupport ? '#3B82F6' : '#111827')));
     let darkTextColor = isSales ? '#9A3412' : (isAdmin ? '#3730A3' : (isSupport ? '#1D4ED8' : '#135029'));
-    
+
     if (isBetaClub) {
         primaryColor = '#FFD700'; // Vibrant gold icon (#FFD700)
         activeBg = '#FFFDF0'; // Soft golden background hover states
@@ -108,8 +108,8 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                 <button
                     className={`sidebar-item`}
                     onClick={() => toggleMenu(item.label)}
-                    style={{ 
-                        justifyContent: 'space-between', 
+                    style={{
+                        justifyContent: 'space-between',
                         width: '100%',
                         background: (isOpen || isChildActive) ? activeBg : 'transparent',
                         boxShadow: isChildActive ? `inset 4px 0 0 ${primaryColor}` : 'none',
@@ -128,7 +128,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                         <ChevronRight size={16} />
                     </motion.div>
                 </button>
-                
+
                 <AnimatePresence initial={false}>
                     {isOpen && (
                         <motion.div
@@ -140,10 +140,10 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                         >
                             <div style={{ borderLeft: `2px solid ${activeBg}`, marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
                                 {item.children.map((child) => (
-                                    <MenuItem 
-                                        key={child.label} 
-                                        item={child} 
-                                        isChild={true} 
+                                    <MenuItem
+                                        key={child.label}
+                                        item={child}
+                                        isChild={true}
                                         activeItem={activeItem}
                                         openMenus={openMenus}
                                         toggleMenu={toggleMenu}
@@ -164,7 +164,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         <button
             className={`sidebar-item ${isActive ? 'active' : ''}`}
             onClick={() => handleItemClick(item.label, item.path)}
-            style={{ 
+            style={{
                 marginBottom: '6px',
                 paddingLeft: isChild ? '1.2rem' : '0.75rem',
                 fontSize: isChild ? '0.85rem' : '0.92rem',
@@ -356,7 +356,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         social: [
             { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
             { label: 'Trading docs', icon: LineChart, path: '/social/trading' },
-            { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub' , color: '#FFD700' }
+            { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub', color: '#FFD700' }
         ],
         financeMode: [
             { label: 'People', icon: Users, path: '/payments/people' },
@@ -374,7 +374,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     React.useEffect(() => {
         const newItem = getActiveItemFromPath(location.pathname);
         setActiveItem(newItem);
-        
+
         navigationConfig.standard.forEach(item => {
             if (item.children && item.children.some(child => location.pathname.includes(child.path))) {
                 setOpenMenus(prev => ({ ...prev, [item.label]: true }));
@@ -418,14 +418,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>PLATFORM CONTROL</div>
                         {navigationConfig.admin.map(item => (
-                            <MenuItem 
-                                key={item.label} 
-                                item={item} 
-                                activeItem={activeItem} 
-                                openMenus={openMenus} 
-                                toggleMenu={toggleMenu} 
-                                handleItemClick={handleItemClick} 
-                                isAdmin={true} 
+                            <MenuItem
+                                key={item.label}
+                                item={item}
+                                activeItem={activeItem}
+                                openMenus={openMenus}
+                                toggleMenu={toggleMenu}
+                                handleItemClick={handleItemClick}
+                                isAdmin={true}
                             />
                         ))}
                     </>
@@ -433,14 +433,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#EA580C', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SALES DESK</div>
                         {navigationConfig.salesAgent.map(item => (
-                            <MenuItem 
-                                key={item.label} 
-                                item={item} 
-                                activeItem={activeItem} 
-                                openMenus={openMenus} 
-                                toggleMenu={toggleMenu} 
-                                handleItemClick={handleItemClick} 
-                                isSales={true} 
+                            <MenuItem
+                                key={item.label}
+                                item={item}
+                                activeItem={activeItem}
+                                openMenus={openMenus}
+                                toggleMenu={toggleMenu}
+                                handleItemClick={handleItemClick}
+                                isSales={true}
                             />
                         ))}
                     </>
@@ -448,14 +448,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <>
                         <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#3B82F6', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SUPPORT DESK</div>
                         {navigationConfig.supportAgent.map(item => (
-                            <MenuItem 
-                                key={item.label} 
-                                item={item} 
-                                activeItem={activeItem} 
-                                openMenus={openMenus} 
-                                toggleMenu={toggleMenu} 
-                                handleItemClick={handleItemClick} 
-                                isSupport={true} 
+                            <MenuItem
+                                key={item.label}
+                                item={item}
+                                activeItem={activeItem}
+                                openMenus={openMenus}
+                                toggleMenu={toggleMenu}
+                                handleItemClick={handleItemClick}
+                                isSupport={true}
                             />
                         ))}
                     </>
@@ -503,13 +503,13 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
                                 {item.label === 'Dashboard' && (
                                     <>
-                                        <button 
+                                        <button
                                             onClick={() => handleItemClick('Generate Invoice', '/sales/invoice?create=true')}
-                                            style={{ 
-                                                width: '100%', padding: '0.75rem', borderRadius: '10px', 
-                                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)', 
-                                                color: 'white', border: 'none', cursor: 'pointer', 
-                                                fontWeight: '800', fontSize: '0.85rem', display: 'flex', 
+                                            style={{
+                                                width: '100%', padding: '0.75rem', borderRadius: '10px',
+                                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                                color: 'white', border: 'none', cursor: 'pointer',
+                                                fontWeight: '800', fontSize: '0.85rem', display: 'flex',
                                                 alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                                                 boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
                                                 marginBottom: '8px',
@@ -574,11 +574,11 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             )}
 
             {/* Fixed Sidebar Footer - Relocated based on User Specification */}
-            <div style={{ 
-                padding: '1rem', 
-                borderTop: '1px solid #F1F5F9', 
-                display: 'flex', 
-                flexDirection: 'column', 
+            <div style={{
+                padding: '1rem',
+                borderTop: '1px solid #F1F5F9',
+                display: 'flex',
+                flexDirection: 'column',
                 gap: '0.6rem',
                 flexShrink: 0,
                 background: '#FFFFFF'
@@ -613,34 +613,34 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             </div>
                             <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
                         </div>
-                        
+
                         {/* Integrated Dynamic Progress Circle requested by user */}
-                        <div style={{ 
+                        <div style={{
                             position: 'relative',
-                            width: '40px', 
-                            height: '40px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0
                         }}>
                             {/* Background Circular Track & Filled Disc using SVG */}
                             <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
                                 {/* Inner solid white disc and container circle */}
-                                <circle 
-                                    cx="20" cy="20" r="18" 
-                                    fill="#FFFFFF" 
-                                    stroke="rgba(255,255,255,0.25)" 
-                                    strokeWidth="3" 
+                                <circle
+                                    cx="20" cy="20" r="18"
+                                    fill="#FFFFFF"
+                                    stroke="rgba(255,255,255,0.25)"
+                                    strokeWidth="3"
                                 />
                                 {/* Gold Dynamic Progress Arc overlay (calculating ratio 20/30) */}
-                                <circle 
-                                    cx="20" cy="20" r="18" 
-                                    fill="none" 
-                                    stroke="#FBBF24" 
-                                    strokeWidth="3" 
+                                <circle
+                                    cx="20" cy="20" r="18"
+                                    fill="none"
+                                    stroke="#FBBF24"
+                                    strokeWidth="3"
                                     strokeDasharray="113" /* 2 * PI * r(18) */
-                                    strokeDashoffset={113 * (1 - 20 / 30)} 
+                                    strokeDashoffset={113 * (1 - 20 / 30)}
                                     strokeLinecap="round"
                                     style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
                                 />
@@ -700,27 +700,27 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: location.pathname.includes('/faq') 
-                            ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4')) 
+                        background: location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
                             : '#F8FAFC',
-                        color: location.pathname.includes('/faq') 
-                            ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A')) 
+                        color: location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
                             : '#334155',
                         borderRadius: '10px',
                         border: '1px solid',
-                        borderColor: location.pathname.includes('/faq') 
-                            ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0')) 
+                        borderColor: location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0'))
                             : '#E2E8F0',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '0.85rem',
                         transition: 'background 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') 
-                        ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4')) 
+                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
+                        ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4'))
                         : '#F1F5F9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq') 
-                        ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4')) 
+                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
+                        ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
                         : '#F8FAFC'}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>

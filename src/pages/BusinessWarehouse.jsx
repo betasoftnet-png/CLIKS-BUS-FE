@@ -28,8 +28,10 @@ import {
     Trash2
 } from 'lucide-react';
 import '../App.css';
+import { useCurrency } from '../context';
 
 const BusinessWarehouse = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
@@ -380,7 +382,7 @@ const BusinessWarehouse = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Godown Facilities', value: `${warehouses.length} Active`, icon: WarehouseIcon, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Multi-Warehouse Worth', value: `₹${totalWarehouseValue.toLocaleString()}`, icon: DollarSign, color: '#10B981', bg: '#ECFDF5' },
+                    { label: 'Multi-Warehouse Worth', value: formatCurrency(totalWarehouseValue), icon: DollarSign, color: '#10B981', bg: '#ECFDF5' },
                     { label: 'Pending Shipments', value: `${transfers.filter(t => t.transfer_status === 'Pending').length} Unsent`, icon: Truck, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Inward Receipts Audited', value: `${inwards.length} Records`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
@@ -537,7 +539,7 @@ const BusinessWarehouse = () => {
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.in_transit_stock} pcs</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>₹{st.warehouse_stock_value.toLocaleString()}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
                                     </tr>
                                 ))}
                             </tbody>

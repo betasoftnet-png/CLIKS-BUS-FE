@@ -20,9 +20,11 @@ import {
 } from 'lucide-react';
 import { plannedPaymentsService, peopleService } from '../services';
 import { customConfirm } from '../utils/customConfirm';
+import { useCurrency } from '../context';
 import '../App.css';
 
 const BusinessPaymentPlan = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -146,8 +148,8 @@ const BusinessPaymentPlan = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
                     { label: 'Total Scheduled', value: stats.totalScheduled, icon: CalendarIcon, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'To Send', value: `₹${stats.toSend.toLocaleString()}`, icon: ArrowUpRight, color: '#EF4444', bg: '#FEE2E2' },
-                    { label: 'To Receive', value: `₹${stats.toReceive.toLocaleString()}`, icon: ArrowDownRight, color: '#10B981', bg: '#D1FAE5' },
+                    { label: 'To Send', value: formatCurrency(stats.toSend), icon: ArrowUpRight, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'To Receive', value: formatCurrency(stats.toReceive), icon: ArrowDownRight, color: '#10B981', bg: '#D1FAE5' },
                     { label: 'Pending Task', value: stats.pendingCount, icon: Clock, color: '#F59E0B', bg: '#FEF3C7' }
                 ].map((stat, idx) => (
                     <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -231,7 +233,7 @@ const BusinessPaymentPlan = () => {
                                         <div>
                                             <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</p>
                                             <h4 style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: '900', color: plan.type === 'SEND' ? '#EF4444' : '#10B981' }}>
-                                                ₹{parseFloat(plan.amount).toLocaleString()}
+                                                {formatCurrency(plan.amount)}
                                             </h4>
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -331,7 +333,7 @@ const BusinessPaymentPlan = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount ({currency.symbol})</label>
                                     <input 
                                         required 
                                         type="number" 

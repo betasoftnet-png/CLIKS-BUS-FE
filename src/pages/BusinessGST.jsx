@@ -3,6 +3,7 @@ import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gstService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 import { 
     PercentCircle, 
     Plus, 
@@ -28,6 +29,7 @@ import {
 import '../App.css';
 
 const BusinessGST = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('gstr1');
     const [colFilters, setColFilters] = React.useState({}); // 'gstr1', 'gstr2', 'gstr3b', 'gstr9', 'einvoice', 'eway'
     const [searchTerm, setSearchTerm] = useState('');
@@ -306,10 +308,10 @@ const BusinessGST = () => {
             {/* Quick Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Output GST Collected', value: `₹${totalOutputGSTCollected.toLocaleString()}`, icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Eligible ITC (Claimed GSTR-2B)', value: `₹${totalITCClaimable.toLocaleString()}`, icon: ArrowDownRight, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Net GST Payable Liability', value: `₹${netTaxPayable.toLocaleString()}`, icon: PercentCircle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Cumulative Taxable Sales', value: `₹${totalTaxableSales.toLocaleString()}`, icon: FileText, color: '#3B82F6', bg: '#EFF6FF' }
+                    { label: 'Total Output GST Collected', value: formatCurrency(totalOutputGSTCollected), icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Eligible ITC (Claimed GSTR-2B)', value: formatCurrency(totalITCClaimable), icon: ArrowDownRight, color: '#10B981', bg: '#ECFDF5' },
+                    { label: 'Net GST Payable Liability', value: formatCurrency(netTaxPayable), icon: PercentCircle, color: '#EF4444', bg: '#FEF2F2' },
+                    { label: 'Cumulative Taxable Sales', value: formatCurrency(totalTaxableSales), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
@@ -393,14 +395,14 @@ const BusinessGST = () => {
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '800', fontSize: '0.75rem' }}>{inv.invoice_type}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{inv.place_of_supply}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>₹{inv.taxable_value.toLocaleString()}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{formatCurrency(inv.taxable_value)}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.85rem' }}>
-                                            {inv.cgst_amount > 0 ? `₹${inv.cgst_amount.toLocaleString()} + ₹${inv.sgst_amount.toLocaleString()}` : 'N/A'}
+                                            {inv.cgst_amount > 0 ? `${formatCurrency(inv.cgst_amount)} + ${formatCurrency(inv.sgst_amount)}` : 'N/A'}
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.85rem' }}>
-                                            {inv.igst_amount > 0 ? `₹${inv.igst_amount.toLocaleString()}` : 'N/A'}
+                                            {inv.igst_amount > 0 ? formatCurrency(inv.igst_amount) : 'N/A'}
                                         </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.85rem' }}>₹{inv.total_tax.toLocaleString()} ({inv.gst_percentage}%)</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.85rem' }}>{formatCurrency(inv.total_tax)} ({inv.gst_percentage}%)</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>READY</span>
                                         </td>
@@ -465,9 +467,9 @@ const BusinessGST = () => {
                                     <tr key={rec.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{rec.vendor_gstin}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{rec.vendor_name}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>₹{rec.invoice_amount.toLocaleString()}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>₹{rec.input_cgst.toLocaleString()} / ₹{rec.input_sgst.toLocaleString()}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1D4ED8', fontSize: '0.85rem' }}>₹{rec.eligible_itc.toLocaleString()}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{formatCurrency(rec.invoice_amount)}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{formatCurrency(rec.input_cgst)} / {formatCurrency(rec.input_sgst)}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1D4ED8', fontSize: '0.85rem' }}>{formatCurrency(rec.eligible_itc)}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ 
                                                 padding: '0.2rem 0.4rem', borderRadius: '6px',
@@ -536,21 +538,21 @@ const BusinessGST = () => {
                                     <div style={{ border: '1px solid #F3E8FF', background: '#FAF5FF', borderRadius: '16px', padding: '1.25rem' }}>
                                         <h4 style={{ color: '#6B21A8', fontSize: '0.8rem', fontWeight: '850', textTransform: 'uppercase', margin: '0 0 0.75rem 0', letterSpacing: '0.03em' }}>Outward Taxable Supplies (Sales)</h4>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Taxable Value:</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.outward_taxable || 0).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Integrated Tax (IGST):</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.outward_igst || 0).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Central Tax (CGST):</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.outward_cgst || 0).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>State Tax (SGST):</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.outward_sgst || 0).toLocaleString()}</span></div>
-                                            <div style={{ marginTop: '0.4rem', borderTop: '1px dashed #E9D5FF', paddingTop: '0.4rem', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.85rem', color: '#6B21A8', fontWeight: '800' }}>Total Liability:</span><span style={{ fontSize: '1rem', fontWeight: '900', color: '#6B21A8' }}>₹{(dbGstr3b?.total_output_tax || 0).toLocaleString()}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Taxable Value:</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_taxable || 0)}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Integrated Tax (IGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_igst || 0)}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Central Tax (CGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_cgst || 0)}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>State Tax (SGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_sgst || 0)}</span></div>
+                                            <div style={{ marginTop: '0.4rem', borderTop: '1px dashed #E9D5FF', paddingTop: '0.4rem', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.85rem', color: '#6B21A8', fontWeight: '800' }}>Total Liability:</span><span style={{ fontSize: '1rem', fontWeight: '900', color: '#6B21A8' }}>{formatCurrency(dbGstr3b?.total_output_tax || 0)}</span></div>
                                         </div>
                                     </div>
                                     <div style={{ border: '1px solid #DCFCE7', background: '#F0FDF4', borderRadius: '16px', padding: '1.25rem' }}>
                                         <h4 style={{ color: '#15803D', fontSize: '0.8rem', fontWeight: '850', textTransform: 'uppercase', margin: '0 0 0.75rem 0', letterSpacing: '0.03em' }}>Eligible Input Tax Credit (ITC)</h4>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible IGST Available:</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.eligible_itc_igst || 0).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible CGST Available:</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.eligible_itc_cgst || 0).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible SGST Available:</span><span style={{ fontWeight: '800' }}>₹{(dbGstr3b?.eligible_itc_sgst || 0).toLocaleString()}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Ineligible/Blocked Credit:</span><span style={{ fontWeight: '800' }}>₹0</span></div>
-                                            <div style={{ marginTop: '0.4rem', borderTop: '1px dashed #BBF7D0', paddingTop: '0.4rem', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.85rem', color: '#15803D', fontWeight: '800' }}>Total Claimable ITC:</span><span style={{ fontSize: '1rem', fontWeight: '900', color: '#15803D' }}>₹{(dbGstr3b?.total_eligible_itc || 0).toLocaleString()}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible IGST Available:</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.eligible_itc_igst || 0)}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible Central Tax (CGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.eligible_itc_cgst || 0)}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible State Tax (SGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.eligible_itc_sgst || 0)}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Ineligible/Blocked Credit:</span><span style={{ fontWeight: '800' }}>{formatCurrency(0)}</span></div>
+                                            <div style={{ marginTop: '0.4rem', borderTop: '1px dashed #BBF7D0', paddingTop: '0.4rem', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.85rem', color: '#15803D', fontWeight: '800' }}>Total Claimable ITC:</span><span style={{ fontSize: '1rem', fontWeight: '900', color: '#15803D' }}>{formatCurrency(dbGstr3b?.total_eligible_itc || 0)}</span></div>
                                         </div>
                                     </div>
                                 </div>
@@ -566,7 +568,7 @@ const BusinessGST = () => {
                                         ].map((card, ix) => (
                                             <div key={ix} style={{ background: 'white', border: '1px solid #FCA5A5', borderRadius: '10px', padding: '0.75rem 1rem' }}>
                                                 <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B', fontWeight: '800' }}>{card.label}</p>
-                                                <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: '#991B1B' }}>₹{(card.val || 0).toLocaleString()}</h3>
+                                                <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: '#991B1B' }}>{formatCurrency(card.val)}</h3>
                                             </div>
                                         ))}
                                     </div>
@@ -615,7 +617,7 @@ const BusinessGST = () => {
                                     ].map((box, k) => (
                                         <div key={k} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1.25rem', boxSizing: 'border-box' }}>
                                             <div style={{ fontSize: '0.72rem', fontWeight: '850', textTransform: 'uppercase', color: '#64748B', marginBottom: '0.25rem' }}>{box.label}</div>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', marginBottom: '0.4rem' }}>₹{(box.val || 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', marginBottom: '0.4rem' }}>{formatCurrency(box.val)}</div>
                                             <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{box.sub}</span>
                                         </div>
                                     ))}
@@ -660,7 +662,7 @@ const BusinessGST = () => {
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Govt Tax Invoice Value:</span>
-                                    <span style={{ fontSize: '1.15rem', fontWeight: '950', color: '#1D4ED8' }}>₹{(inv.taxable_value + inv.total_tax).toLocaleString()}</span>
+                                    <span style={{ fontSize: '1.15rem', fontWeight: '950', color: '#1D4ED8' }}>{formatCurrency(inv.taxable_value + inv.total_tax)}</span>
                                 </div>
                                 {confirmingDeleteId === inv.id ? (
                                     <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
@@ -880,7 +882,7 @@ const BusinessGST = () => {
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Total Amount (INR)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Total Amount ({currency.code})</label>
                                 <input required type="number" value={reconcileForm.invoice_amount} onChange={(e) => setReconcileForm({ ...reconcileForm, invoice_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { useCurrency } from '../context';
 import { 
     FileText, 
     Plus, 
@@ -45,6 +46,7 @@ import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessBilling = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
@@ -225,7 +227,7 @@ const BusinessBilling = () => {
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
         
-        // Rule: Earn 1 point per 100₹ of final bill
+        // Rule: Earn 1 point per 100 units of final bill (in active currency)
         const earnedPts = Math.max(0, Math.floor(roundedTotal / 100));
 
         return {
@@ -675,7 +677,7 @@ const BusinessBilling = () => {
     const pendingInvoiced = invoices.filter(inv => inv.status !== 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
 
     const handleSendReminder = (invoice) => {
-        const message = `Hello ${invoice.client_name},\n\nThis is a friendly reminder regarding your invoice *${invoice.invoice_number}* for ₹*${(invoice.total_amount || invoice.amount).toLocaleString()}*.\n\nDue Date: ${invoice.due_date}\nStatus: ${invoice.status.toUpperCase()}\n\nPlease make the payment at your earliest convenience.\n\nThank you,\nCLIKS BUSINESS`;
+        const message = `Hello ${invoice.client_name},\n\nThis is a friendly reminder regarding your invoice *${invoice.invoice_number}* for *${formatCurrency(invoice.total_amount || invoice.amount)}*.\n\nDue Date: ${invoice.due_date}\nStatus: ${invoice.status.toUpperCase()}\n\nPlease make the payment at your earliest convenience.\n\nThank you,\nCLIKS BUSINESS`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };
@@ -749,9 +751,9 @@ const BusinessBilling = () => {
             {/* Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Invoiced', value: `₹${totalInvoiced.toLocaleString()}`, icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Paid Revenue', value: `₹${paidInvoiced.toLocaleString()}`, icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Outstanding Balance', value: `₹${pendingInvoiced.toLocaleString()}`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
+                    { label: 'Total Invoiced', value: formatCurrency(totalInvoiced), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Paid Revenue', value: formatCurrency(paidInvoiced), icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' },
+                    { label: 'Outstanding Balance', value: formatCurrency(pendingInvoiced), icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
                     { label: 'Active Clients', value: new Set(invoices.map(i => i.client_name)).size, icon: User, color: '#3B82F6', bg: '#EFF6FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
@@ -843,7 +845,7 @@ const BusinessBilling = () => {
                                             </td>
                                         )}
                                         <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>₹{inv.amount.toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(inv.amount)}</span>
                                         </td>
                                         <td style={{ padding: '0.75rem 1.25rem' }}>
                                             <div style={{ 
@@ -1126,9 +1128,9 @@ const BusinessBilling = () => {
                                                     {catalogProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
                                                         <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
                                                             📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
-                                                            {activeConfig.displayPurchase && ` - Purchase Price: ₹${prod.purchase_price || 0}`}
-                                                            {activeConfig.showLast5Sale && ` - Last Sale: ₹${prod.price || prod.sale_price || 0}`}
-                                                            {activeConfig.showLast5Purchase && ` - Last Purchase: ₹${prod.purchase_price || 0}`}
+                                                            {activeConfig.displayPurchase && ` - Purchase Price: ${formatCurrency(prod.purchase_price || 0)}`}
+                                                            {activeConfig.showLast5Sale && ` - Last Sale: ${formatCurrency(prod.price || prod.sale_price || 0)}`}
+                                                            {activeConfig.showLast5Purchase && ` - Last Purchase: ${formatCurrency(prod.purchase_price || 0)}`}
                                                         </option>
                                                     ))}
                                                     {/* Legacy Generic Inventory items fallback */}
@@ -1164,7 +1166,7 @@ const BusinessBilling = () => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE (₹)</label>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE ({currency.symbol})</label>
                                                 <input required type="number" value={item.price} onChange={(e) => handleItemChange(idx, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             {activeConfig.txnDiscount !== false && (
@@ -1236,7 +1238,7 @@ const BusinessBilling = () => {
                                             >
                                                 <option value="">-- Select Bank Account --</option>
                                                 {bankAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
-                                                    <option key={acc.id} value={acc.id}>{acc.bank_name} - ₹{acc.current_balance.toLocaleString()}</option>
+                                                    <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -1244,7 +1246,7 @@ const BusinessBilling = () => {
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Paid Amount (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Paid Amount ({currency.symbol})</label>
                                             <input 
                                                 type="number" 
                                                 value={formData.paid_amount || 0} 
@@ -1260,7 +1262,7 @@ const BusinessBilling = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Amount (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Amount ({currency.symbol})</label>
                                             <input 
                                                 readOnly
                                                 type="number" 
@@ -1346,7 +1348,7 @@ const BusinessBilling = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Subtotal:</span>
-                                        <span>₹ {formData.amount.toLocaleString()}</span>
+                                        <span>{formatCurrency(formData.amount)}</span>
                                     </div>
                                     {activeConfig.countItems === true && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
@@ -1356,30 +1358,30 @@ const BusinessBilling = () => {
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Total Discount:</span>
-                                        <span style={{ color: '#EF4444' }}>- ₹ {formData.discount_amount.toLocaleString()}</span>
+                                        <span style={{ color: '#EF4444' }}>- {formatCurrency(formData.discount_amount)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>GST Amount:</span>
-                                        <span>₹ {formData.tax_amount.toLocaleString()}</span>
+                                        <span>{formatCurrency(formData.tax_amount)}</span>
                                     </div>
                                     {formData.redeemed_points > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Points Redeemed:</span>
-                                            <span>- ₹ {formData.redeemed_points.toLocaleString()}</span>
+                                            <span>- {formatCurrency(formData.redeemed_points)}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
                                         <span>Round Off:</span>
-                                        <span>₹ {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
+                                        <span>{currency.symbol} {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem' }}>
                                         <span>Total:</span>
-                                        <span>₹ {formData.total_amount.toLocaleString()}</span>
+                                        <span>{formatCurrency(formData.total_amount)}</span>
                                     </div>
                                     {activeConfig.showProfitSale === true && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.35rem 0.5rem', borderRadius: '6px', marginTop: '0.2rem' }}>
                                             <span>Est. Gross Profit:</span>
-                                            <span>₹ {calculateEstimatedProfit().toLocaleString()}</span>
+                                            <span>{formatCurrency(calculateEstimatedProfit())}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
@@ -1773,14 +1775,14 @@ const BusinessBilling = () => {
                                 <div style={{ position: 'relative' }}>
                                     <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: '#BE185D', border: '3px solid #FCE7F3' }}></div>
                                     <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Invoice Generated</h4>
-                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Invoice created successfully as {selectedHistoryInvoice.invoice_type || 'GST'} with base amount ₹{selectedHistoryInvoice.amount.toLocaleString()}.</p>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Invoice created successfully as {selectedHistoryInvoice.invoice_type || 'GST'} with base amount {formatCurrency(selectedHistoryInvoice.amount)}.</p>
                                     <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>May 06, 2026 at 10:00 AM</span>
                                 </div>
                                 {/* Event 2 */}
                                 <div style={{ position: 'relative' }}>
                                     <div style={{ position: 'absolute', left: '-1.65rem', top: '0.2rem', width: '10px', height: '10px', borderRadius: '50%', background: '#1D4ED8', border: '3px solid #EFF6FF' }}></div>
                                     <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Tax & Discounts Applied</h4>
-                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>GST of ₹{(selectedHistoryInvoice.tax_amount || 0).toLocaleString()} and Discount of ₹{(selectedHistoryInvoice.discount_amount || 0).toLocaleString()} were successfully processed.</p>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>GST of {formatCurrency(selectedHistoryInvoice.tax_amount || 0)} and Discount of {formatCurrency(selectedHistoryInvoice.discount_amount || 0)} were successfully processed.</p>
                                     <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>May 06, 2026 at 10:05 AM</span>
                                 </div>
                                 {/* Event 3 */}
@@ -1789,8 +1791,8 @@ const BusinessBilling = () => {
                                     <h4 style={{ fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>Payment Status: {selectedHistoryInvoice.status.toUpperCase()}</h4>
                                     <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>
                                         {selectedHistoryInvoice.status === 'Paid' 
-                                            ? `Full payment of ₹${selectedHistoryInvoice.total_amount ? selectedHistoryInvoice.total_amount.toLocaleString() : selectedHistoryInvoice.amount.toLocaleString()} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
-                                            : `Awaiting pending payment of ₹${selectedHistoryInvoice.total_amount ? selectedHistoryInvoice.total_amount.toLocaleString() : selectedHistoryInvoice.amount.toLocaleString()} via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
+                                            ? `Full payment of ${formatCurrency(selectedHistoryInvoice.total_amount || selectedHistoryInvoice.amount)} received via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
+                                            : `Awaiting pending payment of ${formatCurrency(selectedHistoryInvoice.total_amount || selectedHistoryInvoice.amount)} via ${selectedHistoryInvoice.payment_mode || 'Cash'}.`
                                         }
                                     </p>
                                     <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '0.25rem', fontWeight: '600' }}>May 06, 2026 at 10:10 AM</span>

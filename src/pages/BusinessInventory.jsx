@@ -35,8 +35,10 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { useCurrency } from '../context';
 
 const BusinessInventory = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
@@ -353,7 +355,7 @@ const BusinessInventory = () => {
             {/* Modern Inventory Accent Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Stock Valuation (Cost)', value: `₹${totalInventoryValue.toLocaleString()}`, icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Stock Valuation (Cost)', value: formatCurrency(totalInventoryValue), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Low Stock SKU Alerts', value: lowStockCount, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
                     { label: 'Total Catalog SKUs', value: items.length, icon: Layers, color: '#3B82F6', bg: '#EFF6FF' },
                     { label: 'Total Physical Units', value: totalPhysicalUnits, icon: Package, color: '#8B5CF6', bg: '#F5F3FF' }
@@ -505,8 +507,8 @@ const BusinessInventory = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Buy: ₹{row.purchase_price.toLocaleString()}</p>
-                                                <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#064E3B' }}>Sell: ₹{row.selling_price.toLocaleString()}</span>
+                                                <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Buy: {formatCurrency(row.purchase_price)}</p>
+                                                <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#064E3B' }}>Sell: {formatCurrency(row.selling_price)}</span>
                                             </div>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
@@ -642,7 +644,7 @@ const BusinessInventory = () => {
                                         <div key={idx}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
                                                 <span style={{ color: '#1E293B' }}>{prod.name} ({prod.product_type})</span>
-                                                <span style={{ color: '#15803D' }}>Margin: {margin}% (Profit: ₹{profit.toLocaleString()})</span>
+                                                <span style={{ color: '#15803D' }}>Margin: {margin}% (Profit: {formatCurrency(profit)})</span>
                                             </div>
                                             <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
                                                 <div style={{ height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)', width: `${margin}%` }}></div>
@@ -664,16 +666,16 @@ const BusinessInventory = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Asset Valuation (At Cost):</span>
-                                    <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>₹{totalInventoryValue.toLocaleString()}</span>
+                                    <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(totalInventoryValue)}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Potential Revenue (At Sale):</span>
-                                    <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>₹{potentialRevenue.toLocaleString()}</span>
+                                    <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(potentialRevenue)}</span>
                                 </div>
                                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#34D399' }}>
                                     <span style={{ fontSize: '1rem', fontWeight: '900' }}>Unrealized Profit Pool:</span>
-                                    <span style={{ fontWeight: '950', fontSize: '1.35rem' }}>₹{(potentialRevenue - totalInventoryValue).toLocaleString()}</span>
+                                    <span style={{ fontWeight: '950', fontSize: '1.35rem' }}>{formatCurrency(potentialRevenue - totalInventoryValue)}</span>
                                 </div>
                             </div>
                         </div>
@@ -757,19 +759,19 @@ const BusinessInventory = () => {
                             {/* Pricing fields */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Purchase Cost (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Purchase Cost ({currency.symbol})</label>
                                     <input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Retail Selling (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Retail Selling ({currency.symbol})</label>
                                     <input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Wholesale Price (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Wholesale Price ({currency.symbol})</label>
                                     <input type="number" value={formData.wholesale_price} onChange={(e) => setFormData({...formData, wholesale_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Dealer Price (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Dealer Price ({currency.symbol})</label>
                                     <input type="number" value={formData.dealer_price} onChange={(e) => setFormData({...formData, dealer_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                 </div>
                             </div>

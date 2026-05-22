@@ -34,8 +34,10 @@ import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { purchasesService, productsService, suppliersService, settingsService } from '../services';
 import '../App.css';
+import { useCurrency } from '../context';
 
 const BusinessPurchases = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [bankAccounts, setBankAccounts] = useState(() => paymentsStore.getBankAccounts());
     const [activeTab, setActiveTab] = useState('purchase-orders');
     const [colFilters, setColFilters] = React.useState({}); // 'purchase-orders', 'purchase-bills', 'purchase-returns', 'reports'
@@ -429,10 +431,10 @@ const BusinessPurchases = () => {
             {/* Vyapar ERP Stats Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Outward Procurement (At Cost)', value: `₹${Math.round(totalOutwardPayments).toLocaleString()}`, icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Outward Procurement (At Cost)', value: formatCurrency(Math.round(totalOutwardPayments)), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Active PO Cycles', value: activePurchaseOrdersCount, icon: ShoppingCart, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Claimable Input Tax Credit (ITC)', value: `₹${Number(inputGstCreditSum).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
-                    { label: 'Refund Adjustments', value: `₹${Math.round(totalReturnedRefundsSum).toLocaleString()}`, icon: RefreshCw, color: '#10B981', bg: '#ECFDF5' }
+                    { label: 'Claimable Input Tax Credit (ITC)', value: formatCurrency(Number(inputGstCreditSum)), icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
+                    { label: 'Refund Adjustments', value: formatCurrency(Math.round(totalReturnedRefundsSum)), icon: RefreshCw, color: '#10B981', bg: '#ECFDF5' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
@@ -566,8 +568,8 @@ const BusinessPurchases = () => {
                                                 const totals = computeDocTotals(po.items, po.shipping_charge);
                                                 return (
                                                     <div>
-                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '1.05rem' }}>₹{totals.grand_total.toLocaleString()}</p>
-                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700' }}>Paid Adv: ₹{po.paid_amount.toLocaleString()}</span>
+                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '1.05rem' }}>{formatCurrency(totals.grand_total)}</p>
+                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700' }}>Paid Adv: {formatCurrency(po.paid_amount)}</span>
                                                     </div>
                                                 );
                                             })()}
@@ -665,7 +667,7 @@ const BusinessPurchases = () => {
                                             {bill.items.map((item, idx) => (
                                                 <div key={idx} style={{ fontSize: '0.85rem' }}>
                                                     <p style={{ fontWeight: '700', color: '#475569' }}>{item.product_name}</p>
-                                                    <span style={{ color: '#94A3B8' }}>Qty: {item.quantity} @ ₹{item.purchase_price.toLocaleString()}</span>
+                                                    <span style={{ color: '#94A3B8' }}>Qty: {item.quantity} @ {formatCurrency(item.purchase_price)}</span>
                                                 </div>
                                             ))}
                                         </td>
@@ -675,8 +677,8 @@ const BusinessPurchases = () => {
                                                 const singleTax = totals.total_tax / 2;
                                                 return (
                                                     <div style={{ fontSize: '0.85rem' }}>
-                                                        <p style={{ fontWeight: '700', color: '#1E293B' }}>CGST (9%): ₹{singleTax.toLocaleString()}</p>
-                                                        <p style={{ fontWeight: '700', color: '#1E293B' }}>SGST (9%): ₹{singleTax.toLocaleString()}</p>
+                                                        <p style={{ fontWeight: '700', color: '#1E293B' }}>CGST (9%): {formatCurrency(singleTax)}</p>
+                                                        <p style={{ fontWeight: '700', color: '#1E293B' }}>SGST (9%): {formatCurrency(singleTax)}</p>
                                                     </div>
                                                 );
                                             })()}
@@ -684,7 +686,7 @@ const BusinessPurchases = () => {
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(bill.items, bill.shipping_charge);
-                                                return <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#15803D' }}>₹{totals.grand_total.toLocaleString()}</span>;
+                                                return <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#15803D' }}>{formatCurrency(totals.grand_total)}</span>;
                                             })()}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
@@ -730,7 +732,7 @@ const BusinessPurchases = () => {
                                             ))}
                                         </td>
                                         <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
-                                            ₹{ret.returned_items.reduce((sum, i) => sum + i.refund_amount, 0).toLocaleString()}
+                                            {formatCurrency(ret.returned_items.reduce((sum, i) => sum + i.refund_amount, 0))}
                                         </td>
                                     </tr>
                                 ))}
@@ -911,7 +913,7 @@ const BusinessPurchases = () => {
                                             <input type="text" value={item.sku} onChange={(e) => handleItemChange(idx, 'sku', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="IPH-15" />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Purchase Cost (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Purchase Cost ({currency.symbol})</label>
                                             <input required type="number" value={item.purchase_price} onChange={(e) => handleItemChange(idx, 'purchase_price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
                                         </div>
                                         <div>
@@ -993,7 +995,7 @@ const BusinessPurchases = () => {
                                             >
                                                 <option value="">-- Select Bank Account --</option>
                                                 {bankAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
-                                                    <option key={acc.id} value={acc.id}>{acc.bank_name} - ₹{acc.current_balance.toLocaleString()}</option>
+                                                    <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -1001,13 +1003,13 @@ const BusinessPurchases = () => {
 
                                     {createDocType === 'PO' ? (
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Advance Payment Amount (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Advance Payment Amount ({currency.symbol})</label>
                                             <input type="number" value={formHeader.advance_amount} onChange={(e) => setFormHeader({ ...formHeader, advance_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                             <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.4rem' }}>Entering an advance payment logs instant cash outflows dynamically.</p>
                                         </div>
                                     ) : createDocType === 'BILL' ? (
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount (₹)</label>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount ({currency.symbol})</label>
                                             <input type="number" value={formHeader.paid_amount || 0} onChange={(e) => setFormHeader({ ...formHeader, paid_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                         </div>
                                     ) : null}
@@ -1020,20 +1022,20 @@ const BusinessPurchases = () => {
                                             <>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                                                     <span style={{ color: '#64748B' }}>Subtotal:</span>
-                                                    <span style={{ fontWeight: '700' }}>₹{totals.subtotal.toLocaleString()}</span>
+                                                    <span style={{ fontWeight: '700' }}>{formatCurrency(totals.subtotal)}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                                                     <span style={{ color: '#64748B' }}>Total Discount:</span>
-                                                    <span style={{ fontWeight: '700', color: '#EF4444' }}>- ₹{totals.total_discount.toLocaleString()}</span>
+                                                    <span style={{ fontWeight: '700', color: '#EF4444' }}>- {formatCurrency(totals.total_discount)}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                                                     <span style={{ color: '#64748B' }}>Input Tax (GST):</span>
-                                                    <span style={{ fontWeight: '700' }}>₹{totals.total_tax.toLocaleString()}</span>
+                                                    <span style={{ fontWeight: '700' }}>{formatCurrency(totals.total_tax)}</span>
                                                 </div>
                                                 <div style={{ height: '1px', background: '#E2E8F0', margin: '0.25rem 0' }}></div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1B6B3A' }}>
                                                     <span style={{ fontWeight: '800' }}>Grand Total Due:</span>
-                                                    <span style={{ fontWeight: '950', fontSize: '1.15rem' }}>₹{totals.grand_total.toLocaleString()}</span>
+                                                    <span style={{ fontWeight: '950', fontSize: '1.15rem' }}>{formatCurrency(totals.grand_total)}</span>
                                                 </div>
                                             </>
                                         );

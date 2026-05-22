@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '../context';
-import { 
-    LayoutDashboard, 
-    Briefcase, 
-    BarChart3, 
-    Users, 
-    TrendingUp, 
-    DollarSign, 
-    Package, 
+import {
+    LayoutDashboard,
+    Briefcase,
+    BarChart3,
+    Users,
+    TrendingUp,
+    DollarSign,
+    Package,
     ShoppingCart,
     Clock,
     Target,
@@ -47,7 +47,7 @@ const MASTER_SHORTCUTS = [
     { id: 'expenses', label: 'Add Expense', path: '/finance/expenses?create=true', icon: TrendingUp, color: '#DC2626' },
     { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: Clock, color: '#0891B2' },
     { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
-    
+
     // 🚀 Brand New Expansion Triggers
     { id: 'new_customer', label: 'Add Customer', path: '/sales/customers?create=true', icon: UserPlus, color: '#EC4899' },
     { id: 'new_purchase', label: 'New Purchase PO', path: '/purchases/purchases?create=true', icon: ShoppingCart, color: '#4338CA' },
@@ -94,8 +94,8 @@ const BusinessDashboard = () => {
 
     const toggleShortcut = (id) => {
         setSelectedShortcuts(prev => {
-            const next = prev.includes(id) 
-                ? prev.filter(s => s !== id) 
+            const next = prev.includes(id)
+                ? prev.filter(s => s !== id)
                 : [...prev, id];
             localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(next));
             return next;
@@ -130,28 +130,28 @@ const BusinessDashboard = () => {
                     purchasesService.getPurchases().catch(() => []),
                     expensesService.getExpenses().catch(() => [])
                 ]);
-                
+
                 const sList = (sales?.data || sales || []).slice(0, 5).map(s => ({
                     title: `Sales: #${s.order_number || s.id}`,
                     date: s.created_at || s.date,
                     status: 'Completed',
                     color: '#10B981'
                 }));
-                
+
                 const pList = (purchases?.data || purchases || []).slice(0, 5).map(p => ({
                     title: `Purchase: #${p.id}`,
                     date: p.created_at || p.bill_date,
                     status: p.status === 'received' ? 'Received' : (p.status || 'Processed'),
                     color: '#2563EB'
                 }));
-                
+
                 const eList = (expenses?.data || expenses || []).slice(0, 5).map(e => ({
                     title: `Expense: ${e.category || 'Operating'}`,
                     date: e.created_at || e.date,
                     status: 'Settled',
                     color: '#EF4444'
                 }));
-                
+
                 return [...sList, ...pList, ...eList]
                     .filter(item => item.date)
                     .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -184,15 +184,15 @@ const BusinessDashboard = () => {
         { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: DollarSign, color: '#1B6B3A' },
         { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? formatCurrency(summary.total_purchases) : formatCurrency(0), change: 'Live', icon: Briefcase, color: '#064E3B' },
         { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? formatCurrency(summary.total_expenses) : formatCurrency(0), change: 'Live', icon: TrendingUp, color: '#059669' },
-        { 
-            label: 'Est. Net Profit', 
+        {
+            label: 'Est. Net Profit',
             value: (() => {
                 const profit = (summary?.total_sales || 0) - (summary?.total_purchases || 0) - (summary?.total_expenses || 0);
                 return formatCurrency(profit);
-            })(), 
-            change: 'Live', 
-            icon: ArrowUpRight, 
-            color: '#10B981' 
+            })(),
+            change: 'Live',
+            icon: ArrowUpRight,
+            color: '#10B981'
         }
     ];
 
@@ -207,22 +207,22 @@ const BusinessDashboard = () => {
                 <div className="dashboard-header-actions">
                     <div className="dashboard-search-wrapper">
                         <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                        <input 
-                            type="text" 
-                            placeholder="Search analytics..." 
+                        <input
+                            type="text"
+                            placeholder="Search analytics..."
                             className="dashboard-search-input"
                         />
                     </div>
 
-                    <button 
+                    <button
                         onClick={() => setIsModalOpen(true)}
-                        style={{ 
-                            padding: '0.65rem 1.5rem', 
-                            borderRadius: '12px', 
-                            background: '#1B6B3A', 
-                            color: 'white', 
-                            border: 'none', 
-                            fontWeight: '700', 
+                        style={{
+                            padding: '0.65rem 1.5rem',
+                            borderRadius: '12px',
+                            background: '#1B6B3A',
+                            color: 'white',
+                            border: 'none',
+                            fontWeight: '700',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -239,222 +239,222 @@ const BusinessDashboard = () => {
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
                 {/* Stats Grid */}
                 <div className="dashboard-stats-grid">
-                {stats.map((stat, idx) => (
-                    <div key={idx} className="dashboard-stat-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
-                                <stat.icon size={20} />
-                            </div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#059669', background: '#F0FDF4', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>{stat.change}</span>
-                        </div>
-                        <h3 style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</h3>
-                        <p style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{stat.value}</p>
-                    </div>
-                ))}
-            </div>
-
-            {/* Quick Actions Row */}
-            <div style={{ marginTop: '2.25rem', marginBottom: '2.25rem' }}>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', marginBottom: '1.25rem', letterSpacing: '-0.3px' }}>Quick Action Center</h2>
-                
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    {MASTER_SHORTCUTS.filter(s => selectedShortcuts.includes(s.id)).map(shortcut => {
-                        const Icon = shortcut.icon;
-                        return (
-                            <button
-                                key={shortcut.id}
-                                onClick={() => navigate(shortcut.path)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.85rem',
-                                    padding: '0.75rem 1.25rem',
-                                    borderRadius: '16px',
-                                    background: 'white',
-                                    border: '1px solid #E2E8F0',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-3px)';
-                                    e.currentTarget.style.boxShadow = '0 12px 20px -8px rgba(0,0,0,0.08)';
-                                    e.currentTarget.style.borderColor = shortcut.color;
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
-                                    e.currentTarget.style.borderColor = '#E2E8F0';
-                                }}
-                            >
-                                <div style={{ 
-                                    width: '32px', 
-                                    height: '32px', 
-                                    borderRadius: '10px', 
-                                    background: `${shortcut.color}12`, 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center', 
-                                    color: shortcut.color 
-                                }}>
-                                    <Icon size={16} strokeWidth={2.5} />
+                    {stats.map((stat, idx) => (
+                        <div key={idx} className="dashboard-stat-card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                                    <stat.icon size={20} />
                                 </div>
-                                <span style={{ fontWeight: '750', fontSize: '0.9rem', color: '#1E293B' }}>{shortcut.label}</span>
-                            </button>
-                        );
-                    })}
-                    
-                    {/* Add/Manage Button Card */}
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: '16px',
-                            background: 'transparent',
-                            border: '2px dashed #CBD5E1',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            color: '#64748B'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.borderColor = '#1B6B3A';
-                            e.currentTarget.style.color = '#1B6B3A';
-                            e.currentTarget.style.background = '#F0FDF4';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.borderColor = '#CBD5E1';
-                            e.currentTarget.style.color = '#64748B';
-                            e.currentTarget.style.background = 'transparent';
-                        }}
-                    >
-                        <Plus size={16} strokeWidth={2.5} />
-                        <span style={{ fontWeight: '750', fontSize: '0.9rem' }}>Manage Shortcuts</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Charts & Activity */}
-            <div className="content-grid">
-                <div className="dashboard-main-col">
-                    {/* Revenue Chart */}
-                    <div className="dashboard-chart-card">
-                        <div className="dashboard-chart-header">
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B' }}>Revenue Performance</h2>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#1B6B3A' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1B6B3A' }} /> Sales
-                                </span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#DCF2E4' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#DCF2E4' }} /> Services
-                                </span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#059669', background: '#F0FDF4', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>{stat.change}</span>
                             </div>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</h3>
+                            <p style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{stat.value}</p>
                         </div>
-                        <div className="dashboard-chart-bars-container">
-                            {(() => {
-                                const salesData = chartSales?.data || Array(12).fill(0);
-                                const maxSales = Math.max(...salesData, 1000);
-                                return salesData.map((val, i) => {
-                                    const heightPct = val > 0 ? (val / maxSales) * 100 : 5;
-                                    return (
-                                        <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                                            <div style={{ height: `${heightPct}%`, width: '100%', background: 'linear-gradient(to top, #1B6B3A, #064E3B)', borderRadius: '8px 8px 4px 4px', position: 'relative' }}>
-                                                {val > 0 && (
-                                                    <div style={{ position: 'absolute', top: '-30px', left: '50%', transform: 'translateX(-50%)', background: '#064E3B', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
-                                                        ₹{val >= 100000 ? `${(val / 100000).toFixed(1)}L` : `${(val / 1000).toFixed(1)}k`}
-                                                    </div>
-                                                )}
+                    ))}
+                </div>
+
+                {/* Quick Actions Row */}
+                <div style={{ marginTop: '2.25rem', marginBottom: '2.25rem' }}>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', marginBottom: '1.25rem', letterSpacing: '-0.3px' }}>Quick Action Center</h2>
+
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        {MASTER_SHORTCUTS.filter(s => selectedShortcuts.includes(s.id)).map(shortcut => {
+                            const Icon = shortcut.icon;
+                            return (
+                                <button
+                                    key={shortcut.id}
+                                    onClick={() => navigate(shortcut.path)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.85rem',
+                                        padding: '0.75rem 1.25rem',
+                                        borderRadius: '16px',
+                                        background: 'white',
+                                        border: '1px solid #E2E8F0',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-3px)';
+                                        e.currentTarget.style.boxShadow = '0 12px 20px -8px rgba(0,0,0,0.08)';
+                                        e.currentTarget.style.borderColor = shortcut.color;
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
+                                        e.currentTarget.style.borderColor = '#E2E8F0';
+                                    }}
+                                >
+                                    <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '10px',
+                                        background: `${shortcut.color}12`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: shortcut.color
+                                    }}>
+                                        <Icon size={16} strokeWidth={2.5} />
+                                    </div>
+                                    <span style={{ fontWeight: '750', fontSize: '0.9rem', color: '#1E293B' }}>{shortcut.label}</span>
+                                </button>
+                            );
+                        })}
+
+                        {/* Add/Manage Button Card */}
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                padding: '0.75rem 1.25rem',
+                                borderRadius: '16px',
+                                background: 'transparent',
+                                border: '2px dashed #CBD5E1',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                color: '#64748B'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.borderColor = '#1B6B3A';
+                                e.currentTarget.style.color = '#1B6B3A';
+                                e.currentTarget.style.background = '#F0FDF4';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.borderColor = '#CBD5E1';
+                                e.currentTarget.style.color = '#64748B';
+                                e.currentTarget.style.background = 'transparent';
+                            }}
+                        >
+                            <Plus size={16} strokeWidth={2.5} />
+                            <span style={{ fontWeight: '750', fontSize: '0.9rem' }}>Manage Shortcuts</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Charts & Activity */}
+                <div className="content-grid">
+                    <div className="dashboard-main-col">
+                        {/* Revenue Chart */}
+                        <div className="dashboard-chart-card">
+                            <div className="dashboard-chart-header">
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B' }}>Revenue Performance</h2>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#1B6B3A' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1B6B3A' }} /> Sales
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#DCF2E4' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#DCF2E4' }} /> Services
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="dashboard-chart-bars-container">
+                                {(() => {
+                                    const salesData = chartSales?.data || Array(12).fill(0);
+                                    const maxSales = Math.max(...salesData, 1000);
+                                    return salesData.map((val, i) => {
+                                        const heightPct = val > 0 ? (val / maxSales) * 100 : 5;
+                                        return (
+                                            <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+                                                <div style={{ height: `${heightPct}%`, width: '100%', background: 'linear-gradient(to top, #1B6B3A, #064E3B)', borderRadius: '8px 8px 4px 4px', position: 'relative' }}>
+                                                    {val > 0 && (
+                                                        <div style={{ position: 'absolute', top: '-30px', left: '50%', transform: 'translateX(-50%)', background: '#064E3B', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                                            {formatCurrency(val)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: '700', color: '#94A3B8', textAlign: 'center' }}>
+                                                    {['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][i]}
+                                                </span>
                                             </div>
-                                            <span style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: '700', color: '#94A3B8', textAlign: 'center' }}>
-                                                {['J','F','M','A','M','J','J','A','S','O','N','D'][i]}
-                                            </span>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Top Performing Products */}
+                        <div className="dashboard-chart-card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', margin: 0 }}>Top Performing Products</h2>
+                                <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase' }}>Volume Matrix</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {topProducts && topProducts.length > 0 ? (
+                                    (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
+                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4' }}>
+                                                #{idx + 1}
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0' }}>{prod.name || 'Active Item'}</h4>
+                                                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, fontWeight: '650' }}>Sold: <span style={{ color: '#064E3B', fontWeight: '800' }}>{prod.total_quantity || prod.sold || 0} pcs</span></p>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(prod.total_sales || 0)}</div>
+                                                <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Revenue Driver</span>
+                                            </div>
                                         </div>
-                                    );
-                                });
-                            })()}
+                                    ))
+                                ) : (
+                                    <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #CBD5E1', borderRadius: '16px' }}>
+                                        No product sales analytics logged yet.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Top Performing Products */}
-                    <div className="dashboard-chart-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', margin: 0 }}>Top Performing Products</h2>
-                            <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase' }}>Volume Matrix</span>
+                    {/* Side Widgets */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div className="dashboard-goal-card">
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                                    <Target size={20} />
+                                </div>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '0.5rem' }}>Enterprise Goal</h3>
+                                <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '2rem' }}>You've achieved 82% of your quarterly revenue target.</p>
+                                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', marginBottom: '1rem', overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: '82%', background: 'white' }} />
+                                </div>
+                                <button style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'white', color: '#064E3B', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer' }}>View Strategy</button>
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {topProducts && topProducts.length > 0 ? (
-                                (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
-                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4' }}>
-                                            #{idx + 1}
-                                        </div>
+
+                        <div className="dashboard-ops-card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B' }}>Recent Ops</h3>
+                                <Clock size={18} color="#94A3B8" />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                {recentOps && recentOps.length > 0 ? recentOps.map((op, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: op.color }} />
                                         <div style={{ flex: 1 }}>
-                                            <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0' }}>{prod.name || 'Active Item'}</h4>
-                                            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, fontWeight: '650' }}>Sold: <span style={{ color: '#064E3B', fontWeight: '800' }}>{prod.total_quantity || prod.sold || 0} pcs</span></p>
+                                            <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#334155' }}>{op.title}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{formatTimeAgo(op.date)}</span>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>₹{(prod.total_sales || 0).toLocaleString()}</div>
-                                            <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Revenue Driver</span>
-                                        </div>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: op.color }}>{op.status}</span>
                                     </div>
-                                ))
-                            ) : (
-                                <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #CBD5E1', borderRadius: '16px' }}>
-                                    No product sales analytics logged yet.
-                                </div>
-                            )}
+                                )) : (
+                                    <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
+                                        No live operations recorded.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Side Widgets */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div className="dashboard-goal-card">
-                        <div style={{ position: 'relative', zIndex: 1 }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                                <Target size={20} />
-                            </div>
-                            <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '0.5rem' }}>Enterprise Goal</h3>
-                            <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '2rem' }}>You've achieved 82% of your quarterly revenue target.</p>
-                            <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', marginBottom: '1rem', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: '82%', background: 'white' }} />
-                            </div>
-                            <button style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'white', color: '#064E3B', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer' }}>View Strategy</button>
-                        </div>
-                    </div>
-
-                    <div className="dashboard-ops-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B' }}>Recent Ops</h3>
-                            <Clock size={18} color="#94A3B8" />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            {recentOps && recentOps.length > 0 ? recentOps.map((op, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: op.color }} />
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#334155' }}>{op.title}</p>
-                                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{formatTimeAgo(op.date)}</span>
-                                    </div>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: op.color }}>{op.status}</span>
-                                </div>
-                            )) : (
-                                <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
-                                    No live operations recorded.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
             </div>
 
             {/* Customisation Modal Overlay */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -470,10 +470,10 @@ const BusinessDashboard = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             zIndex: 9999,
-                        }} 
+                        }}
                         onClick={() => setIsModalOpen(false)}
                     >
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 25 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 25 }}
@@ -493,7 +493,7 @@ const BusinessDashboard = () => {
                                     <h2 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.5px' }}>Configure Quick Actions</h2>
                                     <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.4 }}>Pin your most frequent workflows straight to the Dashboard overview.</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setIsModalOpen(false)}
                                     style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', cursor: 'pointer', flexShrink: 0 }}
                                 >
@@ -506,7 +506,7 @@ const BusinessDashboard = () => {
                                     const Icon = shortcut.icon;
                                     const isActive = selectedShortcuts.includes(shortcut.id);
                                     return (
-                                        <div 
+                                        <div
                                             key={shortcut.id}
                                             onClick={() => toggleShortcut(shortcut.id)}
                                             style={{
@@ -529,15 +529,15 @@ const BusinessDashboard = () => {
                                             }}
                                         >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                                                <div style={{ 
-                                                    width: '38px', 
-                                                    height: '38px', 
-                                                    borderRadius: '10px', 
-                                                    background: isActive ? `${shortcut.color}15` : 'white', 
+                                                <div style={{
+                                                    width: '38px',
+                                                    height: '38px',
+                                                    borderRadius: '10px',
+                                                    background: isActive ? `${shortcut.color}15` : 'white',
                                                     border: isActive ? 'none' : '1px solid #E2E8F0',
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
                                                     color: isActive ? shortcut.color : '#94A3B8'
                                                 }}>
                                                     <Icon size={18} strokeWidth={2.5} />
@@ -546,7 +546,7 @@ const BusinessDashboard = () => {
                                                     <span style={{ fontWeight: '800', fontSize: '0.92rem', color: '#1E293B' }}>{shortcut.label}</span>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Checkbox Switch Indicator */}
                                             <div style={{
                                                 width: '22px',
@@ -567,18 +567,18 @@ const BusinessDashboard = () => {
                                 })}
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => setIsModalOpen(false)}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '1rem', 
-                                    borderRadius: '16px', 
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
-                                    color: 'white', 
-                                    fontWeight: '850', 
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem',
+                                    borderRadius: '16px',
+                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
+                                    color: 'white',
+                                    fontWeight: '850',
                                     fontSize: '0.95rem',
-                                    border: 'none', 
-                                    cursor: 'pointer', 
+                                    border: 'none',
+                                    cursor: 'pointer',
                                     boxShadow: '0 10px 20px -5px rgba(27, 107, 58, 0.35)',
                                     letterSpacing: '0.2px'
                                 }}
