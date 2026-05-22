@@ -62,6 +62,7 @@ export default function BusinessCA() {
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+    const [newTaskAskForDocument, setNewTaskAskForDocument] = useState(false);
 
     const { data: practiceTimesheets = [], refetch: refetchTimesheets } = useQuery({
         queryKey: ['practiceTimesheets'],
@@ -180,7 +181,8 @@ export default function BusinessCA() {
             clientName: newTaskClient,
             title: newTaskTitle.trim(),
             priority: newTaskPriority,
-            dueDate: newTaskDueDate || new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString().split('T')[0]
+            dueDate: newTaskDueDate || new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString().split('T')[0],
+            askForDocument: newTaskAskForDocument
         });
     };
 
@@ -431,6 +433,7 @@ export default function BusinessCA() {
             setShowAddTaskModal(false);
             setNewTaskTitle('');
             setNewTaskDueDate('');
+            setNewTaskAskForDocument(false);
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to add task')
     });
@@ -441,6 +444,14 @@ export default function BusinessCA() {
             refetchTasks();
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to update task status')
+    });
+
+    const uploadTaskDocMutation = useMutation({
+        mutationFn: (id) => caService.uploadTaskDoc(id),
+        onSuccess: () => {
+            refetchTasks();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload task document')
     });
 
     const addTimesheetMutation = useMutation({
@@ -767,27 +778,53 @@ export default function BusinessCA() {
                                                                     }}>{task.priority}</span>
                                                                 </td>
                                                                 <td style={{ padding: '16px 20px' }}>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => toggleTaskStatus(task.id)}
-                                                                        style={{
-                                                                            display: 'inline-flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '6px',
-                                                                            padding: '6px 12px',
-                                                                            borderRadius: '8px',
-                                                                            border: '1.5px solid',
-                                                                            borderColor: task.status === 'Completed' ? '#BBF7D0' : (task.status === 'In Progress' ? '#BFDBFE' : '#CBD5E1'),
-                                                                            background: task.status === 'Completed' ? '#F0FDF4' : (task.status === 'In Progress' ? '#EFF6FF' : 'transparent'),
-                                                                            color: task.status === 'Completed' ? '#15803d' : (task.status === 'In Progress' ? '#1D4ED8' : '#475569'),
-                                                                            fontWeight: '800',
-                                                                            fontSize: '12px',
-                                                                            cursor: 'pointer',
-                                                                            transition: 'all 0.2s'
-                                                                        }}
-                                                                    >
-                                                                        {task.status === 'Completed' ? '✓ Completed' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')}
-                                                                    </button>
+                                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => toggleTaskStatus(task.id)}
+                                                                            style={{
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '6px',
+                                                                                padding: '6px 12px',
+                                                                                borderRadius: '8px',
+                                                                                border: '1.5px solid',
+                                                                                borderColor: task.status === 'Completed' ? '#BBF7D0' : (task.status === 'In Progress' ? '#BFDBFE' : '#CBD5E1'),
+                                                                                background: task.status === 'Completed' ? '#F0FDF4' : (task.status === 'In Progress' ? '#EFF6FF' : 'transparent'),
+                                                                                color: task.status === 'Completed' ? '#15803d' : (task.status === 'In Progress' ? '#1D4ED8' : '#475569'),
+                                                                                fontWeight: '800',
+                                                                                fontSize: '12px',
+                                                                                cursor: 'pointer',
+                                                                                transition: 'all 0.2s'
+                                                                            }}
+                                                                        >
+                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')}
+                                                                        </button>
+                                                                        {task.askForDocument && (
+                                                                            task.attachedFile ? (
+                                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                    <CheckCircle2 size={14} /> Uploaded
+                                                                                </span>
+                                                                            ) : (
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    onClick={() => uploadTaskDocMutation.mutate(task.id)}
+                                                                                    style={{
+                                                                                        padding: '6px 12px',
+                                                                                        borderRadius: '8px',
+                                                                                        background: '#0F172A',
+                                                                                        color: '#FFFFFF',
+                                                                                        border: 'none',
+                                                                                        fontWeight: '800',
+                                                                                        fontSize: '12px',
+                                                                                        cursor: 'pointer'
+                                                                                    }}
+                                                                                >
+                                                                                    Upload Document
+                                                                                </button>
+                                                                            )
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -2420,6 +2457,11 @@ export default function BusinessCA() {
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DUE DATE</label>
                                         <input type="date" value={newTaskDueDate} onChange={e=>setNewTaskDueDate(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', color: '#475569', outline: 'none' }} />
                                     </div>
+                                </div>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                    <input type="checkbox" id="askDocCheck" checked={newTaskAskForDocument} onChange={e=>setNewTaskAskForDocument(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#15803d', cursor: 'pointer' }} />
+                                    <label htmlFor="askDocCheck" style={{ fontSize: '12.5px', fontWeight: '750', color: '#334155', cursor: 'pointer' }}>Require document upload from client</label>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>

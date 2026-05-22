@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-    reportsService, 
-    stockService, 
-    warehouseService, 
-    crmService, 
-    suppliersService, 
-    gstService, 
-    returnsService, 
+import {
+    reportsService,
+    stockService,
+    warehouseService,
+    crmService,
+    suppliersService,
+    gstService,
+    returnsService,
     expensesService,
-    purchasesService 
+    purchasesService
 } from '../services';
-import { 
-    BarChart3, 
-    TrendingUp, 
-    Package, 
-    Users, 
-    ArrowRight, 
-    Download, 
+import {
+    BarChart3,
+    TrendingUp,
+    Package,
+    Users,
+    ArrowRight,
+    Download,
     Filter,
     Calendar,
     ChevronRight,
@@ -57,7 +57,7 @@ const BusinessReports = () => {
         queryFn: async () => {
             if (!selectedReport) return null;
             const id = selectedReport.id;
-            
+
             try {
                 // Core Reports
                 if (id === 1) return await reportsService.getSales();
@@ -71,7 +71,7 @@ const BusinessReports = () => {
                     const stocks = await stockService.getStocks();
                     const rawList = stocks?.data || stocks || [];
                     if (id === 5) return rawList.filter(s => (s.quantity || 0) <= (s.min_stock || 10));
-                    if (id === 16) return rawList.filter(s => (s.quantity || 0) > 0); 
+                    if (id === 16) return rawList.filter(s => (s.quantity || 0) > 0);
                     return rawList;
                 }
 
@@ -136,7 +136,7 @@ const BusinessReports = () => {
                         return { consolidated_turnover: 0, total_tax_paid_outward: 0, total_itc_availed: 0, fiscal_year: 'FY 2025-26' };
                     }
                 }
-                
+
                 // Expense Audit Module
                 if (id === 19) {
                     const ex = await expensesService.getExpenses();
@@ -186,7 +186,7 @@ const BusinessReports = () => {
                         return raw.filter(p => p.payment_status === 'unpaid' || p.payment_status === 'partial' || (p.balance_due || 0) > 0);
                     }
                 }
-                
+
                 // ── Daily Book (Combined Sales & Expenses chronologically)
                 if (id === 28) {
                     const [sales, expenses] = await Promise.all([
@@ -396,7 +396,7 @@ const BusinessReports = () => {
                 const dateStr = item.date || item.created_at || item.invoice_date || item.bill_date || item.createdAt || item.voucher_date || item.date_added;
                 if (!dateStr) return true;
                 const itemDate = new Date(dateStr);
-                if (isNaN(itemDate.getTime())) return true; 
+                if (isNaN(itemDate.getTime())) return true;
                 if (start && itemDate < start) return false;
                 if (end && itemDate > end) return false;
                 return true;
@@ -451,7 +451,7 @@ const BusinessReports = () => {
         { id: 36, title: 'Item-wise Discount', desc: 'Audit of discounts assigned per inventory line item.', category: 'sales', icon: PieChart },
         { id: 13, title: 'Sales Agent Commissions', desc: 'Track performance and payouts for agents.', category: 'sales', icon: ArrowUpRight },
         { id: 14, title: 'Sales Returns Analysis', desc: 'Audit of product returns and refund ratios.', category: 'sales', icon: ArrowDownRight },
-        
+
         // Purchase Reports
         { id: 24, title: 'Purchases Register', desc: 'Daily and monthly outward buying totals.', category: 'purchase', icon: ShoppingBag },
         { id: 25, title: 'Vendor-wise Procurement', desc: 'Breakdown of totals sourced per supplier.', category: 'purchase', icon: Building2 },
@@ -495,16 +495,16 @@ const BusinessReports = () => {
         { id: 20, title: 'Cash Flow Statement', desc: 'Tracking inward & outward liquidity flow.', category: 'accounting', icon: TrendingUp }
     ];
 
-    const filteredReports = activeCategory === 'all' 
-        ? allReports 
+    const filteredReports = activeCategory === 'all'
+        ? allReports
         : allReports.filter(r => r.category === activeCategory);
 
     const renderReportCard = (report) => (
-        <div 
-            key={report.id} 
+        <div
+            key={report.id}
             onClick={() => handleSelectReport(report)}
-            style={{ 
-                background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
+            style={{
+                background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0',
                 transition: 'all 0.3s', cursor: 'pointer', position: 'relative', overflow: 'hidden'
             }}
             onMouseEnter={(e) => {
@@ -521,7 +521,7 @@ const BusinessReports = () => {
             </div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.4rem', margin: 0 }}>{report.title}</h3>
             <p style={{ fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', marginBottom: '1rem', margin: 0 }}>{report.desc}</p>
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem' }}>
                 <button style={{ color: '#BE185D', background: 'transparent', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}>
                     VIEW REPORT <ChevronRight size={14} />
@@ -570,12 +570,12 @@ const BusinessReports = () => {
             {/* Category Switcher */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
                 {reportCategories.map(cat => (
-                    <button 
+                    <button
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
-                        style={{ 
-                            padding: '0.6rem 1.25rem', borderRadius: '10px', 
-                            background: activeCategory === cat.id ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'transparent', 
+                        style={{
+                            padding: '0.6rem 1.25rem', borderRadius: '10px',
+                            background: activeCategory === cat.id ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'transparent',
                             color: activeCategory === cat.id ? 'white' : '#64748B',
                             border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -587,7 +587,7 @@ const BusinessReports = () => {
                     </button>
                 ))}
             </div>
-            
+
             {/* Central Auto-Scrolling Frame */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '0.5rem' }} className="custom-scrollbar">
                 {activeCategory === 'all' ? (
@@ -641,25 +641,25 @@ const BusinessReports = () => {
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
                                 <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
-                                    <input 
-                                        type="date" 
-                                        value={startDate} 
-                                        onChange={(e) => setStartDate(e.target.value)} 
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
                                         style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                                 <span style={{ fontSize: '0.65rem', color: '#94A3B8', alignSelf: 'center', fontWeight: '850' }}>TO</span>
                                 <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
-                                    <input 
-                                        type="date" 
-                                        value={endDate} 
-                                        onChange={(e) => setEndDate(e.target.value)} 
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
                                         style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                             </div>
                             {(startDate || endDate) && (
-                                <button 
+                                <button
                                     onClick={() => { setStartDate(''); setEndDate(''); }}
                                     style={{ padding: '0.4rem 0.75rem', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: '6px', fontWeight: '900', fontSize: '0.68rem', cursor: 'pointer', textTransform: 'uppercase' }}
                                 >
@@ -802,7 +802,7 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.product_name || row.name || 'Unnamed Stock'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.sku || `SKU-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.sku || `SKU-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: (row.quantity <= (row.min_stock || 10)) ? '#EF4444' : '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>{row.quantity || 0} units</td>
                                                     </tr>
                                                 )) : (
@@ -905,7 +905,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || `TAX-OUT-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || `TAX-OUT-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.place_of_supply || 'Intra-State (Local)'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#6D28D9', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.tax_amount)}</td>
                                                     </tr>
@@ -931,7 +931,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.party_name || row.supplier_name || `Vendor Ref #${100+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.party_name || row.supplier_name || `Vendor Ref #${100 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#64748B' }}>
                                                             <span style={{ background: '#DCFCE7', color: '#16A34A', padding: '0.2rem 0.4rem', borderRadius: '4px', fontWeight: '800', fontSize: '0.7rem' }}>
                                                                 {row.status || 'RECONCILED'}
@@ -1047,7 +1047,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || row.bill_no || `PUR-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || row.bill_no || `PUR-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.supplier_name || row.Supplier?.company_name || 'Primary Sourced Distributor'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_amount || row.total)}</td>
                                                     </tr>
@@ -1099,11 +1099,11 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `PUR-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `PUR-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
-                                                            <span style={{ 
-                                                                background: row.payment_status === 'paid' ? '#DCFCE7' : '#FFFBEB', 
-                                                                color: row.payment_status === 'paid' ? '#16A34A' : '#D97706', 
+                                                            <span style={{
+                                                                background: row.payment_status === 'paid' ? '#DCFCE7' : '#FFFBEB',
+                                                                color: row.payment_status === 'paid' ? '#16A34A' : '#D97706',
                                                                 padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: '800', fontSize: '0.7rem', textTransform: 'uppercase'
                                                             }}>
                                                                 {row.payment_status || 'Settle-Sync'}
@@ -1133,7 +1133,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `DUE-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `DUE-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#EF4444', fontWeight: '750', textTransform: 'uppercase' }}>PENDING CREDIT</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.balance_due || row.due_amount || row.total_amount)}</td>
                                                     </tr>
@@ -1159,7 +1159,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.return_number || `RET-${1000+idx}`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.return_number || `RET-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.reason || 'Product defect / Damage'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EA580C', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_amount)}</td>
                                                     </tr>
@@ -1221,7 +1221,7 @@ const BusinessReports = () => {
                                                     const val = parseFloat(row.amount || row.total || 0);
                                                     return (
                                                         <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || row.order_id || `INV-${100+idx}`}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || row.order_id || `INV-${100 + idx}`}</td>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{formatCurrency(val)}</td>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1D4ED8', fontSize: '0.85rem' }}>{row.agent_name || 'Senior Field Executive'}</td>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(val * 0.05)}</td>

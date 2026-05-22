@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
-import { 
-    Users, 
-    UserPlus, 
-    Search, 
-    Filter, 
-    MoreHorizontal, 
-    Mail, 
-    Phone, 
+import {
+    Users,
+    UserPlus,
+    Search,
+    Filter,
+    MoreHorizontal,
+    Mail,
+    Phone,
     Briefcase,
     TrendingUp,
     Clock,
@@ -268,7 +268,7 @@ const BusinessStaffing = () => {
         }
     };
 
-    const filteredEmployees = employees.filter(emp => 
+    const filteredEmployees = employees.filter(emp =>
         `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.department_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -295,13 +295,13 @@ const BusinessStaffing = () => {
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage whole workforce life cycle: Central Profiles database, Employment designations, Payroll PF/ESI bank accounts, Leaves, Shifts, and Performance ratings.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button 
+                    <button
                         onClick={() => setIsPerformanceModalOpen(true)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Award size={15} /> File Appraisal Review
                     </button>
-                    <button 
+                    <button
                         onClick={() => setIsOnboardModalOpen(true)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
                     >
@@ -322,15 +322,15 @@ const BusinessStaffing = () => {
                     <div key={idx} className="stat-card" style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '1.25rem 1.5rem 1.25rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', gap: '1rem' }}>
                         {/* Left Accent Pillar */}
                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '5px', background: stat.color }} />
-                        
+
                         {/* Circular Icon Container */}
                         <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
                             <stat.icon size={22} />
                         </div>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-                             <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
-                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.01em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                            <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.01em' }}>{stat.label}</p>
                         </div>
                     </div>
                 ))}
@@ -345,12 +345,12 @@ const BusinessStaffing = () => {
                     { id: 'leaves', label: 'Leaves & Shifts Rosters', icon: Calendar, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
                     { id: 'performance', label: 'Performance Appraisals', icon: Award, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' }
                 ].map(tab => (
-                    <button 
+                    <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        style={{ 
-                            padding: '0.5rem 1rem', borderRadius: '8px', 
-                            background: activeTab === tab.id ? tab.gradient : 'white', 
+                        style={{
+                            padding: '0.5rem 1rem', borderRadius: '8px',
+                            background: activeTab === tab.id ? tab.gradient : 'white',
                             color: activeTab === tab.id ? 'white' : '#64748B',
                             border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -361,211 +361,211 @@ const BusinessStaffing = () => {
                     </button>
                 ))}
             </div>
-            
+
             {/* Central Auto-Scrolling Frame */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
-            {/* Tab 1: Employee Profiles */}
-            {activeTab === 'profiles' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                            <input 
-                                type="text" 
-                                placeholder="Search employees by name..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
-                            />
+                {/* Tab 1: Employee Profiles */}
+                {activeTab === 'profiles' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                            <div style={{ position: 'relative', width: '400px' }}>
+                                <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search employees by name..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'name', label: 'Employee Profile', placeholder: 'Name' },
+                                    { key: 'employee_id', label: 'ID / Code', placeholder: 'EMP-' },
+                                    { key: 'contact', label: 'Contact Info', placeholder: 'Phone/Email' },
+                                    { key: 'emergency', label: 'Emergency Person', placeholder: 'Name' },
+                                    { key: 'personal', label: 'Personal Info', placeholder: 'DOB' },
+                                    { key: 'location', label: 'Work Location', placeholder: 'City' },
+                                    { key: '_actions', label: 'Action', noFilter: true }
+                                ]} onFilterChange={setColFilters} />
+                                <tbody>
+                                    {filteredEmployees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
+                                        <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800' }}>
+                                                        {emp.first_name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p style={{ fontWeight: '800', color: '#1E293B' }}>{emp.first_name} {emp.last_name}</p>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Joined: {emp.joining_date}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#064E3B' }}>{emp.employee_code}</td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.phone_number}</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.email}</span>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.emergency_contact_name}</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.emergency_contact_number}</span>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.date_of_birth} ({emp.gender})</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#E11D48', fontWeight: '800' }}>Blood group: {emp.blood_group}</span>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.address_line_1}</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.city}, {emp.state} ({emp.pincode})</span>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                                <button
+                                                    onClick={() => handleDeleteEmployee(emp.employee_id)}
+                                                    style={{ border: 'none', background: '#FEF2F2', padding: '0.5rem', borderRadius: '10px', color: '#EF4444', cursor: 'pointer' }}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+                )}
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                {/* Tab 2: Hierarchy & Employment */}
+                {activeTab === 'employment' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Organizational Structure & Hierarchy</h3>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <FilterableTableHead columns={[
-        { key: 'name', label: 'Employee Profile', placeholder: 'Name' },
-        { key: 'employee_id', label: 'ID / Code', placeholder: 'EMP-' },
-        { key: 'contact', label: 'Contact Info', placeholder: 'Phone/Email' },
-        { key: 'emergency', label: 'Emergency Person', placeholder: 'Name' },
-        { key: 'personal', label: 'Personal Info', placeholder: 'DOB' },
-        { key: 'location', label: 'Work Location', placeholder: 'City' },
-        { key: '_actions', label: 'Action', noFilter: true }
-    ]} onFilterChange={setColFilters} />
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Department</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Designation Roles</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reporting Manager</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employment Type</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                {filteredEmployees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
+                                {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
                                     <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800' }}>
-                                                    {emp.first_name.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <p style={{ fontWeight: '800', color: '#1E293B' }}>{emp.first_name} {emp.last_name}</p>
-                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Joined: {emp.joining_date}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#064E3B' }}>{emp.employee_code}</td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.phone_number}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.email}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.emergency_contact_name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.emergency_contact_number}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.date_of_birth} ({emp.gender})</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#E11D48', fontWeight: '800' }}>Blood group: {emp.blood_group}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.address_line_1}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.city}, {emp.state} ({emp.pincode})</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <button 
-                                                onClick={() => handleDeleteEmployee(emp.employee_id)}
-                                                style={{ border: 'none', background: '#FEF2F2', padding: '0.5rem', borderRadius: '10px', color: '#EF4444', cursor: 'pointer' }}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.department_name}</td>
+                                        <td style={{ padding: '1rem' }}>{emp.designation_name}</td>
+                                        <td style={{ padding: '1rem', color: '#64748B', fontWeight: '600' }}>{emp.reporting_manager}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{emp.employment_type.toUpperCase()}</span>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Tab 2: Hierarchy & Employment */}
-            {activeTab === 'employment' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Organizational Structure & Hierarchy</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Department</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Designation Roles</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reporting Manager</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employment Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
-                                <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.department_name}</td>
-                                    <td style={{ padding: '1rem' }}>{emp.designation_name}</td>
-                                    <td style={{ padding: '1rem', color: '#64748B', fontWeight: '600' }}>{emp.reporting_manager}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{emp.employment_type.toUpperCase()}</span>
-                                    </td>
+                {/* Tab 3: Payroll & Bank Details */}
+                {activeTab === 'payroll' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Workforce Payroll Structure & Bank Details</h3>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Salary Type</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Basic Monthly Salary</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Bank Name & Account</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>IFSC Code</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>PF Number</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>PAN Number</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                            </thead>
+                            <tbody>
+                                {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
+                                    <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
+                                        <td style={{ padding: '1rem' }}>{emp.salary_type}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(emp.basic_salary)}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <p style={{ fontWeight: '700' }}>{emp.bank_name}</p>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>A/c: {emp.account_number}</span>
+                                        </td>
+                                        <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{emp.ifsc_code}</td>
+                                        <td style={{ padding: '1rem', color: '#64748B' }}>{emp.pf_number || 'N/A'}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700' }}>{emp.pan_number}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
-            {/* Tab 3: Payroll & Bank Details */}
-            {activeTab === 'payroll' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Workforce Payroll Structure & Bank Details</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Salary Type</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Basic Monthly Salary</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Bank Name & Account</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>IFSC Code</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>PF Number</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>PAN Number</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
-                                <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                    <td style={{ padding: '1rem' }}>{emp.salary_type}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(emp.basic_salary)}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <p style={{ fontWeight: '700' }}>{emp.bank_name}</p>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>A/c: {emp.account_number}</span>
-                                    </td>
-                                    <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{emp.ifsc_code}</td>
-                                    <td style={{ padding: '1rem', color: '#64748B' }}>{emp.pf_number || 'N/A'}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '700' }}>{emp.pan_number}</td>
+                {/* Tab 4: Leaves & Shifts Rosters */}
+                {activeTab === 'leaves' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Leaves Balance & assigned Roster Shifts</h3>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Assigned Work Shift</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Annual Leave Balance</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Weekly Holiday</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                            </thead>
+                            <tbody>
+                                {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
+                                    <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.shift_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{emp.leave_balance} Days Left</td>
+                                        <td style={{ padding: '1rem' }}>Sunday Off</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
-            {/* Tab 4: Leaves & Shifts Rosters */}
-            {activeTab === 'leaves' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Leaves Balance & assigned Roster Shifts</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Assigned Work Shift</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Annual Leave Balance</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Weekly Holiday</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
-                                <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.shift_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{emp.leave_balance} Days Left</td>
-                                    <td style={{ padding: '1rem' }}>Sunday Off</td>
+                {/* Tab 5: Performance Appraisals */}
+                {activeTab === 'performance' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Personnel Appraisal & Rating scorecard</h3>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Performance Rating</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>KPI Targets Score</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Appraisal Target Date</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Tab 5: Performance Appraisals */}
-            {activeTab === 'performance' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Personnel Appraisal & Rating scorecard</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Performance Rating</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>KPI Targets Score</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Appraisal Target Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
-                                <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#F59E0B' }}>⭐ {emp.performance_rating} / 5.0</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <div style={{ width: '120px', height: '8px', borderRadius: '4px', background: '#F1F5F9', overflow: 'hidden' }}>
-                                                <div style={{ width: `${emp.target_score}%`, height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)' }}></div>
+                            </thead>
+                            <tbody>
+                                {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
+                                    <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#F59E0B' }}>⭐ {emp.performance_rating} / 5.0</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div style={{ width: '120px', height: '8px', borderRadius: '4px', background: '#F1F5F9', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${emp.target_score}%`, height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)' }}></div>
+                                                </div>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>{emp.target_score}% Achieve</span>
                                             </div>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>{emp.target_score}% Achieve</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1rem', color: '#64748B' }}>1st October 2026</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                                        </td>
+                                        <td style={{ padding: '1rem', color: '#64748B' }}>1st October 2026</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
             {/* Employee Onboarding Modal */}
             {isOnboardModalOpen && (

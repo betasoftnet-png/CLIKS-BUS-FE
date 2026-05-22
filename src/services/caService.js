@@ -27,6 +27,7 @@ export const caService = {
     getTasks: () => apiClient.get('/ca/tasks').then(res => res.data.data || res.data),
     addTask: (task) => apiClient.post('/ca/tasks', task).then(res => res.data.data || res.data),
     toggleTaskStatus: (id) => apiClient.post(`/ca/tasks/${id}/toggle`).then(res => res.data.data || res.data),
+    uploadTaskDoc: (id) => apiClient.post(`/ca/tasks/${id}/upload`).then(res => res.data.data || res.data),
 
     getTimesheets: () => apiClient.get('/ca/timesheets').then(res => res.data.data || res.data),
     addTimesheet: (session) => apiClient.post('/ca/timesheets', session).then(res => res.data.data || res.data),
