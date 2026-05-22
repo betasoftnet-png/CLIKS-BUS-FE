@@ -672,157 +672,19 @@ export default function BusinessCA() {
                 </div>
 
                 {/* Tab switcher commented out per user request */}
-                {/* <div style={{ display: 'flex', gap: '8px', background: '#F1F5F9', padding: '4px', borderRadius: '10px' }}>
-                    <button onClick={() => setActiveTab('auditor')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'auditor' ? '#FFFFFF' : 'transparent', color: activeTab === 'auditor' ? '#004aad' : '#64748B', boxShadow: activeTab === 'auditor' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>📊 Auditor Hub</button>
-                    <button onClick={() => setActiveTab('ca_cpa')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'ca_cpa' ? '#FFFFFF' : 'transparent', color: activeTab === 'ca_cpa' ? '#004aad' : '#64748B', boxShadow: activeTab === 'ca_cpa' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>🏛️ Tax Engine</button>
-                    <button onClick={() => setActiveTab('cs_vault')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'cs_vault' ? '#FFFFFF' : 'transparent', color: activeTab === 'cs_vault' ? '#004aad' : '#64748B', boxShadow: activeTab === 'cs_vault' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>🔒 CS Vault</button>
-                    <button onClick={() => setActiveTab('consultant')} style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '750', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', background: activeTab === 'consultant' ? '#FFFFFF' : 'transparent', color: activeTab === 'consultant' ? '#004aad' : '#64748B', boxShadow: activeTab === 'consultant' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>💼 Consultant Desk</button>
-                </div> */}
             </div>
 
-            {/* Main Area */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+            {/* Main Area - Restructured as 2-column Grid */}
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1.7fr 1.3fr', 
+                gap: '24px', 
+                width: '100%',
+                alignItems: 'start'
+            }}>
                 
-                {/* Left Column: Interactive Workspace */}
+                {/* Left Column: FIN-PRO-Assigned Compliance Checklist & Workspaces */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
-                    {/* Accountant Connection Portal */}
-                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Users size={20} style={{ color: '#004aad' }} />
-                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
-                            </div>
-                            {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
-                                <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <CheckCircle2 size={12} /> Connected FIN-PRO Active
-                                </span>
-                            ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
-                                <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <Clock size={12} className="animate-pulse" /> Pending Acceptance
-                                </span>
-                            ) : (
-                                <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
-                                    Not Connected
-                                </span>
-                            )}
-                        </div>
-
-                        {outgoingInvitations.length === 0 ? (
-                            // 1. DISCONNECTED / INVITE FORM STATE
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
-                                    Invite your FIN-PRO Advisory Partner to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
-                                </p>
-                                <form onSubmit={handleInviteCA} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                    <input 
-                                        type="email" 
-                                        required 
-                                        placeholder="Enter your FIN-PRO's professional email address (e.g., finpro@firm.com)" 
-                                        value={inviteEmailInput}
-                                        onChange={(e) => setInviteEmailInput(e.target.value)}
-                                        style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '500', outline: 'none', transition: 'all 0.2s' }}
-                                    />
-                                    <button 
-                                        type="submit" 
-                                        style={{ padding: '12px 20px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
-                                    >
-                                        <Plus size={16} /> Invite FIN-PRO
-                                    </button>
-                                </form>
-
-                                <div style={{ height: '1px', background: '#E2E8F0', margin: '8px 0' }} />
-
-                                <div>
-                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your FIN-PRO:</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                        {[
-                                            { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
-                                            { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
-                                            { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
-                                            { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
-                                        ].map((priv, idx) => (
-                                            <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
-                                                <span style={{ color: '#16A34A', marginTop: '2px', fontWeight: '800' }}>✓</span>
-                                                <div>
-                                                    <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
-                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
-                            // 2. PENDING ACCEPTANCE STATE
-                            outgoingInvitations.filter(inv => inv.status === 'Pending').map(inv => (
-                                <div key={inv.id} style={{ padding: '16px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <span style={{ fontSize: '12.5px', color: '#78350F', fontWeight: '750' }}>Access invitation sent to: </span>
-                                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.receiver_email}</span>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleRevokeCA(inv.id)} 
-                                            style={{ background: 'transparent', border: 'none', color: '#B45309', fontSize: '12px', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                        >
-                                            <Trash2 size={14} /> Cancel Request
-                                        </button>
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#B45309', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
-                                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#D97706', marginRight: '4px' }} className="animate-ping"></span>
-                                        Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}
-                                    </div>
-                                    <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
-                                        💡 <strong>How to Test:</strong> Switch to the <strong>Personal FIN-PRO Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            // 3. CONNECTED STATE
-                            outgoingInvitations.filter(inv => inv.status === 'Accepted').map(inv => (
-                                <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <div style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
-                                                <UserCheck size={20} />
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
-                                                <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleRevokeCA(inv.id)} 
-                                            style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
-                                        >
-                                            Revoke Access
-                                        </button>
-                                    </div>
-
-                                    {/* Privileges/What CA can do */}
-                                    <div>
-                                        <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '8px' }}>Security Clearance & Shared Privileges:</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                            {[
-                                                { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
-                                                { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
-                                                { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
-                                                { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
-                                            ].map((priv, idx) => (
-                                                <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
-                                                    <span style={{ color: '#16A34A', marginTop: '2px' }}>✔</span>
-                                                    <div>
-                                                        <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
-                                                        <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
                     <AnimatePresence mode="wait">
                         {activeTab === 'auditor' && (() => {
                             // Find the connected CA's email dynamically from accepted invitations
@@ -1259,7 +1121,147 @@ export default function BusinessCA() {
                     </AnimatePresence>
                 </div>
 
+                {/* Right Column: Accountant Connection */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                    {/* Accountant Connection Portal */}
+                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Users size={20} style={{ color: '#004aad' }} />
+                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
+                            </div>
+                            {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
+                                <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <CheckCircle2 size={12} /> Connected FIN-PRO Active
+                                </span>
+                            ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
+                                <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={12} className="animate-pulse" /> Pending Acceptance
+                                </span>
+                            ) : (
+                                <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
+                                    Not Connected
+                                </span>
+                            )}
+                        </div>
 
+                        {outgoingInvitations.length === 0 ? (
+                            // 1. DISCONNECTED / INVITE FORM STATE
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
+                                    Invite your FIN-PRO Advisory Partner to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
+                                </p>
+                                <form onSubmit={handleInviteCA} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                    <input 
+                                        type="email" 
+                                        required 
+                                        placeholder="Enter your FIN-PRO's professional email address (e.g., finpro@firm.com)" 
+                                        value={inviteEmailInput}
+                                        onChange={(e) => setInviteEmailInput(e.target.value)}
+                                        style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '500', outline: 'none', transition: 'all 0.2s' }}
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        style={{ padding: '12px 20px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
+                                    >
+                                        <Plus size={16} /> Invite FIN-PRO
+                                    </button>
+                                </form>
+
+                                <div style={{ height: '1px', background: '#E2E8F0', margin: '8px 0' }} />
+
+                                <div>
+                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your FIN-PRO:</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                                        {[
+                                            { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
+                                            { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
+                                            { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
+                                            { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
+                                        ].map((priv, idx) => (
+                                            <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
+                                                <span style={{ color: '#16A34A', marginTop: '2px', fontWeight: '800' }}>✓</span>
+                                                <div>
+                                                    <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
+                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
+                            // 2. PENDING ACCEPTANCE STATE
+                            outgoingInvitations.filter(inv => inv.status === 'Pending').map(inv => (
+                                <div key={inv.id} style={{ padding: '16px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <span style={{ fontSize: '12.5px', color: '#78350F', fontWeight: '750' }}>Access invitation sent to: </span>
+                                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.receiver_email}</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleRevokeCA(inv.id)} 
+                                            style={{ background: 'transparent', border: 'none', color: '#B45309', fontSize: '12px', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        >
+                                            <Trash2 size={14} /> Cancel Request
+                                        </button>
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#B45309', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#D97706', marginRight: '4px' }} className="animate-ping"></span>
+                                        Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}
+                                    </div>
+                                    <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
+                                        💡 <strong>How to Test:</strong> Switch to the <strong>Personal FIN-PRO Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            // 3. CONNECTED STATE
+                            outgoingInvitations.filter(inv => inv.status === 'Accepted').map(inv => (
+                                <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                <UserCheck size={20} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
+                                                <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleRevokeCA(inv.id)} 
+                                            style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                        >
+                                            Revoke Access
+                                        </button>
+                                    </div>
+
+                                    {/* Privileges/What CA can do */}
+                                    <div>
+                                        <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '8px' }}>Security Clearance & Shared Privileges:</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                                            {[
+                                                { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
+                                                { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
+                                                { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
+                                                { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
+                                            ].map((priv, idx) => (
+                                                <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
+                                                    <span style={{ color: '#16A34A', marginTop: '2px' }}>✔</span>
+                                                    <div>
+                                                        <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
+                                                        <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
 
             </div>
             </>
