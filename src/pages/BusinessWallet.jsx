@@ -221,7 +221,7 @@ const BusinessWallet = () => {
                         <Wallet size={22} />
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', margin: 0, letterSpacing: '-0.02em' }}>Business Wallet</h1>
+                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B', margin: 0, letterSpacing: '-0.02em' }}>Beta Wallet</h1>
                         <p style={{ color: '#475569', fontSize: '0.95rem', margin: '0.25rem 0 0 0', fontWeight: '500' }}>Manage stored value balances and load funds securely.</p>
                     </div>
                 </div>

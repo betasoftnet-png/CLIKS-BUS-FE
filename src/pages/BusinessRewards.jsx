@@ -275,6 +275,7 @@ const BusinessRewards = () => {
                             ))}
                         </div>
                     </div>
+                </div>
             </div>
         </div>
     );
