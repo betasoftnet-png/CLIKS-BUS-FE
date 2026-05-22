@@ -14,8 +14,10 @@ import {
     Plus,
     Trash2
 } from 'lucide-react';
+import { useCurrency } from '../context';
 
 const BusinessBarcode = () => {
+    const { currency } = useCurrency();
     const [codeValue, setCodeValue] = useState('CLKS-1001-PROD');
     const [codeType, setCodeType] = useState('CODE128'); // 'QR' as alternate
     const [format, setFormat] = useState({
@@ -30,7 +32,7 @@ const BusinessBarcode = () => {
     const [labelDetails, setLabelDetails] = useState({
         title: 'Premium Cotton Shirt',
         subtitle: 'Size: L | Color: Navy',
-        price: '₹ 999.00'
+        price: `${currency?.symbol || '₹'} 999.00`
     });
     const [customFields, setCustomFields] = useState([
         { id: 1, key: 'Exp Date', value: '12/2026' }

@@ -9,7 +9,7 @@ import {
     TrendingDown, 
     Calendar,
     Briefcase,
-    IndianRupee,
+    DollarSign,
     PieChart,
     ArrowUpRight,
     ArrowDownRight,
@@ -26,10 +26,12 @@ import {
 import { businessPlanService } from '../services';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import { useCurrency } from '../context';
 
 const BusinessFinancialPlan = () => {
     const queryClient = useQueryClient();
     const [searchTerm] = useState('');
+    const { currency, formatCurrency } = useCurrency();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({ name: '', description: '', total_budget: '', start_date: '', end_date: '', status: 'Draft' });
 
@@ -121,7 +123,7 @@ const BusinessFinancialPlan = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
                     { label: 'Active Initiatives', value: stats.activePlans, icon: Briefcase, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'Projected Capital', value: `₹${stats.totalBudget.toLocaleString()}`, icon: IndianRupee, color: '#0D9488', bg: '#CCFBF1' },
+                    { label: 'Projected Capital', value: formatCurrency(stats.totalBudget), icon: DollarSign, color: '#0D9488', bg: '#CCFBF1' },
                     { label: 'Drafting Phase', value: stats.draftPlans, icon: PieChart, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Milestones Due', value: stats.upcomingMilestones, icon: Calendar, color: '#064E3B', bg: '#D1FAE5' }
                 ].map((stat, idx) => (
@@ -176,7 +178,7 @@ const BusinessFinancialPlan = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
                                 <div style={{ textAlign: 'right' }}>
                                     <p style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Planned Budget</p>
-                                    <h5 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#064E3B' }}>₹{parseFloat(plan.total_budget || 0).toLocaleString()}</h5>
+                                    <h5 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(plan.total_budget || 0)}</h5>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                                     <button style={{ width: '44px', height: '44px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -234,7 +236,7 @@ const BusinessFinancialPlan = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Capital Allocation (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Capital Allocation ({currency.symbol})</label>
                                     <input required type="number" placeholder="0.00" value={formData.total_budget} onChange={e => setFormData({...formData, total_budget: e.target.value})} style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
                                 <div>

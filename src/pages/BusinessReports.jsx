@@ -39,7 +39,10 @@ import {
 } from 'lucide-react';
 import '../App.css';
 
+import { useCurrency } from '../context';
+
 const BusinessReports = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeCategory, setActiveCategory] = useState('all');
 
     const { data: summary } = useQuery({
@@ -548,9 +551,9 @@ const BusinessReports = () => {
             {/* Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
-                    { label: 'Total Sales Revenue', value: summary?.total_sales ? `₹${parseFloat(summary.total_sales).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? `₹${parseFloat(summary.total_purchases).toLocaleString()}` : '₹0', icon: Package, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? `₹${parseFloat(summary.total_expenses).toLocaleString()}` : '₹0', icon: FileText, color: '#EF4444', bg: '#FEF2F2' }
+                    { label: 'Total Sales Revenue', value: summary?.total_sales ? formatCurrency(summary.total_sales) : formatCurrency(0), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Total Purchasing Cost', value: summary?.total_purchases ? formatCurrency(summary.total_purchases) : formatCurrency(0), icon: Package, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Total Operating Expenses', value: summary?.total_expenses ? formatCurrency(summary.total_expenses) : formatCurrency(0), icon: FileText, color: '#EF4444', bg: '#FEF2F2' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
@@ -688,7 +691,7 @@ const BusinessReports = () => {
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.order_number}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{row.customer}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.date}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.grand_total || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.grand_total)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -713,7 +716,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{row.total_quantity} pcs</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_sales || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_sales)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -736,7 +739,7 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_sales || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#BE185D', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_sales)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -751,19 +754,19 @@ const BusinessReports = () => {
                                         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                                 <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Gross Revenue</span>
-                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>₹{(reportDetails?.gross_revenue || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.gross_revenue)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                                 <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Cost of Goods (COGS)</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>₹{(reportDetails?.cost_of_goods || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.cost_of_goods)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                                 <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Overhead Expenses</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>₹{(reportDetails?.overheads || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.overheads)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #DBEAFE' }}>
                                                 <span style={{ fontWeight: '800', color: '#1E3A8A', fontSize: '0.85rem' }}>Net Operating Profit</span>
-                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>₹{(reportDetails?.net_profit || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.net_profit)}</span>
                                             </div>
                                         </div>
                                     )}
@@ -772,15 +775,15 @@ const BusinessReports = () => {
                                         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                                 <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Total Business Assets</span>
-                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>₹{(reportDetails?.assets || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.assets)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#F8FAFC', borderRadius: '8px' }}>
                                                 <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>Total Business Liabilities</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>₹{(reportDetails?.liabilities || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.liabilities)}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #DBEAFE' }}>
                                                 <span style={{ fontWeight: '800', color: '#1E3A8A', fontSize: '0.85rem' }}>{"Owner's Equity Contribution"}</span>
-                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>₹{(reportDetails?.equity || 0).toLocaleString()}</span>
+                                                <span style={{ fontWeight: '900', color: '#1E3A8A', fontSize: '0.85rem' }}>{formatCurrency(reportDetails?.equity)}</span>
                                             </div>
                                         </div>
                                     )}
@@ -852,7 +855,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.first_name}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || 'N/A'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.outstanding_balance || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.outstanding_balance)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -878,7 +881,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.email || row.phone || 'N/A'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.outstanding_balance || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.outstanding_balance)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -904,7 +907,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || `TAX-OUT-${1000+idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.place_of_supply || 'Intra-State (Local)'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#6D28D9', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.tax_amount || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#6D28D9', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.tax_amount)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -934,7 +937,7 @@ const BusinessReports = () => {
                                                                 {row.status || 'RECONCILED'}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.book_tax || row.portal_tax || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.book_tax || row.portal_tax)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -952,15 +955,15 @@ const BusinessReports = () => {
                                                 <div style={{ border: '1px solid #F3E8FF', background: '#FAF5FF', borderRadius: '12px', padding: '1rem' }}>
                                                     <div style={{ fontSize: '0.72rem', fontWeight: '850', color: '#6B21A8', textTransform: 'uppercase' }}>Outward Liability (Sales)</div>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#6B21A8', fontWeight: '600' }}>Taxable Amt:</span><span style={{ fontWeight: '800' }}>₹{(reportDetails?.outward_taxable || 0).toLocaleString()}</span></div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#6B21A8', fontWeight: '600' }}>Total Tax Due:</span><span style={{ fontWeight: '800', color: '#6B21A8' }}>₹{(reportDetails?.total_output_tax || 0).toLocaleString()}</span></div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#6B21A8', fontWeight: '600' }}>Taxable Amt:</span><span style={{ fontWeight: '800' }}>{formatCurrency(reportDetails?.outward_taxable)}</span></div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#6B21A8', fontWeight: '600' }}>Total Tax Due:</span><span style={{ fontWeight: '800', color: '#6B21A8' }}>{formatCurrency(reportDetails?.total_output_tax)}</span></div>
                                                     </div>
                                                 </div>
                                                 <div style={{ border: '1px solid #DCFCE7', background: '#F0FDF4', borderRadius: '12px', padding: '1rem' }}>
                                                     <div style={{ fontSize: '0.72rem', fontWeight: '850', color: '#15803D', textTransform: 'uppercase' }}>Input Tax Credit (ITC)</div>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Eligible ITC:</span><span style={{ fontWeight: '800' }}>₹{(reportDetails?.total_eligible_itc || 0).toLocaleString()}</span></div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Blocked Credit:</span><span style={{ fontWeight: '800' }}>₹0</span></div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Eligible ITC:</span><span style={{ fontWeight: '800' }}>{formatCurrency(reportDetails?.total_eligible_itc)}</span></div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Blocked Credit:</span><span style={{ fontWeight: '800' }}>{formatCurrency(0)}</span></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -970,7 +973,7 @@ const BusinessReports = () => {
                                                     <div style={{ fontSize: '0.7rem', color: '#991B1B', fontWeight: '600' }}>Consolidated tax payable in cash after input credits.</div>
                                                 </div>
                                                 <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#991B1B' }}>
-                                                    ₹{((reportDetails?.net_payable_igst || 0) + (reportDetails?.net_payable_cgst || 0) + (reportDetails?.net_payable_sgst || 0)).toLocaleString()}
+                                                    {formatCurrency((reportDetails?.net_payable_igst || 0) + (reportDetails?.net_payable_cgst || 0) + (reportDetails?.net_payable_sgst || 0))}
                                                 </div>
                                             </div>
                                         </div>
@@ -991,15 +994,15 @@ const BusinessReports = () => {
                                             <div style={{ padding: '1rem', background: 'white', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                                                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.75rem', borderRadius: '10px' }}>
                                                     <div style={{ fontSize: '0.65rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase' }}>Consolidated Turnover</div>
-                                                    <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginTop: '0.25rem' }}>₹{(reportDetails?.consolidated_turnover || 0).toLocaleString()}</div>
+                                                    <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginTop: '0.25rem' }}>{formatCurrency(reportDetails?.consolidated_turnover)}</div>
                                                 </div>
                                                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.75rem', borderRadius: '10px' }}>
                                                     <div style={{ fontSize: '0.65rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase' }}>Annual Output Tax Paid</div>
-                                                    <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginTop: '0.25rem' }}>₹{(reportDetails?.total_tax_paid_outward || 0).toLocaleString()}</div>
+                                                    <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginTop: '0.25rem' }}>{formatCurrency(reportDetails?.total_tax_paid_outward)}</div>
                                                 </div>
                                                 <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.75rem', borderRadius: '10px' }}>
                                                     <div style={{ fontSize: '0.65rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase' }}>Cumulative Availed ITC</div>
-                                                    <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginTop: '0.25rem' }}>₹{(reportDetails?.total_itc_availed || 0).toLocaleString()}</div>
+                                                    <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#0F172A', marginTop: '0.25rem' }}>{formatCurrency(reportDetails?.total_itc_availed)}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1020,7 +1023,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.category || 'Business Overheads'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.date ? new Date(row.date).toLocaleDateString() : 'Dynamic'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#DC2626', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.amount || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#DC2626', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.amount)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1046,7 +1049,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || row.bill_no || `PUR-${1000+idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.supplier_name || row.Supplier?.company_name || 'Primary Sourced Distributor'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_amount || row.total || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_amount || row.total)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1072,7 +1075,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name || 'Trade Vendor'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || row.email || 'N/A'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#2563EB', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_purchases || row.outstanding_balance || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#2563EB', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_purchases || row.outstanding_balance)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1106,7 +1109,7 @@ const BusinessReports = () => {
                                                                 {row.payment_status || 'Settle-Sync'}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.paid_amount || row.total_amount || row.total || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.paid_amount || row.total_amount || row.total)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1132,7 +1135,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || `DUE-${1000+idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#EF4444', fontWeight: '750', textTransform: 'uppercase' }}>PENDING CREDIT</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.balance_due || row.due_amount || row.total_amount || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.balance_due || row.due_amount || row.total_amount)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1158,7 +1161,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.return_number || `RET-${1000+idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.reason || 'Product defect / Damage'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EA580C', textAlign: 'right', fontSize: '0.85rem' }}>₹{parseFloat(row.total_amount || 0).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EA580C', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_amount)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1187,10 +1190,10 @@ const BusinessReports = () => {
                                                     return (
                                                         <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.first_name}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>₹{bal.toLocaleString()}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', color: '#16A34A', fontSize: '0.85rem', fontWeight: '600' }}>₹{Math.round(bal * 0.5).toLocaleString()}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', color: '#EA580C', fontSize: '0.85rem', fontWeight: '600' }}>₹{Math.round(bal * 0.3).toLocaleString()}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem', fontWeight: '750' }}>₹{Math.round(bal * 0.2).toLocaleString()}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{formatCurrency(bal)}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#16A34A', fontSize: '0.85rem', fontWeight: '600' }}>{formatCurrency(bal * 0.5)}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#EA580C', fontSize: '0.85rem', fontWeight: '600' }}>{formatCurrency(bal * 0.3)}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem', fontWeight: '750' }}>{formatCurrency(bal * 0.2)}</td>
                                                         </tr>
                                                     );
                                                 }) : (
@@ -1219,9 +1222,9 @@ const BusinessReports = () => {
                                                     return (
                                                         <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.invoice_number || row.order_id || `INV-${100+idx}`}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>₹{val.toLocaleString()}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{formatCurrency(val)}</td>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1D4ED8', fontSize: '0.85rem' }}>{row.agent_name || 'Senior Field Executive'}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>₹{Math.round(val * 0.05).toLocaleString()}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(val * 0.05)}</td>
                                                         </tr>
                                                     );
                                                 }) : (
@@ -1240,14 +1243,14 @@ const BusinessReports = () => {
                                                 <div style={{ border: '1px solid #DCFCE7', background: '#F0FDF4', borderRadius: '12px', padding: '1rem' }}>
                                                     <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase' }}>Operational Cash Inflow</div>
                                                     <div style={{ fontSize: '1.2rem', fontWeight: '900', color: '#16A34A', marginTop: '0.2rem' }}>
-                                                        ₹{(reportDetails?.inflow?.reduce((sum, r) => sum + parseFloat(r.amount || r.total || 0), 0) || 0).toLocaleString()}
+                                                        {formatCurrency(reportDetails?.inflow?.reduce((sum, r) => sum + parseFloat(r.amount || r.total || 0), 0))}
                                                     </div>
                                                     <div style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '600', marginTop: '0.1rem' }}>Total Customer Receipts</div>
                                                 </div>
                                                 <div style={{ border: '1px solid #FEE2E2', background: '#FEF2F2', borderRadius: '12px', padding: '1rem' }}>
                                                     <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#DC2626', textTransform: 'uppercase' }}>Operational Cash Outflow</div>
                                                     <div style={{ fontSize: '1.2rem', fontWeight: '900', color: '#DC2626', marginTop: '0.2rem' }}>
-                                                        ₹{(reportDetails?.outflow?.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0) || 0).toLocaleString()}
+                                                        {formatCurrency(reportDetails?.outflow?.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0))}
                                                     </div>
                                                     <div style={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: '600', marginTop: '0.1rem' }}>Total Supplier & Ledger Outgo</div>
                                                 </div>
@@ -1258,10 +1261,10 @@ const BusinessReports = () => {
                                                     <div style={{ fontSize: '0.7rem', color: '#1E40AF', fontWeight: '600' }}>Liquidity standing after operational balance offset.</div>
                                                 </div>
                                                 <div style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1E40AF' }}>
-                                                    ₹{(
+                                                    {formatCurrency(
                                                         (reportDetails?.inflow?.reduce((sum, r) => sum + parseFloat(r.amount || r.total || 0), 0) || 0) -
                                                         (reportDetails?.outflow?.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0) || 0)
-                                                    ).toLocaleString()}
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1283,8 +1286,8 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{row.date}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.desc}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{row.inflow > 0 ? `₹${row.inflow.toLocaleString()}` : '-'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{row.outflow > 0 ? `₹${row.outflow.toLocaleString()}` : '-'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{row.inflow > 0 ? formatCurrency(row.inflow) : '-'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{row.outflow > 0 ? formatCurrency(row.outflow) : '-'}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>No dynamic daily book records found.</td></tr>
@@ -1310,7 +1313,7 @@ const BusinessReports = () => {
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>{row.date}</td>
                                                         <td style={{ padding: '0.6rem 1rem' }}><span style={{ fontSize: '0.7rem', fontWeight: '900', padding: '2px 6px', borderRadius: '4px', background: row.type === 'Sale' ? '#ECFDF5' : row.type === 'Purchase' ? '#EFF6FF' : '#FEF2F2', color: row.type === 'Sale' ? '#047857' : row.type === 'Purchase' ? '#1D4ED8' : '#B91C1C' }}>{row.type.toUpperCase()}</span></td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '700' }}>{row.party}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '850', textAlign: 'right' }}>₹{row.total.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '850', textAlign: 'right' }}>{formatCurrency(row.total)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center' }}>No transactions recorded.</td></tr>
@@ -1336,8 +1339,8 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750' }}>{row.billNo}</td>
                                                         <td style={{ padding: '0.6rem 1rem' }}>{row.customer}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>₹{row.revenue.toLocaleString()}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#10B981', fontWeight: '800' }}>₹{row.profit.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{formatCurrency(row.revenue)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#10B981', fontWeight: '800' }}>{formatCurrency(row.profit)}</td>
                                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#047857', fontWeight: '900' }}>{row.margin}</td>
                                                     </tr>
                                                 )) : (
@@ -1361,20 +1364,20 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750' }}>{row.ledger}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{row.debit > 0 ? `₹${row.debit.toLocaleString()}` : '-'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{row.credit > 0 ? `₹${row.credit.toLocaleString()}` : '-'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{row.debit > 0 ? formatCurrency(row.debit) : '-'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{row.credit > 0 ? formatCurrency(row.credit) : '-'}</td>
                                                     </tr>
                                                 )) : null}
                                                 <tr style={{ background: '#F8FAFC', fontWeight: '900', borderTop: '2px solid #CBD5E1' }}>
                                                     <td style={{ padding: '0.75rem 1rem' }}>TOTAL COMPILATION</td>
-                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>₹1,725,000</td>
-                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>₹1,725,000</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(1725000)}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(1725000)}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     )}
 
-                                    {/* Sales/Purchase Order Combo (33) */}
+                                    {/* Order Vouchers (33) */}
                                     {selectedReport.id === 33 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
@@ -1391,7 +1394,7 @@ const BusinessReports = () => {
                                                         <td style={{ padding: '0.6rem 1rem' }}>#{row.id}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1D4ED8' }}>{row.type}</td>
                                                         <td style={{ padding: '0.6rem 1rem' }}>{row.party}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '850' }}>₹{row.amount.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '850' }}>{formatCurrency(row.amount)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center' }}>No active order vouchers recorded.</td></tr>
@@ -1416,7 +1419,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontFamily: 'monospace', fontWeight: '750' }}>{row.hsn}</td>
                                                         <td style={{ padding: '0.6rem 1rem' }}>{row.item}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>₹{row.value.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{formatCurrency(row.value)}</td>
                                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '800' }}>{row.taxRate}</td>
                                                     </tr>
                                                 )) : (
@@ -1440,8 +1443,8 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750' }}>{row.bill || row.product}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>₹{(row.amount || row.salesVal).toLocaleString()}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#EF4444', fontWeight: '800' }}>₹{(row.disc || row.discVal).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{formatCurrency(row.amount || row.salesVal)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#EF4444', fontWeight: '800' }}>{formatCurrency(row.disc || row.discVal)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr><td colSpan={3} style={{ padding: '2rem', textAlign: 'center' }}>No recorded discount events.</td></tr>
@@ -1464,8 +1467,8 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800' }}>{row.category}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{selectedReport.id === 37 ? `₹${row.sales.toLocaleString()}` : `${row.items} SKUs`}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '750' }}>₹{(row.purchases || row.stockVal).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{selectedReport.id === 37 ? formatCurrency(row.sales) : `${row.items} SKUs`}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '750' }}>{formatCurrency(row.purchases || row.stockVal)}</td>
                                                     </tr>
                                                 )) : null}
                                             </tbody>
@@ -1486,8 +1489,8 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8' }}>{row.slab}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>₹{row.taxable.toLocaleString()}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '800' }}>₹{row.tax.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{formatCurrency(row.taxable)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '800' }}>{formatCurrency(row.tax)}</td>
                                                     </tr>
                                                 )) : null}
                                             </tbody>
@@ -1509,8 +1512,8 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800' }}>{row.quarter || row.party}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>₹{(row.turnover || row.taxableVal || row.baseAmt).toLocaleString()}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#B45309', fontWeight: '850' }}>₹{(row.tcsCollection || row.tcsVal || row.tdsVal).toLocaleString()}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>{formatCurrency(row.turnover || row.taxableVal || row.baseAmt)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#B45309', fontWeight: '850' }}>{formatCurrency(row.tcsCollection || row.tcsVal || row.tdsVal)}</td>
                                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}><span style={{ background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', fontWeight: '850' }}>{row.status || 'Compiled'}</span></td>
                                                     </tr>
                                                 )) : (

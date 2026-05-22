@@ -11,10 +11,12 @@ import '../App.css';
 import { Toggle } from '../components/ui/toggle';
 import { settingsService, profileService } from '../services';
 import { customPrompt } from '../utils/customConfirm';
+import { useCurrency } from '../context';
 
 const BusinessCustomization = () => {
     const navigate = useNavigate();
     const [isSaving, setIsSaving] = useState(false);
+    const { currency } = useCurrency();
     const [activeTab, setActiveTab] = useState('profile');
 
     const [config, setConfig] = useState({
@@ -449,7 +451,7 @@ const BusinessCustomization = () => {
                         <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase' }}>Amount Due</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>₹ 5,249.00</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>{currency.symbol} 5,249.00</div>
                             </div>
                             
                             {/* UPI QR Display */}
@@ -591,7 +593,7 @@ const BusinessCustomization = () => {
                         <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px dashed rgba(99, 102, 241, 0.3)', borderRadius: '10px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                             <div style={{ fontSize: '0.6rem', fontWeight: '800', color: '#818CF8', textTransform: 'uppercase' }}>AI Runaway Projection (30 Days)</div>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1rem', fontWeight: '850', color: '#FFFFFF' }}>₹ 14.8L Safe Reserve</span>
+                                <span style={{ fontSize: '1rem', fontWeight: '850', color: '#FFFFFF' }}>{currency.symbol} 14.8L Safe Reserve</span>
                                 <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '700' }}>+8.4% growth forecasted</span>
                             </div>
                         </div>

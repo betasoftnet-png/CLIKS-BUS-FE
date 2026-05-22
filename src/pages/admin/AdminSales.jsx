@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import '../../App.css';
+import { useCurrency } from '../../context';
 
 const AdminSales = () => {
+    const { formatCurrency } = useCurrency();
     const [loading, setLoading] = useState(true);
     const [invoices, setInvoices] = useState([]);
     const [totals, setTotals] = useState({
@@ -272,10 +274,10 @@ const AdminSales = () => {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', fontWeight: 750, color: '#0F172A', fontSize: '0.85rem' }}>
-                                                ₹{Number(invoice.paid_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                {formatCurrency(invoice.paid_amount || 0)}
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', fontWeight: 900, color: '#0F172A', fontSize: '0.85rem' }}>
-                                                ₹{Number(invoice.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                {formatCurrency(invoice.total_amount)}
                                             </td>
                                         </tr>
                                     );

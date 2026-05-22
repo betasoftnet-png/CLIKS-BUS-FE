@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
+import { useCurrency } from '../context';
 import { 
     Cpu, 
     Layers, 
@@ -144,6 +145,7 @@ import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessManufacturing = () => {
     const queryClient = useQueryClient();
+    const { currency, formatCurrency } = useCurrency();
 
     // Query for Live Bill of Materials (BOM)
     const { data: dbBoms = [] } = useQuery({
@@ -596,7 +598,7 @@ const BusinessManufacturing = () => {
                                             <td style={{ padding: '0.75rem' }}>{raw.material_name}</td>
                                             <td style={{ padding: '0.75rem', fontWeight: '750', color: '#1B6B3A' }}>{raw.required_quantity}</td>
                                             <td style={{ padding: '0.75rem' }}>{raw.unit}</td>
-                                            <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '750' }}>₹{raw.cost_per_unit}</td>
+                                            <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '750' }}>{formatCurrency(raw.cost_per_unit)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -627,7 +629,7 @@ const BusinessManufacturing = () => {
                                     <td style={{ padding: '1rem', color: '#EF4444', fontWeight: '750' }}>{mat.consumed_quantity}</td>
                                     <td style={{ padding: '1rem', color: '#1B6B3A', fontWeight: '750' }}>{mat.remaining_stock}</td>
                                     <td style={{ padding: '1rem' }}>{mat.unit}</td>
-                                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '750' }}>₹{mat.cost_per_unit}</td>
+                                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '750' }}>{formatCurrency(mat.cost_per_unit)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -652,11 +654,11 @@ const BusinessManufacturing = () => {
                                 <tr key={wo.production_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{wo.production_order_number}</td>
                                     <td style={{ padding: '1rem', fontWeight: '600' }}>{wo.finished_product_name}</td>
-                                    <td style={{ padding: '1rem' }}>₹{wo.raw_material_cost.toLocaleString()}</td>
-                                    <td style={{ padding: '1rem' }}>₹{wo.labor_cost.toLocaleString()}</td>
-                                    <td style={{ padding: '1rem' }}>₹{wo.overhead_cost.toLocaleString()}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>₹{wo.total_production_cost.toLocaleString()}</td>
-                                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '850', color: '#1B6B3A' }}>₹{wo.per_unit_cost.toLocaleString()} / unit</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(wo.raw_material_cost)}</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(wo.labor_cost)}</td>
+                                    <td style={{ padding: '1rem' }}>{formatCurrency(wo.overhead_cost)}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>{formatCurrency(wo.total_production_cost)}</td>
+                                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '850', color: '#1B6B3A' }}>{formatCurrency(wo.per_unit_cost)} / unit</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -864,7 +866,7 @@ const BusinessManufacturing = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Standard Labor Cost (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Standard Labor Cost ({currency.symbol})</label>
                                     <input 
                                         type="number" 
                                         value={woForm.labor_cost}
@@ -873,7 +875,7 @@ const BusinessManufacturing = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Electricity Overhead (₹)</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Electricity Overhead ({currency.symbol})</label>
                                     <input 
                                         type="number" 
                                         value={woForm.overhead_cost}
