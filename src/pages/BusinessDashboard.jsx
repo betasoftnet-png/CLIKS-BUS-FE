@@ -18,7 +18,19 @@ import {
     X,
     Settings,
     UserPlus,
-    FileText
+    FileText,
+    Receipt,
+    Undo2,
+    Warehouse,
+    Barcode,
+    Wallet,
+    Gift,
+    Coins,
+    Truck,
+    Factory,
+    Users2,
+    Activity,
+    Wrench
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,6 +55,31 @@ const MASTER_SHORTCUTS = [
     { id: 'gst_filing', label: 'GST Records', path: '/finance/gst', icon: BarChart3, color: '#F59E0B' },
     { id: 'marketing_hub', label: 'Marketing Hub', path: '/marketing', icon: Target, color: '#E11D48' },
     { id: 'ca_hub', label: 'CA Audit Hub', path: '/ca', icon: Briefcase, color: '#004aad' },
+
+    // 📦 Deep-linked Procurement & Returns
+    { id: 'purchase_bills', label: 'Purchase Bills', path: '/purchases/purchases?tab=purchase-bills', icon: Receipt, color: '#0891B2' },
+    { id: 'new_purchase_bill', label: 'New Purchase Bill', path: '/purchases/purchases?create=true&type=BILL&tab=purchase-bills', icon: Receipt, color: '#059669' },
+    { id: 'purchase_returns', label: 'Purchase Returns', path: '/purchases/purchases?tab=purchase-returns', icon: Undo2, color: '#7C3AED' },
+    { id: 'new_purchase_return', label: 'New Purchase Return', path: '/purchases/purchases?create=true&type=RETURN&tab=purchase-returns', icon: Undo2, color: '#DC2626' },
+    { id: 'sales_returns', label: 'Sales Returns', path: '/sales/returns', icon: Undo2, color: '#EA580C' },
+
+    // ⚙️ Inventory, Logistics & Barcoding
+    { id: 'stock_management', label: 'Stock Management', path: '/inventory/stock', icon: Activity, color: '#2563EB' },
+    { id: 'warehouse_godown', label: 'Godown/Warehouse', path: '/inventory/warehouse', icon: Warehouse, color: '#0284C7' },
+    { id: 'barcode_gen', label: 'Barcode Generator', path: '/barcode', icon: Barcode, color: '#4F46E5' },
+
+    // 💸 Payments, Ledger & Finance
+    { id: 'split_collect', label: 'Split & Collect', path: '/payments/split-collect', icon: Users2, color: '#DB2777' },
+    { id: 'payments_ledger', label: 'Payments Ledger', path: '/payments/transaction', icon: Coins, color: '#16A34A' },
+    { id: 'company_wallet', label: 'Company Wallet', path: '/payments/wallet', icon: Wallet, color: '#7C3AED' },
+    { id: 'loyalty_rewards', label: 'Loyalty Rewards', path: '/payments/rewards', icon: Gift, color: '#EA580C' },
+    { id: 'staff_payroll', label: 'Staff Payroll', path: '/hr/payroll', icon: DollarSign, color: '#D97706' },
+    { id: 'accounting_ledger', label: 'Double Entry Accounting', path: '/finance/accounting', icon: FileText, color: '#4F46E5' },
+
+    // 🚚 Operations, Customization & CRM
+    { id: 'delivery_challan', label: 'Delivery Challan', path: '/sales/delivery', icon: Truck, color: '#0891B2' },
+    { id: 'manufacturing_bom', label: 'Manufacturing BOM', path: '/manufacturing', icon: Factory, color: '#65A30D' },
+    { id: 'customization', label: 'Theme Customization', path: '/customization', icon: Wrench, color: '#475569' },
 ];
 
 const BusinessDashboard = () => {

@@ -55,13 +55,25 @@ const BusinessPurchases = () => {
     });
     const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
 
-    // Handle instant PO creation launch via Quick Actions Shortcut
+    // Handle instant PO/Bill/Return creation and tab deep linking via Quick Actions Shortcut
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
-        if (searchParams.get('create') === 'true') {
-            setCreateDocType('PO');
+        const create = searchParams.get('create');
+        const tab = searchParams.get('tab');
+        
+        if (tab && ['purchase-orders', 'purchase-bills', 'purchase-returns'].includes(tab)) {
+            setActiveTab(tab);
+        }
+        
+        if (create === 'true') {
+            const type = searchParams.get('type') || 'PO';
+            setCreateDocType(type.toUpperCase());
             setIsCreateModalOpen(true);
-            setSearchParams({}, { replace: true });
+            
+            // Clean up create params, keeping tab if present
+            const newParams = {};
+            if (tab) newParams.tab = tab;
+            setSearchParams(newParams, { replace: true });
         }
     }, [searchParams, setSearchParams]);
 
