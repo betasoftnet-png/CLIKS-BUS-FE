@@ -115,7 +115,8 @@ const BusinessWallet = () => {
             try {
                 const backendData = await apiClient.post('/payments/create-order', {
                     amount: amt,
-                    orderId: generatedOrderId
+                    orderId: generatedOrderId,
+                    currency: currency?.code || 'INR'
                 });
                 
                 if (backendData && backendData.data && backendData.data.payment_session_id) {
