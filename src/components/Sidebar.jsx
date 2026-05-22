@@ -59,7 +59,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
 
     const isBetaClub = item.label === 'BETA Club';
-    const isCa = item.label === 'CA';
+    const isCa = item.label === 'FIN-PRO';
 
     // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange vs Support Blue
     let primaryColor = isSales ? '#EA580C' : (isAdmin ? '#4F46E5' : (isSupport ? '#3B82F6' : '#1B6B3A'));
@@ -231,7 +231,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
         if (path.includes('/marketing')) return 'Marketing';
-        if (path.includes('/ca')) return 'CA';
+        if (path.includes('/ca')) return 'FIN-PRO';
         if (path.includes('/social/betaclub')) return 'BETA Club';
         if (path.includes('/social/meetup')) return 'Meetup';
         if (path.includes('/social/trading')) return 'Trading docs';
@@ -350,7 +350,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Reports', icon: BarChart3, path: '/reports' },
             { label: 'Barcode Gen', icon: Barcode, path: '/barcode' },
             { label: 'Marketing', icon: Megaphone, path: '/marketing' },
-            { label: 'CA', icon: Briefcase, path: '/ca', color: '#D4AF37' }
+            { label: 'FIN-PRO', icon: Briefcase, path: '/ca', color: '#D4AF37' }
 
         ],
         social: [

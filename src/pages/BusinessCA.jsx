@@ -629,7 +629,7 @@ export default function BusinessCA() {
                     }}
                 >
                     <Building size={18} />
-                    Business CA Command Centre
+                    Business FIN-PRO Command Centre
                 </button>
                 <button 
                     onClick={() => setCaMode('personal')} 
@@ -651,7 +651,7 @@ export default function BusinessCA() {
                     }}
                 >
                     <User size={18} />
-                    Personal CA Advisory Workspace
+                    Personal FIN-PRO Advisory Workspace
                 </button>
             </div>
 
@@ -665,7 +665,7 @@ export default function BusinessCA() {
                     </div>
                     <div>
                         <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            CA Command Centre <span style={{ fontSize: '11px', fontWeight: '900', color: '#004aad', background: '#E0EBFF', border: '1px solid #C3DAFE', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' }}>Professional Layer</span>
+                            FIN-PRO Command Centre <span style={{ fontSize: '11px', fontWeight: '900', color: '#004aad', background: '#E0EBFF', border: '1px solid #C3DAFE', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' }}>Professional Layer</span>
                         </h1>
                         <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Manage audits, taxes, compliance, and client reports in one place.</p>
                     </div>
@@ -694,7 +694,7 @@ export default function BusinessCA() {
                             </div>
                             {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
                                 <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <CheckCircle2 size={12} /> Connected CA Active
+                                    <CheckCircle2 size={12} /> Connected FIN-PRO Active
                                 </span>
                             ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
                                 <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -711,13 +711,13 @@ export default function BusinessCA() {
                             // 1. DISCONNECTED / INVITE FORM STATE
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
-                                    Invite your Chartered Accountant (CA) to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
+                                    Invite your FIN-PRO Advisory Partner to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
                                 </p>
                                 <form onSubmit={handleInviteCA} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
                                     <input 
                                         type="email" 
                                         required 
-                                        placeholder="Enter your CA's professional email address (e.g., ca@firm.com)" 
+                                        placeholder="Enter your FIN-PRO's professional email address (e.g., finpro@firm.com)" 
                                         value={inviteEmailInput}
                                         onChange={(e) => setInviteEmailInput(e.target.value)}
                                         style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '500', outline: 'none', transition: 'all 0.2s' }}
@@ -726,14 +726,14 @@ export default function BusinessCA() {
                                         type="submit" 
                                         style={{ padding: '12px 20px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
                                     >
-                                        <Plus size={16} /> Invite CA
+                                        <Plus size={16} /> Invite FIN-PRO
                                     </button>
                                 </form>
 
                                 <div style={{ height: '1px', background: '#E2E8F0', margin: '8px 0' }} />
 
                                 <div>
-                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your CA:</div>
+                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your FIN-PRO:</div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                         {[
                                             { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
@@ -773,7 +773,7 @@ export default function BusinessCA() {
                                         Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}
                                     </div>
                                     <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
-                                        💡 <strong>How to Test:</strong> Switch to the <strong>Personal CA Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
+                                        💡 <strong>How to Test:</strong> Switch to the <strong>Personal FIN-PRO Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
                                     </div>
                                 </div>
                             ))
@@ -847,7 +847,7 @@ export default function BusinessCA() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 <CheckCircle2 size={20} style={{ color: '#004aad' }} />
-                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 CA-Assigned Compliance Checklist</h3>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 FIN-PRO-Assigned Compliance Checklist</h3>
                                             </div>
                                             {pendingCount > 0 ? (
                                                 <span style={{ fontSize: '11px', background: '#FFF3C7', color: '#D97706', padding: '4px 10px', borderRadius: '20px', fontWeight: '800', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -861,7 +861,7 @@ export default function BusinessCA() {
                                         </div>
 
                                         <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
-                                            These are the live compliance and audit actions assigned to your account by your connected CA. Mark them as 'Completed' or 'In Progress' to sync status in real time.
+                                            These are the live compliance and audit actions assigned to your account by your connected FIN-PRO. Mark them as 'Completed' or 'In Progress' to sync status in real time.
                                         </p>
 
                                         {myClientTasks.length === 0 ? (
@@ -871,7 +871,7 @@ export default function BusinessCA() {
                                                 </div>
                                                 <div>
                                                     <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: '0 0 4px 0' }}>No Active Tasks</h4>
-                                                    <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Your Chartered Accountant hasn't assigned any compliance checklists to your email yet.</p>
+                                                    <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Your FIN-PRO Advisor hasn't assigned any compliance checklists to your email yet.</p>
                                                 </div>
                                             </div>
                                         ) : (
@@ -1230,7 +1230,7 @@ export default function BusinessCA() {
                                         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>
-                                                    💼 CA Advisory &amp; Recommendation Ledger
+                                                    💼 FIN-PRO Advisory &amp; Recommendation Ledger
                                                 </h3>
                                                 <span style={{ fontSize: '10px', background: '#F0F5FF', color: '#004aad', padding: '3px 8px', borderRadius: '4px', fontWeight: '700' }}>Active Workspace</span>
                                             </div>

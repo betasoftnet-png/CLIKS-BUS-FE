@@ -119,7 +119,7 @@ const BusinessAccounting = () => {
 
         let exportPayload = [];
         if (exportFormat === 'xlsx') {
-            // Structured precisely for professional CA (Chartered Accountant) Audits
+            // Structured precisely for professional FIN-PRO (Auditor) Audits
             exportPayload = filteredLedger.map((item, index) => {
                 const isIncome = item.entry_type === 'income';
                 return {
@@ -149,9 +149,9 @@ const BusinessAccounting = () => {
 
         const ws = XLSX.utils.json_to_sheet(exportPayload);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'CA_Audit_Ledger');
+        XLSX.utils.book_append_sheet(wb, ws, 'FIN_PRO_Audit_Ledger');
         
-        const fileName = `CLIKS_CA_Audit_${exportFromDate}_to_${exportToDate}.${exportFormat}`;
+        const fileName = `CLIKS_FIN_PRO_Audit_${exportFromDate}_to_${exportToDate}.${exportFormat}`;
         if (exportFormat === 'xlsx') {
             XLSX.writeFile(wb, fileName);
         } else {
@@ -342,7 +342,7 @@ const BusinessAccounting = () => {
                         className="crm-btn-secondary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3', fontWeight: '850', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(190,24,93,0.03)' }}
                     >
-                        <Download size={15} /> Secure CA Export
+                        <Download size={15} /> Secure FIN-PRO Export
                     </button>
                     <button 
                         onClick={() => setIsEntryModalOpen(true)}
@@ -772,7 +772,7 @@ const BusinessAccounting = () => {
                 </div>
             )}
 
-            {/* Unified CA Export Limits Console */}
+            {/* Unified FIN-PRO Export Limits Console */}
             {isExportModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
@@ -786,7 +786,7 @@ const BusinessAccounting = () => {
                                     <Download size={20} />
                                 </div>
                                 <div>
-                                    <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Secure CA Audit Export</h2>
+                                    <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Secure FIN-PRO Audit Export</h2>
                                     <p style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600', margin: 0 }}>Select your timeline and format options.</p>
                                 </div>
                             </div>

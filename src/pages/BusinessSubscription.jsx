@@ -106,7 +106,7 @@ const BusinessSubscription = () => {
                     'Multi-warehouse Routing (up to 3 sites)',
                     'Dedicated Bill of Materials (BOM)',
                     'API Webhook Access & ERP Syncing',
-                    'Daily CA Data Exporting (CSV/Excel)',
+                    'Daily FIN-PRO Data Exporting (CSV/Excel)',
                     'Priority Email & Live Chat Support'
                 ]
             },
@@ -124,14 +124,14 @@ const BusinessSubscription = () => {
                     'Custom White-Label Invoicing Layouts',
                     'Unlimited manufacturing batches & QC logs',
                     'Guaranteed 99.99% uptime SLA service',
-                    'Dedicated CA Account Manager assistance',
+                    'Dedicated FIN-PRO Account Manager assistance',
                     'Priority 24/7/365 Direct VIP Phone Support'
                 ]
             }
         ],
         ca: [
             {
-                name: 'CA Standard',
+                name: 'FIN-PRO Standard',
                 priceAnnually: 4999,
                 originalPrice: 6999,
                 desc: 'Perfect for independent practitioners and small firms.',
@@ -147,7 +147,7 @@ const BusinessSubscription = () => {
                 ]
             },
             {
-                name: 'CA Premium',
+                name: 'FIN-PRO Premium',
                 priceAnnually: 9999,
                 originalPrice: 14999,
                 desc: 'Designed for high-growth firms and collaborative auditing teams.',
@@ -163,7 +163,7 @@ const BusinessSubscription = () => {
                 ]
             },
             {
-                name: 'CA Enterprise',
+                name: 'FIN-PRO Enterprise',
                 priceAnnually: 19999,
                 originalPrice: 29999,
                 desc: 'Complete control and white-labeling for national firms.',
@@ -313,7 +313,7 @@ const BusinessSubscription = () => {
             desc = `Your workspace is configured with high-performance ERP pipelines under the Business ${foundTier.name} tier.`;
             gradient = 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)';
         } else if (foundTier.category === 'ca') {
-            desc = `Your workspace is configured with comprehensive auditor pipelines under the CA ${foundTier.name} tier.`;
+            desc = `Your workspace is configured with comprehensive auditor pipelines under the FIN-PRO ${foundTier.name} tier.`;
             gradient = 'linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%)';
         } else if (foundTier.category === 'betaclub_investor') {
             desc = `Your workspace is configured with exclusive investor network pipelines under the Beta Club (Investor) ${foundTier.name} tier.`;
@@ -451,7 +451,7 @@ const BusinessSubscription = () => {
                 }}>
                     {[
                         { id: 'business', label: 'Business', icon: ShieldCheck, color: '#1B6B3A' },
-                        { id: 'ca', label: 'CA (Auditor)', icon: Award, color: '#1E3A8A' },
+                        { id: 'ca', label: 'FIN-PRO (Auditor)', icon: Award, color: '#1E3A8A' },
                         { id: 'betaclub', label: 'Beta Club', icon: Crown, color: '#7C3AED' }
                     ].map((tab) => {
                         const isTabActive = activeCategory === tab.id;

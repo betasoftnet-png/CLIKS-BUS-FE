@@ -20,12 +20,14 @@ import {
     Phone,
     MessageSquare,
     ArrowUpRight,
-    MapPin
+    MapPin,
+    Search
 } from 'lucide-react';
 
 export default function BusinessPitches() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio'
+    const [searchTerm, setSearchTerm] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedConnectPitch, setSelectedConnectPitch] = useState(null);
 
@@ -413,7 +415,10 @@ export default function BusinessPitches() {
                     borderRadius: '12px'
                 }}>
                     <button 
-                        onClick={() => setActiveTab('directory')}
+                        onClick={() => {
+                            setActiveTab('directory');
+                            setSearchTerm('');
+                        }}
                         style={{
                             padding: '0.5rem 1.25rem',
                             borderRadius: '9px',
@@ -430,7 +435,10 @@ export default function BusinessPitches() {
                         Active Deals
                     </button>
                     <button 
-                        onClick={() => setActiveTab('studio')}
+                        onClick={() => {
+                            setActiveTab('studio');
+                            setSearchTerm('');
+                        }}
                         style={{
                             padding: '0.5rem 1.25rem',
                             borderRadius: '9px',
@@ -447,6 +455,29 @@ export default function BusinessPitches() {
                         My Studio
                     </button>
                 </div>
+
+                {activeTab === 'directory' && (
+                    <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <input 
+                            type="text"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Search deals..."
+                            style={{
+                                width: '100%',
+                                padding: '0.55rem 1rem 0.55rem 2.3rem',
+                                borderRadius: '10px',
+                                border: '1px solid #E2E8F0',
+                                outline: 'none',
+                                fontSize: '0.82rem',
+                                fontWeight: '600',
+                                color: '#1E293B',
+                                boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+                            }}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Scrollable Main Content Wrapper */}
@@ -504,7 +535,18 @@ export default function BusinessPitches() {
                 /* PITICHES DIRECTORY */
                 (() => {
                     const activePitches = pitches.filter(p => p.listing_status === 'ACTIVE' || p.is_verified);
-                    const sortedPitches = [...activePitches].sort((a, b) => {
+                    const filteredPitches = activePitches.filter(pitch => {
+                        if (!searchTerm.trim()) return true;
+                        const term = searchTerm.toLowerCase();
+                        return (
+                            pitch.business_name?.toLowerCase().includes(term) ||
+                            pitch.headline?.toLowerCase().includes(term) ||
+                            pitch.industry?.toLowerCase().includes(term) ||
+                            pitch.use_of_funds?.toLowerCase().includes(term) ||
+                            pitch.location?.toLowerCase().includes(term)
+                        );
+                    });
+                    const sortedPitches = [...filteredPitches].sort((a, b) => {
                         const scoreA = getRecommendationScore(a);
                         const scoreB = getRecommendationScore(b);
                         return scoreB - scoreA;
@@ -526,8 +568,12 @@ export default function BusinessPitches() {
                                     border: '1px dashed #cbd5e1'
                                 }}>
                                     <Building size={40} style={{ margin: '0 auto 0.75rem', color: '#94a3b8' }} />
-                                    <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#334155' }}>No active deal listings</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Submit your roadmap on My Studio to see it here instantly!</p>
+                                    <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#334155' }}>
+                                        {searchTerm ? "No matching deals found" : "No active deal listings"}
+                                    </h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                                        {searchTerm ? "Try adjusting your search terms or filters." : "Submit your roadmap on My Studio to see it here instantly!"}
+                                    </p>
                                 </div>
                             ) : (
                                 sortedPitches.map(pitch => {

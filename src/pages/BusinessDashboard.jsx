@@ -54,7 +54,7 @@ const MASTER_SHORTCUTS = [
     { id: 'onboard_staff', label: 'Onboard Staff', path: '/hr/staff?create=true', icon: UserPlus, color: '#059669' },
     { id: 'gst_filing', label: 'GST Records', path: '/finance/gst', icon: BarChart3, color: '#F59E0B' },
     { id: 'marketing_hub', label: 'Marketing Hub', path: '/marketing', icon: Target, color: '#E11D48' },
-    { id: 'ca_hub', label: 'CA Audit Hub', path: '/ca', icon: Briefcase, color: '#004aad' },
+    { id: 'ca_hub', label: 'FIN-PRO Audit Hub', path: '/ca', icon: Briefcase, color: '#004aad' },
 
     // 📦 Deep-linked Procurement & Returns
     { id: 'purchase_bills', label: 'Purchase Bills', path: '/purchases/purchases?tab=purchase-bills', icon: Receipt, color: '#0891B2' },
