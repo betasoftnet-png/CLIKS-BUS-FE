@@ -7,11 +7,6 @@ import {
     Wallet, 
     BadgePercent, 
     Clock,
-    Star,
-    Users,
-    ShieldCheck,
-    Building,
-    ChevronRight,
     Flame
 } from 'lucide-react';
 
@@ -76,12 +71,7 @@ const BusinessRewards = () => {
         }
     ];
 
-    const milestoneRedeemables = [
-        { points: 500, item: '⭐ 1-Month Pro Pack', desc: 'Redeem to unlock fully automated AI Cashflow Analytics.', cost: 500, isAvailable: true },
-        { points: 1000, item: '🎗️ Business Spotlight', desc: 'Featured banner spot on CLIKS Deal Marketplace search streams.', cost: 1000, isAvailable: true },
-        { points: 2500, item: '🎁 Cliks Swag Box', desc: 'Premium branded merchandise kit delivered right to your desk.', cost: 2500, isAvailable: false },
-        { points: 5000, item: '💳 ₹5,000 Direct Credits', desc: 'Convert points directly to loaded wallet balances for instant spend.', cost: 5000, isAvailable: false }
-    ];
+
 
     return (
         <div style={{ 
@@ -193,10 +183,10 @@ const BusinessRewards = () => {
                     </div>
                 </div>
 
-                {/* Content Two-Column Split Layout */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1.5rem' }}>
+                {/* Content Layout */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     
-                    {/* Left Column: Premium Offers */}
+                    {/* Exclusive Offers & Boosters */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Exclusive Offers & Boosters</h3>
@@ -205,7 +195,7 @@ const BusinessRewards = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.25rem' }}>
                             {premiumOffers.map((offer) => (
                                 <div 
                                     key={offer.id}
@@ -285,100 +275,6 @@ const BusinessRewards = () => {
                             ))}
                         </div>
                     </div>
-
-                    {/* Right Column: Point Redemption List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Redeem Point Thresholds</h3>
-                        
-                        <div style={{ 
-                            background: '#FFFFFF', 
-                            borderRadius: '20px', 
-                            border: '1px solid #E2E8F0', 
-                            padding: '1.25rem',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '1rem'
-                        }}>
-                            {milestoneRedeemables.map((item, index) => {
-                                const canRedeem = rewardPoints >= item.cost;
-                                return (
-                                    <div 
-                                        key={index} 
-                                        style={{ 
-                                            padding: '0.85rem', 
-                                            borderRadius: '12px', 
-                                            background: canRedeem ? '#F0FDF4' : '#F8FAFC', 
-                                            border: canRedeem ? '1px solid #DCFCE7' : '1px solid #F1F5F9',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '1rem'
-                                        }}
-                                    >
-                                        <div style={{ 
-                                            width: '42px', 
-                                            height: '42px', 
-                                            borderRadius: '10px', 
-                                            background: canRedeem ? '#10B981' : '#E2E8F0', 
-                                            color: canRedeem ? '#FFFFFF' : '#64748B', 
-                                            display: 'flex', 
-                                            flexDirection: 'column', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            flexShrink: 0
-                                        }}>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: '900' }}>{item.cost}</span>
-                                            <span style={{ fontSize: '0.5rem', fontWeight: '850', textTransform: 'uppercase', marginTop: '-2px' }}>Pts</span>
-                                        </div>
-
-                                        <div style={{ flex: 1 }}>
-                                            <h4 style={{ margin: '0 0 2px 0', fontSize: '0.875rem', fontWeight: '800', color: canRedeem ? '#065F46' : '#1E293B' }}>{item.item}</h4>
-                                            <p style={{ margin: 0, fontSize: '0.75rem', color: canRedeem ? '#15803D' : '#64748B', lineHeight: 1.2 }}>{item.desc}</p>
-                                        </div>
-
-                                        <button 
-                                            disabled={!canRedeem}
-                                            style={{
-                                                border: 'none',
-                                                padding: '0.45rem 0.75rem',
-                                                borderRadius: '8px',
-                                                fontSize: '0.7rem',
-                                                fontWeight: '800',
-                                                textTransform: 'uppercase',
-                                                cursor: canRedeem ? 'pointer' : 'default',
-                                                background: canRedeem ? 'linear-gradient(135deg, #059669 0%, #064E3B 100%)' : '#E2E8F0',
-                                                color: canRedeem ? '#FFFFFF' : '#94A3B8',
-                                                boxShadow: canRedeem ? '0 4px 10px rgba(5, 150, 105, 0.2)' : 'none'
-                                            }}
-                                        >
-                                            {canRedeem ? 'Redeem' : 'Locked'}
-                                        </button>
-                                    </div>
-                                );
-                            })}
-
-                            <div style={{ 
-                                marginTop: '0.5rem', 
-                                padding: '1rem', 
-                                borderRadius: '12px', 
-                                background: '#F0F9FF', 
-                                border: '1px solid #E0F2FE', 
-                                display: 'flex', 
-                                alignItems: 'flex-start', 
-                                gap: '0.75rem' 
-                            }}>
-                                <Star size={18} color="#0284C7" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                <div>
-                                    <h5 style={{ margin: '0 0 2px 0', fontSize: '0.8rem', fontWeight: '800', color: '#0369A1' }}>Collect Points Faster!</h5>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#0284C7', lineHeight: 1.3 }}>
-                                        Invite verified colleagues through the "Refer & Earn" link below and rack up 500 pts per successful integration!
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
             </div>
         </div>
     );
