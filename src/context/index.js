@@ -6,3 +6,4 @@
 
 export { AuthProvider } from './AuthContext';
 export { useAuth } from './auth-context';
+export { CurrencyProvider, useCurrency } from './CurrencyContext';

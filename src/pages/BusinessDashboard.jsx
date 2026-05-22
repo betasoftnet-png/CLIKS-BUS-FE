@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCurrency } from '../context';
 import { 
     LayoutDashboard, 
     Briefcase, 
@@ -84,6 +85,7 @@ const MASTER_SHORTCUTS = [
 
 const BusinessDashboard = () => {
     const navigate = useNavigate();
+    const { formatCurrency } = useCurrency();
     const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
         const saved = localStorage.getItem('cliks_dashboard_shortcuts');
         return saved ? JSON.parse(saved) : MASTER_SHORTCUTS.map(s => s.id);
@@ -179,14 +181,14 @@ const BusinessDashboard = () => {
     };
 
     const stats = [
-        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? `₹${(summary.total_sales).toLocaleString()}` : '₹0', change: 'Live', icon: DollarSign, color: '#1B6B3A' },
-        { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? `₹${(summary.total_purchases).toLocaleString()}` : '₹0', change: 'Live', icon: Briefcase, color: '#064E3B' },
-        { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? `₹${(summary.total_expenses).toLocaleString()}` : '₹0', change: 'Live', icon: TrendingUp, color: '#059669' },
+        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: DollarSign, color: '#1B6B3A' },
+        { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? formatCurrency(summary.total_purchases) : formatCurrency(0), change: 'Live', icon: Briefcase, color: '#064E3B' },
+        { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? formatCurrency(summary.total_expenses) : formatCurrency(0), change: 'Live', icon: TrendingUp, color: '#059669' },
         { 
             label: 'Est. Net Profit', 
             value: (() => {
                 const profit = (summary?.total_sales || 0) - (summary?.total_purchases || 0) - (summary?.total_expenses || 0);
-                return profit >= 0 ? `₹${profit.toLocaleString()}` : `-₹${Math.abs(profit).toLocaleString()}`;
+                return formatCurrency(profit);
             })(), 
             change: 'Live', 
             icon: ArrowUpRight, 

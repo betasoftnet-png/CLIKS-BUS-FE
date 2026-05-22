@@ -16,8 +16,10 @@ import { load } from '@cashfreepayments/cashfree-js';
 import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import { useCurrency } from '../context';
 
 const BusinessSubscription = () => {
+    const { currency, formatCurrency } = useCurrency();
     const [activeCategory, setActiveCategory] = useState('business');
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
@@ -285,8 +287,8 @@ const BusinessSubscription = () => {
     };
 
     const invoices = [
-        { id: 'INV-2026-041', date: '2026-05-01', tier: 'Growth Plan', amount: '₹6,999', status: 'Paid', method: 'UPI (Razorpay)' },
-        { id: 'INV-2026-029', date: '2025-05-01', tier: 'Growth Plan', amount: '₹6,999', status: 'Paid', method: 'Bank Transfer' }
+        { id: 'INV-2026-041', date: '2026-05-01', tier: 'Growth Plan', amount: 6999, status: 'Paid', method: 'UPI (Razorpay)' },
+        { id: 'INV-2026-029', date: '2025-05-01', tier: 'Growth Plan', amount: 6999, status: 'Paid', method: 'Bank Transfer' }
     ];
 
     const getRenewalDetails = () => {
@@ -300,7 +302,7 @@ const BusinessSubscription = () => {
         }
         if (!foundTier) {
             return {
-                price: '6,999',
+                price: 6999,
                 desc: 'Your workspace is configured with high-performance ERP pipelines. All accounting, manufacturing, and HR modules are fully active.',
                 gradient: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
                 color: '#1B6B3A'
@@ -324,7 +326,7 @@ const BusinessSubscription = () => {
         }
         
         return {
-            price: foundTier.priceAnnually.toLocaleString(),
+            price: foundTier.priceAnnually,
             desc: desc,
             gradient: gradient,
             color: foundTier.color
@@ -430,7 +432,7 @@ const BusinessSubscription = () => {
                     <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
                     <div style={{ textAlign: 'left' }}>
                         <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>Renewal Amount</p>
-                        <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>₹{renewal.price} <span style={{ fontSize: '0.75rem', fontWeight: '500', opacity: 0.8 }}>+ GST</span></p>
+                        <p style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>{formatCurrency(renewal.price)} <span style={{ fontSize: '0.75rem', fontWeight: '500', opacity: 0.8 }}>+ GST</span></p>
                     </div>
                 </div>
             </div>
@@ -577,15 +579,15 @@ const BusinessSubscription = () => {
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '1.25rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>₹{tier.originalPrice.toLocaleString()}</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save ₹{(tier.originalPrice - price).toLocaleString()}</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>{formatCurrency(tier.originalPrice)}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save {formatCurrency(tier.originalPrice - price)}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
-                                    <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>₹{price.toLocaleString()}</span>
+                                    <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>{formatCurrency(price)}</span>
                                     <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>/ year</span>
                                 </div>
                                 <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B' }}>
-                                    (Equivalent to ₹{Math.round(price / 12).toLocaleString()} per month)
+                                    (Equivalent to {formatCurrency(Math.round(price / 12))} per month)
                                 </span>
                             </div>
 
@@ -653,7 +655,7 @@ const BusinessSubscription = () => {
                                     <td style={{ padding: '1.25rem', fontWeight: '700', color: '#1E293B' }}>{inv.tier}</td>
                                     <td style={{ padding: '1.25rem', fontSize: '0.8rem', color: '#475569', fontWeight: '600' }}><span style={{ background: '#F1F5F9', padding: '0.3rem 0.6rem', borderRadius: '8px' }}>{inv.method}</span></td>
                                     <td style={{ padding: '1.25rem' }}><span style={{ padding: '0.4rem 0.8rem', borderRadius: '10px', background: '#F0FDF4', color: '#1B6B3A', fontSize: '0.8rem', fontWeight: '750' }}>{inv.status}</span></td>
-                                    <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '850', color: '#1E293B' }}>{inv.amount}</td>
+                                    <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(inv.amount)}</td>
                                 </tr>
                             ))}
                         </tbody>

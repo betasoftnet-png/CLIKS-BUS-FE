@@ -4,7 +4,7 @@ import {
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
     Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, Edit,
     Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X,
-    Settings as SettingsIcon, Globe, Shield
+    Settings as SettingsIcon, Globe, Shield, Coins, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
@@ -106,7 +106,17 @@ const BusinessCustomization = () => {
         emailDigest: false,
         publicProfile: true,
         twoFactor: true,
-        dataSharing: false
+        dataSharing: false,
+
+        // PAYMENT MODULE CONFIGS
+        paymentUpi: true,
+        paymentCard: false,
+        paymentReminders: true,
+
+        // FIN-PRO ADVANCED OPERATIONS
+        finProMultiCurrency: false,
+        finProAiCashflow: true,
+        finProSmartAudit: false
     });
 
     // ── Load Cloud Sync Configuration ───────────────────────────────
@@ -193,6 +203,8 @@ const BusinessCustomization = () => {
         { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'party', label: 'Contacts', icon: Users, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'payment', label: 'Payment', icon: Coins, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'finPro', label: 'FIN-PRO', icon: Zap, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'settings', label: 'Settings', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' }
     ];
@@ -206,6 +218,8 @@ const BusinessCustomization = () => {
             case 'gst': return renderGst();
             case 'party': return renderParty();
             case 'accounting': return renderAccounting();
+            case 'payment': return renderPayment();
+            case 'finPro': return renderFinPro();
             case 'betaClub': return renderBetaClub();
             case 'settings': return renderSettings();
             default: return null;
@@ -384,6 +398,206 @@ const BusinessCustomization = () => {
                     onToggle={() => handleToggle('accountingModule')} 
                 />
             </CustomizationCard>
+        </div>
+    );
+
+    const renderPayment = () => (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <CustomizationCard title="Payment Integration Rules" icon={Coins}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Instant UPI Dynamic QR Generation" 
+                            desc="Embed auto-generated dynamic UPI QR codes on all invoices for instant customer scans." 
+                            active={config.paymentUpi} 
+                            onToggle={() => handleToggle('paymentUpi')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Card Payment Settlements" 
+                            desc="Support direct credit/debit card transactions (Visa, Mastercard, RuPay) during billing checkout." 
+                            active={config.paymentCard} 
+                            onToggle={() => handleToggle('paymentCard')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Automated Outstanding Reminders" 
+                            desc="Automatically ping customers via WhatsApp/SMS when invoice due date is near or elapsed." 
+                            active={config.paymentReminders} 
+                            onToggle={() => handleToggle('paymentReminders')} 
+                        />
+                    </div>
+                </CustomizationCard>
+            </div>
+            
+            <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                <div style={{ padding: '1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800', color: '#1E293B' }}>
+                    <Eye size={16} color="#3B82F6" /> REALTIME PAYMENT PREVIEW
+                </div>
+                <div style={{ padding: '2rem', minHeight: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9' }}>
+                    <div style={{ width: '85%', background: 'white', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+                        {/* Header */}
+                        <div style={{ background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)', padding: '1rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', opacity: 0.8, fontWeight: '700' }}>Merchant Account</div>
+                                <div style={{ fontWeight: '850', fontSize: '0.9rem' }}>{config.companyName || 'My Primary Firm'}</div>
+                            </div>
+                            <Coins size={20} />
+                        </div>
+                        
+                        {/* Body */}
+                        <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase' }}>Amount Due</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>₹ 5,249.00</div>
+                            </div>
+                            
+                            {/* UPI QR Display */}
+                            {config.paymentUpi ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', border: '1.5px solid #E2E8F0', borderRadius: '8px', background: '#FAFBFC' }}>
+                                    {/* Mock QR SVG */}
+                                    <svg width="120" height="120" viewBox="0 0 100 100" style={{ shapeRendering: 'crispEdges' }}>
+                                        {/* Corners */}
+                                        <path d="M0,0 h30 v10 h-20 v20 h-10 z" fill="#0F172A" />
+                                        <path d="M70,0 h30 v30 h-10 v-20 h-20 z" fill="#0F172A" />
+                                        <path d="M0,70 h10 v20 h20 v10 h-30 z" fill="#0F172A" />
+                                        <path d="M70,100 h30 v-30 h-10 v20 h-20 z" fill="#0F172A" />
+                                        
+                                        {/* Inner squares */}
+                                        <rect x="5" y="5" width="10" height="10" fill="#0F172A" />
+                                        <rect x="85" y="5" width="10" height="10" fill="#0F172A" />
+                                        <rect x="5" y="85" width="10" height="10" fill="#0F172A" />
+                                        
+                                        {/* Random mock QR dots */}
+                                        <rect x="25" y="25" width="10" height="10" fill="#3B82F6" />
+                                        <rect x="45" y="15" width="5" height="15" fill="#0F172A" />
+                                        <rect x="65" y="25" width="15" height="5" fill="#0F172A" />
+                                        <rect x="25" y="45" width="15" height="10" fill="#0F172A" />
+                                        <rect x="55" y="45" width="10" height="15" fill="#3B82F6" />
+                                        <rect x="15" y="65" width="15" height="5" fill="#0F172A" />
+                                        <rect x="45" y="65" width="15" height="10" fill="#0F172A" />
+                                        <rect x="75" y="55" width="10" height="20" fill="#0F172A" />
+                                        <rect x="35" y="80" width="15" height="10" fill="#3B82F6" />
+                                        <rect x="65" y="85" width="15" height="5" fill="#0F172A" />
+                                    </svg>
+                                    <div style={{ fontSize: '0.6rem', color: '#1B6B3A', fontWeight: '800', background: '#ECFDF5', padding: '0.2rem 0.5rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <ShieldCheck size={10} /> BHIM UPI SECURED
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ width: '120px', height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1.5px dashed #CBD5E1', borderRadius: '8px', background: '#F8FAFC', color: '#94A3B8', padding: '0.5rem', textAlign: 'center' }}>
+                                    <Coins size={24} style={{ marginBottom: '4px' }} />
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '700' }}>UPI Disabled</span>
+                                    <span style={{ fontSize: '0.5rem', marginTop: '2px' }}>Enable dynamic QR generation to display code</span>
+                                </div>
+                            )}
+                            
+                            {/* Settlement methods */}
+                            <div style={{ width: '100%', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-around', fontSize: '0.65rem', fontWeight: '700', color: '#64748B' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: config.paymentCard ? '#10B981' : '#94A3B8' }}>
+                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: config.paymentCard ? '#10B981' : '#94A3B8' }} /> VISA/MC Card
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: config.paymentReminders ? '#10B981' : '#94A3B8' }}>
+                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: config.paymentReminders ? '#10B981' : '#94A3B8' }} /> Auto SMS Reminders
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderFinPro = () => (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <CustomizationCard title="Professional Ledger & AI Analytics" icon={Zap}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Multi-Currency Ledgers" 
+                            desc="Enable cross-border entries with real-time currency conversions and daily forex adjustments." 
+                            active={config.finProMultiCurrency} 
+                            onToggle={() => handleToggle('finProMultiCurrency')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="AI Predictive Cashflow Projections" 
+                            desc="Activate self-learning neural engines to forecast cash runways, collections, and burn rates." 
+                            active={config.finProAiCashflow} 
+                            onToggle={() => handleToggle('finProAiCashflow')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Smart Audit Trail GST Sync" 
+                            desc="Maintain a cryptographically hashed log of every invoice action with instant tax node parity." 
+                            active={config.finProSmartAudit} 
+                            onToggle={() => handleToggle('finProSmartAudit')} 
+                        />
+                    </div>
+                </CustomizationCard>
+            </div>
+            
+            <div style={{ background: '#0F172A', border: '1px solid #1E293B', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)', position: 'relative' }}>
+                {/* Accent glows */}
+                <div style={{ position: 'absolute', right: '-30px', top: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', left: '-30px', bottom: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                
+                <div style={{ padding: '1rem', background: '#1E293B', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800', color: '#F8FAFC' }}>
+                    <Crown size={16} color="#F59E0B" /> FIN-PRO PLATINUM SUITE
+                </div>
+                
+                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', minHeight: '320px', boxSizing: 'border-box' }}>
+                    {/* Glassmorphic card */}
+                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.25rem', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <span style={{ fontSize: '0.6rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enterprise Layer</span>
+                                <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    FIN-PRO <span style={{ fontSize: '0.65rem', background: 'linear-gradient(90deg, #F59E0B 0%, #EC4899 100%)', color: 'white', padding: '1px 6px', borderRadius: '100px', fontWeight: '800' }}>ACTIVE</span>
+                                </h3>
+                            </div>
+                            <Zap size={24} color="#F59E0B" style={{ filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.4))' }} />
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
+                            {/* Multi-currency indicator */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                                <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}><Globe size={14} color="#6366F1" /> Multi-Currency Ledger</span>
+                                <span style={{ fontWeight: '750', color: config.finProMultiCurrency ? '#10B981' : '#64748B' }}>
+                                    {config.finProMultiCurrency ? 'USD, EUR, INR ENABLED' : 'LOCAL CURRENCY ONLY'}
+                                </span>
+                            </div>
+                            
+                            {/* AI Cashflow engine */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                                <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}><Calculator size={14} color="#EC4899" /> AI Cashflow Engine</span>
+                                <span style={{ fontWeight: '750', color: config.finProAiCashflow ? '#10B981' : '#64748B' }}>
+                                    {config.finProAiCashflow ? 'PREDICTIVE ANALYSIS UP' : 'DEACTIVATED'}
+                                </span>
+                            </div>
+                            
+                            {/* Compliance node status */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                                <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}><Shield size={14} color="#10B981" /> Hashed GST Node Sync</span>
+                                <span style={{ fontWeight: '750', color: config.finProSmartAudit ? '#10B981' : '#64748B' }}>
+                                    {config.finProSmartAudit ? 'CRYPTOGRAPHIC HANDSHAKE' : 'OFFLINE'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Tiny glassmorphic preview banner for Cashflow Prediction */}
+                    {config.finProAiCashflow && (
+                        <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px dashed rgba(99, 102, 241, 0.3)', borderRadius: '10px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <div style={{ fontSize: '0.6rem', fontWeight: '800', color: '#818CF8', textTransform: 'uppercase' }}>AI Runaway Projection (30 Days)</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: '850', color: '#FFFFFF' }}>₹ 14.8L Safe Reserve</span>
+                                <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '700' }}>+8.4% growth forecasted</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
     const renderGeneral = () => (

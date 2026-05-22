@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { 
-    Calculator, 
-    FileText, 
-    Download, 
-    TrendingUp, 
-    TrendingDown, 
-    BarChart3, 
-    IndianRupee, 
+import {
+    Calculator,
+    FileText,
+    Download,
+    TrendingUp,
+    TrendingDown,
+    BarChart3,
+    IndianRupee,
     Calendar,
     ArrowUpRight,
     ArrowDownRight,
@@ -29,8 +29,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingService } from '../services/accountingService';
 import { gstService, settingsService } from '../services';
 import * as XLSX from 'xlsx';
+import { useCurrency } from '../context';
 
 const BusinessAccounting = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
@@ -150,7 +152,7 @@ const BusinessAccounting = () => {
         const ws = XLSX.utils.json_to_sheet(exportPayload);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'FIN_PRO_Audit_Ledger');
-        
+
         const fileName = `CLIKS_FIN_PRO_Audit_${exportFromDate}_to_${exportToDate}.${exportFormat}`;
         if (exportFormat === 'xlsx') {
             XLSX.writeFile(wb, fileName);
@@ -185,23 +187,23 @@ const BusinessAccounting = () => {
 
     // fallback data
     const summaryStats = [
-        { label: 'Gross Revenue', value: dbPL ? `₹${parseFloat(dbPL.gross_revenue || 0).toLocaleString()}` : '₹0', icon: TrendingUp, color: '#7C3AED', bg: '#F3E8FF' },
-        { label: 'Total Expenses', value: dbPL ? `₹${parseFloat(dbPL.total_expenses || 0).toLocaleString()}` : '₹0', icon: TrendingDown, color: '#EF4444', bg: '#FEF2F2' },
-        { label: 'Net Profit', value: dbPL ? `₹${parseFloat(dbPL.net_profit || 0).toLocaleString()}` : '₹0', icon: IndianRupee, color: '#0891B2', bg: '#E0F2FE' },
-        { label: 'GST Payable', value: dbBalanceSheet?.liabilities?.gst_payable ? `₹${parseFloat(dbBalanceSheet.liabilities.gst_payable).toLocaleString()}` : '₹0', icon: ShieldCheck, color: '#0D9488', bg: '#DCFCE7' }
+        { label: 'Gross Revenue', value: dbPL ? formatCurrency(dbPL.gross_revenue || 0) : formatCurrency(0), icon: TrendingUp, color: '#7C3AED', bg: '#F3E8FF' },
+        { label: 'Total Expenses', value: dbPL ? formatCurrency(dbPL.total_expenses || 0) : formatCurrency(0), icon: TrendingDown, color: '#EF4444', bg: '#FEF2F2' },
+        { label: 'Net Profit', value: dbPL ? formatCurrency(dbPL.net_profit || 0) : formatCurrency(0), icon: IndianRupee, color: '#0891B2', bg: '#E0F2FE' },
+        { label: 'GST Payable', value: dbBalanceSheet?.liabilities?.gst_payable ? formatCurrency(dbBalanceSheet.liabilities.gst_payable) : formatCurrency(0), icon: ShieldCheck, color: '#0D9488', bg: '#DCFCE7' }
     ];
 
     const gstReports = [
-        { name: 'GSTR-1 Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Action Needed', tax: dbBalanceSheet?.liabilities?.gst_payable ? `₹${parseFloat(dbBalanceSheet.liabilities.gst_payable).toLocaleString()}` : '₹0' },
-        { name: 'GSTR-3B Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Ready', tax: '₹0' },
-        { name: 'ITC Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Auto-populated', tax: dbBalanceSheet?.assets?.receivables ? `₹${parseFloat(dbBalanceSheet.assets.receivables).toLocaleString()}` : '₹0' }
+        { name: 'GSTR-1 Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Action Needed', tax: dbBalanceSheet?.liabilities?.gst_payable ? formatCurrency(dbBalanceSheet.liabilities.gst_payable) : formatCurrency(0) },
+        { name: 'GSTR-3B Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Ready', tax: formatCurrency(0) },
+        { name: 'ITC Summary', period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }), status: 'Auto-populated', tax: dbBalanceSheet?.assets?.receivables ? formatCurrency(dbBalanceSheet.assets.receivables) : formatCurrency(0) }
     ];
 
     const dayBook = dbLedger.map(item => ({
         id: item.id,
         type: item.entry_type === 'income' ? 'Income' : 'Expense',
         category: item.category || 'Transaction',
-        amount: `₹${parseFloat(item.amount || 0).toLocaleString()}`,
+        amount: formatCurrency(item.amount || 0),
         mode: item.mode || 'Other',
         date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0]
     }));
@@ -210,7 +212,7 @@ const BusinessAccounting = () => {
         cat: item.category || 'Uncategorized',
         desc: item.notes || 'Recorded Expense',
         date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
-        amt: `₹${parseFloat(item.amount || 0).toLocaleString()}`,
+        amt: formatCurrency(item.amount || 0),
         rawAmt: parseFloat(item.amount) || 0
     }));
 
@@ -240,15 +242,15 @@ const BusinessAccounting = () => {
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
 
     const totalAssets = (parseFloat(dbBalanceSheet?.assets?.cash) || 0) +
-                        (parseFloat(dbBalanceSheet?.assets?.bank) || 0) +
-                        (parseFloat(dbBalanceSheet?.assets?.inventory) || 0) +
-                        (parseFloat(dbBalanceSheet?.assets?.receivables) || 0) +
-                        (parseFloat(dbBalanceSheet?.assets?.fixed_assets) || 0);
+        (parseFloat(dbBalanceSheet?.assets?.bank) || 0) +
+        (parseFloat(dbBalanceSheet?.assets?.inventory) || 0) +
+        (parseFloat(dbBalanceSheet?.assets?.receivables) || 0) +
+        (parseFloat(dbBalanceSheet?.assets?.fixed_assets) || 0);
 
     const totalLiabilities = (parseFloat(dbBalanceSheet?.liabilities?.payables) || 0) +
-                             (parseFloat(dbBalanceSheet?.liabilities?.gst_payable) || 0) +
-                             (parseFloat(dbBalanceSheet?.liabilities?.loans) || 0) +
-                             (parseFloat(dbBalanceSheet?.liabilities?.equity) || 0);
+        (parseFloat(dbBalanceSheet?.liabilities?.gst_payable) || 0) +
+        (parseFloat(dbBalanceSheet?.liabilities?.loans) || 0) +
+        (parseFloat(dbBalanceSheet?.liabilities?.equity) || 0);
 
     if (!isLoadingSettings && activeConfig.accountingModule === false) {
         return (
@@ -262,12 +264,12 @@ const BusinessAccounting = () => {
                         The general ledgers, trial balances, and Profit & Loss sheet features are currently disabled. You can activate full Double Entry Accounting anytime from the Engine Customizer panel.
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                        <button 
+                        <button
                             onClick={() => window.location.href = '/customization'}
-                            style={{ 
-                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', 
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.75rem 1.5rem', borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none',
                                 fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
                                 boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)'
                             }}
@@ -337,14 +339,14 @@ const BusinessAccounting = () => {
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Compliance-ready financial management and GST reporting.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button 
+                    <button
                         onClick={() => setIsExportModalOpen(true)}
                         className="crm-btn-secondary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3', fontWeight: '850', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(190,24,93,0.03)' }}
                     >
                         <Download size={15} /> Secure FIN-PRO Export
                     </button>
-                    <button 
+                    <button
                         onClick={() => setIsEntryModalOpen(true)}
                         className="crm-btn"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)' }}
@@ -358,20 +360,20 @@ const BusinessAccounting = () => {
             {/* Specialized Accounting Prime Stats Layout */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {summaryStats.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((stat, idx) => (
-                    <div 
-                        key={idx} 
-                        className="stat-card" 
-                        style={{ 
+                    <div
+                        key={idx}
+                        className="stat-card"
+                        style={{
                             position: 'relative',
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            justifyContent: 'space-between', 
-                            background: 'white', 
-                            padding: '1.5rem 1.75rem', 
-                            borderRadius: '20px', 
-                            border: '1px solid #E2E8F0', 
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            background: 'white',
+                            padding: '1.5rem 1.75rem',
+                            borderRadius: '20px',
+                            border: '1px solid #E2E8F0',
                             borderTop: `4px solid ${stat.color}`,
-                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02), 0 4px 6px -2px rgba(0,0,0,0.01)', 
+                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02), 0 4px 6px -2px rgba(0,0,0,0.01)',
                             cursor: 'default',
                             overflow: 'hidden'
                         }}
@@ -384,7 +386,7 @@ const BusinessAccounting = () => {
                                 <stat.icon size={18} />
                             </div>
                         </div>
-                        
+
                         <div>
                             <h3 style={{ fontSize: '1.85rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.4rem 0', lineHeight: 1 }}>{stat.value}</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -407,12 +409,12 @@ const BusinessAccounting = () => {
                     { id: 'gst', label: 'GST', gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
                     { id: 'ledger', label: 'Day Book', gradient: 'linear-gradient(135deg, #64748B 0%, #475569 100%)', shadowColor: 'rgba(100, 116, 139, 0.15)' }
                 ].map(tab => (
-                    <button 
+                    <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        style={{ 
-                            padding: '0.5rem 1rem', borderRadius: '8px', 
-                            background: activeTab === tab.id ? tab.gradient : 'white', 
+                        style={{
+                            padding: '0.5rem 1rem', borderRadius: '8px',
+                            background: activeTab === tab.id ? tab.gradient : 'white',
                             color: activeTab === tab.id ? 'white' : '#64748B',
                             border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -430,10 +432,10 @@ const BusinessAccounting = () => {
                     <div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
                             {[
-                                { label: 'Total MTD', value: `₹${totalExpenseGroupSum.toLocaleString()}`, icon: TrendingDown, color: '#EF4444' },
-                                { label: 'Operating Costs', value: `₹${(totalExpenseGroupSum * 0.7).toLocaleString()}`, icon: Layers, color: '#0D9488' }, // Derived generically from recorded entries
+                                { label: 'Total MTD', value: formatCurrency(totalExpenseGroupSum), icon: TrendingDown, color: '#EF4444' },
+                                { label: 'Operating Costs', value: formatCurrency(totalExpenseGroupSum * 0.7), icon: Layers, color: '#0D9488' }, // Derived generically from recorded entries
                                 { label: 'Top Expense Cat.', value: Object.keys(pAndLExpenseGroups).length > 0 ? Object.keys(pAndLExpenseGroups)[0] : 'N/A', icon: Building2, color: '#7C3AED' },
-                                { label: 'Payables Balance', value: dbBalanceSheet?.liabilities?.payables ? `₹${parseFloat(dbBalanceSheet.liabilities.payables).toLocaleString()}` : '₹0', icon: Receipt, color: '#B45309' }
+                                { label: 'Payables Balance', value: dbBalanceSheet?.liabilities?.payables ? formatCurrency(dbBalanceSheet.liabilities.payables) : formatCurrency(0), icon: Receipt, color: '#B45309' }
                             ].map((stat, i) => (
                                 <div key={i} style={{ padding: '0.85rem 1.1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div>
@@ -487,7 +489,7 @@ const BusinessAccounting = () => {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                                         <div>
                                             <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.2rem', margin: 0 }}>Balance</p>
-                                            <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1D4ED8', margin: 0 }}>₹{parseFloat(acc.balance || 0).toLocaleString()}</h3>
+                                            <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1D4ED8', margin: 0 }}>{formatCurrency(acc.balance || 0)}</h3>
                                         </div>
                                         <button style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', color: '#1D4ED8', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>History</button>
                                     </div>
@@ -513,7 +515,7 @@ const BusinessAccounting = () => {
                                     return (
                                         <div key={i} style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{cat}</span>
-                                            <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>₹{amt.toLocaleString()} <small style={{ color: '#10B981', fontWeight: '700' }}>({pct}%)</small></span>
+                                            <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{formatCurrency(amt)} <small style={{ color: '#10B981', fontWeight: '700' }}>({pct}%)</small></span>
                                         </div>
                                     );
                                 }) : (
@@ -533,7 +535,7 @@ const BusinessAccounting = () => {
                                     return (
                                         <div key={i} style={{ background: '#FFF1F2', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontWeight: '600', color: '#991B1B', fontSize: '0.85rem' }}>{cat}</span>
-                                            <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>₹{amt.toLocaleString()} <small style={{ color: '#EF4444', fontWeight: '700' }}>({pct}%)</small></span>
+                                            <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{formatCurrency(amt)} <small style={{ color: '#EF4444', fontWeight: '700' }}>({pct}%)</small></span>
                                         </div>
                                     );
                                 }) : (
@@ -554,7 +556,7 @@ const BusinessAccounting = () => {
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', marginBottom: '1rem', marginTop: 0 }}>Aging Report (Receivables)</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     {[
-                                        { label: 'Pending Receivables', amount: `₹${parseFloat(dbBalanceSheet?.assets?.receivables || 0).toLocaleString()}`, pct: (dbBalanceSheet?.assets?.receivables > 0 ? 100 : 0), color: '#10B981' }
+                                        { label: 'Pending Receivables', amount: formatCurrency(dbBalanceSheet?.assets?.receivables || 0), pct: (dbBalanceSheet?.assets?.receivables > 0 ? 100 : 0), color: '#10B981' }
                                     ].map((age, i) => (
                                         <div key={i}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.8rem', fontWeight: '700' }}>
@@ -569,7 +571,7 @@ const BusinessAccounting = () => {
                                 </div>
                                 <div style={{ marginTop: '1.25rem', padding: '1rem', background: '#F0F9F4', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
                                     <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.2rem', margin: 0 }}>TOTAL RECEIVABLES</p>
-                                    <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#1D4ED8', margin: 0 }}>₹{parseFloat(dbBalanceSheet?.assets?.receivables || 0).toLocaleString()}</h3>
+                                    <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#1D4ED8', margin: 0 }}>{formatCurrency(dbBalanceSheet?.assets?.receivables || 0)}</h3>
                                 </div>
                             </div>
 
@@ -611,11 +613,11 @@ const BusinessAccounting = () => {
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                 {[
-                                    { label: 'Cash in Hand', amount: `₹${parseFloat(dbBalanceSheet?.assets?.cash || 0).toLocaleString()}` },
-                                    { label: 'Bank Balance', amount: `₹${parseFloat(dbBalanceSheet?.assets?.bank || 0).toLocaleString()}` },
-                                    { label: 'Inventory Value', amount: `₹${parseFloat(dbBalanceSheet?.assets?.inventory || 0).toLocaleString()}` },
-                                    { label: 'Accounts Receivable', amount: `₹${parseFloat(dbBalanceSheet?.assets?.receivables || 0).toLocaleString()}` },
-                                    { label: 'Fixed Assets', amount: `₹${parseFloat(dbBalanceSheet?.assets?.fixed_assets || 0).toLocaleString()}` }
+                                    { label: 'Cash in Hand', amount: formatCurrency(dbBalanceSheet?.assets?.cash || 0) },
+                                    { label: 'Bank Balance', amount: formatCurrency(dbBalanceSheet?.assets?.bank || 0) },
+                                    { label: 'Inventory Value', amount: formatCurrency(dbBalanceSheet?.assets?.inventory || 0) },
+                                    { label: 'Accounts Receivable', amount: formatCurrency(dbBalanceSheet?.assets?.receivables || 0) },
+                                    { label: 'Fixed Assets', amount: formatCurrency(dbBalanceSheet?.assets?.fixed_assets || 0) }
                                 ].map((item, i) => (
                                     <div key={i} style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{item.label}</span>
@@ -624,7 +626,7 @@ const BusinessAccounting = () => {
                                 ))}
                                 <div style={{ background: '#E6F4EA', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', border: '1px solid #A7F3D0', alignItems: 'center' }}>
                                     <span style={{ fontWeight: '800', color: '#137333', fontSize: '0.85rem' }}>Total Assets</span>
-                                    <span style={{ fontWeight: '900', color: '#137333', fontSize: '0.95rem' }}>₹{totalAssets.toLocaleString()}</span>
+                                    <span style={{ fontWeight: '900', color: '#137333', fontSize: '0.95rem' }}>{formatCurrency(totalAssets)}</span>
                                 </div>
                             </div>
                         </div>
@@ -634,10 +636,10 @@ const BusinessAccounting = () => {
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                 {[
-                                    { label: 'Accounts Payable', amount: `₹${parseFloat(dbBalanceSheet?.liabilities?.payables || 0).toLocaleString()}` },
-                                    { label: 'GST Payable', amount: `₹${parseFloat(dbBalanceSheet?.liabilities?.gst_payable || 0).toLocaleString()}` },
-                                    { label: 'Loans / Credit', amount: `₹${parseFloat(dbBalanceSheet?.liabilities?.loans || 0).toLocaleString()}` },
-                                    { label: "Owner's Equity", amount: `₹${parseFloat(dbBalanceSheet?.liabilities?.equity || 0).toLocaleString()}` }
+                                    { label: 'Accounts Payable', amount: formatCurrency(dbBalanceSheet?.liabilities?.payables || 0) },
+                                    { label: 'GST Payable', amount: formatCurrency(dbBalanceSheet?.liabilities?.gst_payable || 0) },
+                                    { label: 'Loans / Credit', amount: formatCurrency(dbBalanceSheet?.liabilities?.loans || 0) },
+                                    { label: "Owner's Equity", amount: formatCurrency(dbBalanceSheet?.liabilities?.equity || 0) }
                                 ].map((item, i) => (
                                     <div key={i} style={{ background: '#FFF1F2', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ fontWeight: '600', color: '#991B1B', fontSize: '0.85rem' }}>{item.label}</span>
@@ -646,7 +648,7 @@ const BusinessAccounting = () => {
                                 ))}
                                 <div style={{ background: '#FEE2E2', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', border: '1px solid #FCA5A5', alignItems: 'center' }}>
                                     <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>Total Liab. & Equity</span>
-                                    <span style={{ fontWeight: '900', color: '#991B1B', fontSize: '0.95rem' }}>₹{totalLiabilities.toLocaleString()}</span>
+                                    <span style={{ fontWeight: '900', color: '#991B1B', fontSize: '0.95rem' }}>{formatCurrency(totalLiabilities)}</span>
                                 </div>
                             </div>
                         </div>
@@ -680,12 +682,12 @@ const BusinessAccounting = () => {
                     <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <FilterableTableHead columns={[
-        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
-        { key: 'category', label: 'Category', placeholder: 'e.g. Sales' },
-        { key: 'mode', label: 'Mode', placeholder: 'e.g. UPI' },
-        { key: 'type', label: 'Type', placeholder: 'e.g. Income' },
-        { key: 'amount', label: 'Amount', placeholder: 'e.g. 5000' }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+                                { key: 'category', label: 'Category', placeholder: 'e.g. Sales' },
+                                { key: 'mode', label: 'Mode', placeholder: 'e.g. UPI' },
+                                { key: 'type', label: 'Type', placeholder: 'e.g. Income' },
+                                { key: 'amount', label: 'Amount', placeholder: 'e.g. 5000' }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {dayBook.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(entry => (
                                     <tr key={entry.id} className="crm-table-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
@@ -732,8 +734,8 @@ const BusinessAccounting = () => {
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount (₹)</label>
-                                <input required type="number" placeholder="0.00" value={entryForm.amount} onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol})</label>
+                                a                                <input required type="number" placeholder="0.00" value={entryForm.amount} onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -776,7 +778,7 @@ const BusinessAccounting = () => {
             {isExportModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
-                        
+
                         {/* Decorative Branding Bar */}
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #EC4899 0%, #7C3AED 100%)' }} />
 
@@ -794,7 +796,7 @@ const BusinessAccounting = () => {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            
+
                             {/* Set Date Range Limits */}
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Set Date Limits</label>
@@ -803,22 +805,22 @@ const BusinessAccounting = () => {
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
                                             <Calendar size={11} color="#EC4899" /> From
                                         </label>
-                                        <input 
-                                            type="date" 
-                                            value={exportFromDate} 
-                                            onChange={(e) => setExportFromDate(e.target.value)} 
-                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '750', background: 'white', boxSizing: 'border-box' }} 
+                                        <input
+                                            type="date"
+                                            value={exportFromDate}
+                                            onChange={(e) => setExportFromDate(e.target.value)}
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '750', background: 'white', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                     <div>
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
                                             <Calendar size={11} color="#7C3AED" /> To
                                         </label>
-                                        <input 
-                                            type="date" 
-                                            value={exportToDate} 
-                                            onChange={(e) => setExportToDate(e.target.value)} 
-                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '750', background: 'white', boxSizing: 'border-box' }} 
+                                        <input
+                                            type="date"
+                                            value={exportToDate}
+                                            onChange={(e) => setExportToDate(e.target.value)}
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '750', background: 'white', boxSizing: 'border-box' }}
                                         />
                                     </div>
                                 </div>
@@ -832,11 +834,11 @@ const BusinessAccounting = () => {
                                         { id: 'xlsx', label: 'Tally/Excel Doc', sub: '.xlsx Spreadsheet', color: '#10B981' },
                                         { id: 'csv', label: 'Raw Flat Data', sub: '.csv File', color: '#3B82F6' }
                                     ].map((fmt) => (
-                                        <div 
+                                        <div
                                             key={fmt.id}
                                             onClick={() => setExportFormat(fmt.id)}
-                                            style={{ 
-                                                padding: '0.85rem 1rem', borderRadius: '12px', border: '2px solid', 
+                                            style={{
+                                                padding: '0.85rem 1rem', borderRadius: '12px', border: '2px solid',
                                                 borderColor: exportFormat === fmt.id ? fmt.color : '#F1F5F9',
                                                 background: exportFormat === fmt.id ? `${fmt.color}05` : '#FFFFFF',
                                                 cursor: 'pointer', transition: 'all 0.2s', position: 'relative',
@@ -859,12 +861,12 @@ const BusinessAccounting = () => {
                                 <span style={{ fontSize: '0.7rem', color: '#065F46', fontWeight: '700' }}>Audit ready structures generated according to accounting principles.</span>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={handleExecuteExport}
-                                style={{ 
-                                    width: '100%', padding: '0.9rem', borderRadius: '14px', 
-                                    background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', 
-                                    color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', 
+                                style={{
+                                    width: '100%', padding: '0.9rem', borderRadius: '14px',
+                                    background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
+                                    color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem',
                                     cursor: 'pointer', boxShadow: '0 6px 15px rgba(190, 24, 93, 0.12)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem'
                                 }}

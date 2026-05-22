@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCurrency } from '../context';
 import { 
     Search, 
     Plus, 
@@ -35,6 +36,7 @@ import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessPOS = () => {
+    const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [cart, setCart] = useState([]);
     const [colFilters, setColFilters] = React.useState({});
@@ -478,7 +480,7 @@ const BusinessPOS = () => {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Total Sales</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>₹{(todaySummary.total_sales || 0).toLocaleString()}</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>{formatCurrency(todaySummary.total_sales || 0)}</span>
                                     </div>
                                 </div>
                             )}
@@ -597,7 +599,7 @@ const BusinessPOS = () => {
                                             </div>
                                             
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
-                                                <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>₹{(prod.price || 0).toLocaleString()}</span>
+                                                <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(prod.price || 0)}</span>
                                                 <div style={{ 
                                                     padding: '0.15rem 0.4rem', 
                                                     borderRadius: '6px', 
@@ -761,7 +763,7 @@ const BusinessPOS = () => {
                                         <div style={{ flex: 1 }}>
                                             <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B' }}>{item.name}</p>
                                             <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>
-                                                <span>₹{item.price.toLocaleString()}</span>
+                                                <span>{formatCurrency(item.price)}</span>
                                                 <span>x</span>
                                                 <span style={{ fontWeight: '700', color: '#1E293B' }}>{item.quantity}</span>
                                             </div>
@@ -779,7 +781,7 @@ const BusinessPOS = () => {
                                         </div>
 
                                         <div style={{ width: '70px', textAlign: 'right' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>₹{item.total.toLocaleString()}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(item.total)}</span>
                                         </div>
 
                                         <button onClick={() => removeFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#EF4444', padding: '0.25rem', cursor: 'pointer', display: 'flex', opacity: 0.6 }}>
@@ -833,22 +835,22 @@ const BusinessPOS = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem 0', borderBottom: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
                             <span>Subtotal</span>
-                            <span>₹{subtotal.toLocaleString()}</span>
+                            <span>{formatCurrency(subtotal)}</span>
                         </div>
                         {discountAmount > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#EF4444', fontWeight: '500' }}>
                                 <span>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
-                                <span>- ₹{discountAmount.toLocaleString()}</span>
+                                <span>- {formatCurrency(discountAmount)}</span>
                             </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
                             <span>GST ({taxRate}%)</span>
-                            <span>₹{calculatedTax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                            <span>{formatCurrency(calculatedTax)}</span>
                         </div>
                         {Math.abs(roundOff) > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94A3B8' }}>
                                 <span>Round Off</span>
-                                <span>{roundOff > 0 ? '+' : ''}₹{roundOff.toFixed(2)}</span>
+                                <span>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
                             </div>
                         )}
                     </div>
@@ -856,7 +858,7 @@ const BusinessPOS = () => {
                     {/* Grand total Display */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                         <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Payable Amount</span>
-                        <span style={{ fontSize: '1.65rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>₹{finalTotal.toLocaleString()}</span>
+                        <span style={{ fontSize: '1.65rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>{formatCurrency(finalTotal)}</span>
                     </div>
 
                     {/* Checkout Payment Action Matrix */}
@@ -1001,7 +1003,7 @@ const BusinessPOS = () => {
                                             <tr key={i}>
                                                 <td style={{ padding: '4px 0', maxWidth: '140px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
                                                 <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item?.total || item?.amount || 0}</td>
+                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item?.total || item?.amount || 0)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -1013,21 +1015,21 @@ const BusinessPOS = () => {
                                 <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>SUBTOTAL:</span>
-                                        <span>₹{lastOrderData?.amount || 0}</span>
+                                        <span>{formatCurrency(lastOrderData?.amount || 0)}</span>
                                     </div>
                                     {lastOrderData?.discount_amount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span>DISCOUNT:</span>
-                                            <span>- ₹{lastOrderData.discount_amount}</span>
+                                            <span>- {formatCurrency(lastOrderData.discount_amount)}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>TAX (GST):</span>
-                                        <span>₹{lastOrderData?.tax_amount || 0}</span>
+                                        <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
                                         <span>GRAND TOTAL:</span>
-                                        <span>₹{lastOrderData?.total_amount || 0}</span>
+                                        <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
                                     </div>
                                 </div>
 
@@ -1112,7 +1114,7 @@ const BusinessPOS = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price (₹) *</label>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price ({currency.symbol}) *</label>
                                     <input 
                                         required 
                                         type="number" 
@@ -1311,7 +1313,7 @@ const BusinessPOS = () => {
                                                     </div>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>₹{order.total_amount.toLocaleString()}</span>
+                                                    <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(order.total_amount || 0)}</span>
                                                     <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
                                                 </div>
                                             </div>
@@ -1332,8 +1334,8 @@ const BusinessPOS = () => {
                                                                     {item.sku && <span style={{ display: 'block', fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>[{item.sku}]</span>}
                                                                 </td>
                                                                 <td style={{ padding: '6px 0', textAlign: 'center', fontWeight: '700' }}>{item.quantity}</td>
-                                                                <td style={{ padding: '6px 0', textAlign: 'right' }}>₹{item.price.toLocaleString()}</td>
-                                                                <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: '700' }}>₹{item.total.toLocaleString()}</td>
+                                                                <td style={{ padding: '6px 0', textAlign: 'right' }}>{formatCurrency(item.price || 0)}</td>
+                                                                <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: '700' }}>{formatCurrency(item.total || 0)}</td>
                                                             </tr>
                                                         ))}
                                                     </tbody>

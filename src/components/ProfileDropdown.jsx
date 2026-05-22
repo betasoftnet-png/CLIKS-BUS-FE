@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search } from "lucide-react";
-import { useAuth } from "../context";
+import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
     onAccount,
@@ -20,7 +20,8 @@ export function ProfileDropdown({
     // Currency Selector State
     const [isCurrencySelectorOpen, setIsCurrencySelectorOpen] = useState(false);
     const [currencySearchQuery, setCountrySearchQueryCurrency] = useState("");
-    const [selectedCurrency, setSelectedCurrency] = useState("INR (₹)");
+    const { currency, setCurrency } = useCurrency();
+    const selectedCurrency = `${currency.code} (${currency.symbol})`;
 
     const countries = [
         { name: "Afghanistan", flag: "🇦🇫" },
@@ -583,7 +584,7 @@ export function ProfileDropdown({
                                             <button
                                                 key={c.code}
                                                 onClick={() => {
-                                                    setSelectedCurrency(`${c.code} (${c.symbol})`);
+                                                    setCurrency({ code: c.code, symbol: c.symbol });
                                                     setIsCurrencySelectorOpen(false);
                                                     setCountrySearchQueryCurrency("");
                                                 }}
