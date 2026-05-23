@@ -494,7 +494,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         >
                             <Plus size={15} strokeWidth={3} /> Add Money
                         </button>
-                        {navigationConfig.financeMode.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
+                        {navigationConfig.financeMode.map(item => (
+                            <React.Fragment key={item.label}>
+                                <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                {item.label === 'Plan' && (
+                                    <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
+                                )}
+                            </React.Fragment>
+                        ))}
                     </>
                 ) : (
                     <>
