@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users, Coins } from 'lucide-react';
+import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users, Coins, ShieldCheck } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -153,6 +153,41 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
+                {!isAdminOrSales && (
+                    <div 
+                        title="Beta Trust Score: Based on daily activity, platform maintenance, and subscription consistency."
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+                            border: '1px solid #86EFAC',
+                            padding: '4px 12px',
+                            borderRadius: '99px',
+                            cursor: 'help',
+                            boxShadow: '0 2px 6px rgba(22, 163, 74, 0.15)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(22, 163, 74, 0.25)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(22, 163, 74, 0.15)';
+                        }}
+                    >
+                        <ShieldCheck size={16} color="#15803D" style={{ flexShrink: 0 }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
+                            <span style={{ fontWeight: '900', fontSize: '13px', color: '#14532D', letterSpacing: '-0.01em', lineHeight: '1' }}>
+                                85%
+                            </span>
+                            <span style={{ fontSize: '9px', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1' }}>
+                                Beta Trust
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 <CalcPopover />
                 <ProfileDropdown
