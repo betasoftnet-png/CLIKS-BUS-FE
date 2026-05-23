@@ -38,8 +38,20 @@ export const CurrencyProvider = ({ children }) => {
         return `${currency.symbol}${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     };
 
+    // Default to India
+    const [country, setCountryState] = useState(() => {
+        const saved = localStorage.getItem('cliks_country');
+        if (saved) return saved;
+        return 'India';
+    });
+
+    const setCountry = (newCountry) => {
+        setCountryState(newCountry);
+        localStorage.setItem('cliks_country', newCountry);
+    };
+
     return (
-        <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency }}>
+        <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, country, setCountry }}>
             {children}
         </CurrencyContext.Provider>
     );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
     Gift, 
     Coins, 
@@ -9,12 +9,32 @@ import {
     Clock,
     Flame
 } from 'lucide-react';
+import { useCurrency } from '../context';
 
 const BusinessRewards = () => {
-    const rewardPoints = (() => {
+    const { currency, formatCurrency } = useCurrency();
+    
+    const [rewardPoints, setRewardPoints] = useState(() => {
         const saved = localStorage.getItem('cliks_reward_points');
         return saved ? parseInt(saved, 10) : 1450;
-    })();
+    });
+
+    const handleConvertPoints = () => {
+        if (rewardPoints <= 0) return;
+        
+        // Let's say 1 point = 1 unit of currency
+        const conversionValue = rewardPoints * 1;
+        
+        // Add to wallet balance in localStorage (as a quick mock update)
+        const currentWallet = parseFloat(localStorage.getItem('cliks_wallet_balance') || '0');
+        localStorage.setItem('cliks_wallet_balance', (currentWallet + conversionValue).toString());
+        
+        // Reset points
+        setRewardPoints(0);
+        localStorage.setItem('cliks_reward_points', '0');
+        
+        alert(`Successfully converted ${rewardPoints} points into ${formatCurrency(conversionValue)} for your wallet!`);
+    };
 
     const premiumOffers = [
         {
@@ -180,6 +200,38 @@ const BusinessRewards = () => {
                         }}>
                             Gold Elite 👑
                         </div>
+                        
+                        <button
+                            onClick={handleConvertPoints}
+                            disabled={rewardPoints <= 0}
+                            style={{
+                                marginTop: '1rem',
+                                padding: '0.6rem 1rem',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: rewardPoints > 0 ? 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)' : 'rgba(255, 255, 255, 0.1)',
+                                color: rewardPoints > 0 ? '#78350F' : '#94A3B8',
+                                fontWeight: '850',
+                                fontSize: '0.75rem',
+                                cursor: rewardPoints > 0 ? 'pointer' : 'not-allowed',
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.4rem',
+                                transition: 'all 0.2s',
+                                boxShadow: rewardPoints > 0 ? '0 4px 12px rgba(245, 158, 11, 0.3)' : 'none'
+                            }}
+                            onMouseOver={(e) => {
+                                if (rewardPoints > 0) e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseOut={(e) => {
+                                if (rewardPoints > 0) e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            <Wallet size={14} />
+                            Convert to Wallet
+                        </button>
                     </div>
                 </div>
 

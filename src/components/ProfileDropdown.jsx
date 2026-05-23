@@ -15,12 +15,13 @@ export function ProfileDropdown({
     // Country Selector State
     const [isCountrySelectorOpen, setIsCountrySelectorOpen] = useState(false);
     const [countrySearchQuery, setCountrySearchQuery] = useState("");
-    const [selectedCountry, setSelectedCountry] = useState("India");
+    
+    // Currency & Country Context
+    const { currency, setCurrency, country: selectedCountry, setCountry: setSelectedCountry } = useCurrency();
 
     // Currency Selector State
     const [isCurrencySelectorOpen, setIsCurrencySelectorOpen] = useState(false);
     const [currencySearchQuery, setCountrySearchQueryCurrency] = useState("");
-    const { currency, setCurrency } = useCurrency();
     const selectedCurrency = `${currency.code} (${currency.symbol})`;
 
     const countries = [
