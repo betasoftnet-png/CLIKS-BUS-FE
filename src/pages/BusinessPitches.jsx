@@ -1164,6 +1164,36 @@ export default function BusinessPitches() {
                         </div>
 
                         <div style={{ padding: '2rem' }}>
+                            {/* Venture Details Section */}
+                            <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.03em', marginBottom: '1rem' }}>
+                                Venture Details
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '0.25rem' }}>Target & Equity</div>
+                                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#059669' }}>
+                                        {formatCurrency(selectedConnectPitch.funding_target || 0)} <span style={{ color: '#1e293b', fontSize: '0.85rem' }}>for {selectedConnectPitch.equity_offered}%</span>
+                                    </div>
+                                </div>
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '0.25rem' }}>Industry</div>
+                                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b' }}>
+                                        {selectedConnectPitch.industry || 'Not Specified'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #f1f5f9' }}>
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '0.5rem' }}>Expansion Intent / Roadmap</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155', lineHeight: 1.5 }}>
+                                    {selectedConnectPitch.use_of_funds || 'No additional details provided.'}
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0' }}>
+                                    <MapPin size={14} />
+                                    <span>{selectedConnectPitch.location || 'Location Not Specified'}</span>
+                                </div>
+                            </div>
+
                             <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.03em', marginBottom: '1rem' }}>
                                 Direct Founders Connect
                             </h4>
