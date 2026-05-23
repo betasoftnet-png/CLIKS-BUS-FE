@@ -47,6 +47,9 @@ const BusinessWallet = () => {
         const params = new URLSearchParams(location.search);
         if (params.get('addMoney') === 'true') {
             setIsModalOpen(true);
+            if (params.get('tab') === 'points') {
+                setActiveTab('points');
+            }
         }
     }, [location.search]);
 

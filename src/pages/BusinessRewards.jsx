@@ -10,9 +10,11 @@ import {
     Flame
 } from 'lucide-react';
 import { useCurrency } from '../context';
+import { useNavigate } from 'react-router-dom';
 
 const BusinessRewards = () => {
     const { currency, formatCurrency } = useCurrency();
+    const navigate = useNavigate();
     
     const [rewardPoints, setRewardPoints] = useState(() => {
         const saved = localStorage.getItem('cliks_reward_points');
@@ -22,18 +24,8 @@ const BusinessRewards = () => {
     const handleConvertPoints = () => {
         if (rewardPoints <= 0) return;
         
-        // Let's say 1 point = 1 unit of currency
-        const conversionValue = rewardPoints * 1;
-        
-        // Add to wallet balance in localStorage (as a quick mock update)
-        const currentWallet = parseFloat(localStorage.getItem('cliks_wallet_balance') || '0');
-        localStorage.setItem('cliks_wallet_balance', (currentWallet + conversionValue).toString());
-        
-        // Reset points
-        setRewardPoints(0);
-        localStorage.setItem('cliks_reward_points', '0');
-        
-        alert(`Successfully converted ${rewardPoints} points into ${formatCurrency(conversionValue)} for your wallet!`);
+        // Navigate to the Wallet page with the Add Money modal opened on the Points tab
+        navigate('/payments/wallet?addMoney=true&tab=points');
     };
 
     const premiumOffers = [
