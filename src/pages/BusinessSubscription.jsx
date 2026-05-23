@@ -191,7 +191,7 @@ const BusinessSubscription = () => {
                 icon: ShieldCheck,
                 color: '#7C3AED',
                 badge: '20 Pitches',
-                period: 'year',
+                period: 'month',
                 features: [
                     'Access up to 20 startup pitches',
                     'Filter pitches by industry and funding goal',
@@ -207,7 +207,7 @@ const BusinessSubscription = () => {
                 icon: Zap,
                 color: '#6D28D9',
                 badge: '50 Pitches',
-                period: 'year',
+                period: 'month',
                 features: [
                     'Access up to 50 startup pitches',
                     'Direct contact details for startup listings',
