@@ -153,38 +153,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                {!isAdminOrSales && (
-                    <div 
-                        title="View Rewards & Offers"
-                        onClick={() => navigate('/payments/rewards')}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
-                            border: '1px solid #FCD34D',
-                            padding: '6px 12px',
-                            borderRadius: '99px',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.15)',
-                            outline: 'none',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(217, 119, 6, 0.25)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(217, 119, 6, 0.15)';
-                        }}
-                    >
-                        <Coins size={15} color="#B45309" style={{ flexShrink: 0 }} />
-                        <span style={{ fontWeight: '800', fontSize: '12.5px', color: '#78350F', letterSpacing: '-0.01em' }}>
-                            1,450 Pts
-                        </span>
-                    </div>
-                )}
+
                 <CalcPopover />
                 <ProfileDropdown
 
