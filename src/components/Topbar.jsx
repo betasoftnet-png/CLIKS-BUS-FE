@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users, Coins, ShieldCheck } from 'lucide-react';
 
 import '../App.css';
