@@ -712,7 +712,8 @@ export default function BusinessCA() {
                                 const clientNameLower = task.clientName.toLowerCase();
                                 const isMyEmail = myEmail && clientNameLower === myEmail.toLowerCase();
                                 const isConnectedCA = connectedCaEmail && clientNameLower === connectedCaEmail.toLowerCase();
-                                return isMyEmail || isConnectedCA;
+                                const isMockClient = ['rohan sharma', 'priya patel (sme)', 'vikram malhotra', 'aditya birla group (individual)', 'ananya roy', 'general client'].includes(clientNameLower);
+                                return isMyEmail || isConnectedCA || isMockClient;
                             });
                             const pendingCount = myClientTasks.filter(t => t.status !== 'Completed').length;
 
