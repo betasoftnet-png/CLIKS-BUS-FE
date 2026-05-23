@@ -642,7 +642,7 @@ export default function BusinessCA() {
                     }}
                 >
                     <Building size={18} />
-                    Business FIN-PRO Command Centre
+                    FIN-PRO Command Centre (Business)
                 </button>
                 <button 
                     onClick={() => setCaMode('personal')} 
@@ -664,7 +664,7 @@ export default function BusinessCA() {
                     }}
                 >
                     <User size={18} />
-                    Personal FIN-PRO Advisory Workspace
+                    FIN-PRO Advisory Workspace (Firm)
                 </button>
             </div>
 

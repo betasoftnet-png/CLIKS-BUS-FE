@@ -220,7 +220,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/payments/split-collect')) return 'Split & Collect';
         if (path.includes('/payments/rewards')) return 'Rewards & Offers';
         if (path.includes('/payments/people')) return 'People';
-        if (path.includes('/payments/plan')) return 'Plan';
+        if (path.includes('/payments/plan')) return 'Planner';
 
         if (path.includes('/referral')) return 'Refer & Earn';
         if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
@@ -364,7 +364,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
             { label: 'Segregation', icon: Target, path: '/payments/segregation' },
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
-            { label: 'Plan', icon: Calendar, path: '/payments/plan' },
+            { label: 'Planner', icon: Calendar, path: '/payments/plan' },
             { label: 'Rewards & Offers', icon: Gift, path: '/payments/rewards' }
         ]
 
@@ -497,7 +497,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         {navigationConfig.financeMode.map(item => (
                             <React.Fragment key={item.label}>
                                 <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
-                                {item.label === 'Plan' && (
+                                {item.label === 'Planner' && (
                                     <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
                                 )}
                             </React.Fragment>
