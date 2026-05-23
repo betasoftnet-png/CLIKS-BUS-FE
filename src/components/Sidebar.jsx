@@ -507,6 +507,9 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <>
                         {navigationConfig.standard.map(item => (
                             <React.Fragment key={item.label}>
+                                {item.label === 'FIN-PRO' && (
+                                    <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
+                                )}
                                 <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
                                 {item.label === 'Dashboard' && (
                                     <>
