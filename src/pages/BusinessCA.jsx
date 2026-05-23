@@ -807,22 +807,31 @@ export default function BusinessCA() {
                                                                                     <CheckCircle2 size={14} /> Uploaded
                                                                                 </span>
                                                                             ) : (
-                                                                                <button 
-                                                                                    type="button"
-                                                                                    onClick={() => uploadTaskDocMutation.mutate(task.id)}
-                                                                                    style={{
-                                                                                        padding: '6px 12px',
-                                                                                        borderRadius: '8px',
-                                                                                        background: '#0F172A',
-                                                                                        color: '#FFFFFF',
-                                                                                        border: 'none',
-                                                                                        fontWeight: '800',
-                                                                                        fontSize: '12px',
-                                                                                        cursor: 'pointer'
-                                                                                    }}
-                                                                                >
-                                                                                    Upload Document
-                                                                                </button>
+                                                                                <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                    <input 
+                                                                                        type="file" 
+                                                                                        style={{ display: 'none' }} 
+                                                                                        onChange={(e) => {
+                                                                                            if (e.target.files && e.target.files.length > 0) {
+                                                                                                uploadTaskDocMutation.mutate(task.id);
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                    <span 
+                                                                                        style={{
+                                                                                            padding: '6px 12px',
+                                                                                            borderRadius: '8px',
+                                                                                            background: '#0F172A',
+                                                                                            color: '#FFFFFF',
+                                                                                            border: 'none',
+                                                                                            fontWeight: '800',
+                                                                                            fontSize: '12px',
+                                                                                            display: 'inline-block'
+                                                                                        }}
+                                                                                    >
+                                                                                        Upload Document
+                                                                                    </span>
+                                                                                </label>
                                                                             )
                                                                         )}
                                                                     </div>
