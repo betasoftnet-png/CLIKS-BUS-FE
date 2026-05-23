@@ -55,6 +55,17 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         { name: 'Social', url: '/social/meetup', icon: Users, active: isSocialActive },
     ];
 
+    const getBetaTrustScore = () => {
+        if (!user) return 85;
+        const baseScore = 70;
+        const subBonus = user.tier ? 15 : 0;
+        const profileBonus = user.name && user.email ? 10 : 0;
+        const todayStr = new Date().toDateString();
+        const dailyActivity = Array.from(todayStr).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 6;
+        return Math.min(100, baseScore + subBonus + profileBonus + dailyActivity);
+    };
+    const betaTrustScore = getBetaTrustScore();
+
     return (
         <header className="topbar">
             {/* Left: Branding / App Switcher */}
@@ -180,7 +191,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         <ShieldCheck size={16} color="#15803D" style={{ flexShrink: 0 }} />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
                             <span style={{ fontWeight: '900', fontSize: '13px', color: '#14532D', letterSpacing: '-0.01em', lineHeight: '1' }}>
-                                85%
+                                {betaTrustScore}%
                             </span>
                             <span style={{ fontSize: '9px', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: '1' }}>
                                 Beta Trust
