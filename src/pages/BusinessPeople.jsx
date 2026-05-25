@@ -20,9 +20,9 @@ import {
     MessageSquare, 
     CheckCircle2,
     Edit2,
-    Tag,
     Pin,
-    MoreVertical
+    MoreVertical,
+    Share2
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { settingsService } from '../services/settingsService';
@@ -46,6 +46,7 @@ const BusinessPeople = () => {
     const [selectedPersonId, setSelectedPersonId] = useState(null);
     const [editingContactId, setEditingContactId] = useState(null);
     const [editingTxId, setEditingTxId] = useState(null);
+    const [editingRemId, setEditingRemId] = useState(null);
 
     // Customization Filters state
     const [groupFilter, setGroupFilter] = useState('All');
@@ -263,10 +264,26 @@ const BusinessPeople = () => {
         }
     });
 
+        }
+    });
+
+    const updateReminderMutation = useMutation({
+        mutationFn: (data) => peopleService.updateReminder(data.person_id, data.id, data),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['people-reminders-all'] });
+            queryClient.invalidateQueries({ queryKey: ['person-reminders', variables.person_id] });
+            setIsInlineRemOpen(false);
+            setEditingRemId(null);
+            setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
+            alert('Reminder updated successfully.');
+        }
+    });
+
     const deleteReminderMutation = useMutation({
         mutationFn: (rem) => peopleService.deleteReminder(rem.person_id, rem.id),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['people-reminders-all']);
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['people-reminders-all'] });
+            queryClient.invalidateQueries({ queryKey: ['person-reminders', variables.person_id] });
             alert('Reminder dismissed.');
         }
     });
@@ -323,16 +340,23 @@ const BusinessPeople = () => {
     const handleSaveInlineRem = (e) => {
         e.preventDefault();
         if (!selectedPersonId) return alert('Target registry contact missing.');
-        createReminderMutation.mutate(
-            { ...inlineRemForm, person_id: selectedPersonId },
-            {
-                onSuccess: () => {
-                    queryClient.invalidateQueries({ queryKey: ['person-reminders', selectedPersonId] });
-                    setIsInlineRemOpen(false);
-                    setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
+        
+        if (editingRemId) {
+            updateReminderMutation.mutate(
+                { ...inlineRemForm, person_id: selectedPersonId, id: editingRemId }
+            );
+        } else {
+            createReminderMutation.mutate(
+                { ...inlineRemForm, person_id: selectedPersonId },
+                {
+                    onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['person-reminders', selectedPersonId] });
+                        setIsInlineRemOpen(false);
+                        setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
+                    }
                 }
-            }
-        );
+            );
+        }
     };
 
     const handleSaveReminder = (e) => {
@@ -1168,7 +1192,29 @@ const BusinessPeople = () => {
                                         </div>
                                     </div>
                                 )}
-                                <button onClick={() => setSelectedPersonId(null)} style={{ border: 'none', background: 'white', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', color: '#475569' }}><X size={20} /></button>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <button 
+                                        onClick={() => {
+                                            const shareText = `Contact Details:\nName: ${personDetails?.name || 'N/A'}\nPhone: ${personDetails?.phone || 'N/A'}\nEmail: ${personDetails?.email || 'N/A'}\nNet Balance: ${formatCurrency(personDetails?.net_balance || 0)}`;
+                                            if (navigator.share) {
+                                                navigator.share({
+                                                    title: `Contact Info - ${personDetails?.name}`,
+                                                    text: shareText
+                                                }).catch(err => console.error('Share failed', err));
+                                            } else {
+                                                navigator.clipboard.writeText(shareText);
+                                                alert('Contact details copied to clipboard!');
+                                            }
+                                        }}
+                                        style={{ border: 'none', background: 'white', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        title="Share Contact"
+                                    >
+                                        <Share2 size={18} />
+                                    </button>
+                                    <button onClick={() => setSelectedPersonId(null)} style={{ border: 'none', background: 'white', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <X size={20} />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Content Body */}
@@ -1639,8 +1685,8 @@ const BusinessPeople = () => {
                                                                     <input required type="date" value={inlineRemForm.due_date} onChange={(e) => setInlineRemForm({ ...inlineRemForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontSize: '0.85rem' }} />
                                                                 </div>
                                                             </div>
-                                                            <button type="submit" disabled={createReminderMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
-                                                                {createReminderMutation.isPending ? 'Enabling...' : 'Enable Alarm 🔔'}
+                                                            <button type="submit" disabled={createReminderMutation.isPending || updateReminderMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                                                {createReminderMutation.isPending || updateReminderMutation.isPending ? 'Saving...' : editingRemId ? 'Update Alarm' : 'Enable Alarm 🔔'}
                                                             </button>
                                                         </form>
                                                     </Motion.div>
@@ -1664,9 +1710,42 @@ const BusinessPeople = () => {
                                                                             <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
                                                                             <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
                                                                         </div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
-                                                                            <Calendar size={12} />
-                                                                            <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#E11D48', fontWeight: '800' }}>
+                                                                                <Calendar size={12} />
+                                                                                <span>Matures: {new Date(rem.due_date).toLocaleDateString('en-IN')}</span>
+                                                                            </div>
+                                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setEditingRemId(rem.id);
+                                                                                        setInlineRemForm({
+                                                                                            title: rem.title,
+                                                                                            amount: rem.amount,
+                                                                                            due_date: new Date(rem.due_date).toISOString().split('T')[0]
+                                                                                        });
+                                                                                        setIsInlineRemOpen(true);
+                                                                                        setIsInlineTxOpen(false);
+                                                                                    }}
+                                                                                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                                                                                    title="Edit Alert"
+                                                                                >
+                                                                                    <Edit2 size={14} />
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        if (window.confirm('Are you sure you want to delete this alert?')) {
+                                                                                            deleteReminderMutation.mutate(rem);
+                                                                                        }
+                                                                                    }}
+                                                                                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                                                                                    title="Delete Alert"
+                                                                                >
+                                                                                    <Trash2 size={14} />
+                                                                                </button>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 ))
@@ -1687,7 +1766,7 @@ const BusinessPeople = () => {
                                     </button>
                                 )}
                                 {!isInlineTxOpen && (
-                                    <button onClick={() => { setIsInlineRemOpen(prev => !prev); setIsInlineTxOpen(false); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineRemOpen ? '#FEF2F2' : '#FEF3C7', border: 'none', color: isInlineRemOpen ? '#991B1B' : '#D97706', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button onClick={() => { setIsInlineRemOpen(prev => !prev); setIsInlineTxOpen(false); if (isInlineRemOpen) { setEditingRemId(null); setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] }); } }} style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: isInlineRemOpen ? '#FEF2F2' : '#FEF3C7', border: 'none', color: isInlineRemOpen ? '#991B1B' : '#D97706', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         {isInlineRemOpen ? 'Cancel Alarm' : <><Bell size={15} /> Set Maturity Due</>}
                                     </button>
                                 )}
