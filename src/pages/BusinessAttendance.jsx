@@ -371,63 +371,70 @@ const BusinessAttendance = () => {
                                 {filteredLogs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((log) => (
                                     <tr 
                                         key={log.attendance_id} 
-                                        style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.2s', cursor: 'default' }}
+                                        style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease', cursor: 'default' }}
                                         onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
                                         onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.92rem', margin: 0 }}>#{log.attendance_id}</p>
-                                            <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '500', display: 'block', marginTop: '0.15rem' }}>Date: {log.attendance_date}</span>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>#{log.attendance_id}</p>
+                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600', display: 'block', marginTop: '0.1rem' }}>Date: {log.attendance_date}</span>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '0.85rem' }}>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '0.78rem', boxShadow: '0 2px 4px rgba(236, 72, 153, 0.12)', flexShrink: 0 }}>
                                                     {log.employee_name.charAt(0)}
                                                 </div>
-                                                <div>
-                                                    <p style={{ fontWeight: '800', color: '#1E293B', margin: 0, fontSize: '0.88rem' }}>{log.employee_name}</p>
-                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>Active Member</span>
-                                                </div>
+                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.82rem' }}>{log.employee_name}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '750', color: '#0F172A', fontSize: '0.85rem' }}>
-                                                <Clock size={13} style={{ color: '#64748B' }} />
-                                                <span>{log.check_in_time} - {log.check_out_time}</span>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
+                                                <Clock size={11} style={{ color: '#EC4899', flexShrink: 0 }} />
+                                                <span style={{ fontWeight: '800', color: '#065F46', fontSize: '0.75rem' }}>{log.check_in_time}</span>
+                                                <span style={{ color: '#94A3B8', fontWeight: '800', fontSize: '0.7rem' }}>→</span>
+                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.75rem' }}>{log.check_out_time}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             {log.late_by_minutes > 0 ? (
-                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                <span style={{ padding: '0.2rem 0.45rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.72rem', display: 'inline-block' }}>
                                                     {log.late_by_minutes} Mins Late
                                                 </span>
                                             ) : (
-                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#ECFDF5', color: '#10B981', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                <span style={{ padding: '0.2rem 0.45rem', borderRadius: '6px', background: '#ECFDF5', color: '#10B981', fontWeight: '800', fontSize: '0.72rem', display: 'inline-block' }}>
                                                     On Time
                                                 </span>
                                             )}
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem', fontWeight: '800', color: '#166534', fontSize: '0.88rem' }}>{log.productive_hours} Hrs</td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
-                                            <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#F1F5F9', color: '#475569', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: '600' }}>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
+                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.8rem' }}>{log.productive_hours} Hrs</span>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <span style={{ padding: '0.15rem 0.35rem', borderRadius: '4px', background: '#F1F5F9', color: '#475569', fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: '600', display: 'inline-block' }}>
                                                 {log.device_id}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                <MapPin size={13} style={{ color: '#059669' }} /> 
-                                                <span>{log.location_address || 'Not specified'}</span>
+                                                <MapPin size={12} style={{ color: log.location_address ? '#EC4899' : '#CBD5E1', flexShrink: 0 }} />
+                                                <span style={{ fontSize: '0.78rem', color: log.location_address ? '#334155' : '#94A3B8', fontWeight: '600' }}>
+                                                    {log.location_address || 'Remote check-in'}
+                                                </span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             <span style={{ 
-                                                padding: '0.25rem 0.6rem', borderRadius: '8px',
-                                                background: log.attendance_status === 'present' ? '#D1FAE5' : '#FEF3C7',
-                                                color: log.attendance_status === 'present' ? '#065F46' : '#92400E',
-                                                fontWeight: '850', fontSize: '0.72rem', display: 'inline-block'
+                                                padding: '0.2rem 0.45rem', borderRadius: '6px',
+                                                background: log.attendance_status === 'present' ? '#D1FAE5' : log.attendance_status === 'late' ? '#FEF3C7' : '#FEE2E2',
+                                                color: log.attendance_status === 'present' ? '#065F46' : log.attendance_status === 'late' ? '#92400E' : '#991B1B',
+                                                fontWeight: '850', fontSize: '0.68rem', display: 'inline-block',
+                                                whiteSpace: 'nowrap', letterSpacing: '0.01em'
                                             }}>{log.attendance_status.toUpperCase()}</span>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap', textAlign: 'right' }}>
                                             <button
                                                 onClick={() => {
                                                     setEditForm({
@@ -443,7 +450,9 @@ const BusinessAttendance = () => {
                                                     setSelectedLog(log);
                                                     setIsEditModalOpen(true);
                                                 }}
-                                                style={{ border: 'none', background: '#F1F5F9', hover: { background: '#E2E8F0' }, padding: '0.5rem 0.8rem', borderRadius: '10px', color: '#475569', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                onMouseOver={(e) => { e.currentTarget.style.background = '#EC4899'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#EC4899'; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
+                                                style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
                                             >
                                                 Edit
                                             </button>
