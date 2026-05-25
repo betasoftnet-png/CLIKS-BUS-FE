@@ -108,7 +108,8 @@ const BusinessPaymentPlan = () => {
         queryKey: ['people-list'],
         queryFn: async () => {
             const res = await peopleService.getPeople();
-            return res.data || [];
+            // peopleService.getPeople() already unwraps the response and returns the rows array directly
+            return Array.isArray(res) ? res : (res.rows || res.data || []);
         }
     });
 
