@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { settingsService } from '../services/settingsService';
+import { profileService } from '../services/profileService';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { applyTableFilters } from '../utils/filterUtils';
 import '../App.css';
@@ -79,6 +80,25 @@ const BusinessPeople = () => {
         return saved ? JSON.parse(saved) : [];
     });
     const [activeMenuId, setActiveMenuId] = useState(null);
+
+    // Share Reminder Modal State
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [shareModalData, setShareModalData] = useState(null); // { person, balance }
+    const [shareAmount, setShareAmount] = useState('');
+    const [shareDate, setShareDate] = useState(new Date().toISOString().split('T')[0]);
+
+    React.useEffect(() => {
+        if (shareModalData) {
+            setShareAmount(Math.abs(parseFloat(shareModalData.balance) || 0).toString());
+            setShareDate(new Date().toISOString().split('T')[0]);
+        }
+    }, [shareModalData]);
+
+    // Fetch user profile for sending reminders
+    const { data: userProfile } = useQuery({
+        queryKey: ['profile'],
+        queryFn: profileService.getProfile,
+    });
 
     React.useEffect(() => {
         const handleGlobalClick = () => setActiveMenuId(null);
@@ -301,15 +321,8 @@ const BusinessPeople = () => {
     };
 
     const handleSendWhatsAppReminder = (person, balance) => {
-        if (!person.phone) {
-            alert('No phone number registered for this contact.');
-            return;
-        }
-        const amtStr = formatCurr(Math.abs(balance));
-        const direction = balance >= 0 ? 'receivable outstanding balance' : 'payable balance';
-        const message = `Hello ${person.name},\n\nThis is a friendly reminder regarding our pending P2P ledger account status:\n\n*Current Balance:* ${amtStr} (${direction})\n\nPlease check and let me know. Thank you,\nCLIKS BUSINESS.`;
-        const whatsappUrl = `https://wa.me/${person.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
+        setShareModalData({ person, balance });
+        setIsShareModalOpen(true);
     };
 
     const handleDeleteContact = async (id) => {
@@ -1191,18 +1204,7 @@ const BusinessPeople = () => {
                                 )}
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                     <button 
-                                        onClick={() => {
-                                            const shareText = `Contact Details:\nName: ${personDetails?.name || 'N/A'}\nPhone: ${personDetails?.phone || 'N/A'}\nEmail: ${personDetails?.email || 'N/A'}\nNet Balance: ${formatCurrency(personDetails?.net_balance || 0)}`;
-                                            if (navigator.share) {
-                                                navigator.share({
-                                                    title: `Contact Info - ${personDetails?.name}`,
-                                                    text: shareText
-                                                }).catch(err => console.error('Share failed', err));
-                                            } else {
-                                                navigator.clipboard.writeText(shareText);
-                                                alert('Contact details copied to clipboard!');
-                                            }
-                                        }}
+                                        onClick={() => handleSendWhatsAppReminder(personDetails, computedNetBalance)}
                                         style={{ border: 'none', background: 'white', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                         title="Share Contact"
                                     >
@@ -1771,6 +1773,280 @@ const BusinessPeople = () => {
                         </Motion.div>
                     </div>
                 )}
+            </AnimatePresence>
+
+            {/* Modal 5: Ledger Statement & Payment Reminder Modal */}
+            <AnimatePresence>
+                {isShareModalOpen && shareModalData && (() => {
+                    const person = shareModalData.person;
+                    const balance = parseFloat(shareModalData.balance) || 0;
+                    const isReceivable = balance >= 0;
+                    
+                    // Sender info
+                    const senderName = userProfile?.name || 'CliKs User';
+                    const senderPhone = userProfile?.phone || '';
+                    
+                    // Format date elegantly (e.g. 25 May 26)
+                    const formatDateToLabel = (dateStr) => {
+                        try {
+                            const d = new Date(dateStr);
+                            if (isNaN(d.getTime())) return dateStr;
+                            const day = d.getDate();
+                            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                            const month = monthNames[d.getMonth()];
+                            const yearStr = d.getFullYear().toString().slice(-2);
+                            return `${day} ${month} ${yearStr}`;
+                        } catch {
+                            return dateStr;
+                        }
+                    };
+                    
+                    const displayDate = formatDateToLabel(shareDate);
+
+                    const handleDownloadCard = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 800;
+                        canvas.height = 600;
+                        const ctx = canvas.getContext('2d');
+
+                        // Background
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, 800, 600);
+
+                        // Card Outline
+                        ctx.strokeStyle = '#F1F5F9';
+                        ctx.lineWidth = 6;
+                        ctx.strokeRect(15, 15, 770, 570);
+                        
+                        ctx.strokeStyle = '#E2E8F0';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(20, 20, 760, 560);
+
+                        // Draw golden mandala ornament (vector rotation)
+                        ctx.save();
+                        ctx.translate(680, 120);
+                        ctx.strokeStyle = 'rgba(196, 160, 89, 0.12)'; // Delicate soft golden tone
+                        ctx.lineWidth = 1.5;
+                        for (let i = 0; i < 16; i++) {
+                            ctx.beginPath();
+                            ctx.arc(35, 0, 75, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.rotate((Math.PI * 2) / 16);
+                        }
+                        ctx.restore();
+
+                        // Header Text
+                        ctx.fillStyle = '#475569';
+                        ctx.font = '600 28px system-ui, -apple-system, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(isReceivable ? 'Payment reminder for' : 'Ledger stand statement for', 400, 150);
+
+                        // Amount (receivable red, payable green)
+                        ctx.fillStyle = isReceivable ? '#DC2626' : '#16A34A';
+                        ctx.font = '900 76px system-ui, -apple-system, sans-serif';
+                        ctx.fillText(`${currency.symbol} ${parseFloat(shareAmount || 0).toLocaleString()}`, 400, 250);
+
+                        // Date
+                        ctx.fillStyle = '#64748B';
+                        ctx.font = '600 24px system-ui, -apple-system, sans-serif';
+                        ctx.fillText(`on ${displayDate}`, 400, 320);
+
+                        // Divider Line
+                        ctx.strokeStyle = '#E2E8F0';
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.moveTo(180, 380);
+                        ctx.lineTo(620, 380);
+                        ctx.stroke();
+
+                        // Sent By Name
+                        ctx.fillStyle = '#1E293B';
+                        ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
+                        ctx.fillText(`Sent by ${senderName}`, 400, 440);
+
+                        // Sent By Details
+                        ctx.fillStyle = '#64748B';
+                        ctx.font = '500 22px system-ui, -apple-system, sans-serif';
+                        ctx.fillText(`${senderName}${senderPhone ? ` | ${senderPhone}` : ''}`, 400, 495);
+
+                        // Brand Seal
+                        ctx.fillStyle = '#059669';
+                        ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+                        ctx.fillText('CLIKS BUSINESS STATEMENT LOG', 400, 555);
+
+                        const link = document.createElement('a');
+                        link.download = `ledger_reminder_${person?.name?.replace(/\s+/g, '_') || 'statement'}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    };
+
+                    // Format full clipboard/WhatsApp message text block
+                    const whatsappMsg = `${senderName} (${senderPhone}) has requested a payment of ${currency.symbol}${parseFloat(shareAmount || 0).toLocaleString()} on CliKs.\n\n*Statement details for ${person?.name}:*\n- *Net Ledger Standing:* ${currency.symbol}${parseFloat(shareAmount || 0).toLocaleString()} (${isReceivable ? 'Receivable' : 'Payable'})\n- *Statement Date:* ${displayDate}\n\nPlease check details and settle the standing ledger. Thank you,\n${senderName}.`;
+
+                    const handleCopyText = () => {
+                        navigator.clipboard.writeText(whatsappMsg);
+                        alert('📋 Reminder statement copied to clipboard!');
+                    };
+
+                    const handleWhatsAppShare = () => {
+                        const targetPhone = person?.phone ? person.phone.replace(/[^0-9]/g, '') : '';
+                        const waUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(whatsappMsg)}`;
+                        window.open(waUrl, '_blank');
+                    };
+
+                    return (
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(10px)' }}>
+                            <Motion.div 
+                                initial={{ opacity: 0, y: 20, scale: 0.98 }} 
+                                animate={{ opacity: 1, y: 0, scale: 1 }} 
+                                exit={{ opacity: 0, y: 20, scale: 0.98 }} 
+                                style={{ background: '#F8FAFC', width: '92%', maxWidth: '820px', borderRadius: '36px', overflow: 'hidden', boxShadow: '0 30px 60px -15px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}
+                            >
+                                {/* Header Banner */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', background: '#FFFFFF', borderBottom: '1.5px solid #F1F5F9' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ background: '#ECFDF5', padding: '8px', borderRadius: '12px', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Share2 size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#064E3B' }}>Share Ledger Reminder</h3>
+                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Customize and send a premium statement log to {person?.name}</span>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setIsShareModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.65rem', borderRadius: '14px', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
+                                </div>
+
+                                {/* Body Container split in two columns */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1.1fr) 1fr', overflowY: 'auto', flex: 1, background: '#F8FAFC' }} className="share-grid-responsive">
+                                    
+                                    {/* Left Side: Controls */}
+                                    <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', borderRight: '1.5px solid #F1F5F9' }}>
+                                        
+                                        {/* Amount input */}
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.45rem' }}>Outstanding Amount ({currency.symbol})</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input 
+                                                    type="number" 
+                                                    value={shareAmount} 
+                                                    onChange={(e) => setShareAmount(e.target.value)} 
+                                                    style={{ width: '100%', padding: '0.85rem 1rem', paddingLeft: '2rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '1.15rem', fontWeight: '900', outline: 'none', color: isReceivable ? '#DC2626' : '#16A34A', background: 'white' }} 
+                                                />
+                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: '900', fontSize: '1.25rem', color: '#94A3B8' }}>{currency.symbol}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Date selector */}
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.45rem' }}>Maturity / Statement Date</label>
+                                            <input 
+                                                type="date" 
+                                                value={shareDate} 
+                                                onChange={(e) => setShareDate(e.target.value)} 
+                                                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '0.9rem', fontWeight: '750', outline: 'none', background: 'white' }} 
+                                            />
+                                        </div>
+
+                                        {/* Action buttons */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: 'auto' }}>
+                                            <button 
+                                                onClick={handleWhatsAppShare} 
+                                                style={{ width: '100%', padding: '0.9rem', borderRadius: '16px', border: 'none', background: '#16A34A', color: 'white', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)' }}
+                                            >
+                                                <MessageSquare size={18} />
+                                                <span>Share on WhatsApp</span>
+                                            </button>
+                                            
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                                <button 
+                                                    onClick={handleDownloadCard} 
+                                                    style={{ padding: '0.85rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', background: 'white', color: '#334155', fontWeight: '800', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                                                >
+                                                    <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
+                                                    <span>Get PNG Card</span>
+                                                </button>
+                                                
+                                                <button 
+                                                    onClick={handleCopyText} 
+                                                    style={{ padding: '0.85rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', background: 'white', color: '#334155', fontWeight: '800', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                                                >
+                                                    <CheckCircle2 size={16} />
+                                                    <span>Copy Text</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    {/* Right Side: Live Visual Preview */}
+                                    <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9' }}>
+                                        <div style={{ background: 'white', width: '100%', maxWidth: '340px', borderRadius: '24px', padding: '1.75rem', border: '1px solid #E2E8F0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
+                                            
+                                            {/* Mandala Ornament SVG (Elegant Flower Motif) */}
+                                            <svg style={{ position: 'absolute', top: '-10px', right: '-10px', width: '130px', height: '130px', opacity: 0.22, pointerEvents: 'none' }} viewBox="0 0 100 100">
+                                                <circle cx="50" cy="50" r="46" fill="none" stroke="#C4A059" strokeWidth="0.5" strokeDasharray="1 1" />
+                                                <circle cx="50" cy="50" r="38" fill="none" stroke="#C4A059" strokeWidth="0.5" />
+                                                {[...Array(12)].map((_, i) => (
+                                                    <g key={i} transform={`rotate(${i * 30} 50 50)`}>
+                                                        <path d="M 50 12 C 58 35, 42 35, 50 12 Z" fill="none" stroke="#C4A059" strokeWidth="0.6" />
+                                                        <circle cx="50" cy="24" r="2.5" fill="none" stroke="#C4A059" strokeWidth="0.5" />
+                                                    </g>
+                                                ))}
+                                            </svg>
+
+                                            <div style={{ textAlign: 'center', marginTop: '1rem', position: 'relative', zIndex: 1 }}>
+                                                <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    {isReceivable ? 'Payment reminder for' : 'Ledger stand statement for'}
+                                                </p>
+                                                
+                                                <h2 style={{ margin: '0.75rem 0', fontSize: '2.3rem', fontWeight: '950', color: isReceivable ? '#DC2626' : '#16A34A', letterSpacing: '-0.02em' }}>
+                                                    {currency.symbol}{parseFloat(shareAmount || 0).toLocaleString()}
+                                                </h2>
+                                                
+                                                <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: '700', color: '#64748B' }}>
+                                                    on {displayDate}
+                                                </p>
+                                            </div>
+
+                                            {/* Center Divider */}
+                                            <div style={{ height: '1px', borderTop: '2px dashed #E2E8F0', margin: '2rem 1rem' }}></div>
+
+                                            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                                                <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>
+                                                    Sent by {senderName}
+                                                </span>
+                                                <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '600', color: '#64748B', marginTop: '3px' }}>
+                                                    {senderName}{senderPhone ? ` | ${senderPhone}` : ''}
+                                                </span>
+                                            </div>
+
+                                            {/* Bottom Brand Seal */}
+                                            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+                                                <span style={{ fontSize: '0.52rem', fontWeight: '900', color: '#10B981', letterSpacing: '0.15em', textTransform: 'uppercase', background: '#ECFDF5', padding: '4px 10px', borderRadius: '999px', border: '1px solid #A7F3D0' }}>
+                                                    CLIKS BUSINESS STATEMENT
+                                                </span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                {/* Custom Responsive CSS styles injected inline to ensure columns stack on mobile */}
+                                <style>
+                                    {`
+                                        @media (max-width: 680px) {
+                                            .share-grid-responsive {
+                                                grid-template-columns: 1fr !important;
+                                            }
+                                        }
+                                    `}
+                                </style>
+
+                            </Motion.div>
+                        </div>
+                    );
+                })()}
             </AnimatePresence>
         </div>
     );
