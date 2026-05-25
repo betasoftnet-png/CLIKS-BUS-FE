@@ -34,6 +34,7 @@ export default function BusinessCA() {
     const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
     const [newTeamEmail, setNewTeamEmail] = useState('');
     const [newTeamRole, setNewTeamRole] = useState('Senior Tax Consultant');
+    const [customTeamRole, setCustomTeamRole] = useState('');
 
     const removeTeamMemberMutation = useMutation({
         mutationFn: (id) => caService.removeTeamMember(id),
@@ -48,6 +49,7 @@ export default function BusinessCA() {
         onSuccess: (data) => {
             refetchTeamRequests();
             setNewTeamEmail('');
+            setCustomTeamRole('');
             setShowAddTeamMemberModal(false);
             alert(`✉️ Team invitation sent successfully to ${data.email || 'the user'}! The request will show in the Team Requests tab.`);
         },
@@ -97,7 +99,8 @@ export default function BusinessCA() {
             return;
         }
 
-        addTeamRequestMutation.mutate({ email: emailLower, role: newTeamRole });
+        const finalRole = newTeamRole === 'Others' ? (customTeamRole.trim() || 'Custom Role') : newTeamRole;
+        addTeamRequestMutation.mutate({ email: emailLower, role: finalRole });
     };
 
     // --- Business to Personal CA Connection States ---
@@ -2854,8 +2857,23 @@ export default function BusinessCA() {
                                         <option value="Audit Associate">Audit Associate</option>
                                         <option value="CS Specialist">CS Specialist</option>
                                         <option value="Practice Intern">Practice Intern</option>
+                                        <option value="Others">Others (Custom Role)</option>
                                     </select>
                                 </div>
+
+                                {newTeamRole === 'Others' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>CUSTOM ROLE / DESIGNATION</label>
+                                        <input 
+                                            type="text" 
+                                            value={customTeamRole} 
+                                            onChange={e=>setCustomTeamRole(e.target.value)} 
+                                            required 
+                                            placeholder="e.g. Lead Financial Analyst" 
+                                            style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} 
+                                        />
+                                    </div>
+                                )}
 
                                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                                     <button type="button" onClick={() => setShowAddTeamMemberModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#64748B', cursor: 'pointer' }}>Cancel</button>

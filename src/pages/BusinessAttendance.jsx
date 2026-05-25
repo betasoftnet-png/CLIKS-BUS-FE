@@ -34,6 +34,9 @@ const BusinessAttendance = () => {
     const [isPunchModalOpen, setIsPunchModalOpen] = useState(false);
     const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+    const [selectedLog, setSelectedLog] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({});
 
     const queryClient = useQueryClient();
 
@@ -79,6 +82,52 @@ const BusinessAttendance = () => {
             alert('Correction request approved! Employee timesheet automatically updated.');
         }
     });
+
+    const updateAttendanceMutation = useMutation({
+        mutationFn: ({ id, data }) => attendanceService.updateAttendance(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendanceLogs'] });
+            setIsEditModalOpen(false);
+            alert('Attendance log updated successfully!');
+        },
+        onError: (err) => {
+            console.error('Failed to update attendance log:', err);
+            alert('Failed to update timesheet log.');
+        }
+    });
+
+    // Time conversion helpers
+    const convertTo12Hour = (time24) => {
+        if (!time24) return '';
+        const parts = time24.split(':');
+        if (parts.length < 2) return time24;
+        let hour = parseInt(parts[0], 10);
+        const minStr = parts[1];
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12;
+        hour = hour ? hour : 12;
+        return `${String(hour).padStart(2, '0')}:${minStr} ${ampm}`;
+    };
+
+    const convertTo24Hour = (time12) => {
+        if (!time12) return '';
+        const trimmed = time12.trim();
+        const ampmMatch = trimmed.match(/(AM|PM)$/i);
+        if (!ampmMatch) return trimmed; // already 24h
+        
+        const ampm = ampmMatch[0].toUpperCase();
+        const timePart = trimmed.replace(/\s*(AM|PM)$/i, '');
+        const parts = timePart.split(':');
+        if (parts.length < 2) return trimmed;
+        
+        let hour = parseInt(parts[0], 10);
+        const minStr = parts[1];
+        
+        if (ampm === 'PM' && hour < 12) hour += 12;
+        if (ampm === 'AM' && hour === 12) hour = 0;
+        
+        return `${String(hour).padStart(2, '0')}:${minStr}`;
+    };
 
     // Process lists with fallbacks
     const attendanceLogs = dbLogs.length > 0 ? dbLogs.map(log => ({
@@ -146,10 +195,10 @@ const BusinessAttendance = () => {
         addPunchMutation.mutate({
             employee_id: punchForm.employee_id,
             employee_name: punchForm.employee_name,
-            check_in_time: punchForm.check_in_time,
-            check_out_time: punchForm.check_out_time,
+            check_in_time: convertTo12Hour(punchForm.check_in_time),
+            check_out_time: convertTo12Hour(punchForm.check_out_time),
             late_by_minutes: parseInt(punchForm.late_by_minutes) || 0,
-            location_address: punchForm.location_address,
+            location_address: punchForm.location_address || 'Main Office Complex, Mumbai',
             status: parseInt(punchForm.late_by_minutes) > 15 ? 'late' : 'present',
             date: new Date().toISOString().split('T')[0]
         });
@@ -161,9 +210,24 @@ const BusinessAttendance = () => {
             employee_name: correctionForm.employee_name,
             attendance_date: correctionForm.attendance_date,
             missed_punch_reason: correctionForm.missed_punch_reason,
-            proposed_punch_in: correctionForm.proposed_punch_in,
-            proposed_punch_out: correctionForm.proposed_punch_out
+            proposed_punch_in: convertTo12Hour(correctionForm.proposed_punch_in),
+            proposed_punch_out: convertTo12Hour(correctionForm.proposed_punch_out)
         });
+    };
+
+    const handleEditPunchSubmit = (e) => {
+        e.preventDefault();
+        const payload = {
+            date: editForm.attendance_date,
+            check_in_time: convertTo12Hour(editForm.check_in_time),
+            check_out_time: convertTo12Hour(editForm.check_out_time),
+            late_by_minutes: parseInt(editForm.late_by_minutes) || 0,
+            productive_hours: parseFloat(editForm.productive_hours) || 8.0,
+            total_work_hours: (parseFloat(editForm.productive_hours) || 8.0) + 1.0,
+            location_address: editForm.location_address || 'Main Office Complex, Mumbai',
+            status: editForm.status
+        };
+        updateAttendanceMutation.mutate({ id: editForm.attendance_id, data: payload });
     };
 
     const handleCreateShift = (e) => {
