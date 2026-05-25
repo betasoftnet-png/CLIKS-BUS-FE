@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import splitExpenseService from '../services/splitExpenseService';
+import { config } from '../lib/config';
 
 // Initial Seed Data for Split Groups
 const INITIAL_SPLITS = [];
@@ -81,6 +82,7 @@ const BusinessSplitCollect = () => {
         paidBy: 'You',
         date: new Date().toISOString().split('T')[0],
         attachmentName: '',
+        attachmentFile: null,
         splitType: 'equal', // equal, custom
         shares: {} // Custom shares per participant
     });
@@ -232,6 +234,7 @@ const BusinessSplitCollect = () => {
             paidBy: 'You',
             date: new Date().toISOString().split('T')[0],
             attachmentName: '',
+            attachmentFile: null,
             splitType: 'equal',
             shares: initialShares
         });
@@ -254,6 +257,7 @@ const BusinessSplitCollect = () => {
             paidBy: expense.paidBy,
             date: expense.date,
             attachmentName: expense.attachment || '',
+            attachmentFile: null,
             splitType: expense.splitType || 'equal',
             shares: initialShares
         });
@@ -263,6 +267,32 @@ const BusinessSplitCollect = () => {
     const closeExpenseModal = () => {
         setIsAddExpenseModalOpen(false);
         setEditingExpenseId(null);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size exceeds the 5MB limit.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setExpenseForm(prev => ({
+                ...prev,
+                attachmentName: file.name,
+                attachmentFile: {
+                    name: file.name,
+                    content: reader.result.split(',')[1] // Get base64 content
+                }
+            }));
+        };
+        reader.onerror = () => {
+            alert('Failed to read file.');
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleAddExpense = async (e) => {
@@ -292,6 +322,18 @@ const BusinessSplitCollect = () => {
             }
         }
 
+        let uploadedFilename = expenseForm.attachmentName || null;
+        if (expenseForm.attachmentFile) {
+            try {
+                const uploadRes = await splitExpenseService.uploadAttachment(expenseForm.attachmentFile);
+                uploadedFilename = uploadRes.filename;
+            } catch (err) {
+                console.error("Failed to upload document:", err);
+                alert("Attachment upload failed: " + (err.response?.data?.message || err.message || "Unknown error"));
+                return;
+            }
+        }
+
         if (editingExpenseId) {
             const updatedExpense = {
                 id: editingExpenseId,
@@ -299,7 +341,7 @@ const BusinessSplitCollect = () => {
                 amount: amount,
                 paidBy: expenseForm.paidBy,
                 date: expenseForm.date,
-                attachment: expenseForm.attachmentName || null,
+                attachment: uploadedFilename,
                 splitType: expenseForm.splitType,
                 shares: finalShares
             };
@@ -340,7 +382,7 @@ const BusinessSplitCollect = () => {
             amount: amount,
             paidBy: expenseForm.paidBy,
             date: expenseForm.date,
-            attachment: expenseForm.attachmentName || null,
+            attachment: uploadedFilename,
             splitType: expenseForm.splitType,
             shares: finalShares
         };
@@ -417,7 +459,7 @@ const BusinessSplitCollect = () => {
 
         activeSplit.expenses.forEach(exp => {
             const payer = exp.paidBy;
-            const amt = exp.amount;
+            const amt = parseFloat(exp.amount) || 0;
             totalSpent += amt;
 
             // Credit the payer
@@ -426,9 +468,9 @@ const BusinessSplitCollect = () => {
             }
 
             // Debit everyone who shared
-            Object.keys(exp.shares).forEach(member => {
+            Object.keys(exp.shares || {}).forEach(member => {
                 if (balances[member] !== undefined) {
-                    balances[member] -= exp.shares[member];
+                    balances[member] -= parseFloat(exp.shares[member]) || 0;
                 }
             });
         });
@@ -536,7 +578,7 @@ const BusinessSplitCollect = () => {
 
     const handleShareGroup = () => {
         if (!activeSplit) return;
-        const groupTotal = activeSplit.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const groupTotal = activeSplit.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
         let summaryText = `📊 SPLITWISE STATEMENT: ${activeSplit.title}\n`;
         summaryText += `Total Spent: ${activeSplit.currencySymbol}${groupTotal.toLocaleString()}\n\n`;
         summaryText += `👥 NET BALANCES:\n`;
@@ -559,7 +601,7 @@ const BusinessSplitCollect = () => {
 
     const handleDownloadPDF = () => {
         if (!activeSplit) return;
-        const groupTotal = activeSplit.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const groupTotal = activeSplit.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
         
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
@@ -596,7 +638,7 @@ const BusinessSplitCollect = () => {
                     <td><strong>${e.title}</strong></td>
                     <td>${e.paidBy}</td>
                     <td><span class="badge">${e.splitType}</span></td>
-                    <td style="text-align: right; font-weight: 700;">${activeSplit.currencySymbol}${e.amount.toLocaleString()}</td>
+                    <td style="text-align: right; font-weight: 700;">${activeSplit.currencySymbol}${(parseFloat(e.amount) || 0).toLocaleString()}</td>
                 </tr>
             `).join('');
 
@@ -805,7 +847,7 @@ const BusinessSplitCollect = () => {
                                             return 0;
                                         })
                                         .map(s => {
-                                            const groupTotal = s.expenses.reduce((sum, e) => sum + e.amount, 0);
+                                            const groupTotal = s.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
                                             const isPinned = pinnedSplitIds.includes(s.id);
                                             return (
                                                 <div 
@@ -1174,17 +1216,27 @@ const BusinessSplitCollect = () => {
                                                                     <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
                                                                         <Calendar size={12} /> {e.date}
                                                                     </span>
-                                                                    {e.attachment && (
-                                                                        <>
-                                                                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
-                                                                            <span 
-                                                                                title={`Attachment: ${e.attachment}`}
-                                                                                style={{ fontSize: '0.65rem', fontWeight: '800', color: '#2563EB', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                                                                            >
-                                                                                <FileText size={10} /> {e.attachment}
-                                                                            </span>
-                                                                        </>
-                                                                    )}
+                                                                    {e.attachment && (() => {
+                                                                        const serverBaseUrl = (config.api.baseUrl || '').replace('/api/v1', '');
+                                                                        const fileUrl = `${serverBaseUrl}/uploads/${e.attachment}`;
+                                                                        return (
+                                                                            <>
+                                                                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                                <a 
+                                                                                    href={fileUrl}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    title={`View Document: ${e.attachment}`}
+                                                                                    onClick={(evt) => evt.stopPropagation()}
+                                                                                    style={{ textDecoration: 'none', fontSize: '0.65rem', fontWeight: '850', color: '#2563EB', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '5px', display: 'inline-flex', alignItems: 'center', gap: '3px', transition: 'background 0.2s' }}
+                                                                                    onMouseOver={(evt) => evt.currentTarget.style.background = '#DBEAFE'}
+                                                                                    onMouseOut={(evt) => evt.currentTarget.style.background = '#EFF6FF'}
+                                                                                >
+                                                                                    <FileText size={10} /> {e.attachment.length > 20 ? e.attachment.substring(0, 17) + '...' : e.attachment}
+                                                                                </a>
+                                                                            </>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
 
@@ -1192,7 +1244,7 @@ const BusinessSplitCollect = () => {
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                                 <div style={{ textAlign: 'right' }}>
                                                                     <span style={{ fontSize: '1.05rem', fontWeight: '950', color: isSettlement ? '#059669' : '#1E293B' }}>
-                                                                        {activeSplit.currencySymbol}{e.amount.toLocaleString()}
+                                                                        {activeSplit.currencySymbol}{(parseFloat(e.amount) || 0).toLocaleString()}
                                                                     </span>
                                                                     <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', marginTop: '1px' }}>
                                                                         {e.splitType} Split
@@ -1495,13 +1547,19 @@ const BusinessSplitCollect = () => {
                                             style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                         />
                                     </div>
-                                </div>
+                                </div> {/* End Grid */}
 
                                 {/* Attachment Upload Panel */}
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Expense Attachment</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Expense Attachment</label>
+                                    <input 
+                                        type="file" 
+                                        id="real-expense-file-input" 
+                                        style={{ display: 'none' }} 
+                                        onChange={handleFileChange}
+                                    />
                                     <div 
-                                        onClick={triggerSimulatedUpload}
+                                        onClick={() => document.getElementById('real-expense-file-input').click()}
                                         style={{ border: '2px dashed #CBD5E1', borderRadius: '14px', padding: '0.75rem', background: '#F8FAFC', textAlign: 'center', cursor: 'pointer', color: '#475569', transition: 'border-color 0.2s' }}
                                         onMouseOver={(e) => e.currentTarget.style.borderColor = '#1B6B3A'}
                                         onMouseOut={(e) => e.currentTarget.style.borderColor = '#CBD5E1'}

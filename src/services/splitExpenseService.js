@@ -22,6 +22,7 @@ export const splitExpenseService = {
     addExpense: async (splitId, data) => await apiClient.post(`/split-expenses/${splitId}/expenses`, data).then(res => res.data.data || res.data),
     deleteExpense: async (splitId, expenseId) => await apiClient.delete(`/split-expenses/${splitId}/expenses/${expenseId}`).then(res => res.data.data || res.data),
     updateExpense: async (splitId, expenseId, data) => await apiClient.patch(`/split-expenses/${splitId}/expenses/${expenseId}`, data).then(res => res.data.data || res.data),
+    uploadAttachment: async (fileData) => await apiClient.post('/split-expenses/upload', fileData).then(res => res.data.data || res.data),
 };
 
 export default splitExpenseService;
