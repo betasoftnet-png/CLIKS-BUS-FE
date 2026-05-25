@@ -57,6 +57,7 @@ const BusinessSplitCollect = () => {
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
     const [editingGroupId, setEditingGroupId] = useState(null);
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+    const [editingExpenseId, setEditingExpenseId] = useState(null);
     
     // Group Form State
     const [groupForm, setGroupForm] = useState({
@@ -219,6 +220,7 @@ const BusinessSplitCollect = () => {
     // ── Expense Actions ────────────────────────────────────────────────────
     const openAddExpenseModal = () => {
         if (!activeSplit) return;
+        setEditingExpenseId(null);
         // Initialize shares
         const initialShares = {};
         activeSplit.participants.forEach(p => {
@@ -234,6 +236,33 @@ const BusinessSplitCollect = () => {
             shares: initialShares
         });
         setIsAddExpenseModalOpen(true);
+    };
+
+    const openEditExpenseModal = (expense) => {
+        if (!activeSplit) return;
+        setEditingExpenseId(expense.id);
+        
+        // Initialize shares
+        const initialShares = {};
+        activeSplit.participants.forEach(p => {
+            initialShares[p] = expense.shares && expense.shares[p] !== undefined ? expense.shares[p].toString() : '';
+        });
+
+        setExpenseForm({
+            title: expense.title,
+            amount: expense.amount.toString(),
+            paidBy: expense.paidBy,
+            date: expense.date,
+            attachmentName: expense.attachment || '',
+            splitType: expense.splitType || 'equal',
+            shares: initialShares
+        });
+        setIsAddExpenseModalOpen(true);
+    };
+
+    const closeExpenseModal = () => {
+        setIsAddExpenseModalOpen(false);
+        setEditingExpenseId(null);
     };
 
     const handleAddExpense = async (e) => {
@@ -261,6 +290,48 @@ const BusinessSplitCollect = () => {
                 alert(`The sum of custom shares (${activeSplit.currencySymbol}${sum.toFixed(2)}) must exactly match the total expense amount (${activeSplit.currencySymbol}${amount.toFixed(2)})!`);
                 return;
             }
+        }
+
+        if (editingExpenseId) {
+            const updatedExpense = {
+                id: editingExpenseId,
+                title: expenseForm.title,
+                amount: amount,
+                paidBy: expenseForm.paidBy,
+                date: expenseForm.date,
+                attachment: expenseForm.attachmentName || null,
+                splitType: expenseForm.splitType,
+                shares: finalShares
+            };
+
+            try {
+                const res = await splitExpenseService.updateExpense(selectedSplitId, editingExpenseId, updatedExpense);
+                const updatedSplits = splits.map(s => {
+                    if (s.id === selectedSplitId) {
+                        return {
+                            ...s,
+                            expenses: s.expenses.map(e => e.id === editingExpenseId ? res : e)
+                        };
+                    }
+                    return s;
+                });
+                setSplits(updatedSplits);
+            } catch (err) {
+                console.error("Error updating expense on backend:", err);
+                // Fallback to local state update
+                const updatedSplits = splits.map(s => {
+                    if (s.id === selectedSplitId) {
+                        return {
+                            ...s,
+                            expenses: s.expenses.map(e => e.id === editingExpenseId ? updatedExpense : e)
+                        };
+                    }
+                    return s;
+                });
+                setSplits(updatedSplits);
+            }
+            closeExpenseModal();
+            return;
         }
 
         const newExpense = {
@@ -301,7 +372,7 @@ const BusinessSplitCollect = () => {
             setSplits(updatedSplits);
         }
 
-        setIsAddExpenseModalOpen(false);
+        closeExpenseModal();
     };
 
     const handleDeleteExpense = async (expenseId) => {
@@ -1127,9 +1198,21 @@ const BusinessSplitCollect = () => {
                                                                         {e.splitType} Split
                                                                     </span>
                                                                 </div>
+                                                                {!isSettlement && (
+                                                                    <button 
+                                                                        onClick={() => openEditExpenseModal(e)}
+                                                                        title="Edit Expense"
+                                                                        style={{ background: 'transparent', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                        onMouseOver={(e) => e.currentTarget.style.color = '#1B6B3A'}
+                                                                        onMouseOut={(e) => e.currentTarget.style.color = '#CBD5E1'}
+                                                                    >
+                                                                        <Pencil size={13} />
+                                                                    </button>
+                                                                )}
                                                                 <button 
                                                                     onClick={() => handleDeleteExpense(e.id)}
-                                                                    style={{ background: 'transparent', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '4px' }}
+                                                                    title="Delete Expense"
+                                                                    style={{ background: 'transparent', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                                     onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
                                                                     onMouseOut={(e) => e.currentTarget.style.color = '#CBD5E1'}
                                                                 >
@@ -1359,8 +1442,8 @@ const BusinessSplitCollect = () => {
                             style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
                         >
                             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Record Expense</h3>
-                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => setIsAddExpenseModalOpen(false)}><X size={18} /></button>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>{editingExpenseId ? 'Edit Expense Item' : 'Record Expense'}</h3>
+                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={closeExpenseModal}><X size={18} /></button>
                             </div>
                             
                             <form onSubmit={handleAddExpense} style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1, background: '#FAFAFA' }}>
@@ -1524,7 +1607,7 @@ const BusinessSplitCollect = () => {
                                     type="submit"
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.5rem' }}
                                 >
-                                    Log Expense
+                                    {editingExpenseId ? 'Save Changes' : 'Log Expense'}
                                 </button>
                             </form>
                         </Motion.div>
