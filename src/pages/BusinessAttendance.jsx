@@ -563,16 +563,16 @@ const BusinessAttendance = () => {
             </div>
             {/* Manual Punch Entry Modal */}
             {isPunchModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Log Manual Punch Entry</h3>
-                            <button onClick={() => setIsPunchModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Log Manual Punch Entry</h3>
+                            <button onClick={() => setIsPunchModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
                         </div>
 
-                        <form onSubmit={handleAddPunch} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <form onSubmit={handleAddPunch} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Employee Name</label>
                                 <select required value={punchForm.employee_name} onChange={(e) => {
                                     const selectedName = e.target.value;
                                     const selectedEmp = dbEmployees.find(emp => (emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim()) === selectedName);
@@ -581,7 +581,7 @@ const BusinessAttendance = () => {
                                         employee_name: selectedName,
                                         employee_id: selectedEmp ? selectedEmp.id : ''
                                     });
-                                }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                }} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem' }}>
                                     <option value="" disabled>Select Employee</option>
                                     {dbEmployees.map(emp => {
                                         const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
@@ -590,48 +590,50 @@ const BusinessAttendance = () => {
                                     {dbEmployees.length === 0 && <option value="" disabled>No employees found</option>}
                                 </select>
                             </div>
+                            
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Check-In Time</label>
-                                    <input required type="text" value={punchForm.check_in_time} onChange={(e) => setPunchForm({ ...punchForm, check_in_time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="09:00 AM" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Check-In Time</label>
+                                    <input required type="time" value={punchForm.check_in_time} onChange={(e) => setPunchForm({ ...punchForm, check_in_time: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Check-Out Time</label>
-                                    <input required type="text" value={punchForm.check_out_time} onChange={(e) => setPunchForm({ ...punchForm, check_out_time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="06:00 PM" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Check-Out Time</label>
+                                    <input required type="time" value={punchForm.check_out_time} onChange={(e) => setPunchForm({ ...punchForm, check_out_time: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Late duration (Mins)</label>
-                                    <input required type="number" value={punchForm.late_by_minutes} onChange={(e) => setPunchForm({ ...punchForm, late_by_minutes: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Late Duration (Mins)</label>
+                                    <input required type="number" min="0" value={punchForm.late_by_minutes} onChange={(e) => setPunchForm({ ...punchForm, late_by_minutes: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Check-in Location</label>
-                                    <input required type="text" value={punchForm.location_address} onChange={(e) => setPunchForm({ ...punchForm, location_address: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Check-in Location <span style={{ color: '#94A3B8', fontWeight: '600' }}>(Optional)</span></label>
+                                    <input type="text" value={punchForm.location_address} onChange={(e) => setPunchForm({ ...punchForm, location_address: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Main Office, Mumbai" />
                                 </div>
                             </div>
-
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
+ 
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)', marginTop: '0.5rem' }}>
                                 Settle Timesheet Punch
                             </button>
                         </form>
                     </div>
                 </div>
             )}
-
+ 
             {/* Regularize Missed Punch Modal */}
             {isCorrectionModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Regularize Missed Punch</h3>
-                            <button onClick={() => setIsCorrectionModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Regularize Missed Punch</h3>
+                            <button onClick={() => setIsCorrectionModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
                         </div>
-
-                        <form onSubmit={handleAddCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+ 
+                        <form onSubmit={handleAddCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name</label>
-                                <select required value={correctionForm.employee_name} onChange={(e) => setCorrectionForm({ ...correctionForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Employee Name</label>
+                                <select required value={correctionForm.employee_name} onChange={(e) => setCorrectionForm({ ...correctionForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem' }}>
                                     <option value="" disabled>Select Employee</option>
                                     {dbEmployees.map(emp => {
                                         const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
@@ -641,27 +643,106 @@ const BusinessAttendance = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Timesheet Date</label>
-                                <input required type="date" value={correctionForm.attendance_date} onChange={(e) => setCorrectionForm({ ...correctionForm, attendance_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Timesheet Date</label>
+                                <input required type="date" value={correctionForm.attendance_date} onChange={(e) => setCorrectionForm({ ...correctionForm, attendance_date: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reason for missed punch regularization</label>
-                                <input required type="text" value={correctionForm.missed_punch_reason} onChange={(e) => setCorrectionForm({ ...correctionForm, missed_punch_reason: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Reason for Regularization</label>
+                                <input required type="text" value={correctionForm.missed_punch_reason} onChange={(e) => setCorrectionForm({ ...correctionForm, missed_punch_reason: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Biometric mismatch/Travel delay" />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Proposed Check-In</label>
-                                    <input required type="text" value={correctionForm.proposed_punch_in} onChange={(e) => setCorrectionForm({ ...correctionForm, proposed_punch_in: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="09:00 AM" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Proposed Check-In</label>
+                                    <input required type="time" value={correctionForm.proposed_punch_in} onChange={(e) => setCorrectionForm({ ...correctionForm, proposed_punch_in: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Proposed Check-Out</label>
-                                    <input required type="text" value={correctionForm.proposed_punch_out} onChange={(e) => setCorrectionForm({ ...correctionForm, proposed_punch_out: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="06:00 PM" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Proposed Check-Out</label>
+                                    <input required type="time" value={correctionForm.proposed_punch_out} onChange={(e) => setCorrectionForm({ ...correctionForm, proposed_punch_out: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
+                            </div>
+ 
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)', marginTop: '0.5rem' }}>
+                                Settle Regularization Request
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Timesheet Log Modal */}
+            {isEditModalOpen && selectedLog && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                    <Clock size={16} />
+                                </div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>Edit Timesheet Log</h3>
+                            </div>
+                            <button onClick={() => { setIsEditModalOpen(false); setSelectedLog(null); }} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={handleEditPunchSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Employee Profile</label>
+                                <input readOnly type="text" value={selectedLog.employee_name} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', outline: 'none', fontSize: '0.88rem', fontWeight: '700', color: '#475569', boxSizing: 'border-box' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Timesheet Date</label>
+                                <input required type="date" value={editForm.attendance_date || ''} onChange={(e) => setEditForm({ ...editForm, attendance_date: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Check-In Time</label>
+                                    <input required type="time" value={editForm.check_in_time || ''} onChange={(e) => setEditForm({ ...editForm, check_in_time: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Check-Out Time</label>
+                                    <input required type="time" value={editForm.check_out_time || ''} onChange={(e) => setEditForm({ ...editForm, check_out_time: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Late Duration (Mins)</label>
+                                    <input required type="number" min="0" value={editForm.late_by_minutes || 0} onChange={(e) => setEditForm({ ...editForm, late_by_minutes: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Productive Hours</label>
+                                    <input required type="number" step="0.5" min="0" max="24" value={editForm.productive_hours || 8.0} onChange={(e) => setEditForm({ ...editForm, productive_hours: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Location <span style={{ color: '#94A3B8', fontWeight: '600' }}>(Optional)</span></label>
+                                    <input type="text" value={editForm.location_address || ''} onChange={(e) => setEditForm({ ...editForm, location_address: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Attendance Status</label>
+                                    <select value={editForm.status || 'present'} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}>
+                                        <option value="present">PRESENT</option>
+                                        <option value="late">LATE</option>
+                                        <option value="absent">ABSENT</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
-                                Settle Regularization request
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsEditModalOpen(false); setSelectedLog(null); }}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updateAttendanceMutation.isPending}
+                                    style={{ flex: 1.2, padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(6, 79, 59, 0.2)' }}
+                                >
+                                    {updateAttendanceMutation.isPending ? 'Saving...' : 'Save Timesheet'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
