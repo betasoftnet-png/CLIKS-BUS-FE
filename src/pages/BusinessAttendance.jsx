@@ -360,9 +360,7 @@ const BusinessAttendance = () => {
                                 { key: 'log_ref', label: 'Log Reference', placeholder: 'e.g. ATT-001' },
                                 { key: 'employee', label: 'Employee Profile', placeholder: 'Name' },
                                 { key: 'checkin', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
-                                { key: 'late', label: 'Late (Mins)', placeholder: 'e.g. 15' },
                                 { key: 'hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
-                                { key: 'device', label: 'Device Sync ID', placeholder: 'ID' },
                                 { key: 'location', label: 'Location', placeholder: 'Coords' },
                                 { key: 'status', label: 'Status', placeholder: 'e.g. Present' },
                                 { key: '_actions', label: 'Action', noFilter: true }
@@ -396,26 +394,10 @@ const BusinessAttendance = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            {log.late_by_minutes > 0 ? (
-                                                <span style={{ padding: '0.2rem 0.45rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.72rem', display: 'inline-block' }}>
-                                                    {log.late_by_minutes} Mins Late
-                                                </span>
-                                            ) : (
-                                                <span style={{ padding: '0.2rem 0.45rem', borderRadius: '6px', background: '#ECFDF5', color: '#10B981', fontWeight: '800', fontSize: '0.72rem', display: 'inline-block' }}>
-                                                    On Time
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                                 <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
                                                 <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.8rem' }}>{log.productive_hours} Hrs</span>
                                             </div>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <span style={{ padding: '0.15rem 0.35rem', borderRadius: '4px', background: '#F1F5F9', color: '#475569', fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: '600', display: 'inline-block' }}>
-                                                {log.device_id}
-                                            </span>
                                         </td>
                                         <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
