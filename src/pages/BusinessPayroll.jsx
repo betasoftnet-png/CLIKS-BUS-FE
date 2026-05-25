@@ -119,18 +119,18 @@ const BusinessPayroll = () => {
     const [payForm, setPayForm] = useState({
         employee_id: '',
         employee_name: '',
-        basic_salary: 30000,
-        hra_amount: 5000,
-        special_allowance: 2000,
-        bonus_amount: 0,
-        tds_deduction: 500
+        basic_salary: '',
+        hra_amount: '',
+        special_allowance: '',
+        bonus_amount: '',
+        tds_deduction: ''
     });
 
     const [loanForm, setLoanForm] = useState({
         employee_name: '',
-        loan_amount: 10000,
-        emi_amount: 1000,
-        salary_advance: 0
+        loan_amount: '',
+        emi_amount: '',
+        salary_advance: ''
     });
 
     // Submissions

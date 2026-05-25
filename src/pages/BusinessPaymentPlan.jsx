@@ -16,7 +16,10 @@ import {
     Trash2,
     MoreVertical,
     ChevronRight,
-    AlertCircle
+    AlertCircle,
+    Phone,
+    Mail,
+    Building2
 } from 'lucide-react';
 import { plannedPaymentsService, peopleService } from '../services';
 import { customConfirm } from '../utils/customConfirm';
@@ -39,6 +42,58 @@ const BusinessPaymentPlan = () => {
         category: 'General',
         description: ''
     });
+
+    const [isAddPersonModalOpen, setIsAddPersonModalOpen] = useState(false);
+    const [personForm, setPersonForm] = useState({
+        name: '',
+        phone: '',
+        role_type: 'friend',
+        relationship: '',
+        company: '',
+        email: '',
+        contact_info: ''
+    });
+
+    const serializeContactMeta = (status, loyaltyPoints) => {
+        return JSON.stringify({
+            status: status || 'active',
+            loyalty_points: parseInt(loyaltyPoints) || 0
+        });
+    };
+
+    const createPersonMutation = useMutation({
+        mutationFn: (data) => peopleService.createPerson(data),
+        onSuccess: (newPerson) => {
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
+            const newPersonId = newPerson.id || newPerson.data?.id;
+            if (newPersonId) {
+                setFormData(prev => ({ ...prev, person_id: newPersonId.toString() }));
+            }
+            setIsAddPersonModalOpen(false);
+            setPersonForm({
+                name: '',
+                phone: '',
+                role_type: 'friend',
+                relationship: '',
+                company: '',
+                email: '',
+                contact_info: ''
+            });
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || 'Error enrolling contact. Please check the inputs.');
+        }
+    });
+
+    const handleAddPersonSubmit = (e) => {
+        e.preventDefault();
+        const payload = {
+            ...personForm,
+            role_type: personForm.role_type || 'friend',
+            contact_info: serializeContactMeta('active', 0)
+        };
+        createPersonMutation.mutate(payload);
+    };
 
     // Queries
     const { data: plans = [], isLoading } = useQuery({
@@ -219,13 +274,18 @@ const BusinessPaymentPlan = () => {
                                         </div>
                                         <div>
                                             <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>{plan.name}</h4>
-                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '600' }}>
                                                     <Clock size={14} /> {new Date(plan.due_date).toLocaleDateString()}
                                                 </span>
                                                 <span style={{ fontSize: '0.8rem', color: '#1B6B3A', background: '#DCF2E4', padding: '0.1rem 0.5rem', borderRadius: '6px', fontWeight: '750' }}>
                                                     {plan.status.toUpperCase()}
                                                 </span>
+                                                {plan.person_name && (
+                                                    <span style={{ fontSize: '0.8rem', color: '#0369A1', background: '#E0F2FE', padding: '0.1rem 0.5rem', borderRadius: '6px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        <User size={12} /> {plan.person_name}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -321,10 +381,17 @@ const BusinessPaymentPlan = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Link to Person (Optional)</label>
                                 <select 
                                     value={formData.person_id} 
-                                    onChange={e => setFormData({...formData, person_id: e.target.value})} 
+                                    onChange={e => {
+                                        if (e.target.value === 'ADD_NEW_PERSON') {
+                                            setIsAddPersonModalOpen(true);
+                                        } else {
+                                            setFormData({...formData, person_id: e.target.value});
+                                        }
+                                    }} 
                                     style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">Select Person...</option>
+                                    <option value="ADD_NEW_PERSON" style={{ fontWeight: 'bold', color: '#1B6B3A' }}>+ Add New Person...</option>
                                     {people.map(p => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
@@ -376,6 +443,107 @@ const BusinessPaymentPlan = () => {
                                 }}
                             >
                                 {createMutation.isLoading ? <Loader2 className="animate-spin" /> : 'Schedule Payment'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Enroll New Contact Inline */}
+            {isAddPersonModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)' }}>
+                    <div style={{ background: 'white', width: '450px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Enroll New Contact</h3>
+                            <button 
+                                type="button"
+                                onClick={() => setIsAddPersonModalOpen(false)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddPersonSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Full Identity Name <span style={{ color: '#EF4444' }}>*</span></label>
+                                <input 
+                                    required 
+                                    placeholder="e.g., Rahul Dev" 
+                                    type="text" 
+                                    value={personForm.name} 
+                                    onChange={(e) => setPersonForm({ ...personForm, name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Phone Contact <span style={{ color: '#EF4444' }}>*</span></label>
+                                <input 
+                                    required 
+                                    placeholder="+91 ..." 
+                                    type="text" 
+                                    value={personForm.phone} 
+                                    onChange={(e) => setPersonForm({ ...personForm, phone: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Network Role</label>
+                                    <select 
+                                        value={personForm.role_type} 
+                                        onChange={(e) => setPersonForm({ ...personForm, role_type: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
+                                    >
+                                        <option value="friend">Friend</option>
+                                        <option value="family">Family</option>
+                                        <option value="colleague">Colleague</option>
+                                        <option value="business">Business Partner</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Group Cluster</label>
+                                    <select 
+                                        value={personForm.relationship} 
+                                        onChange={(e) => setPersonForm({ ...personForm, relationship: e.target.value })}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
+                                    >
+                                        <option value="">No Group</option>
+                                        <option value="Family">Family</option>
+                                        <option value="Friends">Friends</option>
+                                        <option value="Clients">Clients</option>
+                                        <option value="Vendors">Vendors</option>
+                                        <option value="Staff">Staff</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Company</label>
+                                    <input 
+                                        placeholder="e.g., Cliks Inc" 
+                                        type="text" 
+                                        value={personForm.company} 
+                                        onChange={(e) => setPersonForm({ ...personForm, company: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>E-Mail</label>
+                                    <input 
+                                        placeholder="name@example.com" 
+                                        type="email" 
+                                        value={personForm.email} 
+                                        onChange={(e) => setPersonForm({ ...personForm, email: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
+                                </div>
+                            </div>
+                            <button 
+                                type="submit" 
+                                disabled={createPersonMutation.isPending} 
+                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', marginTop: '0.5rem' }}
+                            >
+                                {createPersonMutation.isPending ? 'Enrolling Contact...' : 'Create Contact'}
                             </button>
                         </form>
                     </div>
