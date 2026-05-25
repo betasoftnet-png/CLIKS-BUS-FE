@@ -463,7 +463,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <>
                         {/* No "Social" title - removed per user request */}
                         <div style={{ paddingTop: '1.5rem' }}>
-                            {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
+                            {navigationConfig.social.map(item => (
+                                <React.Fragment key={item.label}>
+                                    <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                    {item.label === 'Trading docs' && (
+                                        <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
+                                    )}
+                                </React.Fragment>
+                            ))}
                         </div>
                     </>
                 ) : isFinanceMode ? (
