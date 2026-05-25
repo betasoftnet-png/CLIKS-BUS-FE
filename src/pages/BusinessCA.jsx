@@ -20,6 +20,7 @@ export default function BusinessCA() {
 
     // --- Business to Personal CA Connection States ---
     const [inviteEmailInput, setInviteEmailInput] = useState('');
+    const [showRevokeId, setShowRevokeId] = useState(null);
 
     // --- Personal CA Zoho Practice Queries & States ---
     const { data: practiceClients = [], refetch: refetchClients } = useQuery({
@@ -1272,7 +1273,10 @@ export default function BusinessCA() {
                             // 3. CONNECTED STATE
                             outgoingInvitations.filter(inv => inv.status === 'Accepted').map(inv => (
                                 <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <div style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div 
+                                        onClick={() => setShowRevokeId(showRevokeId === inv.id ? null : inv.id)}
+                                        style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                    >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
                                                 <UserCheck size={20} />
@@ -1282,12 +1286,14 @@ export default function BusinessCA() {
                                                 <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
                                             </div>
                                         </div>
-                                        <button 
-                                            onClick={() => handleRevokeCA(inv.id)} 
-                                            style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
-                                        >
-                                            Revoke Access
-                                        </button>
+                                        {showRevokeId === inv.id && (
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleRevokeCA(inv.id); }} 
+                                                style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                            >
+                                                Revoke Access
+                                            </button>
+                                        )}
                                     </div>
 
                                     {/* Privileges/What CA can do */}
