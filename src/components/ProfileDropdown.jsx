@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
@@ -15,6 +15,9 @@ export function ProfileDropdown({
     // Country Selector State
     const [isCountrySelectorOpen, setIsCountrySelectorOpen] = useState(false);
     const [countrySearchQuery, setCountrySearchQuery] = useState("");
+    
+    // Beta Trust Selector State
+    const [isTrustOpen, setIsTrustOpen] = useState(false);
     
     // Currency & Country Context
     const { currency, setCurrency, country: selectedCountry, setCountry: setSelectedCountry } = useCurrency();
@@ -304,6 +307,24 @@ export function ProfileDropdown({
     const displayEmail = user?.email || "Guest";
     const displayName = user?.username || user?.name || "User";
 
+    // Calculate dynamic trust score
+    const getBetaTrustScore = () => {
+        if (!user) return { total: 85, base: 70, sub: 15, profile: 0, activity: 0 };
+        const baseScore = 70;
+        const subBonus = user.tier ? 15 : 0;
+        const profileBonus = user.name && user.email ? 10 : 0;
+        const todayStr = new Date().toDateString();
+        const dailyActivity = Array.from(todayStr).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 6;
+        return {
+            total: Math.min(100, baseScore + subBonus + profileBonus + dailyActivity),
+            base: baseScore,
+            sub: subBonus,
+            profile: profileBonus,
+            activity: dailyActivity
+        };
+    };
+    const trustData = getBetaTrustScore();
+
     // Close on click outside & reset states
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -311,6 +332,7 @@ export function ProfileDropdown({
                 setOpen(false);
                 setIsCountrySelectorOpen(false);
                 setIsCurrencySelectorOpen(false);
+                setIsTrustOpen(false);
                 setCountrySearchQuery("");
                 setCountrySearchQueryCurrency("");
             }
@@ -711,6 +733,54 @@ export function ProfileDropdown({
                                             <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '550' }}>{selectedCountry}</span>
                                         </div>
                                     </button>
+
+                                    <button
+                                        onClick={() => setIsTrustOpen(!isTrustOpen)}
+                                        style={styles.menuItem}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        <ShieldCheck size={18} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                            <span>Beta Trust</span>
+                                            <span style={{ fontSize: '11.5px', color: '#10B981', fontWeight: '800' }}>{trustData.total}%</span>
+                                        </div>
+                                    </button>
+
+                                    {isTrustOpen && (
+                                        <div style={{
+                                            background: '#f8fafc',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '10px',
+                                            padding: '12px',
+                                            margin: '4px 8px 8px 8px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '6px'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Base Score</span>
+                                                <span style={{ fontWeight: '700', color: '#10B981' }}>{trustData.base}%</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Subscription Bonus</span>
+                                                <span style={{ fontWeight: '700', color: trustData.sub > 0 ? '#10B981' : '#94a3b8' }}>+{trustData.sub}%</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Profile Completeness</span>
+                                                <span style={{ fontWeight: '700', color: trustData.profile > 0 ? '#10B981' : '#94a3b8' }}>+{trustData.profile}%</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Daily Activity Bonus</span>
+                                                <span style={{ fontWeight: '700', color: trustData.activity > 0 ? '#10B981' : '#94a3b8' }}>+{trustData.activity}%</span>
+                                            </div>
+                                            <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '4px 0' }} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800' }}>
+                                                <span style={{ color: '#1e293b' }}>Total Trust Score</span>
+                                                <span style={{ color: '#047857' }}>{trustData.total}%</span>
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '8px 0' }} />
                                     
