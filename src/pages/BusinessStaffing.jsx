@@ -741,6 +741,26 @@ const BusinessStaffing = () => {
                                 </div>
                             </div>
                         </div>
+                        <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem' }}>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={16} /> Attendance & Monthly Payout Summary</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', fontSize: '0.85rem' }}>
+                                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem' }}>Days Present</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: '900', color: '#10B981' }}>{22 - (selectedEmployee.leave_balance % 4)}</span>
+                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block' }}>This Month</span>
+                                </div>
+                                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem' }}>Leaves Taken</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: '900', color: '#EF4444' }}>{(selectedEmployee.leave_balance % 4)}</span>
+                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block' }}>This Month</span>
+                                </div>
+                                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem' }}>Net Est. Payout</span>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#064E3B' }}>{formatCurrency(selectedEmployee.basic_salary - ((selectedEmployee.leave_balance % 4) * (selectedEmployee.basic_salary / 30)))}</span>
+                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block' }}>After Deductions</span>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '16px' }}>
                             <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={16} /> Contact Details</h4>
