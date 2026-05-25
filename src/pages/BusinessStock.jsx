@@ -30,7 +30,7 @@ import '../App.css';
 import { useCurrency } from '../context';
 
 const BusinessStock = () => {
-    const { currency, formatCurrency } = useCurrency();
+    const { formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('registry');
     const [colFilters, setColFilters] = React.useState({}); // 'registry', 'movement', 'warehouse', 'batch'

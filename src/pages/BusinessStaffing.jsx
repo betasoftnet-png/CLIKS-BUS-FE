@@ -115,7 +115,7 @@ const INITIAL_EMPLOYEES = [
 ];
 
 const BusinessStaffing = () => {
-    const { currency, formatCurrency } = useCurrency();
+    const { formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');

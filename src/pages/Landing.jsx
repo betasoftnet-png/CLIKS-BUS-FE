@@ -75,7 +75,7 @@ const Landing = () => {
     const [scrolled, setScrolled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [activeConsoleTab, setActiveConsoleTab] = useState('invoicing');
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [, setMobileMenuOpen] = useState(false);
 
     const { isAuthenticated, user } = useAuth();
     useScrollAnimation(loading);

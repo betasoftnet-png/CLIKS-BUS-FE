@@ -27,7 +27,7 @@ import { businessCompareService, businessPlanService } from '../services';
 import '../App.css';
 
 const BusinessCompare = () => {
-    const { currency, formatCurrency } = useCurrency();
+    const { formatCurrency } = useCurrency();
     const [selectedPlans, setSelectedPlans] = useState([]);
 
     // Fetch all plans for selection

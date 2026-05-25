@@ -12,7 +12,7 @@ import { useCurrency } from '../context';
 
 export default function BusinessCA() {
     const { currency, formatCurrency } = useCurrency();
-    const [activeTab, setActiveTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
+    const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
     // Top-level workspace mode switcher
     const [caMode, setCaMode] = useState('business'); // business | personal
@@ -168,6 +168,7 @@ export default function BusinessCA() {
             clientName: newRequestClient,
             title: newRequestTitle.trim(),
             description: newRequestDesc.trim(),
+            // eslint-disable-next-line react-hooks/purity
             dueDate: newRequestDueDate || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().split('T')[0],
             priority: newRequestPriority,
             docType: newRequestDocType
@@ -181,6 +182,7 @@ export default function BusinessCA() {
             clientName: newTaskClient,
             title: newTaskTitle.trim(),
             priority: newTaskPriority,
+            // eslint-disable-next-line react-hooks/purity
             dueDate: newTaskDueDate || new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString().split('T')[0],
             askForDocument: newTaskAskForDocument
         });
@@ -237,6 +239,7 @@ export default function BusinessCA() {
     const [_accountingStandard, setAccountingStandard] = useState('IFRS'); // IFRS | GAAP
     const [isScanning, setIsScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
+    // eslint-disable-next-line no-unused-vars
     const [scanResults, setScanResults] = useState(null);
 
     // Module 2: CA / CPA Module States
@@ -520,6 +523,7 @@ export default function BusinessCA() {
     };
 
     // Dynamic compliance scan trigger
+    // eslint-disable-next-line no-unused-vars
     const triggerComplianceScan = () => {
         setIsScanning(true);
         setScanProgress(0);

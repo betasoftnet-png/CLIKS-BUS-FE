@@ -32,7 +32,7 @@ import splitExpenseService from '../services/splitExpenseService';
 const INITIAL_SPLITS = [];
 
 const BusinessSplitCollect = () => {
-    const { currency, formatCurrency } = useCurrency();
+    const { currency } = useCurrency();
     // ── State Management ───────────────────────────────────────────────────
     const [splits, setSplits] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -62,7 +62,7 @@ const BusinessSplitCollect = () => {
         currency: (() => {
             try {
                 return JSON.parse(localStorage.getItem('cliks_currency') || '{}')?.code || 'INR';
-            } catch (e) {
+            } catch {
                 return 'INR';
             }
         })(),

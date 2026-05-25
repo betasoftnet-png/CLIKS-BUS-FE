@@ -9,7 +9,7 @@ export const CurrencyProvider = ({ children }) => {
         if (saved) {
             try {
                 return JSON.parse(saved);
-            } catch (e) {
+            } catch {
                 // Ignore parse errors and fall back to default
             }
         }
@@ -57,6 +57,7 @@ export const CurrencyProvider = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCurrency = () => {
     const context = useContext(CurrencyContext);
     if (!context) {

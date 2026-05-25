@@ -31,7 +31,7 @@ import '../App.css';
 import { useCurrency } from '../context';
 
 const BusinessWarehouse = () => {
-    const { currency, formatCurrency } = useCurrency();
+    const { formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({

@@ -42,7 +42,7 @@ import '../App.css';
 import { useCurrency } from '../context';
 
 const BusinessReports = () => {
-    const { currency, formatCurrency } = useCurrency();
+    const { formatCurrency } = useCurrency();
     const [activeCategory, setActiveCategory] = useState('all');
 
     const { data: summary } = useQuery({

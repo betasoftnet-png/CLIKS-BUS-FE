@@ -9,14 +9,14 @@ import {
     Clock,
     Flame
 } from 'lucide-react';
-import { useCurrency } from '../context';
+
 import { useNavigate } from 'react-router-dom';
 
 const BusinessRewards = () => {
-    const { currency, formatCurrency } = useCurrency();
+    
     const navigate = useNavigate();
     
-    const [rewardPoints, setRewardPoints] = useState(() => {
+    const [rewardPoints] = useState(() => {
         const saved = localStorage.getItem('cliks_reward_points');
         return saved ? parseInt(saved, 10) : 1450;
     });
