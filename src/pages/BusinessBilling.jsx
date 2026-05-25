@@ -863,22 +863,6 @@ const BusinessBilling = () => {
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
                                                 <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={14} /></button>
                                                 <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={14} /></button>
-                                                {activeConfig.noInvoicePreview !== true && (
-                                                    <a 
-                                                        href="/sales/invoice/preview" 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer" 
-                                                        onClick={() => handlePreviewPDF(inv)} 
-                                                        title="Preview PDF in New Tab" 
-                                                        style={{ 
-                                                            width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', 
-                                                            background: 'white', color: '#3B82F6', display: 'flex', alignItems: 'center', 
-                                                            justifyContent: 'center', cursor: 'pointer', textDecoration: 'none' 
-                                                        }}
-                                                    >
-                                                        <Eye size={14} />
-                                                    </a>
-                                                )}
                                                 <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#BE185D', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={14} /></button>
                                                 <button onClick={() => handleEdit(inv)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
                                                 <button onClick={() => handleDelete(inv.id)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
