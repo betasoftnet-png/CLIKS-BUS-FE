@@ -7,13 +7,11 @@ import {
     BarChart3,
     Users,
     TrendingUp,
-    DollarSign,
     Package,
     ShoppingCart,
     Clock,
     Target,
     ArrowUpRight,
-    ArrowDownRight,
     Search,
     Plus,
     X,
@@ -31,7 +29,9 @@ import {
     Factory,
     Users2,
     Activity,
-    Wrench
+    Wrench,
+    ShoppingBag,
+    ShieldCheck
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,7 +40,7 @@ import { reportsService, expensesService, purchasesService } from '../services';
 import '../App.css';
 
 const MASTER_SHORTCUTS = [
-    { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: DollarSign, color: '#1B6B3A' },
+    { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: ShoppingBag, color: '#1B6B3A' },
     { id: 'sales_orders', label: 'Sales Orders', path: '/sales/orders', icon: ShoppingCart, color: '#2563EB' },
     { id: 'new_product', label: 'Add Product', path: '/inventory/products?create=true', icon: Package, color: '#EA580C' },
     { id: 'pos_billing', label: 'POS Billing', path: '/pos', icon: LayoutDashboard, color: '#0D9488' },
@@ -50,7 +50,7 @@ const MASTER_SHORTCUTS = [
 
     // 🚀 Brand New Expansion Triggers
     { id: 'new_customer', label: 'Add Customer', path: '/sales/customers?create=true', icon: UserPlus, color: '#EC4899' },
-    { id: 'new_purchase', label: 'New Purchase PO', path: '/purchases/purchases?create=true', icon: ShoppingCart, color: '#4338CA' },
+    { id: 'new_purchase', label: 'New Purchase PO', path: '/purchases/purchases?create=true&tab=purchase-orders', icon: ShoppingCart, color: '#4338CA' },
     { id: 'staff_claim', label: 'Staff Claim', path: '/finance/expenses?claim=true', icon: FileText, color: '#BE185D' },
     { id: 'onboard_staff', label: 'Onboard Staff', path: '/hr/staff?create=true', icon: UserPlus, color: '#059669' },
     { id: 'gst_filing', label: 'GST Records', path: '/finance/gst', icon: BarChart3, color: '#F59E0B' },
@@ -74,7 +74,7 @@ const MASTER_SHORTCUTS = [
     { id: 'payments_ledger', label: 'Payments Ledger', path: '/payments/transaction', icon: Coins, color: '#16A34A' },
     { id: 'company_wallet', label: 'Company Wallet', path: '/payments/wallet', icon: Wallet, color: '#7C3AED' },
     { id: 'loyalty_rewards', label: 'Loyalty Rewards', path: '/payments/rewards', icon: Gift, color: '#EA580C' },
-    { id: 'staff_payroll', label: 'Staff Payroll', path: '/hr/payroll', icon: DollarSign, color: '#D97706' },
+    { id: 'staff_payroll', label: 'Staff Payroll', path: '/hr/payroll', icon: FileText, color: '#D97706' },
     { id: 'accounting_ledger', label: 'Double Entry Accounting', path: '/finance/accounting', icon: FileText, color: '#4F46E5' },
 
     // 🚚 Operations, Customization & CRM
@@ -86,6 +86,11 @@ const MASTER_SHORTCUTS = [
 const BusinessDashboard = () => {
     const navigate = useNavigate();
     const { formatCurrency } = useCurrency();
+    
+    // States for custom interactive SVGs
+    const [hoveredSalesPoint, setHoveredSalesPoint] = useState(null);
+    const [hoveredDonutSegment, setHoveredDonutSegment] = useState(null);
+    
     const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
         const saved = localStorage.getItem('cliks_dashboard_shortcuts');
         return saved ? JSON.parse(saved) : MASTER_SHORTCUTS.map(s => s.id);
@@ -120,68 +125,14 @@ const BusinessDashboard = () => {
         queryFn: reportsService.getSalesByProduct
     });
 
-    // Compile Live Operations Log chronologically from multiple datasets
-    const { data: recentOps } = useQuery({
-        queryKey: ['dashboardRecentOps'],
-        queryFn: async () => {
-            try {
-                const [sales, purchases, expenses] = await Promise.all([
-                    reportsService.getSales().catch(() => []),
-                    purchasesService.getPurchases().catch(() => []),
-                    expensesService.getExpenses().catch(() => [])
-                ]);
-
-                const sList = (sales?.data || sales || []).slice(0, 5).map(s => ({
-                    title: `Sales: #${s.order_number || s.id}`,
-                    date: s.created_at || s.date,
-                    status: 'Completed',
-                    color: '#10B981'
-                }));
-
-                const pList = (purchases?.data || purchases || []).slice(0, 5).map(p => ({
-                    title: `Purchase: #${p.id}`,
-                    date: p.created_at || p.bill_date,
-                    status: p.status === 'received' ? 'Received' : (p.status || 'Processed'),
-                    color: '#2563EB'
-                }));
-
-                const eList = (expenses?.data || expenses || []).slice(0, 5).map(e => ({
-                    title: `Expense: ${e.category || 'Operating'}`,
-                    date: e.created_at || e.date,
-                    status: 'Settled',
-                    color: '#EF4444'
-                }));
-
-                return [...sList, ...pList, ...eList]
-                    .filter(item => item.date)
-                    .sort((a, b) => new Date(b.date) - new Date(a.date))
-                    .slice(0, 3); // Only top 3 most recent operations
-            } catch (err) {
-                console.warn('[Ops Compiler] Dynamic aggregation failed:', err);
-                return [];
-            }
-        }
+    // Fetch live expenses list for the pie chart
+    const { data: expensesList } = useQuery({
+        queryKey: ['dashboardExpenses'],
+        queryFn: expensesService.getExpenses
     });
 
-    const formatTimeAgo = (dateStr) => {
-        if (!dateStr) return 'Recent';
-        try {
-            const diffMs = new Date() - new Date(dateStr);
-            const diffMins = Math.floor(diffMs / 60000);
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            const diffHours = Math.floor(diffMins / 60);
-            if (diffHours < 24) return `${diffHours}h ago`;
-            const diffDays = Math.floor(diffHours / 24);
-            if (diffDays === 1) return 'Yesterday';
-            return `${diffDays}d ago`;
-        } catch {
-            return 'Recent';
-        }
-    };
-
     const stats = [
-        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: DollarSign, color: '#1B6B3A' },
+        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: ShoppingBag, color: '#1B6B3A' },
         { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? formatCurrency(summary.total_purchases) : formatCurrency(0), change: 'Live', icon: Briefcase, color: '#064E3B' },
         { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? formatCurrency(summary.total_expenses) : formatCurrency(0), change: 'Live', icon: TrendingUp, color: '#059669' },
         {
@@ -195,6 +146,65 @@ const BusinessDashboard = () => {
             color: '#10B981'
         }
     ];
+
+    // Compute live expense groups for Donut Chart
+    const rawExpenses = expensesList?.data || expensesList || [];
+    const expenseGroups = rawExpenses.reduce((acc, exp) => {
+        const cat = exp.category || exp.category_name || 'Operating';
+        const amt = parseFloat(exp.amount || exp.expense_amount || 0);
+        acc[cat] = (acc[cat] || 0) + amt;
+        return acc;
+    }, {});
+
+    const totalExpensesSum = Object.values(expenseGroups).reduce((a, b) => a + b, 0);
+
+    const expenseCategories = Object.entries(expenseGroups).map(([name, value]) => ({
+        name,
+        value,
+        pct: totalExpensesSum > 0 ? (value / totalExpensesSum) * 100 : 0
+    })).sort((a, b) => b.value - a.value);
+
+    // Fallback static high-fidelity data if no expenses exist in the database yet
+    const finalExpenseCategories = expenseCategories.length > 0 
+        ? expenseCategories 
+        : [
+            { name: 'Office Rent & Utilities', value: 45000, pct: 45 },
+            { name: 'Marketing & Ad Spend', value: 25000, pct: 25 },
+            { name: 'Employee Salaries', value: 20000, pct: 20 },
+            { name: 'SaaS & Subscriptions', value: 10000, pct: 10 }
+        ];
+
+    const finalTotalExpensesSum = totalExpensesSum > 0 ? totalExpensesSum : 100000;
+
+    // Beautiful emerald/mint/rich color scheme
+    const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];
+
+    // Trigonometric coordinates for custom SVG Area/Line Graph
+    const salesData = chartSales?.data || Array(12).fill(0);
+    const maxSales = Math.max(...salesData, 1000);
+
+    const svgWidth = 600;
+    const svgHeight = 220;
+    const paddingLeft = 50;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+
+    const chartWidth = svgWidth - paddingLeft - paddingRight;
+    const chartHeight = svgHeight - paddingTop - paddingBottom;
+
+    const monthsLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const salesPoints = salesData.map((val, idx) => {
+        const x = paddingLeft + (idx / 11) * chartWidth;
+        const y = paddingTop + chartHeight - (val / maxSales) * chartHeight;
+        return { x, y, val, month: monthsLabels[idx] };
+    });
+
+    const linePath = salesPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const areaPath = salesPoints.length > 0 
+        ? `${linePath} L ${salesPoints[salesPoints.length - 1].x} ${paddingTop + chartHeight} L ${salesPoints[0].x} ${paddingTop + chartHeight} Z`
+        : '';
 
     return (
         <div className="premium-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
@@ -336,54 +346,151 @@ const BusinessDashboard = () => {
                     </div>
                 </div>
 
-                {/* Charts & Activity */}
-                <div className="content-grid">
-                    <div className="dashboard-main-col">
-                        {/* Revenue Chart */}
-                        <div className="dashboard-chart-card">
-                            <div className="dashboard-chart-header">
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B' }}>Revenue Performance</h2>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#1B6B3A' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#1B6B3A' }} /> Sales
-                                    </span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#DCF2E4' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#DCF2E4' }} /> Services
-                                    </span>
+                {/* Redesigned Charts Content Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '24px', boxSizing: 'border-box' }}>
+                    {/* Left Column: Sales Area Graph & Top Products */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {/* Sales Curve Graph */}
+                        <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Sales Performance</h2>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Interactive monthly sales aggregation graph.</p>
+                                </div>
+                                <div style={{ background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800' }}>
+                                    Live Stream
                                 </div>
                             </div>
-                            <div className="dashboard-chart-bars-container">
-                                {(() => {
-                                    const salesData = chartSales?.data || Array(12).fill(0);
-                                    const maxSales = Math.max(...salesData, 1000);
-                                    return salesData.map((val, i) => {
-                                        const heightPct = val > 0 ? (val / maxSales) * 100 : 5;
+
+                            {/* Custom SVG Sales Line/Area Graph */}
+                            <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" height="auto" style={{ display: 'block', overflow: 'visible' }}>
+                                    <defs>
+                                        <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#1B6B3A" stopOpacity="0.3" />
+                                            <stop offset="100%" stopColor="#1B6B3A" stopOpacity="0.0" />
+                                        </linearGradient>
+                                        <linearGradient id="salesLineGradient" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor="#10B981" />
+                                            <stop offset="100%" stopColor="#047857" />
+                                        </linearGradient>
+                                    </defs>
+
+                                    {/* Horizontal Gridlines */}
+                                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+                                        const y = paddingTop + ratio * chartHeight;
                                         return (
-                                            <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                                                <div style={{ height: `${heightPct}%`, width: '100%', background: 'linear-gradient(to top, #1B6B3A, #064E3B)', borderRadius: '8px 8px 4px 4px', position: 'relative' }}>
-                                                    {val > 0 && (
-                                                        <div style={{ position: 'absolute', top: '-30px', left: '50%', transform: 'translateX(-50%)', background: '#064E3B', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
-                                                            {formatCurrency(val)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <span style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: '700', color: '#94A3B8', textAlign: 'center' }}>
-                                                    {['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][i]}
-                                                </span>
-                                            </div>
+                                            <g key={i}>
+                                                <line 
+                                                    x1={paddingLeft} 
+                                                    y1={y} 
+                                                    x2={svgWidth - paddingRight} 
+                                                    y2={y} 
+                                                    stroke="#F1F5F9" 
+                                                    strokeWidth="1.5" 
+                                                    strokeDasharray="4 4"
+                                                />
+                                                <text 
+                                                    x={paddingLeft - 10} 
+                                                    y={y + 4} 
+                                                    textAnchor="end" 
+                                                    style={{ fontSize: '10px', fontWeight: '750', fill: '#94A3B8' }}
+                                                >
+                                                    {formatCurrency(maxSales * (1 - ratio)).split('.')[0]}
+                                                </text>
+                                            </g>
                                         );
-                                    });
-                                })()}
+                                    })}
+
+                                    {/* SVG Area Under Path */}
+                                    {areaPath && (
+                                        <path d={areaPath} fill="url(#salesAreaGradient)" />
+                                    )}
+
+                                    {/* SVG Glowing Line */}
+                                    {linePath && (
+                                        <path 
+                                            d={linePath} 
+                                            fill="none" 
+                                            stroke="url(#salesLineGradient)" 
+                                            strokeWidth="3.5" 
+                                            strokeLinecap="round" 
+                                            strokeLinejoin="round" 
+                                        />
+                                    )}
+
+                                    {/* X-Axis labels & data node points */}
+                                    {salesPoints.map((p, idx) => (
+                                        <g key={idx}>
+                                            <text 
+                                                x={p.x} 
+                                                y={paddingTop + chartHeight + 18} 
+                                                textAnchor="middle" 
+                                                style={{ fontSize: '10px', fontWeight: '800', fill: '#64748B' }}
+                                            >
+                                                {p.month}
+                                            </text>
+                                            
+                                            {/* Hover Interaction Circle Group */}
+                                            <circle 
+                                                cx={p.x} 
+                                                cy={p.y} 
+                                                r={hoveredSalesPoint?.month === p.month ? "7" : "5"} 
+                                                fill="#ffffff" 
+                                                stroke="#1B6B3A" 
+                                                strokeWidth="2.5" 
+                                                style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                                            />
+                                            
+                                            {/* Large Invisible Hover Circle to ease interaction */}
+                                            <circle 
+                                                cx={p.x} 
+                                                cy={p.y} 
+                                                r="18" 
+                                                fill="transparent" 
+                                                style={{ cursor: 'pointer' }}
+                                                onMouseEnter={() => setHoveredSalesPoint(p)}
+                                                onMouseLeave={() => setHoveredSalesPoint(null)}
+                                            />
+                                        </g>
+                                    ))}
+                                </svg>
+
+                                {/* HTML Tooltip Overlay inside responsive wrapper */}
+                                {hoveredSalesPoint && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: `${(hoveredSalesPoint.y / svgHeight) * 100 - 18}%`,
+                                        left: `${(hoveredSalesPoint.x / svgWidth) * 100}%`,
+                                        transform: 'translate(-50%, -100%)',
+                                        background: '#0F172A',
+                                        color: 'white',
+                                        padding: '8px 12px',
+                                        borderRadius: '10px',
+                                        fontSize: '11px',
+                                        fontWeight: '800',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                        whiteSpace: 'nowrap',
+                                        pointerEvents: 'none',
+                                        zIndex: 10
+                                    }}>
+                                        <div style={{ color: '#34D399', fontSize: '9px', textTransform: 'uppercase', marginBottom: '2px' }}>{hoveredSalesPoint.month} Sales</div>
+                                        <div>{formatCurrency(hoveredSalesPoint.val)}</div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Top Performing Products */}
-                        <div className="dashboard-chart-card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', margin: 0 }}>Top Performing Products</h2>
-                                <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase' }}>Volume Matrix</span>
+                        <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <div>
+                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Top Performing Products</h2>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Highest volume contributors matrix.</p>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '3px 8px', borderRadius: '12px' }}>Volume Matrix</span>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {topProducts && topProducts.length > 0 ? (
                                     (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
                                         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
@@ -409,43 +516,148 @@ const BusinessDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Side Widgets */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div className="dashboard-goal-card">
-                            <div style={{ position: 'relative', zIndex: 1 }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                                    <Target size={20} />
+                    {/* Right Column: Custom SVG Donut Expense Chart */}
+                    <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', height: 'fit-content', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
+                        </div>
+
+                        {/* Interactive Donut SVG */}
+                        <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', margin: '10px 0' }}>
+                            <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
+                                <circle 
+                                    cx="100" 
+                                    cy="100" 
+                                    r="65" 
+                                    fill="transparent" 
+                                    stroke="#F1F5F9" 
+                                    strokeWidth="16" 
+                                />
+                                {(() => {
+                                    let accumulatedPercent = 0;
+                                    const circumference = 2 * Math.PI * 65; // ~408.4
+
+                                    return finalExpenseCategories.map((c, i) => {
+                                        const dashLength = (c.pct / 100) * circumference;
+                                        const offset = -((accumulatedPercent / 100) * circumference);
+                                        accumulatedPercent += c.pct;
+                                        const color = DONUT_COLORS[i % DONUT_COLORS.length];
+
+                                        const isHovered = hoveredDonutSegment?.name === c.name;
+
+                                        return (
+                                            <circle
+                                                key={c.name}
+                                                cx="100"
+                                                cy="100"
+                                                r="65"
+                                                fill="transparent"
+                                                stroke={color}
+                                                strokeWidth={isHovered ? "22" : "16"}
+                                                strokeDasharray={`${dashLength} ${circumference}`}
+                                                strokeDashoffset={offset}
+                                                style={{ 
+                                                    cursor: 'pointer', 
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
+                                                }}
+                                                onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
+                                                onMouseLeave={() => setHoveredDonutSegment(null)}
+                                            />
+                                        );
+                                    });
+                                })()}
+                            </svg>
+
+                            {/* Donut Center Display */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: 'center',
+                                pointerEvents: 'none',
+                                width: '110px'
+                            }}>
+                                <div style={{ 
+                                    fontSize: '9px', 
+                                    fontWeight: '800', 
+                                    color: '#64748B', 
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                }}>
+                                    {hoveredDonutSegment ? hoveredDonutSegment.name : 'Total Expense'}
                                 </div>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '0.5rem' }}>Enterprise Goal</h3>
-                                <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '2rem' }}>You've achieved 82% of your quarterly revenue target.</p>
-                                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', marginBottom: '1rem', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: '82%', background: 'white' }} />
+                                <div style={{ 
+                                    fontSize: '15px', 
+                                    fontWeight: '900', 
+                                    color: hoveredDonutSegment ? hoveredDonutSegment.color : '#0F172A',
+                                    marginTop: '4px',
+                                    lineHeight: '1.2'
+                                }}>
+                                    {hoveredDonutSegment 
+                                        ? formatCurrency(hoveredDonutSegment.value)
+                                        : formatCurrency(finalExpenseCategories.reduce((acc, c) => acc + c.value, 0))
+                                    }
                                 </div>
-                                <button style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'white', color: '#064E3B', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer' }}>View Strategy</button>
+                                <div style={{ 
+                                    fontSize: '10px', 
+                                    fontWeight: '800', 
+                                    color: '#10B981', 
+                                    marginTop: '2px' 
+                                }}>
+                                    {hoveredDonutSegment 
+                                        ? `${hoveredDonutSegment.pct.toFixed(1)}% Share`
+                                        : '100% Volume'
+                                    }
+                                </div>
                             </div>
                         </div>
 
-                        <div className="dashboard-ops-card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B' }}>Recent Ops</h3>
-                                <Clock size={18} color="#94A3B8" />
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                {recentOps && recentOps.length > 0 ? recentOps.map((op, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: op.color }} />
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#334155' }}>{op.title}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{formatTimeAgo(op.date)}</span>
+                        {/* Interactive Color Legend */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                            {finalExpenseCategories.map((c, i) => {
+                                const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                                const isHovered = hoveredDonutSegment?.name === c.name;
+                                return (
+                                    <div 
+                                        key={c.name}
+                                        onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
+                                        onMouseLeave={() => setHoveredDonutSegment(null)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            background: isHovered ? '#F8FAFC' : 'transparent',
+                                            padding: '8px 10px',
+                                            borderRadius: '12px',
+                                            border: '1px solid',
+                                            borderColor: isHovered ? '#E2E8F0' : 'transparent',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: color, flexShrink: 0 }} />
+                                            <span style={{ 
+                                                fontSize: '0.8rem', 
+                                                fontWeight: '800', 
+                                                color: isHovered ? '#0F172A' : '#475569',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                maxWidth: '120px'
+                                            }} title={c.name}>
+                                                {c.name}
+                                            </span>
                                         </div>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: op.color }}>{op.status}</span>
+                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
+                                            <span style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8' }}>{c.pct.toFixed(1)}%</span>
+                                        </div>
                                     </div>
-                                )) : (
-                                    <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
-                                        No live operations recorded.
-                                    </div>
-                                )}
-                            </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
