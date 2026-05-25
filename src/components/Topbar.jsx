@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, QrCode, Wallet, Home, BookOpen, Calculator, Users, Coins, ShieldCheck } from 'lucide-react';
 
 import '../App.css';
@@ -14,6 +14,25 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isTrustOpen, setIsTrustOpen] = useState(false);
+    const trustRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (trustRef.current && !trustRef.current.contains(event.target)) {
+                setIsTrustOpen(false);
+            }
+        };
+
+        if (isTrustOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isTrustOpen]);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -172,7 +191,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
                 {!isAdminOrSales && (
-                    <div style={{ position: 'relative' }}>
+                    <div ref={trustRef} style={{ position: 'relative' }}>
                         <div 
                             onClick={() => setIsTrustOpen(!isTrustOpen)}
                             style={{
