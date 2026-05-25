@@ -488,49 +488,27 @@ export function ProfileDropdown({
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
             >
                 <div style={{
-                    width: '26px',
-                    height: '26px',
+                    width: '24px',
+                    height: '24px',
                     borderRadius: '50%',
                     backgroundColor: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#135029',
-                    flexShrink: 0
+                    color: '#135029'
                 }}>
                     <UserIcon size={14} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px' }}>
-                    <span style={{ 
-                        textTransform: 'none', 
-                        letterSpacing: '0px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        maxWidth: '100px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: '1.2',
-                        color: '#FFFFFF'
-                    }}>{displayName}</span>
-                    <span style={{ 
-                        fontSize: '9px', 
-                        fontWeight: '700', 
-                        color: 'rgba(255, 255, 255, 0.75)',
-                        lineHeight: '1',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                    }}>
-                        <span>{countryFlag}</span>
-                        <span style={{ 
-                            maxWidth: '75px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                        }}>{selectedCountry || "Country"}</span>
-                    </span>
-                </div>
+                <span style={{ 
+                    textTransform: 'none', 
+                    letterSpacing: '0px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    maxWidth: '100px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                }}>{displayName}</span>
                 <ChevronDown
                     size={16}
                     style={{
