@@ -18,6 +18,74 @@ export default function BusinessCA() {
     const [caMode, setCaMode] = useState('business'); // business | personal
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
 
+    // --- Teams & Team Requests States ---
+    const [teamMembers, setTeamMembers] = useState(() => {
+        const saved = localStorage.getItem('cliks_ca_team_members');
+        return saved ? JSON.parse(saved) : [
+            { id: 1, name: 'Vikram Malhotra', email: 'vikram.malhotra@firm.com', role: 'Partner / Senior CA', status: 'Active' },
+            { id: 2, name: 'Ananya Roy', email: 'ananya.roy@firm.com', role: 'Tax Associate', status: 'Active' },
+            { id: 3, name: 'Rohan Sharma', email: 'rohan.sharma@firm.com', role: 'Audit Lead', status: 'Active' }
+        ];
+    });
+
+    const [teamRequests, setTeamRequests] = useState(() => {
+        const saved = localStorage.getItem('cliks_ca_team_requests');
+        return saved ? JSON.parse(saved) : [
+            { id: 101, name: 'Amit Patel', email: 'amit.patel@firm.com', role: 'CS Specialist', type: 'Incoming', status: 'Pending' },
+            { id: 102, name: 'Sneha Reddy', email: 'sneha.reddy@firm.com', role: 'Audit Intern', type: 'Outgoing', status: 'Pending' }
+        ];
+    });
+
+    const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
+    const [newTeamEmail, setNewTeamEmail] = useState('');
+    const [newTeamRole, setNewTeamRole] = useState('Senior Tax Consultant');
+
+    useEffect(() => {
+        localStorage.setItem('cliks_ca_team_members', JSON.stringify(teamMembers));
+    }, [teamMembers]);
+
+    useEffect(() => {
+        localStorage.setItem('cliks_ca_team_requests', JSON.stringify(teamRequests));
+    }, [teamRequests]);
+
+    const handleSendTeamInvitation = (e) => {
+        e.preventDefault();
+        if (!newTeamEmail.trim() || !newTeamEmail.includes('@')) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+        const emailLower = newTeamEmail.trim().toLowerCase();
+        
+        if (teamMembers.some(m => m.email.toLowerCase() === emailLower)) {
+            alert('This user is already a member of your team.');
+            return;
+        }
+        if (teamRequests.some(r => r.email.toLowerCase() === emailLower)) {
+            alert('An invitation has already been sent or is pending for this user.');
+            return;
+        }
+
+        const username = emailLower.split('@')[0];
+        const formattedName = username
+            .split('.')
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+
+        const newReq = {
+            id: Date.now(),
+            name: formattedName || 'External Consultant',
+            email: emailLower,
+            role: newTeamRole,
+            type: 'Outgoing',
+            status: 'Pending'
+        };
+
+        setTeamRequests(prev => [newReq, ...prev]);
+        setNewTeamEmail('');
+        setShowAddTeamMemberModal(false);
+        alert(`✉️ Team invitation sent successfully to ${emailLower}! The request will show in the Team Requests tab.`);
+    };
+
     // --- Business to Personal CA Connection States ---
     const [inviteEmailInput, setInviteEmailInput] = useState('');
     const [showRevokeId, setShowRevokeId] = useState(null);
@@ -112,6 +180,8 @@ export default function BusinessCA() {
         { id: 'requests', label: 'Client Requests', icon: HelpCircle, badge: null },
         { id: 'insights', label: 'Insights', icon: TrendingUp },
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
+        { id: 'teams', label: 'Teams', icon: Users, badge: null },
+        { id: 'team_requests', label: 'Team Requests', icon: UserCheck, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
         { id: 'documents', label: 'Documents', icon: Folder },
@@ -1399,6 +1469,11 @@ export default function BusinessCA() {
                                             {practiceTasks.filter(t => t.status !== 'Completed').length}
                                         </span>
                                     )}
+                                    {tab.id === 'team_requests' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {teamRequests.filter(r => r.status === 'Pending').length}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
@@ -1896,6 +1971,271 @@ export default function BusinessCA() {
                                                 ))}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </Motion.div>
+                            )}
+
+                            {/* TEAMS TAB */}
+                            {personalTab === 'teams' && (
+                                <Motion.div key="teams" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>👥 Practice Team Members</h2>
+                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Manage roles, access control, and staff associations inside your advisory firm.</p>
+                                        </div>
+                                        <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Plus size={16} /> Add Team Member
+                                        </button>
+                                    </div>
+
+                                    <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
+                                                    <th style={{ padding: '14px 20px' }}>Team Member</th>
+                                                    <th style={{ padding: '14px 20px' }}>Email Address</th>
+                                                    <th style={{ padding: '14px 20px' }}>Designation / Role</th>
+                                                    <th style={{ padding: '14px 20px' }}>Status</th>
+                                                    <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {teamMembers.map(member => {
+                                                    const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                                                    return (
+                                                        <tr key={member.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
+                                                            <td style={{ padding: '16px 20px' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                    <div style={{
+                                                                        width: '32px',
+                                                                        height: '32px',
+                                                                        borderRadius: '50%',
+                                                                        background: '#E2F0D9',
+                                                                        color: '#15803d',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        fontWeight: '900',
+                                                                        fontSize: '12px'
+                                                                    }}>
+                                                                        {initials}
+                                                                    </div>
+                                                                    <span style={{ fontWeight: '800', color: '#0F172A' }}>{member.name}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '500', fontFamily: 'monospace' }}>{member.email}</td>
+                                                            <td style={{ padding: '16px 20px' }}>
+                                                                <span style={{
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '800',
+                                                                    padding: '4px 10px',
+                                                                    borderRadius: '12px',
+                                                                    backgroundColor: '#EFF6FF',
+                                                                    color: '#1D4ED8'
+                                                                }}>{member.role}</span>
+                                                            </td>
+                                                            <td style={{ padding: '16px 20px' }}>
+                                                                <span style={{
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '800',
+                                                                    padding: '4px 10px',
+                                                                    borderRadius: '12px',
+                                                                    backgroundColor: member.status === 'Active' ? '#ECFDF5' : '#FFFBEB',
+                                                                    color: member.status === 'Active' ? '#059669' : '#D97706'
+                                                                }}>{member.status}</span>
+                                                            </td>
+                                                            <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (confirm(`Are you sure you want to remove ${member.name} from the practice team?`)) {
+                                                                            setTeamMembers(prev => prev.filter(m => m.id !== member.id));
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '6px 12px',
+                                                                        background: 'transparent',
+                                                                        border: '1.5px solid #FEE2E2',
+                                                                        borderRadius: '8px',
+                                                                        color: '#EF4444',
+                                                                        fontWeight: '700',
+                                                                        fontSize: '12px',
+                                                                        cursor: 'pointer',
+                                                                        transition: 'all 0.2s'
+                                                                    }}
+                                                                    onMouseEnter={e => {
+                                                                        e.currentTarget.style.background = '#FEF2F2';
+                                                                    }}
+                                                                    onMouseLeave={e => {
+                                                                        e.currentTarget.style.background = 'transparent';
+                                                                    }}
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </Motion.div>
+                            )}
+
+                            {/* TEAM REQUESTS TAB */}
+                            {personalTab === 'team_requests' && (
+                                <Motion.div key="team_requests" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div>
+                                        <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>✉️ Team Invitations & Requests</h2>
+                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Approve incoming join requests or track pending outgoing invitations sent to other advisors.</p>
+                                    </div>
+
+                                    <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                        {teamRequests.length === 0 ? (
+                                            <div style={{ padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                                                    <UserCheck size={24} />
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: '0 0 4px 0' }}>No Pending Requests</h4>
+                                                    <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>All team invitations and member requests have been fully processed.</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
+                                                        <th style={{ padding: '14px 20px' }}>Target Candidate</th>
+                                                        <th style={{ padding: '14px 20px' }}>Email Address</th>
+                                                        <th style={{ padding: '14px 20px' }}>Proposed Role</th>
+                                                        <th style={{ padding: '14px 20px' }}>Direction</th>
+                                                        <th style={{ padding: '14px 20px' }}>Status</th>
+                                                        <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {teamRequests.map(req => {
+                                                        const initials = req.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                                                        return (
+                                                            <tr key={req.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
+                                                                <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <div style={{
+                                                                            width: '28px',
+                                                                            height: '28px',
+                                                                            borderRadius: '50%',
+                                                                            background: req.type === 'Incoming' ? '#EFF6FF' : '#FFF7ED',
+                                                                            color: req.type === 'Incoming' ? '#1D4ED8' : '#EA580C',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontWeight: '900',
+                                                                            fontSize: '11px'
+                                                                        }}>
+                                                                            {initials}
+                                                                        </div>
+                                                                        <span>{req.name}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '500', fontFamily: 'monospace' }}>{req.email}</td>
+                                                                <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '600' }}>{req.role}</td>
+                                                                <td style={{ padding: '16px 20px' }}>
+                                                                    <span style={{
+                                                                        fontSize: '11px',
+                                                                        fontWeight: '800',
+                                                                        padding: '3px 8px',
+                                                                        borderRadius: '12px',
+                                                                        backgroundColor: req.type === 'Incoming' ? '#E0F2FE' : '#FEE2E2',
+                                                                        color: req.type === 'Incoming' ? '#0369A1' : '#B91C1C'
+                                                                    }}>{req.type}</span>
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px' }}>
+                                                                    <span style={{
+                                                                        fontSize: '11px',
+                                                                        fontWeight: '800',
+                                                                        padding: '3px 8px',
+                                                                        borderRadius: '12px',
+                                                                        backgroundColor: '#FEF3C7',
+                                                                        color: '#D97706'
+                                                                    }}>{req.status}</span>
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                                                    {req.type === 'Incoming' ? (
+                                                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    // Accept request
+                                                                                    const newMember = {
+                                                                                        id: Date.now(),
+                                                                                        name: req.name,
+                                                                                        email: req.email,
+                                                                                        role: req.role,
+                                                                                        status: 'Active'
+                                                                                    };
+                                                                                    setTeamMembers(prev => [...prev, newMember]);
+                                                                                    setTeamRequests(prev => prev.filter(r => r.id !== req.id));
+                                                                                    alert(`🎉 Joined! ${req.name} has been successfully added to your team.`);
+                                                                                }}
+                                                                                style={{
+                                                                                    padding: '6px 12px',
+                                                                                    background: '#15803d',
+                                                                                    border: 'none',
+                                                                                    borderRadius: '8px',
+                                                                                    color: 'white',
+                                                                                    fontWeight: '800',
+                                                                                    fontSize: '12px',
+                                                                                    cursor: 'pointer'
+                                                                                }}
+                                                                            >
+                                                                                Accept
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    if (confirm(`Reject request from ${req.name}?`)) {
+                                                                                        setTeamRequests(prev => prev.filter(r => r.id !== req.id));
+                                                                                    }
+                                                                                }}
+                                                                                style={{
+                                                                                    padding: '6px 12px',
+                                                                                    background: 'transparent',
+                                                                                    border: '1.5px solid #E2E8F0',
+                                                                                    borderRadius: '8px',
+                                                                                    color: '#64748B',
+                                                                                    fontWeight: '700',
+                                                                                    fontSize: '12px',
+                                                                                    cursor: 'pointer'
+                                                                                }}
+                                                                            >
+                                                                                Decline
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                if (confirm(`Cancel invitation to ${req.name}?`)) {
+                                                                                    setTeamRequests(prev => prev.filter(r => r.id !== req.id));
+                                                                                }
+                                                                            }}
+                                                                            style={{
+                                                                                padding: '6px 12px',
+                                                                                background: 'transparent',
+                                                                                border: '1.5px solid #E2E8F0',
+                                                                                borderRadius: '8px',
+                                                                                color: '#64748B',
+                                                                                fontWeight: '700',
+                                                                                fontSize: '12px',
+                                                                                cursor: 'pointer'
+                                                                            }}
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        )}
                                     </div>
                                 </Motion.div>
                             )}
@@ -2487,6 +2827,35 @@ export default function BusinessCA() {
                                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                                     <button type="button" onClick={() => setShowAddTaskModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
                                     <button type="submit" style={{ padding: '10px 18px', background: '#15803d', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer' }}>Assign Task</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    {showAddTeamMemberModal && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                            <form onSubmit={handleSendTeamInvitation} style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>👥 Invite New Team Member</h3>
+                                
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>EMAIL ADDRESS (MAIL ID)</label>
+                                    <input type="email" value={newTeamEmail} onChange={e=>setNewTeamEmail(e.target.value)} required placeholder="e.g. associate@firm.com" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>PROPOSED ROLE / DESIGNATION</label>
+                                    <select value={newTeamRole} onChange={e=>setNewTeamRole(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <option value="Senior Tax Consultant">Senior Tax Consultant</option>
+                                        <option value="Associate Consultant">Associate Consultant</option>
+                                        <option value="Audit Associate">Audit Associate</option>
+                                        <option value="CS Specialist">CS Specialist</option>
+                                        <option value="Practice Intern">Practice Intern</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                    <button type="button" onClick={() => setShowAddTeamMemberModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="submit" style={{ padding: '10px 18px', background: '#15803d', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer' }}>Send Invitation</button>
                                 </div>
                             </form>
                         </div>
