@@ -18,35 +18,67 @@ export default function BusinessCA() {
     const [caMode, setCaMode] = useState('business'); // business | personal
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
 
-    // --- Teams & Team Requests States ---
-    const [teamMembers, setTeamMembers] = useState(() => {
-        const saved = localStorage.getItem('cliks_ca_team_members');
-        return saved ? JSON.parse(saved) : [
-            { id: 1, name: 'Vikram Malhotra', email: 'vikram.malhotra@firm.com', role: 'Partner / Senior CA', status: 'Active' },
-            { id: 2, name: 'Ananya Roy', email: 'ananya.roy@firm.com', role: 'Tax Associate', status: 'Active' },
-            { id: 3, name: 'Rohan Sharma', email: 'rohan.sharma@firm.com', role: 'Audit Lead', status: 'Active' }
-        ];
+    // --- Teams & Team Requests Queries & States ---
+    const { data: teamMembers = [], refetch: refetchTeamMembers } = useQuery({
+        queryKey: ['teamMembers'],
+        queryFn: () => caService.getTeamMembers(),
+        retry: false
     });
 
-    const [teamRequests, setTeamRequests] = useState(() => {
-        const saved = localStorage.getItem('cliks_ca_team_requests');
-        return saved ? JSON.parse(saved) : [
-            { id: 101, name: 'Amit Patel', email: 'amit.patel@firm.com', role: 'CS Specialist', type: 'Incoming', status: 'Pending' },
-            { id: 102, name: 'Sneha Reddy', email: 'sneha.reddy@firm.com', role: 'Audit Intern', type: 'Outgoing', status: 'Pending' }
-        ];
+    const { data: teamRequests = [], refetch: refetchTeamRequests } = useQuery({
+        queryKey: ['teamRequests'],
+        queryFn: () => caService.getTeamRequests(),
+        retry: false
     });
 
     const [showAddTeamMemberModal, setShowAddTeamMemberModal] = useState(false);
     const [newTeamEmail, setNewTeamEmail] = useState('');
     const [newTeamRole, setNewTeamRole] = useState('Senior Tax Consultant');
 
-    useEffect(() => {
-        localStorage.setItem('cliks_ca_team_members', JSON.stringify(teamMembers));
-    }, [teamMembers]);
+    const removeTeamMemberMutation = useMutation({
+        mutationFn: (id) => caService.removeTeamMember(id),
+        onSuccess: () => {
+            refetchTeamMembers();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to remove team member')
+    });
 
-    useEffect(() => {
-        localStorage.setItem('cliks_ca_team_requests', JSON.stringify(teamRequests));
-    }, [teamRequests]);
+    const addTeamRequestMutation = useMutation({
+        mutationFn: ({ email, role }) => caService.addTeamRequest(email, role),
+        onSuccess: (data) => {
+            refetchTeamRequests();
+            setNewTeamEmail('');
+            setShowAddTeamMemberModal(false);
+            alert(`✉️ Team invitation sent successfully to ${data.email || 'the user'}! The request will show in the Team Requests tab.`);
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to send team invitation')
+    });
+
+    const acceptTeamRequestMutation = useMutation({
+        mutationFn: (id) => caService.acceptTeamRequest(id),
+        onSuccess: (data) => {
+            refetchTeamMembers();
+            refetchTeamRequests();
+            alert(`🎉 Joined! ${data.newMember?.name || 'The candidate'} has been successfully added to your team.`);
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to accept team request')
+    });
+
+    const rejectTeamRequestMutation = useMutation({
+        mutationFn: (id) => caService.rejectTeamRequest(id),
+        onSuccess: () => {
+            refetchTeamRequests();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to decline team request')
+    });
+
+    const cancelTeamRequestMutation = useMutation({
+        mutationFn: (id) => caService.cancelTeamRequest(id),
+        onSuccess: () => {
+            refetchTeamRequests();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to cancel team request')
+    });
 
     const handleSendTeamInvitation = (e) => {
         e.preventDefault();
@@ -65,25 +97,7 @@ export default function BusinessCA() {
             return;
         }
 
-        const username = emailLower.split('@')[0];
-        const formattedName = username
-            .split('.')
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(' ');
-
-        const newReq = {
-            id: Date.now(),
-            name: formattedName || 'External Consultant',
-            email: emailLower,
-            role: newTeamRole,
-            type: 'Outgoing',
-            status: 'Pending'
-        };
-
-        setTeamRequests(prev => [newReq, ...prev]);
-        setNewTeamEmail('');
-        setShowAddTeamMemberModal(false);
-        alert(`✉️ Team invitation sent successfully to ${emailLower}! The request will show in the Team Requests tab.`);
+        addTeamRequestMutation.mutate({ email: emailLower, role: newTeamRole });
     };
 
     // --- Business to Personal CA Connection States ---
@@ -2048,7 +2062,7 @@ export default function BusinessCA() {
                                                                 <button
                                                                     onClick={() => {
                                                                         if (confirm(`Are you sure you want to remove ${member.name} from the practice team?`)) {
-                                                                            setTeamMembers(prev => prev.filter(m => m.id !== member.id));
+                                                                            removeTeamMemberMutation.mutate(member.id);
                                                                         }
                                                                     }}
                                                                     style={{
@@ -2163,17 +2177,7 @@ export default function BusinessCA() {
                                                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                                             <button
                                                                                 onClick={() => {
-                                                                                    // Accept request
-                                                                                    const newMember = {
-                                                                                        id: Date.now(),
-                                                                                        name: req.name,
-                                                                                        email: req.email,
-                                                                                        role: req.role,
-                                                                                        status: 'Active'
-                                                                                    };
-                                                                                    setTeamMembers(prev => [...prev, newMember]);
-                                                                                    setTeamRequests(prev => prev.filter(r => r.id !== req.id));
-                                                                                    alert(`🎉 Joined! ${req.name} has been successfully added to your team.`);
+                                                                                    acceptTeamRequestMutation.mutate(req.id);
                                                                                 }}
                                                                                 style={{
                                                                                     padding: '6px 12px',
@@ -2191,7 +2195,7 @@ export default function BusinessCA() {
                                                                             <button
                                                                                 onClick={() => {
                                                                                     if (confirm(`Reject request from ${req.name}?`)) {
-                                                                                        setTeamRequests(prev => prev.filter(r => r.id !== req.id));
+                                                                                        rejectTeamRequestMutation.mutate(req.id);
                                                                                     }
                                                                                 }}
                                                                                 style={{
@@ -2212,7 +2216,7 @@ export default function BusinessCA() {
                                                                         <button
                                                                             onClick={() => {
                                                                                 if (confirm(`Cancel invitation to ${req.name}?`)) {
-                                                                                    setTeamRequests(prev => prev.filter(r => r.id !== req.id));
+                                                                                    cancelTeamRequestMutation.mutate(req.id);
                                                                                 }
                                                                             }}
                                                                             style={{

@@ -35,7 +35,16 @@ export const caService = {
     getFolders: () => apiClient.get('/ca/documents/folders').then(res => res.data.data || res.data),
     getFiles: () => apiClient.get('/ca/documents/files').then(res => res.data.data || res.data),
     addFile: (file) => apiClient.post('/ca/documents/files', file).then(res => res.data.data || res.data),
-    deleteFile: (id) => apiClient.delete(`/ca/documents/files/${id}`).then(res => res.data.data || res.data)
+    deleteFile: (id) => apiClient.delete(`/ca/documents/files/${id}`).then(res => res.data.data || res.data),
+
+    // Teams & Team Requests System
+    getTeamMembers: () => apiClient.get('/ca/team-members').then(res => res.data.data || res.data),
+    removeTeamMember: (id) => apiClient.delete(`/ca/team-members/${id}`).then(res => res.data.data || res.data),
+    getTeamRequests: () => apiClient.get('/ca/team-requests').then(res => res.data.data || res.data),
+    addTeamRequest: (email, role) => apiClient.post('/ca/team-requests', { email, role }).then(res => res.data.data || res.data),
+    acceptTeamRequest: (id) => apiClient.post(`/ca/team-requests/${id}/accept`).then(res => res.data.data || res.data),
+    rejectTeamRequest: (id) => apiClient.post(`/ca/team-requests/${id}/reject`).then(res => res.data.data || res.data),
+    cancelTeamRequest: (id) => apiClient.delete(`/ca/team-requests/${id}`).then(res => res.data.data || res.data)
 };
 
 export default caService;
