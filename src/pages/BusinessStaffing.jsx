@@ -121,6 +121,7 @@ const BusinessStaffing = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
     const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
 
     // Trigger instant onboarding flow from dashboard shortcuts
     const [searchParams, setSearchParams] = useSearchParams();
@@ -394,7 +395,13 @@ const BusinessStaffing = () => {
                                 ]} onFilterChange={setColFilters} />
                                 <tbody>
                                     {filteredEmployees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
-                                        <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <tr 
+                                            key={emp.employee_id} 
+                                            style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                            onClick={() => setSelectedEmployee(emp)}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                     <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800' }}>
@@ -425,7 +432,7 @@ const BusinessStaffing = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                                 <button
-                                                    onClick={() => handleDeleteEmployee(emp.employee_id)}
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteEmployee(emp.employee_id); }}
                                                     style={{ border: 'none', background: '#FEF2F2', padding: '0.5rem', borderRadius: '10px', color: '#EF4444', cursor: 'pointer' }}
                                                 >
                                                     <Trash2 size={16} />
@@ -674,6 +681,77 @@ const BusinessStaffing = () => {
                                 Settle Appraisal Score
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Employee Details Modal */}
+            {selectedEmployee && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '1.2rem' }}>
+                                    {selectedEmployee.first_name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.3rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{selectedEmployee.first_name} {selectedEmployee.last_name}</h3>
+                                    <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{selectedEmployee.designation_name} • {selectedEmployee.department_name}</span>
+                                </div>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setSelectedEmployee(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '16px' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> Personal Info</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Employee ID</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.employee_code}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Date of Birth</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.date_of_birth} ({selectedEmployee.gender})</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Blood Group</span> <span style={{ fontWeight: '800', color: '#E11D48' }}>{selectedEmployee.blood_group}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Phone</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.phone_number}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Email</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.email}</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '16px' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Briefcase size={16} /> Job Details</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Joined Date</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.joining_date}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Emp Type</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.employment_type}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Manager</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.reporting_manager}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Shift</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.shift_name}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Performance</span> <span style={{ fontWeight: '800', color: '#F59E0B' }}>⭐ {selectedEmployee.performance_rating}/5.0</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '16px', marginBottom: '1.5rem' }}>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CreditCard size={16} /> Payroll & Financials</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Basic Salary</span> <span style={{ fontWeight: '800', color: '#064E3B' }}>{formatCurrency(selectedEmployee.basic_salary)}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>PAN</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.pan_number}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>PF Number</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.pf_number}</span></div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Bank Name</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.bank_name}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>A/c No</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.account_number}</span></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>IFSC</span> <span style={{ fontWeight: '700', color: '#0F172A' }}>{selectedEmployee.ifsc_code}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '16px' }}>
+                            <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={16} /> Contact Details</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B' }}>Address</span> <span style={{ fontWeight: '700', color: '#0F172A', textAlign: 'right' }}>{selectedEmployee.address_line_1}, {selectedEmployee.city}, {selectedEmployee.state} - {selectedEmployee.pincode}</span></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #E2E8F0' }}>
+                                    <span style={{ color: '#64748B' }}>Emergency Contact</span> 
+                                    <span style={{ fontWeight: '700', color: '#E11D48', textAlign: 'right' }}>{selectedEmployee.emergency_contact_name}<br/>{selectedEmployee.emergency_contact_number}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
