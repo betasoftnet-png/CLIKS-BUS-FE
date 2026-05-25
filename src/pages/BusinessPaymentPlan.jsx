@@ -482,7 +482,7 @@ const BusinessPaymentPlan = () => {
                                     placeholder="+91 ..." 
                                     type="text" 
                                     value={personForm.phone} 
-                                    onChange={(e) => setPersonForm({ ...personForm, phone: e.target.value })} 
+                                    onChange={(e) => setPersonForm({ ...personForm, phone: e.target.value.replace(/[^0-9+]/g, '') })} 
                                     style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                             </div>
