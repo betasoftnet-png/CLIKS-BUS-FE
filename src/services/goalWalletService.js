@@ -21,6 +21,9 @@ export const goalWalletService = {
     
     // Delete wallet
     deleteWallet: async (id) => await apiClient.delete(`/goal-wallets/${id}`).then(res => res.data.data || res.data),
+
+    // Update wallet
+    updateWallet: async (id, data) => await apiClient.patch(`/goal-wallets/${id}`, data).then(res => res.data.data || res.data),
 };
 
 export default goalWalletService;

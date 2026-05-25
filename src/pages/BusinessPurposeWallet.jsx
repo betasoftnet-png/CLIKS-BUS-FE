@@ -15,7 +15,9 @@ import {
     Sparkles,
     Lock,
     History,
-    Search
+    Search,
+    MoreVertical,
+    Edit2
 } from 'lucide-react';
 import { goalWalletService } from '../services';
 import '../App.css';
@@ -42,6 +44,14 @@ const BusinessPurposeWallet = () => {
 
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyWalletId, setHistoryWalletId] = useState(null);
+    const [activeMenuId, setActiveMenuId] = useState(null);
+    const [editingWalletId, setEditingWalletId] = useState(null);
+
+    React.useEffect(() => {
+        const handleGlobalClick = () => setActiveMenuId(null);
+        window.addEventListener('click', handleGlobalClick);
+        return () => window.removeEventListener('click', handleGlobalClick);
+    }, []);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
 
@@ -106,9 +116,32 @@ const BusinessPurposeWallet = () => {
         }
     });
 
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }) => goalWalletService.updateWallet(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purpose-wallets'] });
+            closeCreateModal();
+            alert("✨ Purpose Wallet updated successfully!");
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || "Failed to update purpose wallet.");
+        }
+    });
+
     const closeCreateModal = () => {
         setIsCreateModalOpen(false);
+        setEditingWalletId(null);
         setFormData({ name: '', target_amount: '', description: '' });
+    };
+
+    const openEditModal = (wallet) => {
+        setEditingWalletId(wallet.id);
+        setFormData({
+            name: wallet.name,
+            target_amount: wallet.target_amount.toString(),
+            description: wallet.description || ''
+        });
+        setIsCreateModalOpen(true);
     };
 
     const openAddMoneyModal = (wallet) => {
@@ -126,7 +159,11 @@ const BusinessPurposeWallet = () => {
         e.preventDefault();
         const amt = parseFloat(formData.target_amount);
         if (isNaN(amt) || amt <= 0) return alert("Please provide a valid target amount.");
-        createMutation.mutate({ ...formData, target_amount: amt });
+        if (editingWalletId) {
+            updateMutation.mutate({ id: editingWalletId, data: { ...formData, target_amount: amt } });
+        } else {
+            createMutation.mutate({ ...formData, target_amount: amt });
+        }
     };
 
     const handleAddSubmit = (e) => {
@@ -417,14 +454,96 @@ const BusinessPurposeWallet = () => {
                                             >
                                                 <History size={17} />
                                             </button>
-                                            <button 
-                                                onClick={async () => { if(await customConfirm("Erase this segregation container forever? Accumulated funds tracking will resolve.")) deleteMutation.mutate(wallet.id); }}
-                                                style={{ border: 'none', background: 'transparent', color: '#EF4444', opacity: 0.4, cursor: 'pointer', padding: '4px', transition: 'opacity 0.2s' }}
-                                                onMouseOver={(e) => e.currentTarget.style.opacity = 1}
-                                                onMouseOut={(e) => e.currentTarget.style.opacity = 0.4}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            
+                                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenuId(activeMenuId === wallet.id ? null : wallet.id);
+                                                    }}
+                                                    style={{ border: 'none', background: 'transparent', color: '#64748B', opacity: 0.6, cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                                                    onMouseOver={(e) => e.currentTarget.style.opacity = 1}
+                                                    onMouseOut={(e) => e.currentTarget.style.opacity = 0.6}
+                                                    title="More actions"
+                                                >
+                                                    <MoreVertical size={18} />
+                                                </button>
+                                                
+                                                {activeMenuId === wallet.id && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        right: 0,
+                                                        top: '100%',
+                                                        background: 'white',
+                                                        borderRadius: '12px',
+                                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                                                        border: '1px solid #E2E8F0',
+                                                        padding: '6px',
+                                                        zIndex: 100,
+                                                        minWidth: '130px',
+                                                        textAlign: 'left',
+                                                        marginTop: '4px'
+                                                    }}>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openEditModal(wallet);
+                                                                setActiveMenuId(null);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '8px',
+                                                                width: '100%',
+                                                                padding: '8px 12px',
+                                                                border: 'none',
+                                                                background: 'none',
+                                                                color: '#334155',
+                                                                fontSize: '0.82rem',
+                                                                fontWeight: '700',
+                                                                cursor: 'pointer',
+                                                                borderRadius: '8px',
+                                                                transition: 'background 0.2s'
+                                                            }}
+                                                            onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                        >
+                                                            <Edit2 size={13} style={{ color: '#059669' }} />
+                                                            Edit Wallet
+                                                        </button>
+                                                        
+                                                        <button
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                setActiveMenuId(null);
+                                                                if(await customConfirm("Erase this segregation container forever? Accumulated funds tracking will resolve.")) {
+                                                                    deleteMutation.mutate(wallet.id);
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '8px',
+                                                                width: '100%',
+                                                                padding: '8px 12px',
+                                                                border: 'none',
+                                                                background: 'none',
+                                                                color: '#EF4444',
+                                                                fontSize: '0.82rem',
+                                                                fontWeight: '700',
+                                                                cursor: 'pointer',
+                                                                borderRadius: '8px',
+                                                                transition: 'background 0.2s'
+                                                            }}
+                                                            onMouseOver={(e) => e.currentTarget.style.background = '#FEF2F2'}
+                                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                        >
+                                                            <Trash2 size={13} style={{ color: '#EF4444' }} />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -535,7 +654,7 @@ const BusinessPurposeWallet = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '28px', padding: '2.5rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Setup Target Wallet</h3>
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>{editingWalletId ? 'Edit Target Wallet' : 'Setup Target Wallet'}</h3>
                             <button onClick={closeCreateModal} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
@@ -579,7 +698,7 @@ const BusinessPurposeWallet = () => {
 
                             <button 
                                 type="submit"
-                                disabled={createMutation.isLoading}
+                                disabled={createMutation.isPending || updateMutation.isPending}
                                 style={{ 
                                     padding: '1.1rem', 
                                     borderRadius: '14px', 
@@ -593,7 +712,7 @@ const BusinessPurposeWallet = () => {
                                     boxShadow: '0 8px 20px rgba(27, 107, 58, 0.2)'
                                 }}
                             >
-                                {createMutation.isLoading ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : 'Activate Isolated Container'}
+                                {createMutation.isPending || updateMutation.isPending ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : (editingWalletId ? 'Save Changes' : 'Activate Isolated Container')}
                             </button>
                         </form>
                     </div>

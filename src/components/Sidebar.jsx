@@ -497,9 +497,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         {navigationConfig.financeMode.map(item => (
                             <React.Fragment key={item.label}>
                                 <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
-                                {item.label === 'Planner' && (
-                                    <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
-                                )}
                             </React.Fragment>
                         ))}
                     </>
