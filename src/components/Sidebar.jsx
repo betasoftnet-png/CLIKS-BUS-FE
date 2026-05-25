@@ -462,7 +462,9 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 ) : isSocialMode ? (
                     <>
                         {/* No "Social" title - removed per user request */}
-                        {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
+                        <div style={{ paddingTop: '1.5rem' }}>
+                            {navigationConfig.social.map(item => <MenuItem key={item.label} item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />)}
+                        </div>
                     </>
                 ) : isFinanceMode ? (
                     <>
