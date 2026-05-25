@@ -164,17 +164,8 @@ const BusinessDashboard = () => {
         pct: totalExpensesSum > 0 ? (value / totalExpensesSum) * 100 : 0
     })).sort((a, b) => b.value - a.value);
 
-    // Fallback static high-fidelity data if no expenses exist in the database yet
-    const finalExpenseCategories = expenseCategories.length > 0 
-        ? expenseCategories 
-        : [
-            { name: 'Office Rent & Utilities', value: 45000, pct: 45 },
-            { name: 'Marketing & Ad Spend', value: 25000, pct: 25 },
-            { name: 'Employee Salaries', value: 20000, pct: 20 },
-            { name: 'SaaS & Subscriptions', value: 10000, pct: 10 }
-        ];
-
-    const finalTotalExpensesSum = totalExpensesSum > 0 ? totalExpensesSum : 100000;
+    const finalExpenseCategories = expenseCategories || [];
+    const finalTotalExpensesSum = totalExpensesSum || 0;
 
     // Beautiful emerald/mint/rich color scheme
     const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];
@@ -521,144 +512,168 @@ const BusinessDashboard = () => {
                         <div>
                             <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
                             <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
-                        </div>
+                                        {finalExpenseCategories.length > 0 ? (
+                            <>
+                                {/* Interactive Donut SVG */}
+                                <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', margin: '10px 0' }}>
+                                    <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
+                                        <circle 
+                                            cx="100" 
+                                            cy="100" 
+                                            r="65" 
+                                            fill="transparent" 
+                                            stroke="#F1F5F9" 
+                                            strokeWidth="16" 
+                                        />
+                                        {(() => {
+                                            let accumulatedPercent = 0;
+                                            const circumference = 2 * Math.PI * 65; // ~408.4
 
-                        {/* Interactive Donut SVG */}
-                        <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', margin: '10px 0' }}>
-                            <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
-                                <circle 
-                                    cx="100" 
-                                    cy="100" 
-                                    r="65" 
-                                    fill="transparent" 
-                                    stroke="#F1F5F9" 
-                                    strokeWidth="16" 
-                                />
-                                {(() => {
-                                    let accumulatedPercent = 0;
-                                    const circumference = 2 * Math.PI * 65; // ~408.4
+                                            return finalExpenseCategories.map((c, i) => {
+                                                const dashLength = (c.pct / 100) * circumference;
+                                                const offset = -((accumulatedPercent / 100) * circumference);
+                                                accumulatedPercent += c.pct;
+                                                const color = DONUT_COLORS[i % DONUT_COLORS.length];
 
-                                    return finalExpenseCategories.map((c, i) => {
-                                        const dashLength = (c.pct / 100) * circumference;
-                                        const offset = -((accumulatedPercent / 100) * circumference);
-                                        accumulatedPercent += c.pct;
-                                        const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                                                const isHovered = hoveredDonutSegment?.name === c.name;
 
-                                        const isHovered = hoveredDonutSegment?.name === c.name;
+                                                return (
+                                                    <circle
+                                                        key={c.name}
+                                                        cx="100"
+                                                        cy="100"
+                                                        r="65"
+                                                        fill="transparent"
+                                                        stroke={color}
+                                                        strokeWidth={isHovered ? "22" : "16"}
+                                                        strokeDasharray={`${dashLength} ${circumference}`}
+                                                        strokeDashoffset={offset}
+                                                        style={{ 
+                                                            cursor: 'pointer', 
+                                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
+                                                        }}
+                                                        onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
+                                                        onMouseLeave={() => setHoveredDonutSegment(null)}
+                                                    />
+                                                );
+                                            });
+                                        })()}
+                                    </svg>
 
-                                        return (
-                                            <circle
-                                                key={c.name}
-                                                cx="100"
-                                                cy="100"
-                                                r="65"
-                                                fill="transparent"
-                                                stroke={color}
-                                                strokeWidth={isHovered ? "22" : "16"}
-                                                strokeDasharray={`${dashLength} ${circumference}`}
-                                                strokeDashoffset={offset}
-                                                style={{ 
-                                                    cursor: 'pointer', 
-                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
-                                                }}
-                                                onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
-                                                onMouseLeave={() => setHoveredDonutSegment(null)}
-                                            />
-                                        );
-                                    });
-                                })()}
-                            </svg>
-
-                            {/* Donut Center Display */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                textAlign: 'center',
-                                pointerEvents: 'none',
-                                width: '110px'
-                            }}>
-                                <div style={{ 
-                                    fontSize: '9px', 
-                                    fontWeight: '800', 
-                                    color: '#64748B', 
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px'
-                                }}>
-                                    {hoveredDonutSegment ? hoveredDonutSegment.name : 'Total Expense'}
-                                </div>
-                                <div style={{ 
-                                    fontSize: '15px', 
-                                    fontWeight: '900', 
-                                    color: hoveredDonutSegment ? hoveredDonutSegment.color : '#0F172A',
-                                    marginTop: '4px',
-                                    lineHeight: '1.2'
-                                }}>
-                                    {hoveredDonutSegment 
-                                        ? formatCurrency(hoveredDonutSegment.value)
-                                        : formatCurrency(finalExpenseCategories.reduce((acc, c) => acc + c.value, 0))
-                                    }
-                                </div>
-                                <div style={{ 
-                                    fontSize: '10px', 
-                                    fontWeight: '800', 
-                                    color: '#10B981', 
-                                    marginTop: '2px' 
-                                }}>
-                                    {hoveredDonutSegment 
-                                        ? `${hoveredDonutSegment.pct.toFixed(1)}% Share`
-                                        : '100% Volume'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Interactive Color Legend */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-                            {finalExpenseCategories.map((c, i) => {
-                                const color = DONUT_COLORS[i % DONUT_COLORS.length];
-                                const isHovered = hoveredDonutSegment?.name === c.name;
-                                return (
-                                    <div 
-                                        key={c.name}
-                                        onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
-                                        onMouseLeave={() => setHoveredDonutSegment(null)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            background: isHovered ? '#F8FAFC' : 'transparent',
-                                            padding: '8px 10px',
-                                            borderRadius: '12px',
-                                            border: '1px solid',
-                                            borderColor: isHovered ? '#E2E8F0' : 'transparent',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s ease'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: color, flexShrink: 0 }} />
-                                            <span style={{ 
-                                                fontSize: '0.8rem', 
-                                                fontWeight: '800', 
-                                                color: isHovered ? '#0F172A' : '#475569',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                maxWidth: '120px'
-                                            }} title={c.name}>
-                                                {c.name}
-                                            </span>
+                                    {/* Donut Center Display */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        textAlign: 'center',
+                                        pointerEvents: 'none',
+                                        width: '110px'
+                                    }}>
+                                        <div style={{ 
+                                            fontSize: '9px', 
+                                            fontWeight: '800', 
+                                            color: '#64748B', 
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}>
+                                            {hoveredDonutSegment ? hoveredDonutSegment.name : 'Total Expense'}
                                         </div>
-                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
-                                            <span style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8' }}>{c.pct.toFixed(1)}%</span>
+                                        <div style={{ 
+                                            fontSize: '15px', 
+                                            fontWeight: '900', 
+                                            color: hoveredDonutSegment ? hoveredDonutSegment.color : '#0F172A',
+                                            marginTop: '4px',
+                                            lineHeight: '1.2'
+                                        }}>
+                                            {hoveredDonutSegment 
+                                                ? formatCurrency(hoveredDonutSegment.value)
+                                                : formatCurrency(finalExpenseCategories.reduce((acc, c) => acc + c.value, 0))
+                                            }
+                                        </div>
+                                        <div style={{ 
+                                            fontSize: '10px', 
+                                            fontWeight: '800', 
+                                            color: '#10B981', 
+                                            marginTop: '2px' 
+                                        }}>
+                                            {hoveredDonutSegment 
+                                                ? `${hoveredDonutSegment.pct.toFixed(1)}% Share`
+                                                : '100% Volume'
+                                            }
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                </div>
+
+                                {/* Interactive Color Legend */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                                    {finalExpenseCategories.map((c, i) => {
+                                        const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                                        const isHovered = hoveredDonutSegment?.name === c.name;
+                                        return (
+                                            <div 
+                                                key={c.name}
+                                                onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
+                                                onMouseLeave={() => setHoveredDonutSegment(null)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    background: isHovered ? '#F8FAFC' : 'transparent',
+                                                    padding: '8px 10px',
+                                                    borderRadius: '12px',
+                                                    border: '1px solid',
+                                                    borderColor: isHovered ? '#E2E8F0' : 'transparent',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: color, flexShrink: 0 }} />
+                                                    <span style={{ 
+                                                        fontSize: '0.8rem', 
+                                                        fontWeight: '800', 
+                                                        color: isHovered ? '#0F172A' : '#475569',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        maxWidth: '120px'
+                                                    }} title={c.name}>
+                                                        {c.name}
+                                                    </span>
+                                                </div>
+                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
+                                                    <span style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8' }}>{c.pct.toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '3.5rem 1.5rem',
+                                border: '2px dashed #E2E8F0',
+                                borderRadius: '20px',
+                                background: '#F8FAFC',
+                                textAlign: 'center',
+                                boxSizing: 'border-box'
+                            }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', marginBottom: '1rem' }}>
+                                    <TrendingUp size={24} />
+                                </div>
+                                <h3 style={{ fontSize: '0.92rem', fontWeight: '850', color: '#334155', margin: '0 0 0.5rem 0' }}>No Expense Data Logged</h3>
+                                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, lineHeight: '1.4', maxWidth: '240px', fontWeight: '600' }}>
+                                    Record business expenses under Purchases or Accounting to compile your category distribution breakdown.
+                                </p>
+                            </div>
+                        )}          </div>
                     </div>
                 </div>
             </div>

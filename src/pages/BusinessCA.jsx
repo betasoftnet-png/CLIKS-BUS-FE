@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency } from '../context';
+import FilterableTableHead from '../components/FilterableTableHead';
+import { applyTableFilters } from '../utils/filterUtils';
 
 export default function BusinessCA() {
     const { currency, formatCurrency } = useCurrency();
@@ -35,6 +37,11 @@ export default function BusinessCA() {
     const [newTeamEmail, setNewTeamEmail] = useState('');
     const [newTeamRole, setNewTeamRole] = useState('Senior Tax Consultant');
     const [customTeamRole, setCustomTeamRole] = useState('');
+    const [colFiltersChecklist, setColFiltersChecklist] = useState({});
+    const [colFiltersClients, setColFiltersClients] = useState({});
+    const [colFiltersTasks, setColFiltersTasks] = useState({});
+    const [colFiltersTeam, setColFiltersTeam] = useState({});
+    const [colFiltersTeamReq, setColFiltersTeamReq] = useState({});
 
     const removeTeamMemberMutation = useMutation({
         mutationFn: (id) => caService.removeTeamMember(id),
@@ -845,16 +852,14 @@ export default function BusinessCA() {
                                         ) : (
                                             <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
                                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                                    <thead>
-                                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12px', fontWeight: '800' }}>
-                                                            <th style={{ padding: '14px 20px' }}>Task Details</th>
-                                                            <th style={{ padding: '14px 20px' }}>Due Date</th>
-                                                            <th style={{ padding: '14px 20px' }}>Priority</th>
-                                                            <th style={{ padding: '14px 20px' }}>Filing Status / Action</th>
-                                                        </tr>
-                                                    </thead>
+                                                    <FilterableTableHead columns={[
+                                                        { key: 'title', label: 'Task Details', placeholder: 'Search task...' },
+                                                        { key: 'dueDate', label: 'Due Date', placeholder: 'Due date...' },
+                                                        { key: 'priority', label: 'Priority', placeholder: 'Priority...' },
+                                                        { key: 'status', label: 'Filing Status / Action', placeholder: 'Status...' }
+                                                    ]} onFilterChange={setColFiltersChecklist} />
                                                     <tbody>
-                                                        {myClientTasks.map(task => (
+                                                        {myClientTasks.filter(item => applyTableFilters(item, colFiltersChecklist)).map(task => (
                                                             <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>
                                                                 <td style={{ padding: '16px 20px', fontWeight: '800', color: task.status === 'Completed' ? '#94A3B8' : '#0F172A', textDecoration: task.status === 'Completed' ? 'line-through' : 'none' }}>
                                                                     {task.title}
@@ -1651,18 +1656,19 @@ export default function BusinessCA() {
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                            <thead>
-                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
-                                                    <th style={{ padding: '14px 20px' }}>Taxpayer Name</th>
-                                                    <th style={{ padding: '14px 20px' }}>Email Address</th>
-                                                    <th style={{ padding: '14px 20px' }}>Regime</th>
-                                                    <th style={{ padding: '14px 20px' }}>Est. Gross Income</th>
-                                                    <th style={{ padding: '14px 20px' }}>Pending Filings</th>
-                                                    <th style={{ padding: '14px 20px' }}>Status</th>
-                                                </tr>
-                                            </thead>
+                                            <FilterableTableHead columns={[
+                                                { key: 'name', label: 'Taxpayer Name', placeholder: 'Name...' },
+                                                { key: 'email', label: 'Email Address', placeholder: 'Email...' },
+                                                { key: 'regime', label: 'Regime', placeholder: 'Regime...' },
+                                                { key: 'income', label: 'Est. Gross Income', placeholder: 'Income...' },
+                                                { key: 'pendingFilings', label: 'Pending Filings', placeholder: 'Pending...' },
+                                                { key: 'status', label: 'Status', placeholder: 'Status...' }
+                                            ]} onFilterChange={setColFiltersClients} />
                                             <tbody>
-                                                {allPracticeClients.filter(c => c.name.toLowerCase().includes(activeClientSearch.toLowerCase()) || c.email.toLowerCase().includes(activeClientSearch.toLowerCase())).map(client => (
+                                                {allPracticeClients
+                                                    .filter(c => c.name.toLowerCase().includes(activeClientSearch.toLowerCase()) || c.email.toLowerCase().includes(activeClientSearch.toLowerCase()))
+                                                    .filter(item => applyTableFilters(item, colFiltersClients))
+                                                    .map(client => (
                                                     <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
                                                         <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#F0FDF4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900' }}>{client.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
@@ -1934,17 +1940,15 @@ export default function BusinessCA() {
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                            <thead>
-                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
-                                                    <th style={{ padding: '14px 20px' }}>Task Description</th>
-                                                    <th style={{ padding: '14px 20px' }}>Taxpayer Client</th>
-                                                    <th style={{ padding: '14px 20px' }}>Due Date</th>
-                                                    <th style={{ padding: '14px 20px' }}>Priority</th>
-                                                    <th style={{ padding: '14px 20px' }}> Filing Lifecycle Status</th>
-                                                </tr>
-                                            </thead>
+                                            <FilterableTableHead columns={[
+                                                { key: 'title', label: 'Task Description', placeholder: 'Search...' },
+                                                { key: 'clientName', label: 'Taxpayer Client', placeholder: 'Client...' },
+                                                { key: 'dueDate', label: 'Due Date', placeholder: 'Date...' },
+                                                { key: 'priority', label: 'Priority', placeholder: 'Priority...' },
+                                                { key: 'status', label: 'Filing Lifecycle Status', placeholder: 'Status...' }
+                                            ]} onFilterChange={setColFiltersTasks} />
                                             <tbody>
-                                                {practiceTasks.map(task => (
+                                                {practiceTasks.filter(item => applyTableFilters(item, colFiltersTasks)).map(task => (
                                                     <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
                                                         <td style={{ padding: '16px 20px', fontWeight: '800', color: task.status === 'Completed' ? '#94A3B8' : '#0F172A', textDecoration: task.status === 'Completed' ? 'line-through' : 'none' }}>
                                                             {task.title}
@@ -2119,18 +2123,15 @@ export default function BusinessCA() {
                                             </div>
                                         ) : (
                                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                                <thead>
-                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
-                                                        <th style={{ padding: '14px 20px' }}>Target Candidate</th>
-                                                        <th style={{ padding: '14px 20px' }}>Email Address</th>
-                                                        <th style={{ padding: '14px 20px' }}>Proposed Role</th>
-                                                        <th style={{ padding: '14px 20px' }}>Direction</th>
-                                                        <th style={{ padding: '14px 20px' }}>Status</th>
-                                                        <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
-                                                    </tr>
-                                                </thead>
+                                                <FilterableTableHead columns={[
+                                                    { key: 'name', label: 'Target Candidate', placeholder: 'Name...' },
+                                                    { key: 'email', label: 'Email Address', placeholder: 'Email...' },
+                                                    { key: 'role', label: 'Proposed Role', placeholder: 'Role...' },
+                                                    { key: 'type', label: 'Direction', placeholder: 'Type...' },
+                                                    { key: 'status', label: 'Status', placeholder: 'Status...' }
+                                                ]} onFilterChange={setColFiltersChecklist} />
                                                 <tbody>
-                                                    {teamRequests.map(req => {
+                                                    {teamRequests.filter(item => applyTableFilters(item, colFiltersChecklist)).map(req => {
                                                         const initials = req.name.split(' ').map(n => n[0]).join('').toUpperCase();
                                                         return (
                                                             <tr key={req.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
