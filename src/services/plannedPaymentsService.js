@@ -5,7 +5,7 @@ export const plannedPaymentsService = {
     getPayment: async (id) => await apiClient.get(`/planned-payments/${id}`).then(res => res.data.data || res.data),
     createPayment: async (data) => await apiClient.post('/planned-payments', data).then(res => res.data.data || res.data),
     updatePayment: async (id, data) => await apiClient.patch(`/planned-payments/${id}`, data).then(res => res.data.data || res.data),
-    markAsPaid: async (id) => await apiClient.patch(`/planned-payments/${id}/paid`).then(res => res.data.data || res.data),
+    markAsPaid: async (id) => await apiClient.patch(`/planned-payments/${id}/mark-paid`).then(res => res.data.data || res.data),
     deletePayment: async (id) => await apiClient.delete(`/planned-payments/${id}`).then(res => res.data.data || res.data)
 };
 

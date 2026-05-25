@@ -100,7 +100,8 @@ const BusinessPaymentPlan = () => {
         queryKey: ['planned-payments'],
         queryFn: async () => {
             const res = await plannedPaymentsService.getPayments();
-            return res.data || [];
+            // getPayments() already unwraps the response — returns rows array directly
+            return Array.isArray(res) ? res : (res.rows || res.data || []);
         }
     });
 
@@ -119,6 +120,10 @@ const BusinessPaymentPlan = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['planned-payments'] });
             closeModal();
+            alert('✅ Payment scheduled successfully!');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || 'Failed to schedule payment. Please try again.');
         }
     });
 
