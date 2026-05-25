@@ -357,41 +357,96 @@ const BusinessAttendance = () => {
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'log_ref', label: 'Log Reference', placeholder: 'e.g. ATT-001' },
-        { key: 'employee', label: 'Employee Profile', placeholder: 'Name' },
-        { key: 'checkin', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
-        { key: 'late', label: 'Late (Mins)', placeholder: 'e.g. 15' },
-        { key: 'hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
-        { key: 'device', label: 'Device Sync ID', placeholder: 'ID' },
-        { key: 'location', label: 'Location', placeholder: 'Coords' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Present' }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'log_ref', label: 'Log Reference', placeholder: 'e.g. ATT-001' },
+                                { key: 'employee', label: 'Employee Profile', placeholder: 'Name' },
+                                { key: 'checkin', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
+                                { key: 'late', label: 'Late (Mins)', placeholder: 'e.g. 15' },
+                                { key: 'hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
+                                { key: 'device', label: 'Device Sync ID', placeholder: 'ID' },
+                                { key: 'location', label: 'Location', placeholder: 'Coords' },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Present' },
+                                { key: '_actions', label: 'Action', noFilter: true }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredLogs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((log) => (
-                                    <tr key={log.attendance_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{log.attendance_id}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {log.attendance_date}</span>
+                                    <tr 
+                                        key={log.attendance_id} 
+                                        style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.2s', cursor: 'default' }}
+                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.92rem', margin: 0 }}>#{log.attendance_id}</p>
+                                            <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '500', display: 'block', marginTop: '0.15rem' }}>Date: {log.attendance_date}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#1E293B' }}>{log.employee_name}</td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>{log.check_in_time} - {log.check_out_time}</td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ color: log.late_by_minutes > 15 ? '#EF4444' : '#64748B', fontWeight: '750' }}>
-                                                {log.late_by_minutes > 0 ? `${log.late_by_minutes} Mins` : 'On Time'}
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '0.85rem' }}>
+                                                    {log.employee_name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p style={{ fontWeight: '800', color: '#1E293B', margin: 0, fontSize: '0.88rem' }}>{log.employee_name}</p>
+                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>Active Member</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '750', color: '#0F172A', fontSize: '0.85rem' }}>
+                                                <Clock size={13} style={{ color: '#64748B' }} />
+                                                <span>{log.check_in_time} - {log.check_out_time}</span>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            {log.late_by_minutes > 0 ? (
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                    {log.late_by_minutes} Mins Late
+                                                </span>
+                                            ) : (
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#ECFDF5', color: '#10B981', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                    On Time
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1.25rem 1.5rem', fontWeight: '800', color: '#166534', fontSize: '0.88rem' }}>{log.productive_hours} Hrs</td>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#F1F5F9', color: '#475569', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: '600' }}>
+                                                {log.device_id}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{log.productive_hours} Hrs</td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B', fontSize: '0.85rem', fontFamily: 'monospace' }}>{log.device_id}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontSize: '0.85rem', color: '#475569' }}>
-                                            <MapPin size={12} style={{ display: 'inline', marginRight: '0.25rem', color: '#1B6B3A' }} /> {log.location_address}
+                                        <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                <MapPin size={13} style={{ color: '#059669' }} /> 
+                                                <span>{log.location_address || 'Not specified'}</span>
+                                            </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
                                             <span style={{ 
-                                                padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                                background: log.attendance_status === 'present' ? '#ECFDF5' : '#FFFBEB',
-                                                color: log.attendance_status === 'present' ? '#10B981' : '#D97706',
-                                                fontWeight: '800', fontSize: '0.75rem'
+                                                padding: '0.25rem 0.6rem', borderRadius: '8px',
+                                                background: log.attendance_status === 'present' ? '#D1FAE5' : '#FEF3C7',
+                                                color: log.attendance_status === 'present' ? '#065F46' : '#92400E',
+                                                fontWeight: '850', fontSize: '0.72rem', display: 'inline-block'
                                             }}>{log.attendance_status.toUpperCase()}</span>
+                                        </td>
+                                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setEditForm({
+                                                        attendance_id: log.attendance_id,
+                                                        attendance_date: log.attendance_date,
+                                                        check_in_time: convertTo24Hour(log.check_in_time),
+                                                        check_out_time: convertTo24Hour(log.check_out_time),
+                                                        late_by_minutes: log.late_by_minutes || 0,
+                                                        productive_hours: log.productive_hours || 8.0,
+                                                        location_address: log.location_address || '',
+                                                        status: log.attendance_status || 'present'
+                                                    });
+                                                    setSelectedLog(log);
+                                                    setIsEditModalOpen(true);
+                                                }}
+                                                style={{ border: 'none', background: '#F1F5F9', hover: { background: '#E2E8F0' }, padding: '0.5rem 0.8rem', borderRadius: '10px', color: '#475569', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                            >
+                                                Edit
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
