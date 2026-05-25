@@ -264,9 +264,6 @@ const BusinessPeople = () => {
         }
     });
 
-        }
-    });
-
     const updateReminderMutation = useMutation({
         mutationFn: (data) => peopleService.updateReminder(data.person_id, data.id, data),
         onSuccess: (_, variables) => {
