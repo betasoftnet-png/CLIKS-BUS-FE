@@ -180,6 +180,9 @@ const BusinessRewards = () => {
                         </div>
                         <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#A7F3D0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem' }}>Total Wallet Points</span>
                         <h3 style={{ fontSize: '2.25rem', fontWeight: '900', margin: 0, color: '#FFFFFF', lineHeight: 1 }}>{rewardPoints.toLocaleString()}</h3>
+                        <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#A7F3D0', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+                            ≈ ₹{(rewardPoints / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Value
+                        </span>
                         <div style={{ 
                             marginTop: '0.65rem', 
                             padding: '0.25rem 0.5rem', 

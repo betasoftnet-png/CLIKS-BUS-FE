@@ -78,7 +78,7 @@ const BusinessWallet = () => {
             return;
         }
 
-        const creditAmount = pts * 1.0; // 1 Point = 1.00
+        const creditAmount = pts / 100; // 100 Points = 1.00 Rupee
         const now = new Date();
         const formattedDate = now.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
         
@@ -512,10 +512,10 @@ const BusinessWallet = () => {
                                         />
                                     </div>
                                     <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748B', fontWeight: '600', display: 'flex', justifyContext: 'space-between', justifyContent: 'space-between' }}>
-                                        <span>Rate: 1 Pt = {currency.symbol}1.00</span>
+                                        <span>Rate: 100 Pts = {currency.symbol}1.00</span>
                                         {pointsToConvert && !isNaN(parseInt(pointsToConvert)) && (
                                             <span style={{ color: '#059669', fontWeight: '800' }}>
-                                                You get: {formatCurrency(parseInt(pointsToConvert) * 1.0)}
+                                                You get: {formatCurrency(parseInt(pointsToConvert) / 100)}
                                             </span>
                                         )}
                                     </div>

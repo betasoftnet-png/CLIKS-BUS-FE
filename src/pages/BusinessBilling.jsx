@@ -222,7 +222,7 @@ const BusinessBilling = () => {
         });
 
         const rawTotal = (parseFloat(subtotal) || 0) + (parseFloat(totalTax) || 0);
-        const redeemedAmt = parseFloat(currentFormData.redeemed_points) || 0; // 1 pt = 1 Re
+        const redeemedAmt = (parseFloat(currentFormData.redeemed_points) || 0) / 100; // 100 pts = 1 Re
         const adjustedTotal = rawTotal - redeemedAmt;
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
@@ -1367,7 +1367,7 @@ const BusinessBilling = () => {
                                     {formData.redeemed_points > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Points Redeemed:</span>
-                                            <span>- {formatCurrency(formData.redeemed_points)}</span>
+                                            <span>- {formatCurrency(formData.redeemed_points / 100)}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
