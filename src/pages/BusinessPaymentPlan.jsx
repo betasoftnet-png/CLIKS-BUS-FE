@@ -392,10 +392,10 @@ const BusinessPaymentPlan = () => {
                                     style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">Select Person...</option>
-                                    <option value="ADD_NEW_PERSON" style={{ fontWeight: 'bold', color: '#1B6B3A' }}>+ Add New Person...</option>
                                     {people.map(p => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
+                                    <option value="ADD_NEW_PERSON" style={{ fontWeight: 'bold', color: '#1B6B3A' }}>+ Add New Person...</option>
                                 </select>
                             </div>
 
