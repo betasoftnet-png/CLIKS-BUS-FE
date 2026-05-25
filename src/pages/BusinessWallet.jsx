@@ -184,7 +184,7 @@ const BusinessWallet = () => {
             id: txnId,
             type: 'CREDIT',
             amount: amt,
-            description: addForm.description.trim() || 'Cashfree Live Sandbox Load',
+            description: addForm.description.trim() || '',
             date: formattedDate
         };
 
@@ -332,7 +332,7 @@ const BusinessWallet = () => {
                                                 <span style={{ fontFamily: 'monospace', fontWeight: '750', color: '#64748B', fontSize: '0.85rem' }}>{tx.id}</span>
                                             </td>
                                             <td style={{ padding: '1.25rem 2rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>{tx.date}</td>
-                                            <td style={{ padding: '1.25rem 2rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{tx.description}</td>
+                                            <td style={{ padding: '1.25rem 2rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{tx.description || '-'}</td>
                                             <td style={{ padding: '1.25rem 2rem' }}>
                                                 <div style={{ 
                                                     display: 'inline-flex', 
