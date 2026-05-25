@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,6 +13,26 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const { logout, user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Reward points state synced with localStorage
+    const [rewardPoints, setRewardPoints] = React.useState(() => {
+        const saved = localStorage.getItem('cliks_reward_points');
+        return saved ? parseInt(saved, 10) : 1000; // default 1000 Pts
+    });
+
+    React.useEffect(() => {
+        const handleStorageChange = () => {
+            const saved = localStorage.getItem('cliks_reward_points');
+            setRewardPoints(saved ? parseInt(saved, 10) : 1000);
+        };
+        window.addEventListener('storage', handleStorageChange);
+        // Also poll every 1 second to keep it perfectly updated across standard react page changes
+        const interval = setInterval(handleStorageChange, 1000);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, []);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -153,6 +173,39 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
+                {/* Rounded Points Wallet Widget */}
+                <button
+                    onClick={() => navigate('/payments/wallet?tab=points')}
+                    title="Loyalty Points - Convert to wallet balance"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 14px',
+                        borderRadius: '999px',
+                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                        border: '1px solid rgba(251, 191, 36, 0.35)',
+                        color: '#FFFFFF',
+                        fontSize: '12.5px',
+                        fontWeight: '850',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                        outline: 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
+                        e.currentTarget.style.boxShadow = '0 6px 15px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = '0 4px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)';
+                    }}
+                >
+                    <Coins size={14} style={{ flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap' }}>{rewardPoints.toLocaleString()} Pts</span>
+                </button>
+
                 <CalcPopover />
                 <ProfileDropdown
                     onAccount={() => navigate('/profile')}
