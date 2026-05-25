@@ -1803,10 +1803,7 @@ const BusinessPeople = () => {
                     
                     const displayDate = formatDateToLabel(shareDate);
 
-                    const handleDownloadCard = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 800;
-                        canvas.height = 600;
+                    const drawCardToCanvas = (canvas) => {
                         const ctx = canvas.getContext('2d');
 
                         // Background
@@ -1873,6 +1870,13 @@ const BusinessPeople = () => {
                         ctx.fillStyle = '#059669';
                         ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
                         ctx.fillText('CLIKS BUSINESS STATEMENT LOG', 400, 555);
+                    };
+
+                    const handleDownloadCard = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 800;
+                        canvas.height = 600;
+                        drawCardToCanvas(canvas);
 
                         const link = document.createElement('a');
                         link.download = `ledger_reminder_${person?.name?.replace(/\s+/g, '_') || 'statement'}.png`;
@@ -1883,9 +1887,37 @@ const BusinessPeople = () => {
                     // Format full clipboard/WhatsApp message text block
                     const whatsappMsg = `${senderName} (${senderPhone}) has requested a payment of ${currency.symbol}${parseFloat(shareAmount || 0).toLocaleString()} on CliKs.\n\n*Statement details for ${person?.name}:*\n- *Net Ledger Standing:* ${currency.symbol}${parseFloat(shareAmount || 0).toLocaleString()} (${isReceivable ? 'Receivable' : 'Payable'})\n- *Statement Date:* ${displayDate}\n\nPlease check details and settle the standing ledger. Thank you,\n${senderName}.`;
 
-                    const handleCopyText = () => {
-                        navigator.clipboard.writeText(whatsappMsg);
-                        alert('📋 Reminder statement copied to clipboard!');
+                    const handleCopyCardAndText = async () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = 800;
+                            canvas.height = 600;
+                            drawCardToCanvas(canvas);
+
+                            canvas.toBlob(async (blob) => {
+                                if (!blob) {
+                                    alert('Failed to generate card image Blob.');
+                                    return;
+                                }
+                                try {
+                                    // Construct clipboard item containing both PNG screenshot and text
+                                    const clipboardItem = new ClipboardItem({
+                                        'image/png': blob,
+                                        'text/plain': new Blob([whatsappMsg], { type: 'text/plain' })
+                                    });
+                                    await navigator.clipboard.write([clipboardItem]);
+                                    alert('📋 Screenshot card and text statement both copied to clipboard! Paste it directly (Cmd+V) in WhatsApp.');
+                                } catch (err) {
+                                    console.error('Unified clipboard copy failed, falling back to text:', err);
+                                    // Fallback to text if mixed copy is blocked
+                                    await navigator.clipboard.writeText(whatsappMsg);
+                                    alert('📋 Ledger statement text copied to clipboard! (Image copy was restricted by browser/context).');
+                                }
+                            }, 'image/png');
+                        } catch (err) {
+                            console.error('Failed to copy card & text:', err);
+                            alert('Failed to copy. Please try again.');
+                        }
                     };
 
                     const handleWhatsAppShare = () => {
@@ -1967,11 +1999,11 @@ const BusinessPeople = () => {
                                                 </button>
                                                 
                                                 <button 
-                                                    onClick={handleCopyText} 
+                                                    onClick={handleCopyCardAndText} 
                                                     style={{ padding: '0.85rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', background: 'white', color: '#334155', fontWeight: '800', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
                                                 >
                                                     <CheckCircle2 size={16} />
-                                                    <span>Copy Text</span>
+                                                    <span>Copy Card & Text</span>
                                                 </button>
                                             </div>
                                         </div>
