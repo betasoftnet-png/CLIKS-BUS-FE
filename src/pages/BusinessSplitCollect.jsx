@@ -23,7 +23,8 @@ import {
     Share2,
     Download,
     Pin,
-    MoreVertical
+    MoreVertical,
+    Pencil
 } from 'lucide-react';
 import '../App.css';
 import splitExpenseService from '../services/splitExpenseService';
@@ -54,6 +55,7 @@ const BusinessSplitCollect = () => {
     const [detailSearchQuery, setDetailSearchQuery] = useState('');
     const [showDetailSearch, setShowDetailSearch] = useState(false);
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+    const [editingGroupId, setEditingGroupId] = useState(null);
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
     
     // Group Form State
@@ -130,6 +132,29 @@ const BusinessSplitCollect = () => {
         if (!groupForm.title.trim()) return alert('Please enter a group title.');
         if (groupForm.participants.length < 2) return alert('Please add at least one other participant.');
 
+        if (editingGroupId) {
+            const updatedData = {
+                title: groupForm.title,
+                currency: groupForm.currency,
+                currencySymbol: getCurrencySymbol(groupForm.currency),
+                description: groupForm.description,
+                participants: [...groupForm.participants],
+            };
+
+            try {
+                const updated = await splitExpenseService.updateSplit(editingGroupId, updatedData);
+                setSplits(splits.map(s => s.id === editingGroupId ? { ...s, ...updated, expenses: s.expenses } : s));
+            } catch (err) {
+                console.error("Error updating group on backend:", err);
+                setSplits(splits.map(s => s.id === editingGroupId ? { ...s, ...updatedData } : s));
+            }
+
+            setIsCreateGroupModalOpen(false);
+            setEditingGroupId(null);
+            setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
+            return;
+        }
+
         const tempId = 'split-' + Date.now();
         const newGroup = {
             id: tempId,
@@ -154,6 +179,7 @@ const BusinessSplitCollect = () => {
         }
 
         setIsCreateGroupModalOpen(false);
+        setEditingGroupId(null);
         setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
     };
 
@@ -632,7 +658,11 @@ const BusinessSplitCollect = () => {
 
                 {!selectedSplitId && (
                     <button 
-                        onClick={() => setIsCreateGroupModalOpen(true)}
+                        onClick={() => {
+                            setEditingGroupId(null);
+                            setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
+                            setIsCreateGroupModalOpen(true);
+                        }}
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
                             padding: '0.65rem 1.15rem', borderRadius: '12px', 
@@ -802,6 +832,40 @@ const BusinessSplitCollect = () => {
                                                                     >
                                                                         <Pin size={14} style={{ color: '#004aad', transform: isPinned ? 'rotate(45deg)' : 'none' }} />
                                                                         {isPinned ? 'Unpin Ticket' : 'Pin to top'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setEditingGroupId(s.id);
+                                                                            setGroupForm({
+                                                                                title: s.title,
+                                                                                currency: s.currency,
+                                                                                description: s.description || '',
+                                                                                participants: [...s.participants]
+                                                                            });
+                                                                            setIsCreateGroupModalOpen(true);
+                                                                            setActiveMenuId(null);
+                                                                        }}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '8px',
+                                                                            width: '100%',
+                                                                            padding: '8px 12px',
+                                                                            border: 'none',
+                                                                            background: 'none',
+                                                                            color: '#334155',
+                                                                            fontSize: '0.85rem',
+                                                                            fontWeight: '600',
+                                                                            cursor: 'pointer',
+                                                                            borderRadius: '8px',
+                                                                            transition: 'background 0.2s'
+                                                                        }}
+                                                                        onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                    >
+                                                                        <Pencil size={14} style={{ color: '#004aad' }} />
+                                                                        Edit Ticket
                                                                     </button>
                                                                     <button
                                                                         onClick={(e) => {
@@ -1179,8 +1243,11 @@ const BusinessSplitCollect = () => {
                             style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}
                         >
                             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Create Split Ticket</h3>
-                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => setIsCreateGroupModalOpen(false)}><X size={18} /></button>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>{editingGroupId ? 'Edit Split Ticket' : 'Create Split Ticket'}</h3>
+                                <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => {
+                                    setIsCreateGroupModalOpen(false);
+                                    setEditingGroupId(null);
+                                }}><X size={18} /></button>
                             </div>
                             
                             <form onSubmit={handleCreateGroup} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
@@ -1273,7 +1340,7 @@ const BusinessSplitCollect = () => {
                                     type="submit"
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.5rem' }}
                                 >
-                                    Create Ticket
+                                    {editingGroupId ? 'Save Changes' : 'Create Ticket'}
                                 </button>
                             </form>
                         </Motion.div>
