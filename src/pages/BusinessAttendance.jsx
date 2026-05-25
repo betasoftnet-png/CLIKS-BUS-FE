@@ -22,6 +22,7 @@ import {
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { attendanceService } from '../services/attendanceService';
+import { staffingService } from '../services/staffingService';
 import FilterableTableHead from '../components/FilterableTableHead';
 
 
@@ -37,6 +38,11 @@ const BusinessAttendance = () => {
     const queryClient = useQueryClient();
 
     // Queries
+    const { data: dbEmployees = [] } = useQuery({
+        queryKey: ['employees'],
+        queryFn: () => staffingService.getEmployees()
+    });
+
     const { data: dbLogs = [] } = useQuery({
         queryKey: ['attendanceLogs'],
         queryFn: () => attendanceService.getAttendanceLogs()
@@ -111,20 +117,20 @@ const BusinessAttendance = () => {
 
     // Form inputs states
     const [punchForm, setPunchForm] = useState({
-        employee_id: 'EMP-001',
-        employee_name: 'Arun Kumar (Sales)',
-        check_in_time: '09:00 AM',
-        check_out_time: '06:00 PM',
-        location_address: 'Main Office Complex, Mumbai',
+        employee_id: '',
+        employee_name: '',
+        check_in_time: '',
+        check_out_time: '',
+        location_address: '',
         late_by_minutes: 0
     });
 
     const [correctionForm, setCorrectionForm] = useState({
-        employee_name: 'Arun Kumar',
-        attendance_date: '2026-05-03',
-        missed_punch_reason: 'Client site travel missed biometric punch',
-        proposed_punch_in: '09:15 AM',
-        proposed_punch_out: '06:15 PM'
+        employee_name: '',
+        attendance_date: '',
+        missed_punch_reason: '',
+        proposed_punch_in: '',
+        proposed_punch_out: ''
     });
 
     const [shiftForm, setShiftForm] = useState({
@@ -448,7 +454,22 @@ const BusinessAttendance = () => {
                         <form onSubmit={handleAddPunch} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name</label>
-                                <input required type="text" value={punchForm.employee_name} onChange={(e) => setPunchForm({ ...punchForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <select required value={punchForm.employee_name} onChange={(e) => {
+                                    const selectedName = e.target.value;
+                                    const selectedEmp = dbEmployees.find(emp => (emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim()) === selectedName);
+                                    setPunchForm({ 
+                                        ...punchForm, 
+                                        employee_name: selectedName,
+                                        employee_id: selectedEmp ? selectedEmp.id : ''
+                                    });
+                                }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <option value="" disabled>Select Employee</option>
+                                    {dbEmployees.map(emp => {
+                                        const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+                                        return <option key={emp.id} value={name}>{name}</option>;
+                                    })}
+                                    {dbEmployees.length === 0 && <option value="" disabled>No employees found</option>}
+                                </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -491,7 +512,14 @@ const BusinessAttendance = () => {
                         <form onSubmit={handleAddCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name</label>
-                                <input required type="text" value={correctionForm.employee_name} onChange={(e) => setCorrectionForm({ ...correctionForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <select required value={correctionForm.employee_name} onChange={(e) => setCorrectionForm({ ...correctionForm, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <option value="" disabled>Select Employee</option>
+                                    {dbEmployees.map(emp => {
+                                        const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+                                        return <option key={emp.id} value={name}>{name}</option>;
+                                    })}
+                                    {dbEmployees.length === 0 && <option value="" disabled>No employees found</option>}
+                                </select>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Timesheet Date</label>

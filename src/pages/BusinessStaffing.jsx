@@ -207,17 +207,17 @@ const BusinessStaffing = () => {
 
     // Form onboarding states
     const [newEmp, setNewEmp] = useState({
-        first_name: 'Karan',
-        last_name: 'Mehra',
+        first_name: '',
+        last_name: '',
         gender: 'Male',
-        phone_number: '+91 91111 22222',
-        email: 'karan.mehra@clikbusiness.com',
+        phone_number: '',
+        email: '',
         department_name: 'Operations',
-        designation_name: 'Inventory Associate',
-        basic_salary: 28000,
-        bank_name: 'State Bank of India',
-        account_number: '31029312022',
-        ifsc_code: 'SBIN0001104',
+        designation_name: '',
+        basic_salary: '',
+        bank_name: '',
+        account_number: '',
+        ifsc_code: '',
         shift_name: 'General Shift (9 AM - 6 PM)',
         leave_balance: 12
     });
