@@ -173,46 +173,60 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                {/* Points Wallet Widget with circular progress ring */}
+                {/* Sleek Perfectly Centered Circular Points Widget */}
                 {(() => {
                     const maxPts = 10000;
                     const pct = Math.min(rewardPoints / maxPts, 1);
-                    const r = 22;
+                    const r = 17;
                     const circ = 2 * Math.PI * r;
                     const dash = circ * pct;
                     return (
-                        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => navigate('/payments/wallet?tab=points')} title="Loyalty Points">
-                            <svg width="52" height="52" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
-                                <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+                        <div 
+                            style={{ 
+                                position: 'relative', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                cursor: 'pointer',
+                                width: '40px',
+                                height: '40px',
+                                flexShrink: 0
+                            }} 
+                            onClick={() => navigate('/payments/rewards')} 
+                            title="Loyalty Rewards"
+                        >
+                            <svg width="40" height="40" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)', pointerEvents: 'none' }}>
+                                <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
                                 <circle
-                                    cx="26" cy="26" r={r}
+                                    cx="20" cy="20" r={r}
                                     fill="none"
                                     stroke="#FBBF24"
-                                    strokeWidth="3"
+                                    strokeWidth="2"
                                     strokeDasharray={`${dash} ${circ}`}
                                     strokeLinecap="round"
-                                    style={{ transition: 'stroke-dasharray 0.5s ease', filter: 'drop-shadow(0 0 4px rgba(251,191,36,0.6))' }}
+                                    style={{ transition: 'stroke-dasharray 0.5s ease' }}
                                 />
                             </svg>
                             <button
-                                onClick={(e) => { e.stopPropagation(); navigate('/payments/wallet?tab=points'); }}
-                                title="Loyalty Points - Convert to wallet balance"
+                                onClick={(e) => { e.stopPropagation(); navigate('/payments/rewards'); }}
+                                title="Loyalty Points - View Rewards & Offers"
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '1px',
-                                    padding: '0',
-                                    borderRadius: '999px',
+                                    justifyContent: 'center',
+                                    flexDirection: 'column',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
                                     background: 'transparent',
                                     border: 'none',
                                     cursor: 'pointer',
-                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    transition: 'transform 0.2s ease',
                                     outline: 'none',
-                                    width: '44px',
-                                    height: '44px',
-                                    justifyContent: 'center',
-                                    flexDirection: 'column',
-                                    lineHeight: 1.0
+                                    padding: 0,
+                                    margin: 0,
+                                    lineHeight: 1.0,
+                                    gap: '0px'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'scale(1.08)';
@@ -221,10 +235,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     e.currentTarget.style.transform = 'none';
                                 }}
                             >
-                                <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#FBBF24' }}>
+                                <span style={{ fontSize: '11.5px', fontWeight: '900', color: '#FBBF24', letterSpacing: '-0.02em' }}>
                                     {rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints}
                                 </span>
-                                <span style={{ fontSize: '8px', fontWeight: '800', color: '#FBBF24', opacity: 0.8, letterSpacing: '0.02em' }}>
+                                <span style={{ fontSize: '6.5px', fontWeight: '850', color: '#FBBF24', opacity: 0.75, letterSpacing: '0.04em', marginTop: '-1px' }}>
                                     PTS
                                 </span>
                             </button>
