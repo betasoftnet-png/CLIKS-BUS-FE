@@ -126,6 +126,7 @@ const BusinessStaffing = () => {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [colFiltersHistory, setColFiltersHistory] = useState({});
     const [editForm, setEditForm] = useState({});
 
     // Trigger instant onboarding flow from dashboard shortcuts
@@ -1347,21 +1348,19 @@ const BusinessStaffing = () => {
                                     <div style={{ border: '1px solid #E2E8F0', borderRadius: '20px', overflow: 'hidden' }}>
                                         <div style={{ overflowX: 'auto' }}>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                                                <thead>
-                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Month & Year</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Attendance Details</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Basic Salary</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Deductions</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Net Paid Amount</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Payout Date</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569' }}>Status</th>
-                                                        <th style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Slip</th>
-                                                    </tr>
-                                                </thead>
+                                                <FilterableTableHead columns={[
+                                                    { key: 'month', label: 'Month & Year', placeholder: 'Search month...' },
+                                                    { key: 'presentDays', label: 'Attendance Details', placeholder: 'e.g. 20' },
+                                                    { key: 'basicSalary', label: 'Basic Salary', placeholder: 'Salary...' },
+                                                    { key: 'deductions', label: 'Deductions', placeholder: 'Deductions...' },
+                                                    { key: 'netPayout', label: 'Net Paid Amount', placeholder: 'Net...' },
+                                                    { key: 'payoutDate', label: 'Payout Date', placeholder: 'Date...' },
+                                                    { key: 'status', label: 'Status', placeholder: 'Status...' },
+                                                    { key: '_actions', label: 'Slip', noFilter: true }
+                                                ]} onFilterChange={setColFiltersHistory} />
                                                 <tbody>
                                                     {payrollHistory.length > 0 ? (
-                                                        payrollHistory.map((row, rIdx) => (
+                                                        payrollHistory.filter(item => applyTableFilters(item, colFiltersHistory)).map((row, rIdx) => (
                                                             <tr key={rIdx} style={{ borderBottom: '1px solid #F1F5F9', hover: { background: '#F8FAFC' } }}>
                                                                 <td style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#0F172A' }}>{row.month}</td>
                                                                 <td style={{ padding: '0.85rem 1.25rem' }}>

@@ -192,6 +192,7 @@ export default function BusinessCA() {
     const [activeDocFolder, setActiveDocFolder] = useState('All');
     const [uploadProgress, setUploadProgress] = useState(null);
     const [uploadedFileName, setUploadedFileName] = useState('');
+    const [uploadedFileSize, setUploadedFileSize] = useState('1.4 MB');
     const [uploadTargetFolder, setUploadTargetFolder] = useState('ITR Filings FY2025-26');
 
     const [workpaperChecks, setWorkpaperChecks] = useState({
@@ -312,6 +313,16 @@ export default function BusinessCA() {
         });
     };
 
+    const handleLaptopFileSelected = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setUploadedFileName(file.name);
+        const formattedSize = file.size > 1024 * 1024 
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+            : `${(file.size / 1024).toFixed(0)} KB`;
+        setUploadedFileSize(formattedSize);
+    };
+
     const handleSimulateDocumentUpload = (e) => {
         e.preventDefault();
         if (!uploadedFileName.trim()) return;
@@ -323,7 +334,7 @@ export default function BusinessCA() {
                     setTimeout(() => {
                         addFileMutation.mutate({
                             name: uploadedFileName.trim(),
-                            size: '1.4 MB',
+                            size: uploadedFileSize || '1.4 MB',
                             folderName: uploadTargetFolder,
                             date: new Date().toISOString().split('T')[0]
                         });
@@ -2388,15 +2399,16 @@ export default function BusinessCA() {
                                         /* ── Per-Client Checklist View ── */
                                         const selClient = allPracticeClients.find(c => c.id === selectedWorkpaperClientId);
                                         const checks = clientWorkpaperChecks[selectedWorkpaperClientId] || {};
-                                        const checkItems = [
+                                        const defaultCheckItems = [
                                             { id: 'aisTds', label: '1. Reconciliation of Form 26AS & AIS/TIS TDS matching with client ledgers' },
                                             { id: 'gstItc', label: '2. GST Input Tax Credit (ITC) matching and inward invoice sync' },
                                             { id: 'invest80c', label: '3. Verification of Section 80C, 80D receipts & insurance tax exclusions' },
                                             { id: 'capGains', label: '4. Capital Gains Statement valuation matching (Mutual funds & equity logs)' },
                                             { id: 'presumptive44ad', label: '5. Presumptive Business verification under Sec 44AD turnover checks' }
                                         ];
+                                        const checkItems = clientChecklistItems[selectedWorkpaperClientId] || defaultCheckItems;
                                         const doneCount = checkItems.filter(i => checks[i.id]).length;
-                                        const percentage = Math.round((doneCount / checkItems.length) * 100);
+                                        const percentage = checkItems.length > 0 ? Math.round((doneCount / checkItems.length) * 100) : 0;
                                         return (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                                 {/* Back button + title */}
@@ -2410,46 +2422,146 @@ export default function BusinessCA() {
                                                     </button>
                                                     <div>
                                                         <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper: {selClient?.name}</h3>
-                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit & Verification Checklist</p>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit &amp; Verification Checklist</p>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
                                                     {/* Checklist */}
-                                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                        {checkItems.map(item => (
-                                                            <label
-                                                                key={item.id}
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '12px',
-                                                                    padding: '16px',
-                                                                    borderRadius: '12px',
-                                                                    border: '1.5px solid',
-                                                                    borderColor: checks[item.id] ? '#15803d' : '#E2E8F0',
-                                                                    background: checks[item.id] ? '#F0FDF4' : 'transparent',
-                                                                    fontSize: '13px',
-                                                                    fontWeight: '750',
-                                                                    color: checks[item.id] ? '#166534' : '#334155',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.15s ease'
-                                                                }}
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!checks[item.id]}
-                                                                    onChange={() => setClientWorkpaperChecks(prev => ({
+                                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                            {checkItems.map(item => {
+                                                                const isEditingThis = editingCheckItemId === item.id;
+                                                                return (
+                                                                    <div
+                                                                        key={item.id}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'space-between',
+                                                                            padding: '12px 16px',
+                                                                            borderRadius: '12px',
+                                                                            border: '1.5px solid',
+                                                                            borderColor: checks[item.id] ? '#15803d' : '#E2E8F0',
+                                                                            background: checks[item.id] ? '#F0FDF4' : 'transparent',
+                                                                            transition: 'all 0.15s ease'
+                                                                        }}
+                                                                    >
+                                                                        {isEditingThis ? (
+                                                                            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={editingCheckItemText}
+                                                                                    onChange={(e) => setEditingCheckItemText(e.target.value)}
+                                                                                    style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        if (!editingCheckItemText.trim()) return;
+                                                                                        setClientChecklistItems(prev => ({
+                                                                                            ...prev,
+                                                                                            [selectedWorkpaperClientId]: checkItems.map(ci => ci.id === item.id ? { ...ci, label: editingCheckItemText.trim() } : ci)
+                                                                                        }));
+                                                                                        setEditingCheckItemId(null);
+                                                                                    }}
+                                                                                    style={{ padding: '6px 12px', background: '#15803d', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
+                                                                                >
+                                                                                    Save
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setEditingCheckItemId(null)}
+                                                                                    style={{ padding: '6px 12px', background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
+                                                                                >
+                                                                                    Cancel
+                                                                                </button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <label
+                                                                                    style={{
+                                                                                        display: 'flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '12px',
+                                                                                        fontSize: '13px',
+                                                                                        fontWeight: '750',
+                                                                                        color: checks[item.id] ? '#166534' : '#334155',
+                                                                                        cursor: 'pointer',
+                                                                                        flex: 1
+                                                                                    }}
+                                                                                >
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={!!checks[item.id]}
+                                                                                        onChange={() => setClientWorkpaperChecks(prev => ({
+                                                                                            ...prev,
+                                                                                            [selectedWorkpaperClientId]: {
+                                                                                                ...(prev[selectedWorkpaperClientId] || {}),
+                                                                                                [item.id]: !checks[item.id]
+                                                                                            }
+                                                                                        }))}
+                                                                                        style={{ accentColor: '#15803d', width: '16px', height: '16px' }}
+                                                                                    />
+                                                                                    <span>{item.label}</span>
+                                                                                </label>
+                                                                                <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        title="Edit Checklist Item"
+                                                                                        onClick={() => {
+                                                                                            setEditingCheckItemId(item.id);
+                                                                                            setEditingCheckItemText(item.label);
+                                                                                        }}
+                                                                                        style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                                                                                    >
+                                                                                        <Edit2 size={13} />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        title="Delete Checklist Item"
+                                                                                        onClick={() => {
+                                                                                            setClientChecklistItems(prev => ({
+                                                                                                ...prev,
+                                                                                                [selectedWorkpaperClientId]: checkItems.filter(ci => ci.id !== item.id)
+                                                                                            }));
+                                                                                        }}
+                                                                                        style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+                                                                                    >
+                                                                                        <Trash2 size={13} />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        
+                                                        {/* Add Procedure Section */}
+                                                        <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Add dynamic custom checklist procedure..."
+                                                                value={newCheckItemText}
+                                                                onChange={(e) => setNewCheckItemText(e.target.value)}
+                                                                style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (!newCheckItemText.trim()) return;
+                                                                    const newItem = { id: `custom_${Date.now()}`, label: `${checkItems.length + 1}. ${newCheckItemText.trim()}` };
+                                                                    setClientChecklistItems(prev => ({
                                                                         ...prev,
-                                                                        [selectedWorkpaperClientId]: {
-                                                                            ...(prev[selectedWorkpaperClientId] || {}),
-                                                                            [item.id]: !checks[item.id]
-                                                                        }
-                                                                    }))}
-                                                                    style={{ accentColor: '#15803d', width: '16px', height: '16px' }}
-                                                                />
-                                                                <span>{item.label}</span>
-                                                            </label>
-                                                        ))}
+                                                                        [selectedWorkpaperClientId]: [...checkItems, newItem]
+                                                                    }));
+                                                                    setNewCheckItemText('');
+                                                                }}
+                                                                style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer' }}
+                                                            >
+                                                                + Add Item
+                                                             </button>
+                                                        </div>
                                                     </div>
                                                     {/* Progress widget */}
                                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center', alignItems: 'center' }}>
@@ -2507,8 +2619,28 @@ export default function BusinessCA() {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                             {/* Drop zone simulator */}
                                             <form onSubmit={handleSimulateDocumentUpload} style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                                <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>⚡ Simulate Live Folder File Upload</h3>
+                                                <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Upload Practice Document from Laptop</h3>
                                                 
+                                                <input 
+                                                    type="file" 
+                                                    id="laptop-file-picker" 
+                                                    style={{ display: 'none' }} 
+                                                    onChange={handleLaptopFileSelected} 
+                                                />
+                                                
+                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => document.getElementById('laptop-file-picker').click()}
+                                                        style={{ padding: '9px 16px', background: '#EFF6FF', border: '1.5px solid #3B82F6', color: '#1D4ED8', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                    >
+                                                        <Plus size={14} /> Choose File
+                                                    </button>
+                                                    <span style={{ fontSize: '13px', color: uploadedFileName ? '#1E293B' : '#94A3B8', fontWeight: '650', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                        {uploadedFileName ? `${uploadedFileName} (${uploadedFileSize})` : 'No file selected'}
+                                                    </span>
+                                                </div>
+
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
                                                     <input
                                                         type="text"
@@ -2531,23 +2663,23 @@ export default function BusinessCA() {
                                                 
                                                 <button
                                                     type="submit"
-                                                    disabled={uploadProgress !== null}
+                                                    disabled={uploadProgress !== null || !uploadedFileName}
                                                     style={{
                                                         padding: '10px 16px',
-                                                        backgroundColor: '#15803d',
+                                                        backgroundColor: uploadedFileName ? '#15803d' : '#94A3B8',
                                                         color: '#FFFFFF',
                                                         border: 'none',
                                                         borderRadius: '8px',
                                                         fontWeight: '850',
                                                         fontSize: '12.5px',
-                                                        cursor: uploadProgress !== null ? 'not-allowed' : 'pointer',
+                                                        cursor: (uploadProgress !== null || !uploadedFileName) ? 'not-allowed' : 'pointer',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
                                                         gap: '8px'
                                                     }}
                                                 >
-                                                    <FileUp size={16} /> Simulate Document Drop &amp; Upload
+                                                    <FileUp size={16} /> Upload to Practice Vault
                                                 </button>
                                                 
                                                 {uploadProgress !== null && (

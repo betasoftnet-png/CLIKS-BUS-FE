@@ -200,16 +200,15 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '5px 10px',
+                                    gap: '2px',
+                                    padding: '0',
                                     borderRadius: '999px',
-                                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                                    border: '1px solid rgba(251, 191, 36, 0.35)',
-                                    color: '#FFFFFF',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#D97706',
                                     fontSize: '11px',
-                                    fontWeight: '850',
+                                    fontWeight: '900',
                                     cursor: 'pointer',
-                                    boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
                                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                                     outline: 'none',
                                     width: '44px',
@@ -219,14 +218,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     lineHeight: 1.1
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                    e.currentTarget.style.transform = 'scale(1.08)';
+                                    e.currentTarget.style.color = '#F59E0B';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.transform = 'none';
+                                    e.currentTarget.style.color = '#D97706';
                                 }}
                             >
-                                <Coins size={13} style={{ flexShrink: 0 }} />
-                                <span style={{ whiteSpace: 'nowrap', fontSize: '10px', fontWeight: '900' }}>{rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints} pts</span>
+                                <Coins size={15} style={{ flexShrink: 0, color: '#F59E0B' }} />
+                                <span style={{ whiteSpace: 'nowrap', fontSize: '9.5px', fontWeight: '900' }}>{rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints} pts</span>
                             </button>
                         </div>
                     );

@@ -24,14 +24,14 @@ const BusinessSubscription = () => {
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
     const [isProcessing, setIsProcessing] = useState(false);
-    const [firmMembersCount, setFirmMembersCount] = useState(5);
+    const [firmMembersCount, setFirmMembersCount] = useState(3);
 
     const handleUpgrade = async (tier) => {
         if (tier.name === selectedTier) return;
         
         let amt = tier.priceAnnually || tier.price;
         if (tier.name === 'Fin-Pro Firm') {
-            amt = 1499 + Math.max(0, firmMembersCount - 5) * 299;
+            amt = 1499 + Math.max(0, firmMembersCount - 3) * 299;
         }
         
         try {
@@ -166,7 +166,7 @@ const BusinessSubscription = () => {
                 features: [
                     'Manage Unlimited Active Client Ledgers',
                     'Custom White-Labeled Client Report Generation',
-                    '5 Team Members included by default',
+                    '3 Team Members included by default',
                     'Additional members at just ₹299/month each',
                     'Live Chat Support & Direct API Sandbox Access'
                 ]
@@ -284,7 +284,7 @@ const BusinessSubscription = () => {
         
         let calculatedPrice = foundTier.priceAnnually || foundTier.price;
         if (foundTier.name === 'Fin-Pro Firm') {
-            calculatedPrice = 1499 + Math.max(0, firmMembersCount - 5) * 299;
+            calculatedPrice = 1499 + Math.max(0, firmMembersCount - 3) * 299;
         }
         
         return {
@@ -517,8 +517,8 @@ const BusinessSubscription = () => {
             }}>
                 {allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].map((tier, idx) => {
                     const isFirmPlan = tier.name === 'Fin-Pro Firm';
-                    const price = isFirmPlan ? (1499 + Math.max(0, firmMembersCount - 5) * 299) : (tier.priceAnnually || tier.price);
-                    const originalPrice = isFirmPlan ? (2499 + Math.max(0, firmMembersCount - 5) * 499) : tier.originalPrice;
+                    const price = isFirmPlan ? (1499 + Math.max(0, firmMembersCount - 3) * 299) : (tier.priceAnnually || tier.price);
+                    const originalPrice = isFirmPlan ? (2499 + Math.max(0, firmMembersCount - 3) * 499) : tier.originalPrice;
                     const isActive = tier.name === selectedTier;
                     const TierIcon = tier.icon;
                     return (
@@ -623,11 +623,11 @@ const BusinessSubscription = () => {
                                             >+</button>
                                         </div>
                                     </div>
-                                    {firmMembersCount > 5 && (
-                                        <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#2563EB', textAlign: 'right' }}>
-                                            +{firmMembersCount - 5} extra members (₹299/mo each)
-                                        </div>
-                                    )}
+                                    {firmMembersCount > 3 && (
+                                         <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#2563EB', textAlign: 'right' }}>
+                                             +{firmMembersCount - 3} extra members (₹299/mo each)
+                                         </div>
+                                     )}
                                 </div>
                             )}
 

@@ -28,8 +28,10 @@ import FilterableTableHead from '../components/FilterableTableHead';
 
 
 const BusinessAttendance = () => {
-    const [activeTab, setActiveTab] = useState('daily');
-    const [colFilters, setColFilters] = React.useState({}); // 'daily', 'shifts', 'geo', 'corrections'
+    const [activeTab, setActiveTab] = useState('today');
+    const [colFilters, setColFilters] = React.useState({}); // 'today', 'shifts', 'geo', 'corrections', 'datewise', 'history'
+    const [colFiltersHistory, setColFiltersHistory] = useState({});
+    const [colFiltersDatewise, setColFiltersDatewise] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [isPunchModalOpen, setIsPunchModalOpen] = useState(false);
     const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
@@ -37,6 +39,11 @@ const BusinessAttendance = () => {
     const [selectedLog, setSelectedLog] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editForm, setEditForm] = useState({});
+
+    // New state hooks for Employee Calendar popup and Date Details popup
+    const [selectedEmployeeHistory, setSelectedEmployeeHistory] = useState(null);
+    const [selectedDateDetails, setSelectedDateDetails] = useState(null);
+    const [lookupDate, setLookupDate] = useState(new Date().toISOString().split('T')[0]);
 
     const queryClient = useQueryClient();
 
@@ -311,12 +318,14 @@ const BusinessAttendance = () => {
             </div>
 
             {/* Tab Swappers */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
                 {[
-                    { id: 'daily', label: 'Daily Timesheet logs', icon: Clock, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
-                    { id: 'shifts', label: 'Shift Configurations', icon: Calendar, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
-                    { id: 'geo', label: 'GPS Location Fencing', icon: MapPin, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
-                    { id: 'corrections', label: 'Correction Verifications', icon: RefreshCw, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
+                    { id: 'today', label: "Today's Logs", icon: Clock, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
+                    { id: 'history', label: 'History Ledger', icon: User, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
+                    { id: 'datewise', label: 'Date-wise Lookup', icon: Calendar, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
+                    { id: 'shifts', label: 'Shift Configurations', icon: Calendar, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
+                    { id: 'geo', label: 'GPS Location Fencing', icon: MapPin, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' },
+                    { id: 'corrections', label: 'Correction Verifications', icon: RefreshCw, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
                     { id: 'calendar', label: 'Calendar View', icon: Calendar, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' }
                 ].map(tab => (
                     <button 
@@ -339,114 +348,325 @@ const BusinessAttendance = () => {
             {/* Central Auto-Scrolling Frame */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
-            {/* Tab 1: Daily Attendance Timesheet */}
-            {activeTab === 'daily' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                            <input 
-                                type="text" 
-                                placeholder="Search timesheets by employee..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
-                            />
+            {/* Tab 1: Today's Attendance Logs */}
+            {activeTab === 'today' && (() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const todayLogs = filteredLogs.filter(log => log.attendance_date === todayStr);
+                return (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                            <div style={{ position: 'relative', width: '400px' }}>
+                                <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search today's logs by employee..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                />
+                            </div>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#064E3B', background: '#D1FAE5', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
+                                Today: {todayStr}
+                            </span>
+                        </div>
+
+                        <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'attendance_id', label: 'Log ID', placeholder: 'ID' },
+                                    { key: 'employee_name', label: 'Employee Profile', placeholder: 'Name' },
+                                    { key: 'check_in_time', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
+                                    { key: 'productive_hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
+                                    { key: 'location_address', label: 'Location', placeholder: 'Address' },
+                                    { key: 'attendance_status', label: 'Status', placeholder: 'e.g. Present' },
+                                    { key: '_actions', label: 'Action', noFilter: true }
+                                ]} onFilterChange={setColFilters} />
+                                <tbody>
+                                    {todayLogs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((log) => (
+                                        <tr 
+                                            key={log.attendance_id} 
+                                            style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease', cursor: 'default' }}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>#{log.attendance_id}</p>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '0.78rem', flexShrink: 0 }}>
+                                                        {log.employee_name.charAt(0)}
+                                                    </div>
+                                                    <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.82rem' }}>{log.employee_name}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
+                                                    <Clock size={11} style={{ color: '#EC4899', flexShrink: 0 }} />
+                                                    <span style={{ fontWeight: '800', color: '#065F46', fontSize: '0.75rem' }}>{log.check_in_time}</span>
+                                                    <span style={{ color: '#94A3B8', fontWeight: '800', fontSize: '0.7rem' }}>→</span>
+                                                    <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.75rem' }}>{log.check_out_time}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.8rem' }}>{log.productive_hours} Hrs</span>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <MapPin size={12} style={{ color: log.location_address ? '#EC4899' : '#CBD5E1', flexShrink: 0 }} />
+                                                    <span style={{ fontSize: '0.78rem', color: log.location_address ? '#334155' : '#94A3B8', fontWeight: '600' }}>
+                                                        {log.location_address || 'Remote check-in'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <span style={{ 
+                                                    padding: '0.2rem 0.45rem', borderRadius: '6px',
+                                                    background: log.attendance_status === 'present' ? '#D1FAE5' : log.attendance_status === 'late' ? '#FEF3C7' : '#FEE2E2',
+                                                    color: log.attendance_status === 'present' ? '#065F46' : log.attendance_status === 'late' ? '#92400E' : '#991B1B',
+                                                    fontWeight: '850', fontSize: '0.68rem', display: 'inline-block',
+                                                    whiteSpace: 'nowrap', letterSpacing: '0.01em'
+                                                }}>{log.attendance_status.toUpperCase()}</span>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditForm({
+                                                            attendance_id: log.attendance_id,
+                                                            attendance_date: log.attendance_date,
+                                                            check_in_time: convertTo24Hour(log.check_in_time),
+                                                            check_out_time: convertTo24Hour(log.check_out_time),
+                                                            late_by_minutes: log.late_by_minutes || 0,
+                                                            productive_hours: log.productive_hours || 8.0,
+                                                            location_address: log.location_address || '',
+                                                            status: log.attendance_status || 'present'
+                                                        });
+                                                        setSelectedLog(log);
+                                                        setIsEditModalOpen(true);
+                                                    }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.background = '#EC4899'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#EC4899'; }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
+                                                    style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+                                                >
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {todayLogs.length === 0 && (
+                                        <tr>
+                                            <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#64748B', fontWeight: '700' }}>
+                                                No attendance logs recorded for today yet.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+                );
+            })()}
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <FilterableTableHead columns={[
-                                { key: 'log_ref', label: 'Log Reference', placeholder: 'e.g. ATT-001' },
-                                { key: 'employee', label: 'Employee Profile', placeholder: 'Name' },
-                                { key: 'checkin', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
-                                { key: 'hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
-                                { key: 'location', label: 'Location', placeholder: 'Coords' },
-                                { key: 'status', label: 'Status', placeholder: 'e.g. Present' },
-                                { key: '_actions', label: 'Action', noFilter: true }
-                            ]} onFilterChange={setColFilters} />
-                            <tbody>
-                                {filteredLogs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((log) => (
-                                    <tr 
-                                        key={log.attendance_id} 
-                                        style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease', cursor: 'default' }}
-                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>#{log.attendance_id}</p>
-                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600', display: 'block', marginTop: '0.1rem' }}>Date: {log.attendance_date}</span>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '0.78rem', boxShadow: '0 2px 4px rgba(236, 72, 153, 0.12)', flexShrink: 0 }}>
-                                                    {log.employee_name.charAt(0)}
-                                                </div>
-                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.82rem' }}>{log.employee_name}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
-                                                <Clock size={11} style={{ color: '#EC4899', flexShrink: 0 }} />
-                                                <span style={{ fontWeight: '800', color: '#065F46', fontSize: '0.75rem' }}>{log.check_in_time}</span>
-                                                <span style={{ color: '#94A3B8', fontWeight: '800', fontSize: '0.7rem' }}>→</span>
-                                                <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.75rem' }}>{log.check_out_time}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
-                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.8rem' }}>{log.productive_hours} Hrs</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                <MapPin size={12} style={{ color: log.location_address ? '#EC4899' : '#CBD5E1', flexShrink: 0 }} />
-                                                <span style={{ fontSize: '0.78rem', color: log.location_address ? '#334155' : '#94A3B8', fontWeight: '600' }}>
-                                                    {log.location_address || 'Remote check-in'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            <span style={{ 
-                                                padding: '0.2rem 0.45rem', borderRadius: '6px',
-                                                background: log.attendance_status === 'present' ? '#D1FAE5' : log.attendance_status === 'late' ? '#FEF3C7' : '#FEE2E2',
-                                                color: log.attendance_status === 'present' ? '#065F46' : log.attendance_status === 'late' ? '#92400E' : '#991B1B',
-                                                fontWeight: '850', fontSize: '0.68rem', display: 'inline-block',
-                                                whiteSpace: 'nowrap', letterSpacing: '0.01em'
-                                            }}>{log.attendance_status.toUpperCase()}</span>
-                                        </td>
-                                        <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                                            <button
-                                                onClick={() => {
-                                                    setEditForm({
-                                                        attendance_id: log.attendance_id,
-                                                        attendance_date: log.attendance_date,
-                                                        check_in_time: convertTo24Hour(log.check_in_time),
-                                                        check_out_time: convertTo24Hour(log.check_out_time),
-                                                        late_by_minutes: log.late_by_minutes || 0,
-                                                        productive_hours: log.productive_hours || 8.0,
-                                                        location_address: log.location_address || '',
-                                                        status: log.attendance_status || 'present'
-                                                    });
-                                                    setSelectedLog(log);
-                                                    setIsEditModalOpen(true);
-                                                }}
-                                                onMouseOver={(e) => { e.currentTarget.style.background = '#EC4899'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#EC4899'; }}
-                                                onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
-                                                style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+            {/* Tab: History Ledger */}
+            {activeTab === 'history' && (() => {
+                const searchVal = searchTerm.toLowerCase();
+                const filteredEmps = dbEmployees.filter(emp => {
+                    const fullName = (emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`).toLowerCase();
+                    return fullName.includes(searchVal);
+                });
+                return (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                            <div style={{ position: 'relative', width: '400px' }}>
+                                <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search staff ledger..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'id', label: 'Employee ID', placeholder: 'ID' },
+                                    { key: 'name', label: 'Staff Member', placeholder: 'Name' },
+                                    { key: 'presents', label: 'Present Days', placeholder: 'Count' },
+                                    { key: 'absents', label: 'Absent Days', placeholder: 'Count' },
+                                    { key: 'lates', label: 'Late Marks', placeholder: 'Count' },
+                                    { key: '_actions', label: 'Action Ledger', noFilter: true }
+                                ]} onFilterChange={setColFiltersHistory} />
+                                <tbody>
+                                    {filteredEmps.map((emp) => {
+                                        const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+                                        const empLogs = attendanceLogs.filter(l => l.employee_name.toLowerCase() === name.toLowerCase());
+                                        const presents = empLogs.filter(l => l.attendance_status === 'present').length;
+                                        const absents = empLogs.filter(l => l.attendance_status === 'absent').length;
+                                        const lates = empLogs.filter(l => l.attendance_status === 'late').length;
+
+                                        return (
+                                            <tr 
+                                                key={emp.id} 
+                                                style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease' }}
+                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                             >
-                                                Edit
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                <td style={{ padding: '1rem', fontWeight: '850', color: '#0F172A' }}>#{emp.id || emp.employee_code}</td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '0.78rem' }}>
+                                                            {name.charAt(0)}
+                                                        </div>
+                                                        <span style={{ fontWeight: '800', color: '#1E293B' }}>{name}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1rem', fontWeight: '800', color: '#065F46' }}>{presents} Days</td>
+                                                <td style={{ padding: '1rem', fontWeight: '800', color: '#991B1B' }}>{absents} Days</td>
+                                                <td style={{ padding: '1rem', fontWeight: '800', color: '#92400E' }}>{lates} Late</td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <button 
+                                                        onClick={() => setSelectedEmployeeHistory(emp)}
+                                                        style={{ background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '8px', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.15)' }}
+                                                    >
+                                                        📅 View Attendance Calendar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
+
+            {/* Tab: Date-wise Attendance Lookup */}
+            {activeTab === 'datewise' && (() => {
+                const datewiseLogs = filteredLogs.filter(log => log.attendance_date === lookupDate);
+                return (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>Select Lookup Date:</span>
+                                <input 
+                                    type="date" 
+                                    value={lookupDate} 
+                                    onChange={(e) => setLookupDate(e.target.value)} 
+                                    style={{ padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }} 
+                                />
+                            </div>
+                            <div style={{ position: 'relative', width: '300px' }}>
+                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search by employee..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'attendance_id', label: 'Log ID', placeholder: 'ID' },
+                                    { key: 'employee_name', label: 'Employee Profile', placeholder: 'Name' },
+                                    { key: 'check_in_time', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
+                                    { key: 'productive_hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
+                                    { key: 'location_address', label: 'Location', placeholder: 'Address' },
+                                    { key: 'attendance_status', label: 'Status', placeholder: 'e.g. Present' },
+                                    { key: '_actions', label: 'Action', noFilter: true }
+                                ]} onFilterChange={setColFiltersDatewise} />
+                                <tbody>
+                                    {datewiseLogs.filter(item => applyTableFilters(item, typeof colFiltersDatewise !== "undefined" ? colFiltersDatewise : {})).map((log) => (
+                                        <tr 
+                                            key={log.attendance_id} 
+                                            style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease' }}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>#{log.attendance_id}</p>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '0.78rem', flexShrink: 0 }}>
+                                                        {log.employee_name.charAt(0)}
+                                                    </div>
+                                                    <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.82rem' }}>{log.employee_name}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
+                                                    <Clock size={11} style={{ color: '#3B82F6', flexShrink: 0 }} />
+                                                    <span style={{ fontWeight: '800', color: '#065F46', fontSize: '0.75rem' }}>{log.check_in_time}</span>
+                                                    <span style={{ color: '#94A3B8', fontWeight: '800', fontSize: '0.7rem' }}>→</span>
+                                                    <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.75rem' }}>{log.check_out_time}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.8rem' }}>{log.productive_hours} Hrs</span>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <MapPin size={12} style={{ color: log.location_address ? '#3B82F6' : '#CBD5E1', flexShrink: 0 }} />
+                                                    <span style={{ fontSize: '0.78rem', color: log.location_address ? '#334155' : '#94A3B8', fontWeight: '600' }}>
+                                                        {log.location_address || 'Remote check-in'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                <span style={{ 
+                                                    padding: '0.2rem 0.45rem', borderRadius: '6px',
+                                                    background: log.attendance_status === 'present' ? '#D1FAE5' : log.attendance_status === 'late' ? '#FEF3C7' : '#FEE2E2',
+                                                    color: log.attendance_status === 'present' ? '#065F46' : log.attendance_status === 'late' ? '#92400E' : '#991B1B',
+                                                    fontWeight: '850', fontSize: '0.68rem', display: 'inline-block',
+                                                    whiteSpace: 'nowrap', letterSpacing: '0.01em'
+                                                }}>{log.attendance_status.toUpperCase()}</span>
+                                            </td>
+                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditForm({
+                                                            attendance_id: log.attendance_id,
+                                                            attendance_date: log.attendance_date,
+                                                            check_in_time: convertTo24Hour(log.check_in_time),
+                                                            check_out_time: convertTo24Hour(log.check_out_time),
+                                                            late_by_minutes: log.late_by_minutes || 0,
+                                                            productive_hours: log.productive_hours || 8.0,
+                                                            location_address: log.location_address || '',
+                                                            status: log.attendance_status || 'present'
+                                                        });
+                                                        setSelectedLog(log);
+                                                        setIsEditModalOpen(true);
+                                                    }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.background = '#3B82F6'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#3B82F6'; }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
+                                                    style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+                                                >
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {datewiseLogs.length === 0 && (
+                                        <tr>
+                                            <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#64748B', fontWeight: '700' }}>
+                                                No attendance logs recorded for this date.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Tab 2: Shifts Configurator */}
             {activeTab === 'shifts' && (
@@ -577,7 +797,13 @@ const BusinessAttendance = () => {
                                 const bg = status === 'present' ? '#D1FAE5' : status === 'late' ? '#FEF3C7' : status === 'absent' ? '#FEE2E2' : '#F8FAFC';
                                 const color = status === 'present' ? '#065F46' : status === 'late' ? '#92400E' : status === 'absent' ? '#991B1B' : '#94A3B8';
                                 return (
-                                    <div key={day} style={{ background: bg, borderRadius: '10px', padding: '12px 8px', textAlign: 'center', border: '1px solid #E2E8F0', minHeight: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                    <div 
+                                        key={day} 
+                                        onClick={() => setSelectedDateDetails(dateStr)}
+                                        style={{ background: bg, borderRadius: '10px', padding: '12px 8px', textAlign: 'center', border: '1px solid #E2E8F0', minHeight: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', transition: 'transform 0.15s ease' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                                    >
                                         <span style={{ fontWeight: '900', fontSize: '1rem', color }}>{day}</span>
                                         {status !== 'none' && <span style={{ fontSize: '0.6rem', fontWeight: '800', color, textTransform: 'uppercase' }}>{status}</span>}
                                     </div>
@@ -819,6 +1045,144 @@ const BusinessAttendance = () => {
                     </div>
                 </div>
             )}
+
+            {/* Employee History Calendar Modal */}
+            {selectedEmployeeHistory && (() => {
+                const emp = selectedEmployeeHistory;
+                const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+                const empLogs = attendanceLogs.filter(l => l.employee_name.toLowerCase() === name.toLowerCase());
+                const presents = empLogs.filter(l => l.attendance_status === 'present').length;
+                const absents = empLogs.filter(l => l.attendance_status === 'absent').length;
+                const lates = empLogs.filter(l => l.attendance_status === 'late').length;
+
+                const year = 2026, month = 4; // May 2026
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDay = new Date(year, month, 1).getDay();
+                const days = [];
+                for (let i = 0; i < firstDay; i++) days.push(null);
+                for (let i = 1; i <= daysInMonth; i++) days.push(i);
+                const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '540px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>📅 Attendance History Calendar</h3>
+                                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>{name} · May 2026</p>
+                                </div>
+                                <button onClick={() => setSelectedEmployeeHistory(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Summary metrics for employee */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                                {[
+                                    { label: 'Present Days', val: `${presents} days`, color: '#065F46', bg: '#D1FAE5' },
+                                    { label: 'Absent Days', val: `${absents} days`, color: '#991B1B', bg: '#FEE2E2' },
+                                    { label: 'Late Marks', val: `${lates} times`, color: '#92400E', bg: '#FEF3C7' }
+                                ].map((stat, idx) => (
+                                    <div key={idx} style={{ background: stat.bg, padding: '0.75rem', borderRadius: '12px', textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: stat.color, textTransform: 'uppercase' }}>{stat.label}</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: stat.color }}>{stat.val}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '8px' }}>
+                                {dayNames.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', padding: '4px 0' }}>{d}</div>)}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                                {days.map((day, idx) => {
+                                    if (!day) return <div key={idx} />;
+                                    const dateStr = `2026-05-${String(day).padStart(2,'0')}`;
+                                    const log = empLogs.find(l => l.attendance_date === dateStr);
+                                    const status = log ? log.attendance_status : 'none';
+                                    const bg = status === 'present' ? '#D1FAE5' : status === 'late' ? '#FEF3C7' : status === 'absent' ? '#FEE2E2' : '#F8FAFC';
+                                    const color = status === 'present' ? '#065F46' : status === 'late' ? '#92400E' : status === 'absent' ? '#991B1B' : '#94A3B8';
+                                    return (
+                                        <div 
+                                            key={day} 
+                                            onClick={() => setSelectedDateDetails(dateStr)}
+                                            style={{ background: bg, borderRadius: '10px', padding: '10px 4px', textAlign: 'center', border: '1px solid #E2E8F0', minHeight: '52px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', cursor: 'pointer', transition: 'transform 0.15s ease' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                                            title="Click to view detailed metrics for all staff"
+                                        >
+                                            <span style={{ fontWeight: '900', fontSize: '0.9rem', color }}>{day}</span>
+                                            {status !== 'none' && <span style={{ fontSize: '0.55rem', fontWeight: '800', color, textTransform: 'uppercase' }}>{status}</span>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Date Details Popup (Timesheet metrics for all staff for a date) */}
+            {selectedDateDetails && (() => {
+                const targetDate = selectedDateDetails;
+                const logsForDate = attendanceLogs.filter(l => l.attendance_date === targetDate);
+                
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '640px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '85vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>📊 Timesheet Metrics for {targetDate}</h3>
+                                    <p style={{ color: '#64748B', fontSize: '0.82rem', fontWeight: '600', margin: '4px 0 0 0' }}>Daily summary report for all company personnel</p>
+                                </div>
+                                <button onClick={() => setSelectedDateDetails(null)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '2px solid #F1F5F9' }}>
+                                            <th style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Staff Member</th>
+                                            <th style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Check-In / Out</th>
+                                            <th style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Duration</th>
+                                            <th style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Location</th>
+                                            <th style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dbEmployees.map(emp => {
+                                            const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+                                            const log = logsForDate.find(l => l.employee_name.toLowerCase() === name.toLowerCase());
+                                            
+                                            return (
+                                                <tr key={emp.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.75rem', fontWeight: '800', color: '#1E293B', fontSize: '0.82rem' }}>{name}</td>
+                                                    <td style={{ padding: '0.75rem', fontSize: '0.8rem' }}>
+                                                        {log ? `${log.check_in_time} - ${log.check_out_time}` : '—'}
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem', fontWeight: '750', fontSize: '0.8rem' }}>
+                                                        {log ? `${log.productive_hours} Hrs` : '—'}
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem', fontSize: '0.78rem', color: '#64748B' }}>
+                                                        {log ? (log.location_address || 'Main Office') : '—'}
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem' }}>
+                                                        <span style={{ 
+                                                            padding: '0.2rem 0.45rem', borderRadius: '6px',
+                                                            background: log ? (log.attendance_status === 'present' ? '#D1FAE5' : log.attendance_status === 'late' ? '#FEF3C7' : '#FEE2E2') : '#F1F5F9',
+                                                            color: log ? (log.attendance_status === 'present' ? '#065F46' : log.attendance_status === 'late' ? '#92400E' : '#991B1B') : '#64748B',
+                                                            fontWeight: '850', fontSize: '0.68rem', textTransform: 'uppercase'
+                                                        }}>
+                                                            {log ? log.attendance_status : 'absent'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };

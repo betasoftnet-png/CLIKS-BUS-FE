@@ -377,12 +377,10 @@ const BusinessStock = () => {
         { key: 'available_stock', label: 'Available Stock', placeholder: 'e.g. 80' },
         { key: 'damaged', label: 'Damaged / Expired', placeholder: 'e.g. 5' },
         { key: 'avg_cost', label: 'Avg Cost', placeholder: 'e.g. 500' },
-        { key: 'valuation', label: 'Total Valuation', placeholder: 'e.g. 50000' },
-        { key: 'alert_status', label: 'Alert Status', placeholder: 'e.g. Low' }
+        { key: 'valuation', label: 'Total Valuation', placeholder: 'e.g. 50000' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => {
-                                    const isLow = st.current_stock <= st.reorder_level;
                                     const valuation = st.current_stock * st.average_cost;
                                     return (
                                         <tr key={st.stock_id} onClick={() => setSelectedStock(st)} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'} onMouseLeave={e => e.currentTarget.style.background='white'}>
@@ -403,14 +401,6 @@ const BusinessStock = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(st.average_cost)}</td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(valuation)}</td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <span style={{ 
-                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
-                                                    background: isLow ? '#FEF2F2' : '#F0FDF4',
-                                                    color: isLow ? '#EF4444' : '#10B981',
-                                                    fontSize: '0.75rem', fontWeight: '800'
-                                                }}>{isLow ? 'REORDER LOW' : 'OPTIMAL'}</span>
-                                            </td>
                                         </tr>
                                     );
                                 })}

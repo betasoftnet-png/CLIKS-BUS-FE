@@ -16,8 +16,11 @@ import {
     FileText,
     Award,
     Heart,
-    Percent,
-    Lock
+    Lock,
+    Edit2,
+    Trash2,
+    Download,
+    History
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -589,92 +592,168 @@ const BusinessPayroll = () => {
             const deductions = rec.pf_deduction + rec.esi_deduction + rec.tds_deduction + rec.professional_tax + rec.loan_deduction;
             const netPay = gross - deductions;
             return (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '620px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>📄 Payslip: {rec.payslip_number}</h3>
-                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{rec.employee_name} · {rec.payroll_month}</p>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '640px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ECFDF5', color: '#064E3B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FileText size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#064E3B', margin: 0, letterSpacing: '-0.02em' }}>Payslip: {rec.payslip_number}</h3>
+                                    <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '4px 0 0 0', fontWeight: '600' }}>{rec.employee_name} · <span style={{ color: '#059669', fontWeight: '800' }}>{rec.payroll_month}</span></p>
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => { setEditPayrollForm({ ...rec }); setIsEditingPayroll(true); }} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer' }}>✏️ Edit</button>
-                                <button onClick={() => { if (window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }} style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer' }}>🗑 Delete</button>
-                                <button onClick={() => { setIsDetailModalOpen(false); setSelectedPayroll(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={18} /></button>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <button 
+                                    onClick={() => { setEditPayrollForm({ ...rec }); setIsEditingPayroll(true); }} 
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.background = '#F8FAFC'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'white'; }}
+                                >
+                                    <Edit2 size={13} /> Edit
+                                </button>
+                                <button 
+                                    onClick={() => { if (window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }} 
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+                                    onMouseLeave={e => e.currentTarget.style.background = '#FEF2F2'}
+                                >
+                                    <Trash2 size={13} /> Delete
+                                </button>
+                                <button 
+                                    onClick={() => { setIsDetailModalOpen(false); setSelectedPayroll(null); }} 
+                                    style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <X size={18} />
+                                </button>
                             </div>
                         </div>
 
                         {isEditingPayroll ? (
-                            <form onSubmit={(e) => { e.preventDefault(); updatePayrollMutation.mutate({ id: editPayrollForm.payroll_id, data: editPayrollForm }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <form onSubmit={(e) => { e.preventDefault(); updatePayrollMutation.mutate({ id: editPayrollForm.payroll_id, data: editPayrollForm }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                                     {[['basic_salary','Basic Salary'],['hra_amount','HRA'],['special_allowance','Special Allowance'],['bonus_amount','Bonus'],['overtime_pay','Overtime'],['pf_deduction','PF Deduction'],['esi_deduction','ESI Deduction'],['tds_deduction','TDS Deduction'],['professional_tax','Professional Tax'],['loan_deduction','Loan Deduction']].map(([key, label]) => (
                                         <div key={key}>
-                                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>{label}</label>
-                                            <input type="number" value={editPayrollForm[key] || 0} onChange={(e) => setEditPayrollForm(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>{label}</label>
+                                            <input type="number" value={editPayrollForm[key] || 0} onChange={(e) => setEditPayrollForm(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }} />
                                         </div>
                                     ))}
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                    <button type="button" onClick={() => setIsEditingPayroll(false)} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
-                                    <button type="submit" style={{ border: 'none', background: '#064E3B', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>Save Changes</button>
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                                    <button type="button" onClick={() => setIsEditingPayroll(false)} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.55rem 1.25rem', borderRadius: '10px', fontWeight: '750', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="submit" style={{ border: 'none', background: '#064E3B', color: 'white', padding: '0.55rem 1.25rem', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}>Save Changes</button>
                                 </div>
                             </form>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {/* Payslip Card */}
-                                <div style={{ background: '#F0FDF4', borderRadius: '16px', padding: '1.5rem', border: '1px solid #BBF7D0' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                                        <div><p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>BANK</p><p style={{ fontWeight: '800', color: '#0F172A', margin: 0 }}>{rec.bank_name}</p><p style={{ fontSize: '0.78rem', color: '#475569', fontFamily: 'monospace', margin: 0 }}>{rec.account_number}</p></div>
-                                        <div><p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>COMPLIANCE IDs</p><p style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: '#0F172A', margin: 0 }}>PAN: {rec.pan_number}</p><p style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: '#475569', margin: 0 }}>UAN: {rec.uan_number}</p></div>
+                                {/* Payslip Summary Card */}
+                                <div style={{ background: '#F4FBF7', borderRadius: '20px', padding: '1.5rem', border: '1px solid #D1FAE5' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#047857', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.02em' }}>BANK DISBURSEMENT</p>
+                                            <p style={{ fontWeight: '900', color: '#0F172A', margin: 0, fontSize: '0.95rem' }}>{rec.bank_name}</p>
+                                            <p style={{ fontSize: '0.78rem', color: '#475569', fontFamily: 'monospace', margin: 0, fontWeight: '600' }}>A/C: {rec.account_number}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#047857', margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.02em' }}>COMPLIANCE PORTAL IDs</p>
+                                            <p style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#0F172A', margin: 0, fontWeight: '700' }}>PAN: {rec.pan_number}</p>
+                                            <p style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#475569', margin: 0, fontWeight: '700' }}>UAN: {rec.uan_number}</p>
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', borderTop: '1px solid #BBF7D0', paddingTop: '1rem' }}>
-                                        {[['Gross Earnings', formatCurrency(gross), '#15803d'],['Total Deductions', `-${formatCurrency(deductions)}`, '#DC2626'],['Net Take Home', formatCurrency(netPay), '#0369A1']].map(([label, val, color]) => (
-                                            <div key={label} style={{ textAlign: 'center' }}>
-                                                <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', margin: '0 0 4px 0' }}>{label}</p>
-                                                <p style={{ fontSize: '1.2rem', fontWeight: '900', color, margin: 0 }}>{val}</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', borderTop: '1px solid #D1FAE5', paddingTop: '1.1rem' }}>
+                                        {[
+                                            { label: 'Gross Earnings', value: formatCurrency(gross), color: '#15803d', bg: '#E8F5E9' },
+                                            { label: 'Total Deductions', value: `-${formatCurrency(deductions)}`, color: '#DC2626', bg: '#FFEBEE' },
+                                            { label: 'Net Take Home', value: formatCurrency(netPay), color: '#0369A1', bg: '#E0F7FA' }
+                                        ].map((item, idx) => (
+                                            <div key={idx} style={{ textAlign: 'center', background: item.bg, padding: '0.6rem 0.4rem', borderRadius: '12px' }}>
+                                                <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 4px 0', textTransform: 'uppercase' }}>{item.label}</p>
+                                                <p style={{ fontSize: '1.15rem', fontWeight: '950', color: item.color, margin: 0, letterSpacing: '-0.02em' }}>{item.value}</p>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Earnings / Deductions breakdown */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem' }}>
-                                        <p style={{ fontWeight: '850', color: '#15803d', fontSize: '0.8rem', margin: '0 0 8px 0' }}>📈 Earnings Breakdown</p>
-                                        {[['Basic Salary', rec.basic_salary],['HRA Allowance', rec.hra_amount],['Special Allowance', rec.special_allowance],['Bonus / Incentive', rec.bonus_amount],['Overtime Pay', rec.overtime_pay]].map(([l, v]) => v > 0 && (
-                                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '4px 0', borderBottom: '1px solid #E2E8F0' }}><span style={{ color: '#475569' }}>{l}</span><span style={{ fontWeight: '800', color: '#0F172A' }}>{formatCurrency(v)}</span></div>
-                                        ))}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                    <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1.25rem', border: '1px solid #E2E8F0' }}>
+                                        <p style={{ fontWeight: '900', color: '#15803d', fontSize: '0.82rem', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                            <TrendingUp size={14} /> Earnings Breakdown
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                            {[
+                                                ['Basic Salary', rec.basic_salary],
+                                                ['HRA Allowance', rec.hra_amount],
+                                                ['Special Allowance', rec.special_allowance],
+                                                ['Bonus / Incentive', rec.bonus_amount],
+                                                ['Overtime Pay', rec.overtime_pay]
+                                            ].map(([l, v]) => v > 0 && (
+                                                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '4px 0', borderBottom: '1px dashed #E2E8F0' }}>
+                                                    <span style={{ color: '#475569', fontWeight: '600' }}>{l}</span>
+                                                    <span style={{ fontWeight: '800', color: '#0F172A' }}>{formatCurrency(v)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div style={{ background: '#FEF2F2', borderRadius: '12px', padding: '1rem' }}>
-                                        <p style={{ fontWeight: '850', color: '#DC2626', fontSize: '0.8rem', margin: '0 0 8px 0' }}>📉 Deductions Breakdown</p>
-                                        {[['EPF (12%)', rec.pf_deduction],['ESI', rec.esi_deduction],['TDS Income Tax', rec.tds_deduction],['Professional Tax', rec.professional_tax],['Loan EMI', rec.loan_deduction]].map(([l, v]) => v > 0 && (
-                                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '4px 0', borderBottom: '1px solid #FECACA' }}><span style={{ color: '#475569' }}>{l}</span><span style={{ fontWeight: '800', color: '#DC2626' }}>-{formatCurrency(v)}</span></div>
-                                        ))}
+                                    <div style={{ background: '#FEF2F2', borderRadius: '16px', padding: '1.25rem', border: '1px solid #FEE2E2' }}>
+                                        <p style={{ fontWeight: '900', color: '#DC2626', fontSize: '0.82rem', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                            <AlertTriangle size={14} /> Deductions Breakdown
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                            {[
+                                                ['EPF (12%)', rec.pf_deduction],
+                                                ['ESI', rec.esi_deduction],
+                                                ['TDS Income Tax', rec.tds_deduction],
+                                                ['Professional Tax', rec.professional_tax],
+                                                ['Loan EMI', rec.loan_deduction]
+                                            ].map(([l, v]) => v > 0 && (
+                                                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '4px 0', borderBottom: '1px dashed #FEE2E2' }}>
+                                                    <span style={{ color: '#475569', fontWeight: '600' }}>{l}</span>
+                                                    <span style={{ fontWeight: '800', color: '#DC2626' }}>-{formatCurrency(v)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* History Timeline */}
-                                <div>
-                                    <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: '0 0 12px 0' }}>🕐 Payroll History Timeline</p>
-                                    {payrollRecords.filter(r => r.employee_name === rec.employee_name).map((hr, idx) => {
-                                        const hGross = hr.basic_salary + hr.hra_amount + hr.special_allowance + hr.bonus_amount;
-                                        const hNet = hGross - hr.pf_deduction - hr.esi_deduction - hr.tds_deduction;
-                                        return (
-                                            <div key={hr.payroll_id} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: hr.payroll_status === 'paid' ? '#15803d' : '#D97706', flexShrink: 0, marginTop: '4px' }} />
-                                                    {idx < payrollRecords.filter(r => r.employee_name === rec.employee_name).length - 1 && <div style={{ width: '2px', flex: 1, background: '#E2E8F0', minHeight: '20px' }} />}
+                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
+                                    <p style={{ fontWeight: '900', color: '#0F172A', fontSize: '0.88rem', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <History size={15} style={{ color: '#64748B' }} /> Prior Months Ledger Payout Timeline
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {payrollRecords.filter(r => r.employee_name === rec.employee_name).map((hr, idx, arr) => {
+                                            const hGross = hr.basic_salary + hr.hra_amount + hr.special_allowance + hr.bonus_amount;
+                                            const hNet = hGross - hr.pf_deduction - hr.esi_deduction - hr.tds_deduction;
+                                            return (
+                                                <div key={hr.payroll_id} style={{ display: 'flex', gap: '12px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: hr.payroll_status === 'paid' ? '#059669' : '#D97706', flexShrink: 0, marginTop: '5px' }} />
+                                                        {idx < arr.length - 1 && <div style={{ width: '1.5px', flex: 1, background: '#E2E8F0', minHeight: '18px', marginTop: '4px' }} />}
+                                                    </div>
+                                                    <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <p style={{ margin: 0, fontWeight: '800', fontSize: '0.82rem', color: '#1E293B' }}>{hr.payroll_month}</p>
+                                                            <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Ref: {hr.payslip_number}</p>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <span style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.85rem' }}>{formatCurrency(hNet)}</span>
+                                                            <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: '800', color: hr.payroll_status === 'paid' ? '#059669' : '#D97706' }}>{hr.payroll_status.toUpperCase()}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <p style={{ margin: 0, fontWeight: '800', fontSize: '0.82rem', color: '#0F172A' }}>{hr.payroll_month} — {formatCurrency(hNet)} net</p>
-                                                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>{hr.payslip_number} · {hr.payroll_status.toUpperCase()}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                    {payrollRecords.filter(r => r.employee_name === rec.employee_name).length === 0 && <p style={{ color: '#94A3B8', fontSize: '0.8rem' }}>No prior history found.</p>}
+                                            );
+                                        })}
+                                        {payrollRecords.filter(r => r.employee_name === rec.employee_name).length === 0 && (
+                                            <p style={{ color: '#94A3B8', fontSize: '0.8rem', margin: 0 }}>No prior history timeline found.</p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Download Payslip */}
+                                {/* Download Payslip Button */}
                                 <button
                                     onClick={() => {
                                         const content = `PAYSLIP\n${rec.payslip_number} | ${rec.payroll_month}\nEmployee: ${rec.employee_name}\nBank: ${rec.bank_name} - ${rec.account_number}\nPAN: ${rec.pan_number} | UAN: ${rec.uan_number}\n\nGross: ${formatCurrency(gross)}\nDeductions: -${formatCurrency(deductions)}\nNET PAY: ${formatCurrency(netPay)}`;
@@ -683,9 +762,9 @@ const BusinessPayroll = () => {
                                         const a = document.createElement('a'); a.href = url; a.download = `${rec.payslip_number}.txt`; a.click();
                                         URL.revokeObjectURL(url);
                                     }}
-                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #0369A1, #1D4ED8)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}
+                                    style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 8px 16px rgba(5, 150, 105, 0.15)' }}
                                 >
-                                    ⬇️ Download Payslip (TXT)
+                                    <Download size={16} /> Download Official Payslip (TXT)
                                 </button>
                             </div>
                         )}
