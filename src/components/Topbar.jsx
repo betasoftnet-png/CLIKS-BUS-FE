@@ -173,7 +173,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                {/* Sleek Perfectly Centered Circular Points Widget */}
+                {/* Premium Glassmorphic & Dual-tone Golden Points Widget */}
                 {(() => {
                     const maxPts = 10000;
                     const pct = Math.min(rewardPoints / maxPts, 1);
@@ -195,16 +195,19 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             onClick={() => navigate('/payments/rewards')} 
                             title="Loyalty Rewards"
                         >
-                            <svg width="40" height="40" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)', pointerEvents: 'none' }}>
-                                <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="2" />
+                            <svg width="40" height="40" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)', pointerEvents: 'none', zIndex: 1 }}>
+                                <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
                                 <circle
                                     cx="20" cy="20" r={r}
                                     fill="none"
-                                    stroke="#FBBF24"
+                                    stroke="#F59E0B"
                                     strokeWidth="2"
                                     strokeDasharray={`${dash} ${circ}`}
                                     strokeLinecap="round"
-                                    style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                                    style={{ 
+                                        transition: 'stroke-dasharray 0.5s ease',
+                                        filter: 'drop-shadow(0 0 3px rgba(245, 158, 11, 0.4))'
+                                    }}
                                 />
                             </svg>
                             <button
@@ -215,30 +218,39 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     flexDirection: 'column',
-                                    width: '32px',
-                                    height: '32px',
+                                    width: '30px',
+                                    height: '30px',
                                     borderRadius: '50%',
-                                    background: 'transparent',
-                                    border: 'none',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    backdropFilter: 'blur(4px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    boxShadow: '0 4px 10px rgba(245, 158, 11, 0.1)',
                                     cursor: 'pointer',
-                                    transition: 'transform 0.2s ease',
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                                     outline: 'none',
                                     padding: 0,
                                     margin: 0,
                                     lineHeight: 1.0,
-                                    gap: '0px'
+                                    gap: '0px',
+                                    zIndex: 2
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'scale(1.08)';
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                    e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                                    e.currentTarget.style.boxShadow = '0 6px 15px rgba(245, 158, 11, 0.2)';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.transform = 'none';
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                                    e.currentTarget.style.boxShadow = '0 4px 10px rgba(245, 158, 11, 0.1)';
                                 }}
                             >
-                                <span style={{ fontSize: '11.5px', fontWeight: '900', color: '#FBBF24', letterSpacing: '-0.02em' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '900', color: '#FFFFFF', letterSpacing: '-0.01em', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
                                     {rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints}
                                 </span>
-                                <span style={{ fontSize: '6.5px', fontWeight: '850', color: '#FBBF24', opacity: 0.75, letterSpacing: '0.04em', marginTop: '-1px' }}>
+                                <span style={{ fontSize: '6.5px', fontWeight: '900', color: '#F59E0B', letterSpacing: '0.04em', marginTop: '0.5px' }}>
                                     PTS
                                 </span>
                             </button>
