@@ -173,38 +173,64 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                {/* Rounded Points Wallet Widget */}
-                <button
-                    onClick={() => navigate('/payments/wallet?tab=points')}
-                    title="Loyalty Points - Convert to wallet balance"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 14px',
-                        borderRadius: '999px',
-                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                        border: '1px solid rgba(251, 191, 36, 0.35)',
-                        color: '#FFFFFF',
-                        fontSize: '12.5px',
-                        fontWeight: '850',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
-                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                        outline: 'none'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-1px) scale(1.03)';
-                        e.currentTarget.style.boxShadow = '0 6px 15px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.boxShadow = '0 4px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)';
-                    }}
-                >
-                    <Coins size={14} style={{ flexShrink: 0 }} />
-                    <span style={{ whiteSpace: 'nowrap' }}>{rewardPoints.toLocaleString()} Pts</span>
-                </button>
+                {/* Points Wallet Widget with circular progress ring */}
+                {(() => {
+                    const maxPts = 10000;
+                    const pct = Math.min(rewardPoints / maxPts, 1);
+                    const r = 22;
+                    const circ = 2 * Math.PI * r;
+                    const dash = circ * pct;
+                    return (
+                        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => navigate('/payments/wallet?tab=points')} title="Loyalty Points">
+                            <svg width="52" height="52" style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
+                                <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+                                <circle
+                                    cx="26" cy="26" r={r}
+                                    fill="none"
+                                    stroke="#FBBF24"
+                                    strokeWidth="3"
+                                    strokeDasharray={`${dash} ${circ}`}
+                                    strokeLinecap="round"
+                                    style={{ transition: 'stroke-dasharray 0.5s ease', filter: 'drop-shadow(0 0 4px rgba(251,191,36,0.6))' }}
+                                />
+                            </svg>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); navigate('/payments/wallet?tab=points'); }}
+                                title="Loyalty Points - Convert to wallet balance"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '5px 10px',
+                                    borderRadius: '999px',
+                                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                    border: '1px solid rgba(251, 191, 36, 0.35)',
+                                    color: '#FFFFFF',
+                                    fontSize: '11px',
+                                    fontWeight: '850',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    outline: 'none',
+                                    width: '44px',
+                                    height: '44px',
+                                    justifyContent: 'center',
+                                    flexDirection: 'column',
+                                    lineHeight: 1.1
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'none';
+                                }}
+                            >
+                                <Coins size={13} style={{ flexShrink: 0 }} />
+                                <span style={{ whiteSpace: 'nowrap', fontSize: '10px', fontWeight: '900' }}>{rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints} pts</span>
+                            </button>
+                        </div>
+                    );
+                })()}
 
                 <CalcPopover />
                 <ProfileDropdown

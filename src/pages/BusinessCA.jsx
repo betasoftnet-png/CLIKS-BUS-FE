@@ -42,6 +42,12 @@ export default function BusinessCA() {
     const [colFiltersTasks, setColFiltersTasks] = useState({});
     const [colFiltersTeam, setColFiltersTeam] = useState({});
     const [colFiltersTeamReq, setColFiltersTeamReq] = useState({});
+    const [colFiltersReports, setColFiltersReports] = useState({});
+    const [colFiltersDocuments, setColFiltersDocuments] = useState({});
+    const [colFiltersTimesheet, setColFiltersTimesheet] = useState({});
+    // Workpaper per-client state
+    const [selectedWorkpaperClientId, setSelectedWorkpaperClientId] = useState(null);
+    const [clientWorkpaperChecks, setClientWorkpaperChecks] = useState({});
 
     const removeTeamMemberMutation = useMutation({
         mutationFn: (id) => caService.removeTeamMember(id),
@@ -202,7 +208,6 @@ export default function BusinessCA() {
         { id: 'home', label: 'Home', icon: Home },
         { id: 'clients', label: 'Clients', icon: User, badge: null },
         { id: 'requests', label: 'Client Requests', icon: HelpCircle, badge: null },
-        { id: 'insights', label: 'Insights', icon: TrendingUp },
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'team_requests', label: 'Team Requests', icon: UserCheck, badge: null },
@@ -1877,57 +1882,6 @@ export default function BusinessCA() {
                                 </Motion.div>
                             )}
 
-                            {/* 4. INSIGHTS TAB */}
-                            {personalTab === 'insights' && (
-                                <Motion.div key="insights" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                                        <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Client Filing Completion</span>
-                                            <div style={{ fontSize: '28px', fontWeight: '950', color: '#15803d' }}>84.5%</div>
-                                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>+4.2% since last week</span>
-                                        </div>
-                                        <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Average Turnaround Time</span>
-                                            <div style={{ fontSize: '28px', fontWeight: '950', color: '#0F172A' }}>4.2 Days</div>
-                                            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>Document request to audit</span>
-                                        </div>
-                                        <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Compliance Success Rate</span>
-                                            <div style={{ fontSize: '28px', fontWeight: '950', color: '#15803d' }}>98.2%</div>
-                                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>Filing season accuracy</span>
-                                        </div>
-                                    </div>
-
-                                    {/* CSS filings visual bar chart */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: '0 0 20px 0' }}>📈 Monthly Filing Lodgement Load (FY 2025-26)</h3>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            {[
-                                                { month: 'April', count: 12, max: 60, pct: '20%' },
-                                                { month: 'May', count: 28, max: 60, pct: '46%' },
-                                                { month: 'June', count: 45, max: 60, pct: '75%' },
-                                                { month: 'July (Projected Peak)', count: 58, max: 60, pct: '96%' }
-                                            ].map((bar, idx) => (
-                                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: '750', color: '#334155' }}>
-                                                        <span>{bar.month}</span>
-                                                        <span>{bar.count} Invoices &amp; Returns Filed</span>
-                                                    </div>
-                                                    <div style={{ width: '100%', height: '18px', background: '#F1F5F9', borderRadius: '9px', overflow: 'hidden' }}>
-                                                        <Motion.div 
-                                                            initial={{ width: 0 }} 
-                                                            animate={{ width: bar.pct }} 
-                                                            transition={{ duration: 0.8, delay: idx * 0.15 }}
-                                                            style={{ height: '100%', background: 'linear-gradient(90deg, #15803d 0%, #166534 100%)', borderRadius: '9px' }} 
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </Motion.div>
-                            )}
-
                             {/* 5. TASKS TAB */}
                             {personalTab === 'tasks' && (
                                 <Motion.div key="tasks" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -2334,17 +2288,15 @@ export default function BusinessCA() {
                                             <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: '0 0 16px 0' }}>📅 Practice Timesheet Sessions History</h3>
                                             <div style={{ overflowX: 'auto' }}>
                                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                                    <thead>
-                                                        <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontWeight: '800' }}>
-                                                            <th style={{ padding: '10px 8px' }}>Client</th>
-                                                            <th style={{ padding: '10px 8px' }}>Task description</th>
-                                                            <th style={{ padding: '10px 8px' }}>Date</th>
-                                                            <th style={{ padding: '10px 8px' }}>Duration</th>
-                                                            <th style={{ padding: '10px 8px', textAlign: 'right' }}>Billable</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {practiceTimesheets.map(session => (
+                                                     <FilterableTableHead columns={[
+                                                            { key: 'clientName', label: 'Client', placeholder: 'Client...' },
+                                                            { key: 'taskName', label: 'Task Description', placeholder: 'Task...' },
+                                                            { key: 'date', label: 'Date', placeholder: 'Date...' },
+                                                            { key: 'duration', label: 'Duration', placeholder: 'Duration...' },
+                                                            { key: 'billable', label: 'Billable', placeholder: 'Yes/No...' }
+                                                        ]} onFilterChange={setColFiltersTimesheet} />
+                                                     <tbody>
+                                                        {practiceTimesheets.filter(item => applyTableFilters(item, colFiltersTimesheet)).map(session => (
                                                             <tr key={session.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                                 <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{session.clientName}</td>
                                                                 <td style={{ padding: '12px 8px', fontWeight: '600', color: '#334155' }}>{session.taskName}</td>
@@ -2357,7 +2309,7 @@ export default function BusinessCA() {
                                                                 </td>
                                                             </tr>
                                                         ))}
-                                                    </tbody>
+                                                     </tbody>
                                                 </table>
                                             </div>
                                         </div>
@@ -2368,80 +2320,155 @@ export default function BusinessCA() {
                             {/* 7. WORKPAPER TAB */}
                             {personalTab === 'workpaper' && (
                                 <Motion.div key="workpaper" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
-                                        {/* Checklist item list */}
-                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <div>
-                                                <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Statutory Audit &amp; Verification checklists</h3>
-                                                <p style={{ fontSize: '12.5px', color: '#64748B', marginTop: '4px', fontWeight: '500', lineHeight: '1.4' }}>Operational checklist steps to verify compliance feeds before government tax portal synchronisation.</p>
+                                    {!selectedWorkpaperClientId ? (
+                                        /* ── Client List View ── */
+                                        <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                            <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper — Select a Client</h3>
+                                                    <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>Click on a client to view and manage their audit checklist.</p>
+                                                </div>
                                             </div>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-                                                {[
-                                                    { id: 'aisTds', label: '1. Reconciliation of Form 26AS & AIS/TIS TDS matching with client ledgers' },
-                                                    { id: 'gstItc', label: '2. GST Input Tax Credit (ITC) matching and inward invoice sync' },
-                                                    { id: 'invest80c', label: '3. Verification of Section 80C, 80D receipts & insurance tax exclusions' },
-                                                    { id: 'capGains', label: '4. Capital Gains Statement valuation matching (Mutual funds & equity logs)' },
-                                                    { id: 'presumptive44ad', label: '5. Presumptive Business verification under Sec 44AD turnover checks' }
-                                                ].map(item => (
-                                                    <label 
-                                                        key={item.id} 
-                                                        style={{ 
-                                                            display: 'flex', 
-                                                            alignItems: 'center', 
-                                                            gap: '12px', 
-                                                            padding: '16px', 
-                                                            borderRadius: '12px', 
-                                                            border: '1.5px solid', 
-                                                            borderColor: workpaperChecks[item.id] ? '#15803d' : '#E2E8F0',
-                                                            background: workpaperChecks[item.id] ? '#F0FDF4' : 'transparent',
-                                                            fontSize: '13px', 
-                                                            fontWeight: '750', 
-                                                            color: workpaperChecks[item.id] ? '#166534' : '#334155', 
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s ease' 
-                                                        }}
-                                                    >
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={workpaperChecks[item.id]} 
-                                                            onChange={() => setWorkpaperChecks({
-                                                                ...workpaperChecks,
-                                                                [item.id]: !workpaperChecks[item.id]
-                                                            })}
-                                                            style={{ accentColor: '#15803d', width: '16px', height: '16px' }}
-                                                        />
-                                                        <span>{item.label}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
+                                                        <th style={{ padding: '14px 20px' }}>Client Name</th>
+                                                        <th style={{ padding: '14px 20px' }}>Email</th>
+                                                        <th style={{ padding: '14px 20px' }}>Status</th>
+                                                        <th style={{ padding: '14px 20px' }}>Checklist Progress</th>
+                                                        <th style={{ padding: '14px 20px', textAlign: 'right' }}>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {allPracticeClients.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic', fontSize: '13px' }}>
+                                                                No clients found. Add clients first in the Clients tab.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {allPracticeClients.map(client => {
+                                                        const checks = clientWorkpaperChecks[client.id] || {};
+                                                        const totalItems = 5;
+                                                        const doneItems = Object.values(checks).filter(Boolean).length;
+                                                        const pct = Math.round((doneItems / totalItems) * 100);
+                                                        return (
+                                                            <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
+                                                                <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A' }}>{client.name}</td>
+                                                                <td style={{ padding: '16px 20px', color: '#475569', fontFamily: 'monospace', fontSize: '12.5px' }}>{client.email}</td>
+                                                                <td style={{ padding: '16px 20px' }}>
+                                                                    <span style={{ fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '20px', background: client.status === 'Active' ? '#DCFCE7' : '#FEF9C3', color: client.status === 'Active' ? '#15803d' : '#A16207' }}>
+                                                                        {client.status || 'Active'}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                        <div style={{ flex: 1, height: '6px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
+                                                                            <div style={{ width: `${pct}%`, height: '100%', background: pct === 100 ? '#15803d' : '#D97706', transition: 'width 0.3s ease', borderRadius: '3px' }} />
+                                                                        </div>
+                                                                        <span style={{ fontSize: '12px', fontWeight: '800', color: pct === 100 ? '#15803d' : '#475569', minWidth: '36px' }}>{pct}%</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setSelectedWorkpaperClientId(client.id)}
+                                                                        style={{ padding: '8px 14px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer' }}
+                                                                    >
+                                                                        Open Checklist →
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </div>
-
-                                        {/* Dynamic Completion Widget */}
-                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center', alignItems: 'center' }}>
-                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, width: '100%' }}>📊 Audit Completion Progress</h3>
-                                            
-                                            {(() => {
-                                                const total = Object.keys(workpaperChecks).length;
-                                                const checked = Object.values(workpaperChecks).filter(Boolean).length;
-                                                const percentage = Math.round((checked / total) * 100);
-                                                return (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center', width: '100%' }}>
-                                                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#F0FDF4', border: '6px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                    ) : (() => {
+                                        /* ── Per-Client Checklist View ── */
+                                        const selClient = allPracticeClients.find(c => c.id === selectedWorkpaperClientId);
+                                        const checks = clientWorkpaperChecks[selectedWorkpaperClientId] || {};
+                                        const checkItems = [
+                                            { id: 'aisTds', label: '1. Reconciliation of Form 26AS & AIS/TIS TDS matching with client ledgers' },
+                                            { id: 'gstItc', label: '2. GST Input Tax Credit (ITC) matching and inward invoice sync' },
+                                            { id: 'invest80c', label: '3. Verification of Section 80C, 80D receipts & insurance tax exclusions' },
+                                            { id: 'capGains', label: '4. Capital Gains Statement valuation matching (Mutual funds & equity logs)' },
+                                            { id: 'presumptive44ad', label: '5. Presumptive Business verification under Sec 44AD turnover checks' }
+                                        ];
+                                        const doneCount = checkItems.filter(i => checks[i.id]).length;
+                                        const percentage = Math.round((doneCount / checkItems.length) * 100);
+                                        return (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                {/* Back button + title */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedWorkpaperClientId(null)}
+                                                        style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: 'transparent', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                    >
+                                                        ← Back to Clients
+                                                    </button>
+                                                    <div>
+                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper: {selClient?.name}</h3>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit & Verification Checklist</p>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
+                                                    {/* Checklist */}
+                                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        {checkItems.map(item => (
+                                                            <label
+                                                                key={item.id}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '12px',
+                                                                    padding: '16px',
+                                                                    borderRadius: '12px',
+                                                                    border: '1.5px solid',
+                                                                    borderColor: checks[item.id] ? '#15803d' : '#E2E8F0',
+                                                                    background: checks[item.id] ? '#F0FDF4' : 'transparent',
+                                                                    fontSize: '13px',
+                                                                    fontWeight: '750',
+                                                                    color: checks[item.id] ? '#166534' : '#334155',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!checks[item.id]}
+                                                                    onChange={() => setClientWorkpaperChecks(prev => ({
+                                                                        ...prev,
+                                                                        [selectedWorkpaperClientId]: {
+                                                                            ...(prev[selectedWorkpaperClientId] || {}),
+                                                                            [item.id]: !checks[item.id]
+                                                                        }
+                                                                    }))}
+                                                                    style={{ accentColor: '#15803d', width: '16px', height: '16px' }}
+                                                                />
+                                                                <span>{item.label}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                    {/* Progress widget */}
+                                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center', alignItems: 'center' }}>
+                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, width: '100%' }}>📊 Audit Completion Progress</h3>
+                                                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#F0FDF4', border: '6px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                             <span style={{ fontSize: '24px', fontWeight: '950', color: '#15803d' }}>{percentage}%</span>
                                                         </div>
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                            <div style={{ fontSize: '13.5px', fontWeight: '850', color: '#0F172A' }}>{checked} of {total} Procedures Complete</div>
+                                                            <div style={{ fontSize: '13.5px', fontWeight: '850', color: '#0F172A' }}>{doneCount} of {checkItems.length} Procedures Complete</div>
                                                             <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>All steps must be checked before generating reports.</span>
                                                         </div>
                                                         <div style={{ width: '100%', height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' }}>
                                                             <div style={{ width: `${percentage}%`, height: '100%', background: '#15803d', transition: 'width 0.3s ease' }} />
                                                         </div>
                                                     </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </Motion.div>
                             )}
 
@@ -2543,17 +2570,15 @@ export default function BusinessCA() {
                                                 </h3>
                                                 <div style={{ overflowX: 'auto' }}>
                                                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                                        <thead>
-                                                            <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
-                                                                <th style={{ padding: '12px 8px' }}>File name</th>
-                                                                <th style={{ padding: '12px 8px' }}>Size</th>
-                                                                <th style={{ padding: '12px 8px' }}>Folder</th>
-                                                                <th style={{ padding: '12px 8px' }}>Date Added</th>
-                                                                <th style={{ padding: '12px 8px', textAlign: 'right' }}>Actions</th>
-                                                            </tr>
-                                                        </thead>
+                                                        <FilterableTableHead columns={[
+                                                            { key: 'name', label: 'File Name', placeholder: 'Search...' },
+                                                            { key: 'size', label: 'Size', placeholder: 'Size...' },
+                                                            { key: 'folderName', label: 'Folder', placeholder: 'Folder...' },
+                                                            { key: 'date', label: 'Date Added', placeholder: 'Date...' },
+                                                            { key: '_actions', label: 'Actions' }
+                                                        ]} onFilterChange={setColFiltersDocuments} />
                                                         <tbody>
-                                                            {practiceFiles.filter(f => activeDocFolder === 'All' || f.folderName === activeDocFolder).map(file => (
+                                                            {practiceFiles.filter(f => (activeDocFolder === 'All' || f.folderName === activeDocFolder) && applyTableFilters(f, colFiltersDocuments)).map(file => (
                                                                 <tr key={file.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px', color: '#334155' }}>
                                                                     <td style={{ padding: '14px 8px', fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                         <span>📄</span> <span>{file.name}</span>
@@ -2630,15 +2655,13 @@ export default function BusinessCA() {
                                         
                                         <div style={{ overflowX: 'auto' }}>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                                <thead>
-                                                    <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
-                                                        <th style={{ padding: '12px 8px' }}>Client taxpayer</th>
-                                                        <th style={{ padding: '12px 8px' }}>Filing Form Type</th>
-                                                        <th style={{ padding: '12px 8px' }}>Assessment Year</th>
-                                                        <th style={{ padding: '12px 8px' }}>Filing Season Status</th>
-                                                        <th style={{ padding: '12px 8px' }}>Exemption Status</th>
-                                                    </tr>
-                                                </thead>
+                                                <FilterableTableHead columns={[
+                                                    { key: 'name', label: 'Client Taxpayer', placeholder: 'Client...' },
+                                                    { key: 'formType', label: 'Filing Form Type', placeholder: 'Form...' },
+                                                    { key: 'assessmentYear', label: 'Assessment Year', placeholder: 'Year...' },
+                                                    { key: 'seasonStatus', label: 'Filing Season Status', placeholder: 'Status...' },
+                                                    { key: 'exemptionStatus', label: 'Exemption Status', placeholder: 'Exemption...' }
+                                                ]} onFilterChange={setColFiltersReports} />
                                                 <tbody>
                                                     {allPracticeClients.map((client, idx) => {
                                                         // Derive form type dynamically
@@ -2668,6 +2691,9 @@ export default function BusinessCA() {
                                                         if (clientStatus === 'Documents Awaiting' || clientStatus === 'Documents Pending') {
                                                             exemptionStatus = 'Awaiting Requisition';
                                                         }
+
+                                                        const rowData = { name: client.name, formType, assessmentYear: 'AY 2026-27', seasonStatus, exemptionStatus };
+                                                        if (!applyTableFilters(rowData, colFiltersReports)) return null;
 
                                                         return (
                                                             <tr key={client.id || idx} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px', color: '#334155' }}>

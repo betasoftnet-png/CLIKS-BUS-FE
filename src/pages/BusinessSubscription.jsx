@@ -24,11 +24,15 @@ const BusinessSubscription = () => {
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
     const [isProcessing, setIsProcessing] = useState(false);
+    const [firmMembersCount, setFirmMembersCount] = useState(5);
 
     const handleUpgrade = async (tier) => {
         if (tier.name === selectedTier) return;
         
-        const amt = tier.priceAnnually || tier.price;
+        let amt = tier.priceAnnually || tier.price;
+        if (tier.name === 'Fin-Pro Firm') {
+            amt = 1499 + Math.max(0, firmMembersCount - 5) * 299;
+        }
         
         try {
             setIsProcessing(true);
@@ -134,13 +138,14 @@ const BusinessSubscription = () => {
         ],
         ca: [
             {
-                name: 'FIN-PRO Standard',
-                priceAnnually: 4999,
-                originalPrice: 6999,
-                desc: 'Perfect for independent practitioners and small firms.',
+                name: 'Fin-Pro Solo',
+                price: 799,
+                originalPrice: 1199,
+                desc: 'Perfect for solo practitioners and independent auditors.',
                 icon: ShieldCheck,
                 color: '#1E3A8A',
-                badge: 'Essential',
+                badge: 'Solo',
+                period: 'month',
                 features: [
                     'Manage up to 25 Active Client Ledgers',
                     'Standard Multi-Client GST/ITR Reporting',
@@ -150,35 +155,20 @@ const BusinessSubscription = () => {
                 ]
             },
             {
-                name: 'FIN-PRO Premium',
-                priceAnnually: 9999,
-                originalPrice: 14999,
-                desc: 'Designed for high-growth firms and collaborative auditing teams.',
+                name: 'Fin-Pro Firm',
+                price: 1499,
+                originalPrice: 2499,
+                desc: 'Designed for scaling accounting firms and collaborative auditing teams.',
                 icon: Zap,
                 color: '#2563EB',
-                badge: 'Most Recommended',
-                features: [
-                    'Manage up to 100 Active Client Ledgers',
-                    'Custom White-Labeled Client Report Generation',
-                    'Multi-User Staff Logins (up to 5 members)',
-                    'Automated Client Payment & Reminder Rules',
-                    'Live Chat Support & Direct API Sandbox Access'
-                ]
-            },
-            {
-                name: 'FIN-PRO Enterprise',
-                priceAnnually: 19999,
-                originalPrice: 29999,
-                desc: 'Complete control and white-labeling for national firms.',
-                icon: Crown,
-                color: '#1D4ED8',
-                badge: 'All Inclusive',
+                badge: 'Firm Upgrade',
+                period: 'month',
                 features: [
                     'Manage Unlimited Active Client Ledgers',
-                    'Fully Branded Dedicated Client Portal System',
-                    'Uncapped Staff Logins with Advanced Permissions',
-                    'Dedicated Account Executive & API/ERP Sync',
-                    'Priority 24/7/365 Direct VIP Phone Support'
+                    'Custom White-Labeled Client Report Generation',
+                    '5 Team Members included by default',
+                    'Additional members at just ₹299/month each',
+                    'Live Chat Support & Direct API Sandbox Access'
                 ]
             }
         ],
@@ -282,7 +272,7 @@ const BusinessSubscription = () => {
             desc = `Your workspace is configured with high-performance ERP pipelines under the Business ${foundTier.name} tier.`;
             gradient = 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)';
         } else if (foundTier.category === 'ca') {
-            desc = `Your workspace is configured with comprehensive auditor pipelines under the FIN-PRO ${foundTier.name} tier.`;
+            desc = `Your workspace is configured under the FIN-PRO ${foundTier.name} tier.`;
             gradient = 'linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%)';
         } else if (foundTier.category === 'betaclub_investor') {
             desc = `Your workspace is configured with exclusive investor network pipelines under the Beta Club (Investor) ${foundTier.name} tier.`;
@@ -292,8 +282,13 @@ const BusinessSubscription = () => {
             gradient = 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)';
         }
         
+        let calculatedPrice = foundTier.priceAnnually || foundTier.price;
+        if (foundTier.name === 'Fin-Pro Firm') {
+            calculatedPrice = 1499 + Math.max(0, firmMembersCount - 5) * 299;
+        }
+        
         return {
-            price: foundTier.priceAnnually || foundTier.price,
+            price: calculatedPrice,
             desc: desc,
             gradient: gradient,
             color: foundTier.color
@@ -420,7 +415,7 @@ const BusinessSubscription = () => {
                 }}>
                     {[
                         { id: 'business', label: 'Business', icon: ShieldCheck, color: '#1B6B3A' },
-                        { id: 'ca', label: 'FIN-PRO (Auditor)', icon: Award, color: '#1E3A8A' },
+                        { id: 'ca', label: 'FIN-PRO', icon: Award, color: '#1E3A8A' },
                         { id: 'betaclub', label: 'Beta Club', icon: Crown, color: '#7C3AED' }
                     ].map((tab) => {
                         const isTabActive = activeCategory === tab.id;
@@ -512,9 +507,18 @@ const BusinessSubscription = () => {
 
             {/* Pricing Tiers Selection Grid */}
             <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>Upgrade Workspace Tier</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: `repeat(${allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].length}, minmax(0, 1fr))`, 
+                gap: '1.5rem', 
+                marginBottom: '3rem',
+                maxWidth: allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].length < 3 ? '800px' : 'none',
+                margin: '0 auto 3rem auto'
+            }}>
                 {allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].map((tier, idx) => {
-                    const price = tier.priceAnnually || tier.price;
+                    const isFirmPlan = tier.name === 'Fin-Pro Firm';
+                    const price = isFirmPlan ? (1499 + Math.max(0, firmMembersCount - 5) * 299) : (tier.priceAnnually || tier.price);
+                    const originalPrice = isFirmPlan ? (2499 + Math.max(0, firmMembersCount - 5) * 499) : tier.originalPrice;
                     const isActive = tier.name === selectedTier;
                     const TierIcon = tier.icon;
                     return (
@@ -546,8 +550,8 @@ const BusinessSubscription = () => {
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '1.25rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>{formatCurrency(tier.originalPrice)}</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save {formatCurrency(tier.originalPrice - price)}</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>{formatCurrency(originalPrice)}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save {formatCurrency(originalPrice - price)}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
                                     <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>{formatCurrency(price)}</span>
@@ -563,6 +567,69 @@ const BusinessSubscription = () => {
                                     </span>
                                 )}
                             </div>
+
+                            {isFirmPlan && (
+                                <div style={{ 
+                                    margin: '0 0 1.25rem 0', 
+                                    padding: '0.75rem 1rem', 
+                                    background: '#F8FAFC', 
+                                    borderRadius: '16px', 
+                                    border: '1px solid #E2E8F0',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.35rem'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>Total Team Members:</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFirmMembersCount(prev => Math.max(1, prev - 1));
+                                                }}
+                                                style={{ 
+                                                    width: '24px', 
+                                                    height: '24px', 
+                                                    borderRadius: '50%', 
+                                                    border: '1px solid #CBD5E1', 
+                                                    background: 'white', 
+                                                    fontWeight: '800', 
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >-</button>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', minWidth: '16px', textAlign: 'center' }}>{firmMembersCount}</span>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFirmMembersCount(prev => prev + 1);
+                                                }}
+                                                style={{ 
+                                                    width: '24px', 
+                                                    height: '24px', 
+                                                    borderRadius: '50%', 
+                                                    border: '1px solid #CBD5E1', 
+                                                    background: 'white', 
+                                                    fontWeight: '800', 
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >+</button>
+                                        </div>
+                                    </div>
+                                    {firmMembersCount > 5 && (
+                                        <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#2563EB', textAlign: 'right' }}>
+                                            +{firmMembersCount - 5} extra members (₹299/mo each)
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <button 
                                 className="upgrade-btn"

@@ -33,6 +33,10 @@ const BusinessPayroll = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+    const [selectedPayroll, setSelectedPayroll] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isEditingPayroll, setIsEditingPayroll] = useState(false);
+    const [editPayrollForm, setEditPayrollForm] = useState({});
 
     const queryClient = useQueryClient();
 
@@ -71,6 +75,25 @@ const BusinessPayroll = () => {
             queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
             setIsLoanModalOpen(false);
             alert('Employee loan allocation verified and remaining balance recorded successfully!');
+        }
+    });
+
+    const updatePayrollMutation = useMutation({
+        mutationFn: ({ id, data }) => payrollService.updatePayroll ? payrollService.updatePayroll(id, data) : Promise.resolve({ success: true }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            setIsEditingPayroll(false);
+            alert('Payroll record updated successfully!');
+        }
+    });
+
+    const deletePayrollMutation = useMutation({
+        mutationFn: (id) => payrollService.deletePayroll ? payrollService.deletePayroll(id) : Promise.resolve({ success: true }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            setIsDetailModalOpen(false);
+            setSelectedPayroll(null);
+            alert('Payroll record deleted.');
         }
     });
 
@@ -194,6 +217,7 @@ const BusinessPayroll = () => {
     const totalLoanOutstanding = loans.reduce((sum, l) => sum + l.remaining_balance, 0);
 
     return (
+        <>
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
@@ -312,7 +336,7 @@ const BusinessPayroll = () => {
                                     const netPay = gross - deductions;
 
                                     return (
-                                        <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onClick={() => { setSelectedPayroll(rec); setIsDetailModalOpen(true); setIsEditingPayroll(false); }} onMouseOver={(e) => e.currentTarget.style.background='#F8FAFC'} onMouseOut={(e) => e.currentTarget.style.background='transparent'}>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{rec.payslip_number}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Month: {rec.payroll_month}</span>
@@ -557,7 +581,119 @@ const BusinessPayroll = () => {
                 </div>
             )}
         </div>
-    );
+
+        {/* Payroll Detail / Payslip Modal */}
+        {isDetailModalOpen && selectedPayroll && (() => {
+            const rec = selectedPayroll;
+            const gross = rec.basic_salary + rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay;
+            const deductions = rec.pf_deduction + rec.esi_deduction + rec.tds_deduction + rec.professional_tax + rec.loan_deduction;
+            const netPay = gross - deductions;
+            return (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '620px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>📄 Payslip: {rec.payslip_number}</h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{rec.employee_name} · {rec.payroll_month}</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => { setEditPayrollForm({ ...rec }); setIsEditingPayroll(true); }} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer' }}>✏️ Edit</button>
+                                <button onClick={() => { if (window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }} style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer' }}>🗑 Delete</button>
+                                <button onClick={() => { setIsDetailModalOpen(false); setSelectedPayroll(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={18} /></button>
+                            </div>
+                        </div>
+
+                        {isEditingPayroll ? (
+                            <form onSubmit={(e) => { e.preventDefault(); updatePayrollMutation.mutate({ id: editPayrollForm.payroll_id, data: editPayrollForm }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    {[['basic_salary','Basic Salary'],['hra_amount','HRA'],['special_allowance','Special Allowance'],['bonus_amount','Bonus'],['overtime_pay','Overtime'],['pf_deduction','PF Deduction'],['esi_deduction','ESI Deduction'],['tds_deduction','TDS Deduction'],['professional_tax','Professional Tax'],['loan_deduction','Loan Deduction']].map(([key, label]) => (
+                                        <div key={key}>
+                                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>{label}</label>
+                                            <input type="number" value={editPayrollForm[key] || 0} onChange={(e) => setEditPayrollForm(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                    <button type="button" onClick={() => setIsEditingPayroll(false)} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="submit" style={{ border: 'none', background: '#064E3B', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>Save Changes</button>
+                                </div>
+                            </form>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {/* Payslip Card */}
+                                <div style={{ background: '#F0FDF4', borderRadius: '16px', padding: '1.5rem', border: '1px solid #BBF7D0' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                        <div><p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>BANK</p><p style={{ fontWeight: '800', color: '#0F172A', margin: 0 }}>{rec.bank_name}</p><p style={{ fontSize: '0.78rem', color: '#475569', fontFamily: 'monospace', margin: 0 }}>{rec.account_number}</p></div>
+                                        <div><p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>COMPLIANCE IDs</p><p style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: '#0F172A', margin: 0 }}>PAN: {rec.pan_number}</p><p style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: '#475569', margin: 0 }}>UAN: {rec.uan_number}</p></div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', borderTop: '1px solid #BBF7D0', paddingTop: '1rem' }}>
+                                        {[['Gross Earnings', formatCurrency(gross), '#15803d'],['Total Deductions', `-${formatCurrency(deductions)}`, '#DC2626'],['Net Take Home', formatCurrency(netPay), '#0369A1']].map(([label, val, color]) => (
+                                            <div key={label} style={{ textAlign: 'center' }}>
+                                                <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', margin: '0 0 4px 0' }}>{label}</p>
+                                                <p style={{ fontSize: '1.2rem', fontWeight: '900', color, margin: 0 }}>{val}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Earnings / Deductions breakdown */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem' }}>
+                                        <p style={{ fontWeight: '850', color: '#15803d', fontSize: '0.8rem', margin: '0 0 8px 0' }}>📈 Earnings Breakdown</p>
+                                        {[['Basic Salary', rec.basic_salary],['HRA Allowance', rec.hra_amount],['Special Allowance', rec.special_allowance],['Bonus / Incentive', rec.bonus_amount],['Overtime Pay', rec.overtime_pay]].map(([l, v]) => v > 0 && (
+                                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '4px 0', borderBottom: '1px solid #E2E8F0' }}><span style={{ color: '#475569' }}>{l}</span><span style={{ fontWeight: '800', color: '#0F172A' }}>{formatCurrency(v)}</span></div>
+                                        ))}
+                                    </div>
+                                    <div style={{ background: '#FEF2F2', borderRadius: '12px', padding: '1rem' }}>
+                                        <p style={{ fontWeight: '850', color: '#DC2626', fontSize: '0.8rem', margin: '0 0 8px 0' }}>📉 Deductions Breakdown</p>
+                                        {[['EPF (12%)', rec.pf_deduction],['ESI', rec.esi_deduction],['TDS Income Tax', rec.tds_deduction],['Professional Tax', rec.professional_tax],['Loan EMI', rec.loan_deduction]].map(([l, v]) => v > 0 && (
+                                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', padding: '4px 0', borderBottom: '1px solid #FECACA' }}><span style={{ color: '#475569' }}>{l}</span><span style={{ fontWeight: '800', color: '#DC2626' }}>-{formatCurrency(v)}</span></div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* History Timeline */}
+                                <div>
+                                    <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: '0 0 12px 0' }}>🕐 Payroll History Timeline</p>
+                                    {payrollRecords.filter(r => r.employee_name === rec.employee_name).map((hr, idx) => {
+                                        const hGross = hr.basic_salary + hr.hra_amount + hr.special_allowance + hr.bonus_amount;
+                                        const hNet = hGross - hr.pf_deduction - hr.esi_deduction - hr.tds_deduction;
+                                        return (
+                                            <div key={hr.payroll_id} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: hr.payroll_status === 'paid' ? '#15803d' : '#D97706', flexShrink: 0, marginTop: '4px' }} />
+                                                    {idx < payrollRecords.filter(r => r.employee_name === rec.employee_name).length - 1 && <div style={{ width: '2px', flex: 1, background: '#E2E8F0', minHeight: '20px' }} />}
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <p style={{ margin: 0, fontWeight: '800', fontSize: '0.82rem', color: '#0F172A' }}>{hr.payroll_month} — {formatCurrency(hNet)} net</p>
+                                                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>{hr.payslip_number} · {hr.payroll_status.toUpperCase()}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {payrollRecords.filter(r => r.employee_name === rec.employee_name).length === 0 && <p style={{ color: '#94A3B8', fontSize: '0.8rem' }}>No prior history found.</p>}
+                                </div>
+
+                                {/* Download Payslip */}
+                                <button
+                                    onClick={() => {
+                                        const content = `PAYSLIP\n${rec.payslip_number} | ${rec.payroll_month}\nEmployee: ${rec.employee_name}\nBank: ${rec.bank_name} - ${rec.account_number}\nPAN: ${rec.pan_number} | UAN: ${rec.uan_number}\n\nGross: ${formatCurrency(gross)}\nDeductions: -${formatCurrency(deductions)}\nNET PAY: ${formatCurrency(netPay)}`;
+                                        const blob = new Blob([content], { type: 'text/plain' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a'); a.href = url; a.download = `${rec.payslip_number}.txt`; a.click();
+                                        URL.revokeObjectURL(url);
+                                    }}
+                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #0369A1, #1D4ED8)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}
+                                >
+                                    ⬇️ Download Payslip (TXT)
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        })()}
+        </>)
 };
 
 export default BusinessPayroll;

@@ -316,7 +316,8 @@ const BusinessAttendance = () => {
                     { id: 'daily', label: 'Daily Timesheet logs', icon: Clock, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
                     { id: 'shifts', label: 'Shift Configurations', icon: Calendar, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
                     { id: 'geo', label: 'GPS Location Fencing', icon: MapPin, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
-                    { id: 'corrections', label: 'Correction Verifications', icon: RefreshCw, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
+                    { id: 'corrections', label: 'Correction Verifications', icon: RefreshCw, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
+                    { id: 'calendar', label: 'Calendar View', icon: Calendar, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' }
                 ].map(tab => (
                     <button 
                         key={tab.id}
@@ -551,6 +552,49 @@ const BusinessAttendance = () => {
                     </table>
                 </div>
             )}
+
+            {/* Tab 5: Calendar View */}
+            {activeTab === 'calendar' && (() => {
+                const year = 2026, month = 4; // May 2026 (0-indexed)
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDay = new Date(year, month, 1).getDay();
+                const days = [];
+                for (let i = 0; i < firstDay; i++) days.push(null);
+                for (let i = 1; i <= daysInMonth; i++) days.push(i);
+                const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                return (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Monthly Attendance Calendar — May 2026</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '8px' }}>
+                            {dayNames.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', padding: '8px 0' }}>{d}</div>)}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                            {days.map((day, idx) => {
+                                if (!day) return <div key={idx} />;
+                                const dateStr = `2026-05-${String(day).padStart(2,'0')}`;
+                                const logs = attendanceLogs.filter(l => l.attendance_date === dateStr);
+                                const status = logs.length > 0 ? (logs[0].attendance_status === 'present' ? 'present' : logs[0].attendance_status === 'late' ? 'late' : 'absent') : 'none';
+                                const bg = status === 'present' ? '#D1FAE5' : status === 'late' ? '#FEF3C7' : status === 'absent' ? '#FEE2E2' : '#F8FAFC';
+                                const color = status === 'present' ? '#065F46' : status === 'late' ? '#92400E' : status === 'absent' ? '#991B1B' : '#94A3B8';
+                                return (
+                                    <div key={day} style={{ background: bg, borderRadius: '10px', padding: '12px 8px', textAlign: 'center', border: '1px solid #E2E8F0', minHeight: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                        <span style={{ fontWeight: '900', fontSize: '1rem', color }}>{day}</span>
+                                        {status !== 'none' && <span style={{ fontSize: '0.6rem', fontWeight: '800', color, textTransform: 'uppercase' }}>{status}</span>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'center' }}>
+                            {[['#D1FAE5','#065F46','Present'],['#FEF3C7','#92400E','Late'],['#FEE2E2','#991B1B','Absent'],['#F8FAFC','#94A3B8','No Data']].map(([bg, color, label]) => (
+                                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ width: '14px', height: '14px', borderRadius: '4px', background: bg, border: '1px solid #E2E8F0' }} />
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>{label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
             </div>
             {/* Manual Punch Entry Modal */}
             {isPunchModalOpen && (

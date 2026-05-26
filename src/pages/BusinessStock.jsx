@@ -38,6 +38,7 @@ const BusinessStock = () => {
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedHistoryProductId, setSelectedHistoryProductId] = useState('');
+    const [selectedStock, setSelectedStock] = useState(null);
 
     // Fetch Live Stocks
     const { data: dbStocks = [] } = useQuery({
@@ -384,7 +385,7 @@ const BusinessStock = () => {
                                     const isLow = st.current_stock <= st.reorder_level;
                                     const valuation = st.current_stock * st.average_cost;
                                     return (
-                                        <tr key={st.stock_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <tr key={st.stock_id} onClick={() => setSelectedStock(st)} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'} onMouseLeave={e => e.currentTarget.style.background='white'}>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.95rem' }}>{st.product_name}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Product ID: {st.product_id}</span>
@@ -631,6 +632,69 @@ const BusinessStock = () => {
                                 Initiate Transfer Release
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Stock Item Detail Popup */}
+            {selectedStock && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Stock Item Details</h3>
+                            <button onClick={() => setSelectedStock(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        {/* Product Info */}
+                        <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                            <p style={{ fontWeight: '900', fontSize: '1.05rem', color: '#1E293B', marginBottom: '0.4rem' }}>{selectedStock.product_name}</p>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem' }}>SKU: {selectedStock.product_id} &nbsp;|&nbsp; Location: {selectedStock.warehouse_name} ({selectedStock.rack_number})</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div style={{ background: 'white', borderRadius: '12px', padding: '0.85rem', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <p style={{ fontSize: '1.5rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>{selectedStock.current_stock}</p>
+                                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', margin: 0 }}>CURRENT QTY (pcs)</p>
+                                </div>
+                                <div style={{ background: 'white', borderRadius: '12px', padding: '0.85rem', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <p style={{ fontSize: '1.5rem', fontWeight: '900', color: '#10B981', margin: 0 }}>{formatCurrency(selectedStock.average_cost)}</p>
+                                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', margin: 0 }}>UNIT PRICE</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Mock History Timeline */}
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <p style={{ fontSize: '0.8rem', fontWeight: '900', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>📋 Movement History</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {[
+                                    { icon: '🟢', label: 'Last Restock', detail: `+${Math.max(10, selectedStock.current_stock)} pcs received`, date: '2026-05-20', color: '#ECFDF5', border: '#BBF7D0' },
+                                    { icon: '🔴', label: 'Last Sale / Dispatch', detail: `-${Math.max(2, Math.round(selectedStock.current_stock * 0.1))} pcs dispatched`, date: '2026-05-22', color: '#FEF2F2', border: '#FECACA' },
+                                    { icon: '🔵', label: 'Stock Adjustment', detail: 'Physical audit reconciliation', date: '2026-05-18', color: '#EFF6FF', border: '#BFDBFE' },
+                                    { icon: '🟡', label: 'Transfer In-Transit', detail: `${selectedStock.in_transit_stock || 0} pcs en-route`, date: '2026-05-24', color: '#FFFBEB', border: '#FDE68A' },
+                                    { icon: '⚪', label: 'Current Stock Level', detail: `${selectedStock.current_stock} pcs on hand`, date: 'Today', color: '#F8FAFC', border: '#E2E8F0' }
+                                ].map((entry, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: entry.color, border: `1px solid ${entry.border}`, borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
+                                        <span style={{ fontSize: '1rem' }}>{entry.icon}</span>
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontWeight: '800', fontSize: '0.8rem', color: '#1E293B', margin: 0 }}>{entry.label}</p>
+                                            <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>{entry.detail}</p>
+                                        </div>
+                                        <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '700' }}>{entry.date}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Edit Quantity Button */}
+                        <button
+                            onClick={() => {
+                                setSelectedStock(null);
+                                setAdjustmentForm(prev => ({ ...prev, product_id: selectedStock.id.toString() }));
+                                setIsAdjustmentModalOpen(true);
+                            }}
+                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981, #047857)', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '0.9rem' }}
+                        >
+                            ✏️ Edit Quantity / Adjust Stock
+                        </button>
                     </div>
                 </div>
             )}
