@@ -200,14 +200,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '2px',
+                                    gap: '1px',
                                     padding: '0',
                                     borderRadius: '999px',
                                     background: 'transparent',
                                     border: 'none',
-                                    color: '#D97706',
-                                    fontSize: '11px',
-                                    fontWeight: '900',
                                     cursor: 'pointer',
                                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                                     outline: 'none',
@@ -215,19 +212,21 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     height: '44px',
                                     justifyContent: 'center',
                                     flexDirection: 'column',
-                                    lineHeight: 1.1
+                                    lineHeight: 1.0
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'scale(1.08)';
-                                    e.currentTarget.style.color = '#F59E0B';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.transform = 'none';
-                                    e.currentTarget.style.color = '#D97706';
                                 }}
                             >
-                                <Coins size={15} style={{ flexShrink: 0, color: '#F59E0B' }} />
-                                <span style={{ whiteSpace: 'nowrap', fontSize: '9.5px', fontWeight: '900' }}>{rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints} pts</span>
+                                <span style={{ fontSize: '13.5px', fontWeight: '900', color: '#FBBF24' }}>
+                                    {rewardPoints >= 1000 ? `${(rewardPoints/1000).toFixed(1)}K` : rewardPoints}
+                                </span>
+                                <span style={{ fontSize: '8px', fontWeight: '800', color: '#FBBF24', opacity: 0.8, letterSpacing: '0.02em' }}>
+                                    PTS
+                                </span>
                             </button>
                         </div>
                     );

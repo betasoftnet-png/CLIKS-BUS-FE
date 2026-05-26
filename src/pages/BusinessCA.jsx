@@ -1976,17 +1976,15 @@ export default function BusinessCA() {
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                            <thead>
-                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '12.5px', fontWeight: '800' }}>
-                                                    <th style={{ padding: '14px 20px' }}>Team Member</th>
-                                                    <th style={{ padding: '14px 20px' }}>Email Address</th>
-                                                    <th style={{ padding: '14px 20px' }}>Designation / Role</th>
-                                                    <th style={{ padding: '14px 20px' }}>Status</th>
-                                                    <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
-                                                </tr>
-                                            </thead>
+                                            <FilterableTableHead columns={[
+                                                { key: 'name', label: 'Team Member', placeholder: 'Search member...' },
+                                                { key: 'email', label: 'Email Address', placeholder: 'Search email...' },
+                                                { key: 'role', label: 'Designation / Role', placeholder: 'Search role...' },
+                                                { key: 'status', label: 'Status', placeholder: 'Search status...' },
+                                                { key: '_actions', label: 'Actions', noFilter: true }
+                                            ]} onFilterChange={setColFiltersTeam} />
                                             <tbody>
-                                                {teamMembers.map(member => {
+                                                {teamMembers.filter(member => applyTableFilters(member, colFiltersTeam)).map(member => {
                                                     const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase();
                                                     return (
                                                         <tr key={member.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
