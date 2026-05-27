@@ -48,6 +48,10 @@ export default function BusinessCA() {
     // Workpaper per-client state
     const [selectedWorkpaperClientId, setSelectedWorkpaperClientId] = useState(null);
     const [clientWorkpaperChecks, setClientWorkpaperChecks] = useState({});
+    const [clientChecklistItems, setClientChecklistItems] = useState({});
+    const [editingCheckItemId, setEditingCheckItemId] = useState(null);
+    const [editingCheckItemText, setEditingCheckItemText] = useState('');
+    const [newCheckItemText, setNewCheckItemText] = useState('');
 
     const removeTeamMemberMutation = useMutation({
         mutationFn: (id) => caService.removeTeamMember(id),
