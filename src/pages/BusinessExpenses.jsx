@@ -593,9 +593,6 @@ const BusinessExpenses = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Purpose Description</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Lodge Date</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Amount</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Verification Approval By</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Verify Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -606,24 +603,6 @@ const BusinessExpenses = () => {
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>{cl.travel_expense}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(cl.claim_amount)}</td>
-                                        <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontWeight: '700', fontSize: '0.8rem' }}>{cl.approval_by || 'N/A'}</td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ 
-                                                display: 'inline-flex', padding: '0.2rem 0.5rem', borderRadius: '6px',
-                                                background: cl.reimbursement_status === 'Approved' ? '#E6F4EA' : '#FEF3C7',
-                                                color: cl.reimbursement_status === 'Approved' ? '#137333' : '#B45309',
-                                                fontSize: '0.75rem', fontWeight: '800'
-                                            }}>{cl.reimbursement_status.toUpperCase()}</span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                            {cl.reimbursement_status !== 'Approved' && (
-                                                <button 
-                                                    onClick={() => handleApproveClaim(cl.claim_id)}
-                                                    className="crm-btn"
-                                                    style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', border: 'none', background: '#BE185D', color: 'white', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}
-                                                >Approve Claim</button>
-                                            )}
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
