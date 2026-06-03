@@ -605,6 +605,9 @@ export function CalcPopover() {
                             </div>
                         </div>
 
+                        {/* Middle Scrollable Section */}
+                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }} className="custom-scrollbar">
+
                         {/* Requirement 1 & 2: Toggle between Archive History Log or Live Interactive Tape */}
                         {showHistory ? (
                             <div style={{
@@ -632,10 +635,10 @@ export function CalcPopover() {
                                 </div>
                                 
                                 {calcHistory.length === 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '20px', textAlign: 'center' }}>
-                                        <History size={24} style={{ opacity: 0.4, marginBottom: '8px' }} />
-                                        <span style={{ fontSize: '12px', fontWeight: '750', color: '#64748B' }}>No archives available</span>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#94A3B8', fontWeight: '500', lineHeight: 1.3 }}>Type numbers and press the '=' key to log calculations into memory.</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '12px 10px', textAlign: 'center' }}>
+                                        <History size={20} style={{ opacity: 0.4, marginBottom: '6px' }} />
+                                        <span style={{ fontSize: '11px', fontWeight: '750', color: '#64748B' }}>No archives available</span>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '9px', color: '#94A3B8', fontWeight: '500', lineHeight: 1.2 }}>Type numbers and press '=' to save.</p>
                                     </div>
                                 ) : (
                                     calcHistory.map((hist) => (
@@ -717,9 +720,9 @@ export function CalcPopover() {
                                 {/* Requirement 1: The Live Tape History list */}
                                 <div style={styles.tapeArea} className="custom-scrollbar">
                                     {steps.length === 0 ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '20px' }}>
-                                            <RotateCcw size={24} style={{ opacity: 0.5, marginBottom: '8px' }} />
-                                            <span style={{ fontSize: '12px', fontWeight: '600' }}>Start typing below to record Tape</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#94A3B8', padding: '12px 10px' }}>
+                                            <RotateCcw size={20} style={{ opacity: 0.5, marginBottom: '6px' }} />
+                                            <span style={{ fontSize: '11px', fontWeight: '600' }}>Start typing to record Tape</span>
                                         </div>
                                     ) : (
                                         steps.map((step) => (
@@ -1019,6 +1022,7 @@ export function CalcPopover() {
                                 )}
                             </AnimatePresence>
                         </div>
+                        </div> {/* end of Middle Scrollable Section */}
 
                         {/* Scientific Mode Buttons */}
                         {sciMode && (
