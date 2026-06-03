@@ -439,7 +439,8 @@ export function CalcPopover() {
             right: 0,
             top: 'calc(100% + 12px)',
             zIndex: 2000,
-            width: '360px',
+            width: 'calc(100vw - 24px)',
+            maxWidth: '360px',
             maxHeight: 'min(580px, 80vh)',
             borderRadius: '24px',
             backgroundColor: '#FFFFFF',
@@ -933,10 +934,10 @@ export function CalcPopover() {
                                         <div style={{ display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                             {/* Table Header */}
                                             <div style={{ display: 'flex', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', padding: '6px 8px', fontSize: '10px', fontWeight: '800', color: '#64748B' }}>
-                                                <div style={{ flex: 1.8, textAlign: 'left' }}>Description</div>
-                                                <div style={{ flex: 1.1, textAlign: 'right', color: '#3B82F6' }}>Side A</div>
-                                                <div style={{ flex: 1.1, textAlign: 'right', color: '#8B5CF6' }}>Side B</div>
-                                                <div style={{ width: '24px' }}></div>
+                                                <div style={{ flex: 1.8, minWidth: 0, textAlign: 'left' }}>Description</div>
+                                                <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', color: '#3B82F6' }}>Side A</div>
+                                                <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', color: '#8B5CF6' }}>Side B</div>
+                                                <div style={{ width: '24px', flexShrink: 0 }}></div>
                                             </div>
 
                                             {/* Table Rows */}
@@ -947,10 +948,10 @@ export function CalcPopover() {
                                                     </div>
                                                 ) : cmpItems.map((item) => (
                                                     <div key={item.id} style={{ display: 'flex', padding: '5px 8px', borderBottom: '1px solid #F1F5F9', alignItems: 'center', fontSize: '11px', fontWeight: '600', color: '#334155' }}>
-                                                        <div style={{ flex: 1.8, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '4px' }}>{item.desc}</div>
-                                                        <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#3B82F6', fontWeight: '700' }}>₹{item.valA.toLocaleString('en-IN')}</div>
-                                                        <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#8B5CF6', fontWeight: '700' }}>₹{item.valB.toLocaleString('en-IN')}</div>
-                                                        <div style={{ width: '24px', display: 'flex', justifyContent: 'center' }}>
+                                                        <div style={{ flex: 1.8, minWidth: 0, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '4px' }}>{item.desc}</div>
+                                                        <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', fontFamily: 'monospace', color: '#3B82F6', fontWeight: '700' }}>₹{item.valA.toLocaleString('en-IN')}</div>
+                                                        <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', fontFamily: 'monospace', color: '#8B5CF6', fontWeight: '700' }}>₹{item.valB.toLocaleString('en-IN')}</div>
+                                                        <div style={{ width: '24px', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
                                                             <button onClick={() => cmpRemoveItem(item.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', fontSize: '12px', fontWeight: '800', padding: 0 }}
                                                                 onMouseOver={ev => ev.currentTarget.style.color = '#EF4444'}
                                                                 onMouseOut={ev => ev.currentTarget.style.color = '#CBD5E1'}
@@ -963,10 +964,10 @@ export function CalcPopover() {
                                             {/* Totals Row */}
                                             {cmpItems.length > 0 && (
                                                 <div style={{ display: 'flex', background: '#FAFAFE', borderTop: '1px dashed #E2E8F0', padding: '6px 8px', fontSize: '11px', fontWeight: '800', color: '#1E293B', alignItems: 'center' }}>
-                                                    <div style={{ flex: 1.8, textAlign: 'left', color: '#64748B', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total</div>
-                                                    <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#3B82F6', fontWeight: '900' }}>₹{leftTotal.toLocaleString('en-IN')}</div>
-                                                    <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#8B5CF6', fontWeight: '900' }}>₹{rightTotal.toLocaleString('en-IN')}</div>
-                                                    <div style={{ width: '24px' }}></div>
+                                                    <div style={{ flex: 1.8, minWidth: 0, textAlign: 'left', color: '#64748B', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total</div>
+                                                    <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', fontFamily: 'monospace', color: '#3B82F6', fontWeight: '900' }}>₹{leftTotal.toLocaleString('en-IN')}</div>
+                                                    <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', fontFamily: 'monospace', color: '#8B5CF6', fontWeight: '900' }}>₹{rightTotal.toLocaleString('en-IN')}</div>
+                                                    <div style={{ width: '24px', flexShrink: 0 }}></div>
                                                 </div>
                                             )}
 
@@ -978,7 +979,7 @@ export function CalcPopover() {
                                                     value={cmpInputDesc}
                                                     onChange={(ev) => setCmpInputDesc(ev.target.value)}
                                                     onKeyDown={cmpHandleKeyDown}
-                                                    style={{ flex: 1.8, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white' }}
+                                                    style={{ flex: 1.8, minWidth: 0, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white' }}
                                                 />
                                                 <input
                                                     type="number"
@@ -986,7 +987,7 @@ export function CalcPopover() {
                                                     value={cmpInputValA}
                                                     onChange={(ev) => setCmpInputValA(ev.target.value)}
                                                     onKeyDown={cmpHandleKeyDown}
-                                                    style={{ flex: 1.1, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white', textAlign: 'right' }}
+                                                    style={{ flex: 1.1, minWidth: 0, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white', textAlign: 'right' }}
                                                 />
                                                 <input
                                                     type="number"
@@ -994,7 +995,7 @@ export function CalcPopover() {
                                                     value={cmpInputValB}
                                                     onChange={(ev) => setCmpInputValB(ev.target.value)}
                                                     onKeyDown={cmpHandleKeyDown}
-                                                    style={{ flex: 1.1, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white', textAlign: 'right' }}
+                                                    style={{ flex: 1.1, minWidth: 0, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white', textAlign: 'right' }}
                                                 />
                                                 <button
                                                     onClick={cmpAddItem}
