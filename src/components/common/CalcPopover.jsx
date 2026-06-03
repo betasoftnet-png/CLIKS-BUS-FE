@@ -53,43 +53,55 @@ export function CalcPopover() {
 
     const [sciMode, setSciMode] = useState(false);
 
-    // Compare Mode dual-tape state
-    const [cmpLeft, setCmpLeft] = useState({ entries: [], input: '' });  // { entries: [{id, val}], input: string }
-    const [cmpRight, setCmpRight] = useState({ entries: [], input: '' });
+    // Compare Mode state: unified table with description, side A value, and side B value
+    const [cmpItems, setCmpItems] = useState([]); // Array of { id, desc, valA, valB }
+    const [cmpInputDesc, setCmpInputDesc] = useState("");
+    const [cmpInputValA, setCmpInputValA] = useState("");
+    const [cmpInputValB, setCmpInputValB] = useState("");
     const cmpIdRef = useRef(0);
 
-    // Helpers for compare tape
-    const cmpTotal = (entries) => entries.reduce((s, e) => s + e.val, 0);
-
-    const leftTotal = cmpTotal(cmpLeft.entries);
-    const rightTotal = cmpTotal(cmpRight.entries);
-    const hasCompareData = cmpLeft.entries.length > 0 || cmpRight.entries.length > 0;
+    const leftTotal = cmpItems.reduce((sum, item) => sum + (item.valA || 0), 0);
+    const rightTotal = cmpItems.reduce((sum, item) => sum + (item.valB || 0), 0);
+    const hasCompareData = cmpItems.length > 0;
     const compareDiff = Math.abs(leftTotal - rightTotal);
     const compareWinner = leftTotal > rightTotal ? 'A' : leftTotal < rightTotal ? 'B' : '=';
 
-    const cmpAddEntry = (side) => {
-        const setter = side === 'L' ? setCmpLeft : setCmpRight;
-        setter(prev => {
-            const val = parseFloat(prev.input);
-            if (isNaN(val)) return prev;
-            return { entries: [...prev.entries, { id: cmpIdRef.current++, val }], input: '' };
-        });
+    const cmpAddItem = () => {
+        const desc = cmpInputDesc.trim() || `Item ${cmpItems.length + 1}`;
+        const valA = parseFloat(cmpInputValA) || 0;
+        const valB = parseFloat(cmpInputValB) || 0;
+
+        setCmpItems(prev => [
+            ...prev,
+            {
+                id: String(cmpIdRef.current++),
+                desc,
+                valA,
+                valB
+            }
+        ]);
+
+        // Reset inputs
+        setCmpInputDesc("");
+        setCmpInputValA("");
+        setCmpInputValB("");
     };
 
-    const cmpRemoveEntry = (side, id) => {
-        const setter = side === 'L' ? setCmpLeft : setCmpRight;
-        setter(prev => ({ ...prev, entries: prev.entries.filter(e => e.id !== id) }));
+    const cmpRemoveItem = (id) => {
+        setCmpItems(prev => prev.filter(item => item.id !== id));
     };
 
-    const cmpClear = (side) => {
-        const setter = side === 'L' ? setCmpLeft : setCmpRight;
-        setter({ entries: [], input: '' });
+    const cmpClearAll = () => {
+        setCmpItems([]);
+        setCmpInputDesc("");
+        setCmpInputValA("");
+        setCmpInputValB("");
     };
 
-    const cmpHandleKeyDown = (e, side) => {
-        if (e.key === 'Enter' || e.key === '+') {
+    const cmpHandleKeyDown = (e) => {
+        if (e.key === 'Enter') {
             e.preventDefault();
-            cmpAddEntry(side);
+            cmpAddItem();
         }
     };
 
@@ -899,46 +911,96 @@ export function CalcPopover() {
                                     >
                                         {/* Panel header */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                            <span style={{ fontSize: '10px', fontWeight: '900', color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.8px' }}>⚖️ Side-by-Side Compare</span>
-                                            {hasCompareData && (
-                                                <span style={{
-                                                    fontSize: '10px', fontWeight: '900', padding: '2px 8px', borderRadius: '20px',
-                                                    background: compareWinner === '=' ? '#F1F5F9' : (compareWinner === 'A' ? 'linear-gradient(90deg,#ECFDF5,#D1FAE5)' : 'linear-gradient(90deg,#FEF2F2,#FEE2E2)'),
-                                                    color: compareWinner === '=' ? '#64748B' : (compareWinner === 'A' ? '#059669' : '#DC2626'),
-                                                    border: `1px solid ${compareWinner === '=' ? '#E2E8F0' : (compareWinner === 'A' ? '#A7F3D0' : '#FECACA')}`
-                                                }}>
-                                                    {compareWinner === '=' ? 'Tied ⚖️' : compareWinner === 'A' ? 'A Wins ▲' : 'B Wins ▲'}
-                                                </span>
-                                            )}
+                                            <span style={{ fontSize: '10px', fontWeight: '900', color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.8px' }}>⚖️ Price Comparison</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {hasCompareData && (
+                                                    <button onClick={cmpClearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: '#EF4444', fontWeight: '800', padding: '2px 4px', textTransform: 'uppercase' }}>CLEAR ALL</button>
+                                                )}
+                                                {hasCompareData && (
+                                                    <span style={{
+                                                        fontSize: '10px', fontWeight: '900', padding: '2px 8px', borderRadius: '20px',
+                                                        background: compareWinner === '=' ? '#F1F5F9' : (compareWinner === 'A' ? 'linear-gradient(90deg,#ECFDF5,#D1FAE5)' : 'linear-gradient(90deg,#FEF2F2,#FEE2E2)'),
+                                                        color: compareWinner === '=' ? '#64748B' : (compareWinner === 'A' ? '#059669' : '#DC2626'),
+                                                        border: `1px solid ${compareWinner === '=' ? '#E2E8F0' : (compareWinner === 'A' ? '#A7F3D0' : '#FECACA')}`
+                                                    }}>
+                                                        {compareWinner === '=' ? 'Tied ⚖️' : compareWinner === 'A' ? 'A Wins ▲' : 'B Wins ▲'}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        {/* Dual tape columns */}
-                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
-                                            <TapeCol
-                                                side="L"
-                                                state={cmpLeft}
-                                                setState={setCmpLeft}
-                                                onClear={cmpClear}
-                                                onRemoveEntry={cmpRemoveEntry}
-                                                onKeyDown={cmpHandleKeyDown}
-                                                onAddEntry={cmpAddEntry}
-                                            />
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', flexShrink: 0, minWidth: '20px' }}>
-                                                <div style={{ width: '1px', flex: 1, background: 'linear-gradient(180deg, transparent, #CBD5E1, transparent)' }} />
-                                                <span style={{ fontSize: '9px', fontWeight: '900', color: '#94A3B8', background: 'white', border: '1px solid #E2E8F0', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>VS</span>
-                                                <div style={{ width: '1px', flex: 1, background: 'linear-gradient(180deg, transparent, #CBD5E1, transparent)' }} />
+                                        {/* Comparison Table */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                            {/* Table Header */}
+                                            <div style={{ display: 'flex', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', padding: '6px 8px', fontSize: '10px', fontWeight: '800', color: '#64748B' }}>
+                                                <div style={{ flex: 1.8, textAlign: 'left' }}>Description</div>
+                                                <div style={{ flex: 1.1, textAlign: 'right', color: '#3B82F6' }}>Side A</div>
+                                                <div style={{ flex: 1.1, textAlign: 'right', color: '#8B5CF6' }}>Side B</div>
+                                                <div style={{ width: '24px' }}></div>
                                             </div>
 
-                                            <TapeCol
-                                                side="R"
-                                                state={cmpRight}
-                                                setState={setCmpRight}
-                                                onClear={cmpClear}
-                                                onRemoveEntry={cmpRemoveEntry}
-                                                onKeyDown={cmpHandleKeyDown}
-                                                onAddEntry={cmpAddEntry}
-                                            />
+                                            {/* Table Rows */}
+                                            <div style={{ maxHeight: '110px', overflowY: 'auto', padding: '2px 0' }} className="custom-scrollbar">
+                                                {cmpItems.length === 0 ? (
+                                                    <div style={{ fontSize: '10px', color: '#CBD5E1', fontStyle: 'italic', padding: '16px 0', textAlign: 'center' }}>
+                                                        No comparison items yet.<br/>Add description and values below.
+                                                    </div>
+                                                ) : cmpItems.map((item) => (
+                                                    <div key={item.id} style={{ display: 'flex', padding: '5px 8px', borderBottom: '1px solid #F1F5F9', alignItems: 'center', fontSize: '11px', fontWeight: '600', color: '#334155' }}>
+                                                        <div style={{ flex: 1.8, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '4px' }}>{item.desc}</div>
+                                                        <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#3B82F6', fontWeight: '700' }}>₹{item.valA.toLocaleString('en-IN')}</div>
+                                                        <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#8B5CF6', fontWeight: '700' }}>₹{item.valB.toLocaleString('en-IN')}</div>
+                                                        <div style={{ width: '24px', display: 'flex', justifyContent: 'center' }}>
+                                                            <button onClick={() => cmpRemoveItem(item.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', fontSize: '12px', fontWeight: '800', padding: 0 }}
+                                                                onMouseOver={ev => ev.currentTarget.style.color = '#EF4444'}
+                                                                onMouseOut={ev => ev.currentTarget.style.color = '#CBD5E1'}
+                                                            >×</button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Totals Row */}
+                                            {cmpItems.length > 0 && (
+                                                <div style={{ display: 'flex', background: '#FAFAFE', borderTop: '1px dashed #E2E8F0', padding: '6px 8px', fontSize: '11px', fontWeight: '800', color: '#1E293B', alignItems: 'center' }}>
+                                                    <div style={{ flex: 1.8, textAlign: 'left', color: '#64748B', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total</div>
+                                                    <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#3B82F6', fontWeight: '900' }}>₹{leftTotal.toLocaleString('en-IN')}</div>
+                                                    <div style={{ flex: 1.1, textAlign: 'right', fontFamily: 'monospace', color: '#8B5CF6', fontWeight: '900' }}>₹{rightTotal.toLocaleString('en-IN')}</div>
+                                                    <div style={{ width: '24px' }}></div>
+                                                </div>
+                                            )}
+
+                                            {/* Input row */}
+                                            <div style={{ display: 'flex', gap: '4px', padding: '6px 8px', borderTop: '1px solid #E2E8F0', background: '#F8FAFC', alignItems: 'center' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Description"
+                                                    value={cmpInputDesc}
+                                                    onChange={(ev) => setCmpInputDesc(ev.target.value)}
+                                                    onKeyDown={cmpHandleKeyDown}
+                                                    style={{ flex: 1.8, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white' }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Val A"
+                                                    value={cmpInputValA}
+                                                    onChange={(ev) => setCmpInputValA(ev.target.value)}
+                                                    onKeyDown={cmpHandleKeyDown}
+                                                    style={{ flex: 1.1, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white', textAlign: 'right' }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Val B"
+                                                    value={cmpInputValB}
+                                                    onChange={(ev) => setCmpInputValB(ev.target.value)}
+                                                    onKeyDown={cmpHandleKeyDown}
+                                                    style={{ flex: 1.1, padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '11px', fontWeight: '600', color: '#0F172A', outline: 'none', background: 'white', textAlign: 'right' }}
+                                                />
+                                                <button
+                                                    onClick={cmpAddItem}
+                                                    style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', color: 'white', border: 'none', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '950', fontSize: '14px', cursor: 'pointer', boxShadow: '0 1px 4px rgba(99,102,241,0.3)', flexShrink: 0 }}
+                                                >+</button>
+                                            </div>
                                         </div>
 
                                         {/* Summary pills */}
@@ -1065,59 +1127,3 @@ export function CalcPopover() {
     );
 }
 
-function TapeCol({ side, state, setState, onClear, onRemoveEntry, onKeyDown, onAddEntry }) {
-    const isLeft = side === 'L';
-    const accentColor = isLeft ? '#3B82F6' : '#8B5CF6';
-    const lightBg = isLeft ? '#EFF6FF' : '#F5F3FF';
-    const borderCol = isLeft ? '#BFDBFE' : '#DDD6FE';
-    return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '14px', border: `1.5px solid ${borderCol}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            {/* Column header */}
-            <div style={{ background: `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)`, borderBottom: `1px solid ${borderCol}`, padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', fontWeight: '900', color: accentColor, letterSpacing: '0.5px' }}>SIDE {isLeft ? 'A' : 'B'}</span>
-                <button onClick={() => onClear(side)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: '#94A3B8', fontWeight: '700', padding: 0 }}>CLEAR</button>
-            </div>
-
-            {/* Tape entries */}
-            <div style={{ minHeight: '48px', maxHeight: '80px', overflowY: 'auto', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                {state.entries.length === 0 ? (
-                    <div style={{ fontSize: '9px', color: '#CBD5E1', fontStyle: 'italic', padding: '6px 0', textAlign: 'center' }}>e.g. 8 + 3</div>
-                ) : state.entries.map((e, idx) => (
-                    <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: lightBg, borderRadius: '6px', padding: '3px 6px' }}>
-                        <span style={{ fontSize: '10px', color: accentColor, fontWeight: '800', fontFamily: 'monospace' }}>
-                            {idx === 0 ? '  ' : '+'}&nbsp;{e.val.toLocaleString('en-IN')}
-                        </span>
-                        <button onClick={() => onRemoveEntry(side, e.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '0 2px', lineHeight: 1, fontSize: '12px', fontWeight: '900', transition: 'color 0.15s' }}
-                            onMouseOver={ev => ev.currentTarget.style.color = '#EF4444'}
-                            onMouseOut={ev => ev.currentTarget.style.color = '#CBD5E1'}
-                        >×</button>
-                    </div>
-                ))}
-            </div>
-
-            {/* Total bar */}
-            {state.entries.length > 0 && (
-                <div style={{ borderTop: `1.5px dashed ${borderCol}`, margin: '0 6px', padding: '4px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '9px', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total</span>
-                    <span style={{ fontSize: '12px', fontWeight: '950', color: accentColor, fontFamily: 'monospace' }}>₹{state.entries.reduce((s, e) => s + e.val, 0).toLocaleString('en-IN')}</span>
-                </div>
-            )}
-
-            {/* Input row */}
-            <div style={{ display: 'flex', gap: '4px', padding: '5px 6px', borderTop: `1px solid ${borderCol}`, background: '#FAFAFE' }}>
-                <input
-                    type="number"
-                    placeholder="Add..."
-                    value={state.input}
-                    onChange={(ev) => setState(prev => ({ ...prev, input: ev.target.value }))}
-                    onKeyDown={(ev) => onKeyDown(ev, side)}
-                    style={{ flex: 1, padding: '4px 6px', borderRadius: '6px', border: `1px solid ${borderCol}`, fontSize: '11px', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
-                />
-                <button
-                    onClick={() => onAddEntry(side)}
-                    style={{ background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}CC 100%)`, color: 'white', border: 'none', borderRadius: '6px', padding: '0 8px', fontWeight: '900', fontSize: '14px', cursor: 'pointer', boxShadow: `0 1px 4px ${accentColor}40` }}
-                >+</button>
-            </div>
-        </div>
-    );
-}
