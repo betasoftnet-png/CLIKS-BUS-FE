@@ -138,12 +138,17 @@ const BusinessExpenses = () => {
         input_tax_credit: item.input_tax_credit || 'N/A'
     }));
 
-    const budgets = dbBudgets.map(item => ({
-        category_name: item.category_name || 'Uncategorized',
-        budget_limit: parseFloat(item.budget_limit) || 0,
-        spent_amount: parseFloat(item.spent_amount) || 0,
-        alert_status: item.alert_status || 'Optimal'
-    }));
+    const budgets = dbBudgets.map(item => {
+        const spent = expenses
+            .filter(e => (e.category_name || '').trim().toLowerCase() === (item.category_name || '').trim().toLowerCase())
+            .reduce((sum, e) => sum + e.expense_amount, 0);
+        return {
+            category_name: item.category_name || 'Uncategorized',
+            budget_limit: parseFloat(item.budget_limit) || 0,
+            spent_amount: spent,
+            alert_status: spent >= (parseFloat(item.budget_limit) || 0) * 0.8 ? 'Warning' : 'Optimal'
+        };
+    });
 
     // Merge default categories with custom categories created under budgets
     const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General'];
