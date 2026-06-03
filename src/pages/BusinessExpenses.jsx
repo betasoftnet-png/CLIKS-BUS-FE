@@ -145,6 +145,11 @@ const BusinessExpenses = () => {
         alert_status: item.alert_status || 'Optimal'
     }));
 
+    // Merge default categories with custom categories created under budgets
+    const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General'];
+    const budgetCategories = budgets.map(b => b.category_name).filter(name => name !== 'Uncategorized');
+    const categoryOptions = Array.from(new Set([...defaultCategories, ...budgetCategories]));
+
     const claims = dbClaims.map(item => ({
         claim_id: item.id,
         employee_name: item.employee_name || 'Anonymous Staff',
@@ -344,12 +349,9 @@ const BusinessExpenses = () => {
                                 style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
                             >
                                 <option value="All">All Categories</option>
-                                <option value="Rent">Rent</option>
-                                <option value="Electricity">Electricity</option>
-                                <option value="Internet">Internet</option>
-                                <option value="Salary">Salary</option>
-                                <option value="Fuel">Fuel</option>
-                                <option value="General">General</option>
+                                {categoryOptions.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
                             </select>
                             <select 
                                 value={modeFilter}
@@ -638,11 +640,9 @@ const BusinessExpenses = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Category</label>
                                 <select value={newExpense.category_name} onChange={(e) => setNewExpense({ ...newExpense, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    <option value="Rent">Rent (Operational)</option>
-                                    <option value="Electricity">Electricity Utility</option>
-                                    <option value="Internet">Internet Broadband</option>
-                                    <option value="Salary">Salary Staff payouts</option>
-                                    <option value="Fuel">Fuel & Logistics</option>
+                                    {categoryOptions.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
