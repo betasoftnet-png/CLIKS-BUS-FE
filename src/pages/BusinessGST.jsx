@@ -75,8 +75,15 @@ const BusinessGST = () => {
     const createEwayMutation = useMutation({
         mutationFn: (data) => gstService.createEway(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
+            queryClient.invalidateQueries({ queryKey: ['gstEways'] });
             setIsEwayModalOpen(false);
+            setEwayForm({
+                transporter_name: '',
+                vehicle_number: '',
+                transport_distance: '',
+                dispatch_location: '',
+                delivery_location: ''
+            });
             alert('e-Way Bill successfully authenticated with National Transport NIC Portal!');
         }
     });
