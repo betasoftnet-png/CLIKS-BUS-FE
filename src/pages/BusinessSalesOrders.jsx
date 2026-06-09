@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { ordersService } from '../services/ordersService';
 import { crmService } from '../services/crmService';
+import { productsService } from '../services/productsService';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 
@@ -50,6 +51,7 @@ const BusinessSalesOrders = () => {
     const [crmCustomers, setCrmCustomers] = useState([]);
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+    const [products, setProducts] = useState([]);
 
     const loadOrders = useCallback(async () => {
         try {
@@ -92,6 +94,22 @@ const BusinessSalesOrders = () => {
             }
         };
         loadCustomers();
+    }, []);
+
+    // Load products for dropdown
+    useEffect(() => {
+        const loadProducts = async () => {
+            try {
+                const res = await productsService.getProducts();
+                if (res) {
+                    const productList = Array.isArray(res) ? res : (res.data || []);
+                    setProducts(productList);
+                }
+            } catch (err) {
+                console.error('Failed to load products:', err);
+            }
+        };
+        loadProducts();
     }, []);
 
     // Order Form State
@@ -789,7 +807,53 @@ const BusinessSalesOrders = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                     {formData.items.map((item, idx) => (
                                         <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr 1.5fr auto', gap: '0.5rem', alignItems: 'center', background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '14px' }}>
-                                            <input required type="text" placeholder="Product Name" value={item.name} onChange={(e) => handleItemChange(idx, 'name', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.9rem' }} />
+                                            <select 
+                                                required 
+                                                value={products.find(p => p.name === item.name)?.id || ''} 
+                                                onChange={(e) => {
+                                                    const selectedId = e.target.value;
+                                                    const prod = products.find(p => String(p.id) === String(selectedId));
+                                                    if (prod) {
+                                                        const list = [...formData.items];
+                                                        list[idx] = {
+                                                            ...list[idx],
+                                                            name: prod.name || '',
+                                                            sku: prod.sku || '',
+                                                            price: parseFloat(prod.selling_price || prod.price || 0),
+                                                            hsn: prod.hsn_code || '',
+                                                            gst: parseInt(prod.gst_percentage || prod.tax_percentage || 18)
+                                                        };
+                                                        const updated = calculateTotals(list, formData.shipping_charge);
+                                                        setFormData({
+                                                            ...formData,
+                                                            items: list,
+                                                            ...updated
+                                                        });
+                                                    } else {
+                                                        const list = [...formData.items];
+                                                        list[idx] = {
+                                                            ...list[idx],
+                                                            name: '',
+                                                            sku: '',
+                                                            price: 0,
+                                                            hsn: '',
+                                                            gst: 18
+                                                        };
+                                                        const updated = calculateTotals(list, formData.shipping_charge);
+                                                        setFormData({
+                                                            ...formData,
+                                                            items: list,
+                                                            ...updated
+                                                        });
+                                                    }
+                                                }}
+                                                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.9rem', color: '#1E293B', fontWeight: '600' }}
+                                            >
+                                                <option value="">-- Select Product --</option>
+                                                {products.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name} {p.sku ? `[${p.sku}]` : ''}</option>
+                                                ))}
+                                            </select>
                                             <input type="text" placeholder="SKU" value={item.sku} onChange={(e) => handleItemChange(idx, 'sku', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.9rem' }} />
                                             <input type="text" placeholder="HSN" value={item.hsn} onChange={(e) => handleItemChange(idx, 'hsn', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.9rem' }} />
                                             <input required type="number" placeholder="Qty" value={item.quantity} onChange={(e) => handleItemChange(idx, 'quantity', parseInt(e.target.value) || 0)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.9rem' }} />
