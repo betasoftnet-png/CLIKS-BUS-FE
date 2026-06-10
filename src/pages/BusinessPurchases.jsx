@@ -569,7 +569,7 @@ const BusinessPurchases = () => {
                                                 return (
                                                     <div>
                                                         <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '1.05rem' }}>{formatCurrency(totals.grand_total)}</p>
-                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700' }}>Paid Adv: {formatCurrency(po.paid_amount)}</span>
+                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
                                                     </div>
                                                 );
                                             })()}
