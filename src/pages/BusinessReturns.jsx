@@ -30,6 +30,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { returnsService } from '../services/returnsService';
+import { billingService } from '../services/billingService';
+import { purchasesService } from '../services/purchasesService';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -61,6 +63,19 @@ const BusinessReturns = () => {
 
     const salesReturns = allReturns.filter(r => r.return_type === 'sales');
     const purchaseReturns = allReturns.filter(r => r.return_type === 'purchase');
+
+    // Load Invoices and Purchases
+    const { data: invoices = [] } = useQuery({
+        queryKey: ['invoices'],
+        queryFn: billingService.getInvoices
+    });
+
+    const { data: purchases = [] } = useQuery({
+        queryKey: ['purchases'],
+        queryFn: purchasesService.getPurchases
+    });
+
+    const purchaseBills = purchases.filter(p => p.doc_type === 'BILL');
 
     // Mutations
     const createMutation = useMutation({
@@ -115,6 +130,109 @@ const BusinessReturns = () => {
             gst_percentage: 18
         }
     ]);
+
+    // Helpers to get selected document items
+    const getSelectedInvoiceItems = () => {
+        if (!formHeader.invoice_id) return [];
+        const selectedInv = invoices.find(inv => 
+            inv.invoice_number?.toString() === formHeader.invoice_id?.toString() || 
+            inv.id?.toString() === formHeader.invoice_id?.toString()
+        );
+        if (!selectedInv) return [];
+        return selectedInv.items ? (typeof selectedInv.items === 'string' ? JSON.parse(selectedInv.items) : selectedInv.items) : [];
+    };
+
+    const getSelectedPurchaseItems = () => {
+        if (!formHeader.purchase_id) return [];
+        const selectedPurch = purchaseBills.find(purch => 
+            purch.purchase_number?.toString() === formHeader.purchase_id?.toString() || 
+            purch.id?.toString() === formHeader.purchase_id?.toString()
+        );
+        if (!selectedPurch) return [];
+        return selectedPurch.items || [];
+    };
+
+    const handleInvoiceChange = (invoiceId) => {
+        const selectedInv = invoices.find(inv => 
+            inv.id?.toString() === invoiceId.toString() || 
+            inv.invoice_number?.toString() === invoiceId.toString()
+        );
+        
+        setFormHeader(prev => ({
+            ...prev,
+            invoice_id: invoiceId,
+            customer_name: selectedInv ? (selectedInv.customer_name || '') : ''
+        }));
+        
+        // Reset item rows to a single blank row
+        setFormItems([
+            {
+                product_name: '',
+                batch_number: '',
+                serial_number: '',
+                return_quantity: 1,
+                replacement_quantity: 0,
+                price: 0,
+                gst_percentage: 18
+            }
+        ]);
+    };
+
+    const handlePurchaseChange = (purchaseId) => {
+        const selectedPurch = purchaseBills.find(purch => 
+            purch.id?.toString() === purchaseId.toString() || 
+            purch.purchase_number?.toString() === purchaseId.toString()
+        );
+        
+        setFormHeader(prev => ({
+            ...prev,
+            purchase_id: purchaseId,
+            supplier_name: selectedPurch ? (selectedPurch.supplier_name || '') : ''
+        }));
+        
+        // Reset item rows to a single blank row
+        setFormItems([
+            {
+                product_name: '',
+                batch_number: '',
+                serial_number: '',
+                return_quantity: 1,
+                replacement_quantity: 0,
+                price: 0,
+                gst_percentage: 18
+            }
+        ]);
+    };
+
+    const handleProductSelect = (index, prodName) => {
+        let price = 0;
+        let gst = 18;
+        let batchNumber = '';
+        
+        if (createReturnType === 'sales') {
+            const items = getSelectedInvoiceItems();
+            const matched = items.find(item => (item.description || item.product_name || item.name) === prodName);
+            if (matched) {
+                price = matched.price || matched.rate || 0;
+                gst = matched.tax_rate || matched.gst || matched.gst_percentage || 18;
+                batchNumber = matched.batch_number || '';
+            }
+        } else {
+            const items = getSelectedPurchaseItems();
+            const matched = items.find(item => (item.product_name || item.name) === prodName);
+            if (matched) {
+                price = matched.purchase_price || matched.price || 0;
+                gst = matched.gst_percentage || matched.gst || matched.tax_rate || 18;
+                batchNumber = matched.batch_number || '';
+            }
+        }
+
+        setFormItems(formItems.map((item, idx) => 
+            idx === index 
+                ? { ...item, product_name: prodName, price, gst_percentage: gst, batch_number: batchNumber } 
+                : item
+        ));
+    };
 
     const handleAddItemRow = () => {
         setFormItems([...formItems, {
@@ -261,13 +379,59 @@ const BusinessReturns = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
-                        onClick={() => { setCreateReturnType('sales'); setFormHeader({ ...formHeader, return_number: `SRN-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
+                        onClick={() => { 
+                            setCreateReturnType('sales'); 
+                            setFormHeader({
+                                return_number: `SRN-${Date.now().toString().slice(-4)}`,
+                                invoice_id: '',
+                                purchase_id: '',
+                                customer_name: '',
+                                supplier_name: '',
+                                return_date: new Date().toISOString().split('T')[0],
+                                refund_mode: 'Cash',
+                                reason_code: 'Damaged Item',
+                                warehouse_id: 'Main Godown'
+                            });
+                            setFormItems([{
+                                product_name: '',
+                                batch_number: '',
+                                serial_number: '',
+                                return_quantity: 1,
+                                replacement_quantity: 0,
+                                price: 0,
+                                gst_percentage: 18
+                            }]);
+                            setIsCreateModalOpen(true); 
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Plus size={15} /> New Customer Return
                     </button>
                     <button 
-                        onClick={() => { setCreateReturnType('purchase'); setFormHeader({ ...formHeader, return_number: `PRN-${Date.now().toString().slice(-4)}` }); setIsCreateModalOpen(true); }}
+                        onClick={() => { 
+                            setCreateReturnType('purchase'); 
+                            setFormHeader({
+                                return_number: `PRN-${Date.now().toString().slice(-4)}`,
+                                invoice_id: '',
+                                purchase_id: '',
+                                customer_name: '',
+                                supplier_name: '',
+                                return_date: new Date().toISOString().split('T')[0],
+                                refund_mode: 'Cash',
+                                reason_code: 'Damaged Item',
+                                warehouse_id: 'Main Godown'
+                            });
+                            setFormItems([{
+                                product_name: '',
+                                batch_number: '',
+                                serial_number: '',
+                                return_quantity: 1,
+                                replacement_quantity: 0,
+                                price: 0,
+                                gst_percentage: 18
+                            }]);
+                            setIsCreateModalOpen(true); 
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Plus size={15} /> New Supplier Return
@@ -568,8 +732,23 @@ const BusinessReturns = () => {
                                 <textarea value={inspectionForm.notes} onChange={(e) => setInspectionForm({ ...inspectionForm, notes: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', minHeight: '80px' }} placeholder="Optional notes on item condition..." />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
-                                Approve Quality & Adjust Stock
+                            <button 
+                                type="submit" 
+                                disabled={updateMutation.isPending}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: updateMutation.isPending ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    cursor: updateMutation.isPending ? 'not-allowed' : 'pointer', 
+                                    boxShadow: updateMutation.isPending ? 'none' : '0 10px 20px rgba(27, 107, 58, 0.2)' 
+                                }}
+                            >
+                                {updateMutation.isPending ? 'Approving Quality...' : 'Approve Quality & Adjust Stock'}
                             </button>
                         </form>
                     </div>
@@ -598,22 +777,60 @@ const BusinessReturns = () => {
                                     <>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Invoice ID</label>
-                                            <input required type="text" value={formHeader.invoice_id} onChange={(e) => setFormHeader({ ...formHeader, invoice_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="INV-2026-101" />
+                                            <select
+                                                required
+                                                value={formHeader.invoice_id}
+                                                onChange={(e) => handleInvoiceChange(e.target.value)}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                            >
+                                                <option value="">Select Invoice</option>
+                                                {invoices.map(inv => (
+                                                    <option key={inv.id} value={inv.invoice_number || inv.id}>
+                                                        {inv.invoice_number || inv.id} ({inv.customer_name})
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name</label>
-                                            <input required type="text" value={formHeader.customer_name} onChange={(e) => setFormHeader({ ...formHeader, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Rajesh Verma" />
+                                            <input 
+                                                required 
+                                                disabled 
+                                                type="text" 
+                                                value={formHeader.customer_name} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F1F5F9', cursor: 'not-allowed' }} 
+                                                placeholder="Select invoice to populate" 
+                                            />
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Purchase Bill ID</label>
-                                            <input required type="text" value={formHeader.purchase_id} onChange={(e) => setFormHeader({ ...formHeader, purchase_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="BILL-77091" />
+                                            <select
+                                                required
+                                                value={formHeader.purchase_id}
+                                                onChange={(e) => handlePurchaseChange(e.target.value)}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                            >
+                                                <option value="">Select Purchase Bill</option>
+                                                {purchaseBills.map(purch => (
+                                                    <option key={purch.id} value={purch.purchase_number || purch.id}>
+                                                        {purch.purchase_number || purch.id} ({purch.supplier_name})
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier Name</label>
-                                            <input required type="text" value={formHeader.supplier_name} onChange={(e) => setFormHeader({ ...formHeader, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="TechCorp Distributors" />
+                                            <input 
+                                                required 
+                                                disabled 
+                                                type="text" 
+                                                value={formHeader.supplier_name} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F1F5F9', cursor: 'not-allowed' }} 
+                                                placeholder="Select purchase bill to populate" 
+                                            />
                                         </div>
                                     </>
                                 )}
@@ -651,33 +868,51 @@ const BusinessReturns = () => {
                                     <button type="button" onClick={handleAddItemRow} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Product</button>
                                 </div>
 
-                                {formItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item, idx) => (
-                                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Item Name</label>
-                                            <input required type="text" value={item.product_name} onChange={(e) => handleItemFieldChange(idx, 'product_name', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="Dell Laptop" />
+                                {formItems.map((item, idx) => {
+                                    const availableItems = createReturnType === 'sales' ? getSelectedInvoiceItems() : getSelectedPurchaseItems();
+                                    return (
+                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Item Name</label>
+                                                <select
+                                                    required
+                                                    value={item.product_name}
+                                                    onChange={(e) => handleProductSelect(idx, e.target.value)}
+                                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}
+                                                >
+                                                    <option value="">Select Product</option>
+                                                    {availableItems.map((availItem, aIdx) => {
+                                                        const pName = availItem.description || availItem.product_name || availItem.name || '';
+                                                        return (
+                                                            <option key={aIdx} value={pName}>
+                                                                {pName}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Batch No</label>
+                                                <input type="text" value={item.batch_number} onChange={(e) => handleItemFieldChange(idx, 'batch_number', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="B-DEL-9" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Serial No</label>
+                                                <input type="text" value={item.serial_number} onChange={(e) => handleItemFieldChange(idx, 'serial_number', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="S-4412" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Returned Qty</label>
+                                                <input required type="number" value={item.return_quantity} onChange={(e) => handleItemFieldChange(idx, 'return_quantity', parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Cost Price ({currency.symbol})</label>
+                                                <input required type="number" value={item.price} onChange={(e) => handleItemFieldChange(idx, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
+                                            </div>
+                                            {formItems.length > 1 && (
+                                                <button type="button" onClick={() => handleRemoveItemRow(idx)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.75rem', borderRadius: '10px', cursor: 'pointer' }}><X size={16} /></button>
+                                            )}
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Batch No</label>
-                                            <input type="text" value={item.batch_number} onChange={(e) => handleItemFieldChange(idx, 'batch_number', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="B-DEL-9" />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Serial No</label>
-                                            <input type="text" value={item.serial_number} onChange={(e) => handleItemFieldChange(idx, 'serial_number', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} placeholder="S-4412" />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Returned Qty</label>
-                                            <input required type="number" value={item.return_quantity} onChange={(e) => handleItemFieldChange(idx, 'return_quantity', parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Cost Price ({currency.symbol})</label>
-                                            <input required type="number" value={item.price} onChange={(e) => handleItemFieldChange(idx, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none' }} />
-                                        </div>
-                                        {formItems.length > 1 && (
-                                            <button type="button" onClick={() => handleRemoveItemRow(idx)} style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.75rem', borderRadius: '10px', cursor: 'pointer' }}><X size={16} /></button>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {/* Summary panel */}
@@ -689,8 +924,23 @@ const BusinessReturns = () => {
                                 })()}
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
-                                Complete Return Document
+                            <button 
+                                type="submit" 
+                                disabled={createMutation.isPending}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: createMutation.isPending ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    cursor: createMutation.isPending ? 'not-allowed' : 'pointer', 
+                                    boxShadow: createMutation.isPending ? 'none' : '0 10px 20px rgba(27, 107, 58, 0.2)' 
+                                }}
+                            >
+                                {createMutation.isPending ? 'Completing Return...' : 'Complete Return Document'}
                             </button>
                         </form>
                     </div>

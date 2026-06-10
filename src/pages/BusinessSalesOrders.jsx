@@ -52,6 +52,8 @@ const BusinessSalesOrders = () => {
     const [customerSearch, setCustomerSearch] = useState('');
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [products, setProducts] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [submittingFulfillment, setSubmittingFulfillment] = useState(false);
 
     const loadOrders = useCallback(async () => {
         try {
@@ -204,6 +206,7 @@ const BusinessSalesOrders = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            setSubmitting(true);
             const calced = calculateTotals(formData.items, formData.shipping_charge);
             const pending = calced.grand_total - parseFloat(formData.advance_amount || 0);
 
@@ -228,6 +231,8 @@ const BusinessSalesOrders = () => {
         } catch (err) {
             console.error('Failed to save sales order:', err);
             alert('Failed to save sales order.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -272,6 +277,7 @@ const BusinessSalesOrders = () => {
     const handleSaveFulfillment = async (e) => {
         e.preventDefault();
         try {
+            setSubmittingFulfillment(true);
             await ordersService.updateOrder(selectedOrder.id, {
                 ...selectedOrder,
                 status: 'Shipped'
@@ -282,6 +288,8 @@ const BusinessSalesOrders = () => {
         } catch (err) {
             console.error(err);
             alert('Failed to update tracking details.');
+        } finally {
+            setSubmittingFulfillment(false);
         }
     };
 
@@ -922,8 +930,25 @@ const BusinessSalesOrders = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
-                                {editingOrder ? 'Update Sales Order' : 'Create Sales Order'}
+                            <button 
+                                type="submit" 
+                                disabled={submitting}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: submitting ? '#94A3B8' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    marginTop: '1rem', 
+                                    cursor: submitting ? 'not-allowed' : 'pointer', 
+                                    boxShadow: submitting ? 'none' : '0 10px 20px rgba(124, 58, 237, 0.2)',
+                                    opacity: submitting ? 0.8 : 1
+                                }}
+                            >
+                                {submitting ? 'Saving...' : (editingOrder ? 'Update Sales Order' : 'Create Sales Order')}
                             </button>
                         </form>
                     </div>
@@ -956,8 +981,25 @@ const BusinessSalesOrders = () => {
                                 <input type="date" value={selectedOrder.dispatch_date || ''} onChange={(e) => setSelectedOrder({...selectedOrder, dispatch_date: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
-                                Save Fulfillment Details
+                            <button 
+                                type="submit" 
+                                disabled={submittingFulfillment}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: submittingFulfillment ? '#94A3B8' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    marginTop: '1rem', 
+                                    cursor: submittingFulfillment ? 'not-allowed' : 'pointer', 
+                                    boxShadow: submittingFulfillment ? 'none' : '0 10px 20px rgba(124, 58, 237, 0.2)',
+                                    opacity: submittingFulfillment ? 0.8 : 1
+                                }}
+                            >
+                                {submittingFulfillment ? 'Saving...' : 'Save Fulfillment Details'}
                             </button>
                         </form>
                     </div>
