@@ -631,7 +631,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             <Briefcase size={18} style={{ color: '#D4AF37' }} />
                             <span>FIN-PRO Audit Hub</span>
                         </div>
-                        <span style={{ 
+                        {/* <span style={{ 
                             fontSize: '0.65rem', 
                             background: '#FEF3C7', 
                             color: '#B8860B', 
@@ -639,7 +639,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             borderRadius: '100px', 
                             fontWeight: '900',
                             border: '1px solid #FDE68A'
-                        }}>CONNECTED</span>
+                        }}>CONNECTED</span> */}
                     </button>
                 )}
 

@@ -79,7 +79,7 @@ const INVOICE_RESPONSIVE_CSS = `
   border-radius: 4px !important;
 }
 
-@media screen and (max-width: 768px) {
+@container (max-width: 768px) {
   .inv-table-scroll-container table {
     width: 100% !important;
     min-width: 680px !important;
@@ -2004,14 +2004,13 @@ export const InvoiceTemplates = {
         );
     },
 
-    // The master switch renderer
     Renderer: ({ type, data, business, config }) => {
         const TemplateComponent = InvoiceTemplates[type] || InvoiceTemplates.standard;
         return (
-            <>
+            <div className="inv-renderer-container" style={{ containerType: 'inline-size', width: '100%' }}>
                 <style dangerouslySetInnerHTML={{ __html: INVOICE_RESPONSIVE_CSS }} />
                 <TemplateComponent data={data} business={business} config={config} />
-            </>
+            </div>
         );
     }
 };
