@@ -707,6 +707,55 @@ const BusinessBilling = () => {
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media screen and (max-width: 768px) {
+                    /* Create/Edit Modal Stacking */
+                    .billing-modal-body {
+                        flex-direction: column !important;
+                        overflow-y: auto !important;
+                    }
+                    .billing-modal-form-pane {
+                        flex: 1 0 auto !important;
+                        overflow-y: visible !important;
+                        border-bottom: 1px solid #E2E8F0 !important;
+                        padding: 1rem !important;
+                    }
+                    .billing-modal-preview-pane {
+                        flex: 1 0 auto !important;
+                        overflow-y: visible !important;
+                        border-left: none !important;
+                        padding: 1rem !important;
+                    }
+
+                    /* Template Selector Modal Stacking */
+                    .template-selector-body {
+                        grid-template-columns: 1fr !important;
+                        height: auto !important;
+                        max-height: 70vh !important;
+                        overflow-y: auto !important;
+                    }
+                    .template-selector-left {
+                        height: 300px !important;
+                        max-height: 300px !important;
+                        border-right: none !important;
+                        border-bottom: 1px solid #E2E8F0 !important;
+                        grid-template-columns: 1fr !important;
+                    }
+                    .template-selector-right {
+                        height: 400px !important;
+                        max-height: 400px !important;
+                        padding: 1rem !important;
+                    }
+
+                    /* Invoice View Modal Paddings */
+                    .billing-preview-scroll-wrapper {
+                        padding: 0.5rem !important;
+                    }
+                    .billing-preview-inner-wrapper {
+                        padding: 15px !important;
+                    }
+                }
+            ` }} />
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -881,7 +930,8 @@ const BusinessBilling = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', overflowY: 'auto', padding: '1rem' }}>
                     <div style={{ 
                         background: 'white', 
-                        width: showLivePreview ? '1250px' : '760px', 
+                        width: '100%',
+                        maxWidth: showLivePreview ? '1250px' : '760px', 
                         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
                         borderRadius: '20px', 
                         padding: 0, 
@@ -913,9 +963,9 @@ const BusinessBilling = () => {
                             </div>
                         </div>
                         
-                        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                        <div className="billing-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
                             {/* Left: Dynamic Interaction Pane */}
-                            <div style={{ 
+                            <div className="billing-modal-form-pane" style={{ 
                                 flex: showLivePreview ? '1 1 55%' : '1 1 100%', 
                                 overflowY: 'scroll', 
                                 padding: '1.5rem 2rem 2rem', 
@@ -1384,7 +1434,7 @@ const BusinessBilling = () => {
 
                             {/* Right: The Live In-Situ Renderer Instance */}
                             {showLivePreview && (
-                                <div style={{ 
+                                <div className="billing-modal-preview-pane" style={{ 
                                     flex: '1 1 45%', 
                                     background: '#F8FAFC', 
                                     borderLeft: '1px solid #E2E8F0', 
@@ -1473,9 +1523,9 @@ const BusinessBilling = () => {
                             </button>
                         </div>
                         
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', height: '65vh', overflow: 'hidden' }}>
+                        <div className="template-selector-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', height: '65vh', overflow: 'hidden' }}>
                             {/* Left: Selector Grid */}
-                            <div style={{ 
+                            <div className="template-selector-left" style={{ 
                                 padding: '1.5rem', 
                                 display: 'grid', 
                                 gridTemplateColumns: 'repeat(2, 1fr)', 
@@ -1596,7 +1646,7 @@ const BusinessBilling = () => {
                             </div>
 
                             {/* Right: Visual Real-Time Rendering Pipeline */}
-                            <div style={{ 
+                            <div className="template-selector-right" style={{ 
                                 padding: '1.5rem', 
                                 background: '#F8FAFC', 
                                 overflowY: 'scroll', // FORCE native scrolling availability

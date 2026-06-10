@@ -349,8 +349,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'POS Billing', icon: Monitor, path: '/pos' },
             { label: 'Reports', icon: BarChart3, path: '/reports' },
             { label: 'Barcode Gen', icon: Barcode, path: '/barcode' },
-            { label: 'Marketing', icon: Megaphone, path: '/marketing' },
-            { label: 'FIN-PRO', icon: Briefcase, path: '/ca', color: '#D4AF37' }
+            { label: 'Marketing', icon: Megaphone, path: '/marketing' }
 
         ],
         social: [
@@ -513,9 +512,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <>
                         {navigationConfig.standard.map(item => (
                             <React.Fragment key={item.label}>
-                                {item.label === 'FIN-PRO' && (
-                                    <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
-                                )}
                                 <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
                                 {item.label === 'Dashboard' && (
                                     <>
@@ -599,6 +595,54 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 flexShrink: 0,
                 background: '#FFFFFF'
             }}>
+                {/* FIN-PRO CTA Button */}
+                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                    <button
+                        onClick={() => handleItemClick('FIN-PRO', '/ca')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.75rem 1rem',
+                            background: location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)',
+                            color: '#B8860B',
+                            border: location.pathname.includes('/ca') ? '1.5px solid #F59E0B' : '1px solid #FDE68A',
+                            cursor: 'pointer',
+                            fontWeight: '800',
+                            fontSize: '0.85rem',
+                            borderRadius: '12px',
+                            boxShadow: location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)',
+                            transition: 'all 0.2s ease',
+                            marginBottom: '0.2rem'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(212, 175, 55, 0.15), 0 4px 6px -2px rgba(212, 175, 55, 0.05)';
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)';
+                            e.currentTarget.style.background = location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)';
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Briefcase size={18} style={{ color: '#D4AF37' }} />
+                            <span>FIN-PRO Audit Hub</span>
+                        </div>
+                        <span style={{ 
+                            fontSize: '0.65rem', 
+                            background: '#FEF3C7', 
+                            color: '#B8860B', 
+                            padding: '2px 6px', 
+                            borderRadius: '100px', 
+                            fontWeight: '900',
+                            border: '1px solid #FDE68A'
+                        }}>CONNECTED</span>
+                    </button>
+                )}
+
                 {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
                 {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
                     <button

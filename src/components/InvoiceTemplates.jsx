@@ -79,7 +79,12 @@ const INVOICE_RESPONSIVE_CSS = `
   border-radius: 4px !important;
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
+  .inv-table-scroll-container table {
+    width: 100% !important;
+    min-width: 680px !important;
+  }
+
   /* Creative Agency Template Responsive Styles */
   .inv-agency-container {
     padding: 20px !important;
