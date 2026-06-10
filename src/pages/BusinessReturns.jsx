@@ -164,7 +164,23 @@ const BusinessReturns = () => {
             customer_name: selectedInv ? (selectedInv.customer_name || '') : ''
         }));
         
-        // Reset item rows to a single blank row
+        if (selectedInv) {
+            const items = selectedInv.items ? (typeof selectedInv.items === 'string' ? JSON.parse(selectedInv.items) : selectedInv.items) : [];
+            if (items.length > 0) {
+                setFormItems(items.map(item => ({
+                    product_name: item.description || item.product_name || item.name || '',
+                    batch_number: item.batch_number || '',
+                    serial_number: item.serial_number || '',
+                    return_quantity: parseInt(item.quantity) || 1,
+                    replacement_quantity: 0,
+                    price: parseFloat(item.price || item.rate) || 0,
+                    gst_percentage: parseInt(item.tax_rate || item.gst || item.gst_percentage) || 18
+                })));
+                return;
+            }
+        }
+        
+        // Reset item rows to a single blank row if no invoice or no items found
         setFormItems([
             {
                 product_name: '',
@@ -190,7 +206,23 @@ const BusinessReturns = () => {
             supplier_name: selectedPurch ? (selectedPurch.supplier_name || '') : ''
         }));
         
-        // Reset item rows to a single blank row
+        if (selectedPurch) {
+            const items = selectedPurch.items || [];
+            if (items.length > 0) {
+                setFormItems(items.map(item => ({
+                    product_name: item.product_name || item.name || '',
+                    batch_number: item.batch_number || '',
+                    serial_number: item.serial_number || '',
+                    return_quantity: parseInt(item.quantity) || 1,
+                    replacement_quantity: 0,
+                    price: parseFloat(item.purchase_price || item.price) || 0,
+                    gst_percentage: parseInt(item.gst_percentage || item.gst || item.tax_rate) || 18
+                })));
+                return;
+            }
+        }
+        
+        // Reset item rows to a single blank row if no bill or no items found
         setFormItems([
             {
                 product_name: '',
