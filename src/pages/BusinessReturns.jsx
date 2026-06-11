@@ -376,8 +376,8 @@ const BusinessReturns = () => {
     );
 
     // Dynamic stats
-    const totalSalesReturnedAmt = salesReturns.reduce((acc, sr) => acc + sr.refund_amount, 0);
-    const totalPurchaseReturnedAmt = purchaseReturns.reduce((acc, pr) => acc + pr.refund_amount, 0);
+    const totalSalesReturnedAmt = salesReturns.reduce((acc, sr) => acc + (Number(sr.refund_amount) || 0), 0);
+    const totalPurchaseReturnedAmt = purchaseReturns.reduce((acc, pr) => acc + (Number(pr.refund_amount) || 0), 0);
     const pendingInspectionsCount = salesReturns.filter(sr => sr.inspection_status === 'Pending Check').length;
 
     // Derive active warranty / replacement claims across all loaded returns
