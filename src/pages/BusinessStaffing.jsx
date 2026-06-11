@@ -247,7 +247,7 @@ const BusinessStaffing = () => {
         bank_name: '',
         account_number: '',
         ifsc_code: '',
-        shift_name: 'General Shift (9 AM - 6 PM)',
+        shift_name: 'Morning Shift (6 AM - 2 PM)',
         leave_balance: 14,
         date_of_birth: '',
         blood_group: 'O+',
@@ -271,31 +271,44 @@ const BusinessStaffing = () => {
     // Handle employee onboarding submit
     const handleOnboardSubmit = (e) => {
         e.preventDefault();
+        const finalDesignation = newEmp.designation_name || 'Sales Executive';
+        const finalSalary = parseFloat(newEmp.basic_salary) || 35000;
+        const finalBankName = newEmp.bank_name || 'HDFC Bank';
+        const finalAccountNo = newEmp.account_number || '50100223344551';
+        const finalIfsc = newEmp.ifsc_code || 'HDFC0000124';
+        const finalPf = newEmp.pf_number || 'MH/BAN/0011223/001';
+        const finalPan = newEmp.pan_number || 'ABCDE1234F';
+        const finalManager = newEmp.reporting_manager || 'Ankit Sharma (Sales Lead)';
+        const finalShift = newEmp.shift_name || 'Morning Shift (6 AM - 2 PM)';
+        const finalAddress = newEmp.address_line_1 || 'Plot No. 12, Anna Nagar';
+        const finalEmergName = newEmp.emergency_contact_name || 'Vijay Kumar (Father)';
+        const finalEmergPhone = newEmp.emergency_contact_number || '+91 98765 99911';
+
         createEmpMutation.mutate({
             name: `${newEmp.first_name} ${newEmp.last_name}`,
             role: 'Staff',
             email: newEmp.email,
             phone: newEmp.phone_number,
-            salary: parseFloat(newEmp.basic_salary) || 25000,
+            salary: finalSalary,
             status: 'active',
             hire_date: newEmp.joining_date || new Date().toISOString().split('T')[0],
             department: newEmp.department_name,
-            designation: newEmp.designation_name,
+            designation: finalDesignation,
             gender: newEmp.gender,
             date_of_birth: newEmp.date_of_birth,
             blood_group: newEmp.blood_group,
             employment_type: newEmp.employment_type,
-            reporting_manager: newEmp.reporting_manager,
-            shift: { shift: newEmp.shift_name },
-            address: { line1: newEmp.address_line_1 },
-            emergency_contact: { name: newEmp.emergency_contact_name, phone: newEmp.emergency_contact_number },
+            reporting_manager: finalManager,
+            shift: { shift: finalShift },
+            address: { line1: finalAddress },
+            emergency_contact: { name: finalEmergName, phone: finalEmergPhone },
             bank_details: {
-                bank_name: newEmp.bank_name,
-                account_number: newEmp.account_number,
-                ifsc_code: newEmp.ifsc_code
+                bank_name: finalBankName,
+                account_number: finalAccountNo,
+                ifsc_code: finalIfsc
             },
-            pf_number: newEmp.pf_number,
-            pan_number: newEmp.pan_number,
+            pf_number: finalPf,
+            pan_number: finalPan,
             leave_balance: parseInt(newEmp.leave_balance) || 14
         });
     };
@@ -778,7 +791,7 @@ const BusinessStaffing = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Designation Title</label>
-                                                <input required type="text" value={newEmp.designation_name} onChange={(e) => setNewEmp({ ...newEmp, designation_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Sales Executive" />
+                                                <input type="text" value={newEmp.designation_name} onChange={(e) => setNewEmp({ ...newEmp, designation_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Sales Executive (Default)" />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -793,17 +806,17 @@ const BusinessStaffing = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Joining Date</label>
-                                                <input required type="date" value={newEmp.joining_date} onChange={(e) => setNewEmp({ ...newEmp, joining_date: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input type="date" value={newEmp.joining_date} onChange={(e) => setNewEmp({ ...newEmp, joining_date: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Reporting Manager</label>
-                                                <input type="text" value={newEmp.reporting_manager} onChange={(e) => setNewEmp({ ...newEmp, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Ankit Sharma (Sales Lead)" />
+                                                <input type="text" value={newEmp.reporting_manager} onChange={(e) => setNewEmp({ ...newEmp, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Ankit Sharma (Sales Lead) (Default)" />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Leaves Bal</label>
-                                                <input required type="number" value={newEmp.leave_balance} onChange={(e) => setNewEmp({ ...newEmp, leave_balance: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input type="number" value={newEmp.leave_balance} onChange={(e) => setNewEmp({ ...newEmp, leave_balance: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                         </div>
                                         <div>
@@ -825,29 +838,29 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Basic Monthly Salary (INR)</label>
-                                        <input required type="number" value={newEmp.basic_salary} onChange={(e) => setNewEmp({ ...newEmp, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="35000" />
+                                        <input type="number" value={newEmp.basic_salary} onChange={(e) => setNewEmp({ ...newEmp, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="35000 (Default)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
-                                        <input type="text" value={newEmp.pan_number} onChange={(e) => setNewEmp({ ...newEmp, pan_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="ABCDE1234F" />
+                                        <input type="text" value={newEmp.pan_number} onChange={(e) => setNewEmp({ ...newEmp, pan_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="ABCDE1234F (Default)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
-                                        <input type="text" value={newEmp.pf_number} onChange={(e) => setNewEmp({ ...newEmp, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="MH/BAN/0011223/001" />
+                                        <input type="text" value={newEmp.pf_number} onChange={(e) => setNewEmp({ ...newEmp, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="MH/BAN/0011223/001 (Default)" />
                                     </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Name</label>
-                                        <input type="text" value={newEmp.bank_name} onChange={(e) => setNewEmp({ ...newEmp, bank_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC Bank" />
+                                        <input type="text" value={newEmp.bank_name} onChange={(e) => setNewEmp({ ...newEmp, bank_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC Bank (Default)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Account Number</label>
-                                        <input type="text" value={newEmp.account_number} onChange={(e) => setNewEmp({ ...newEmp, account_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="50100223344551" />
+                                        <input type="text" value={newEmp.account_number} onChange={(e) => setNewEmp({ ...newEmp, account_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="50100223344551 (Default)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>IFSC Code</label>
-                                        <input type="text" value={newEmp.ifsc_code} onChange={(e) => setNewEmp({ ...newEmp, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC0000124" />
+                                        <input type="text" value={newEmp.ifsc_code} onChange={(e) => setNewEmp({ ...newEmp, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC0000124 (Default)" />
                                     </div>
                                 </div>
                             </div>
@@ -858,16 +871,16 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                        <input required type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Plot No. 12, Anna Nagar" />
+                                        <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Plot No. 12, Anna Nagar (Default)" />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
-                                            <input required type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Vijay Kumar (Father)" />
+                                            <input type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Vijay Kumar (Father) (Default)" />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Phone</label>
-                                            <input required type="text" value={newEmp.emergency_contact_number} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="+91 98765 99911" />
+                                            <input type="text" value={newEmp.emergency_contact_number} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="+91 98765 99911 (Default)" />
                                         </div>
                                     </div>
                                 </div>
