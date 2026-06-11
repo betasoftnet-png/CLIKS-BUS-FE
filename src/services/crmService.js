@@ -152,7 +152,9 @@ export const crmService = {
         } catch {
             return { success: true, data: [] };
         }
-    }
+    },
+
+    importCustomers: (data) => apiClient.post('/customers/import', data).then(res => res.data.data || res.data)
 };
 
 export default crmService;

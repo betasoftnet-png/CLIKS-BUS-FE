@@ -64,6 +64,183 @@ const BusinessCRM = () => {
     const [balanceFilter, setBalanceFilter] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Customer Bulk Import CSV states
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importStep, setImportStep] = useState('upload'); // 'upload', 'mapping', 'preview'
+    const [csvHeaders, setCsvHeaders] = useState([]);
+    const [csvRows, setCsvRows] = useState([]);
+    const [columnMap, setColumnMap] = useState({});
+    const [parsedCustomers, setParsedCustomers] = useState([]);
+    const [fileName, setFileName] = useState('');
+    const [importing, setImporting] = useState(false);
+
+    const handleImportSubmit = async (data) => {
+        try {
+            setImporting(true);
+            const res = await crmService.importCustomers(data);
+            if (res && res.success) {
+                alert(res.message || 'Customers imported successfully!');
+                setIsImportModalOpen(false);
+                setImportStep('upload');
+                setCsvHeaders([]);
+                setCsvRows([]);
+                setColumnMap({});
+                setParsedCustomers([]);
+                setFileName('');
+                await loadCustomers();
+            } else {
+                alert(res?.message || 'Failed to import customers.');
+            }
+        } catch (err) {
+            console.error('Import failed:', err);
+            alert(err.response?.data?.message || err.message || 'Failed to import customers.');
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const SYSTEM_FIELDS = [
+        { key: 'name', label: 'Customer Name *', required: true, synonyms: ['name', 'customer name', 'customer_name', 'client', 'client name', 'company', 'company_name'] },
+        { key: 'email', label: 'Email', required: false, synonyms: ['email', 'email address', 'email_address', 'mail'] },
+        { key: 'phone', label: 'Phone', required: false, synonyms: ['phone', 'phone number', 'phone_number', 'mobile', 'mobile number', 'contact'] },
+        { key: 'company', label: 'Company / Business', required: false, synonyms: ['company', 'company name', 'company_name', 'business', 'business name', 'business_name', 'organization'] },
+        { key: 'gstin', label: 'GSTIN', required: false, synonyms: ['gstin', 'gst', 'gst number', 'tax identification number', 'tin'] },
+        { key: 'city', label: 'City', required: false, synonyms: ['city', 'town', 'location', 'district'] },
+        { key: 'outstanding_balance', label: 'Outstanding Balance', required: false, synonyms: ['outstanding balance', 'balance', 'outstanding_balance', 'opening balance', 'opening_balance', 'receivable', 'amount due'] },
+        { key: 'loyalty_points', label: 'Loyalty Points', required: false, synonyms: ['loyalty points', 'loyalty_points', 'points', 'pts', 'rewards'] }
+    ];
+
+    const parseCSV = (text) => {
+        const lines = [];
+        let row = [""];
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const next = text[i + 1];
+
+            if (char === '"') {
+                if (inQuotes && next === '"') {
+                    row[row.length - 1] += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                row.push("");
+            } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                if (char === '\r' && next === '\n') {
+                    i++;
+                }
+                lines.push(row);
+                row = [""];
+            } else {
+                row[row.length - 1] += char;
+            }
+        }
+        if (row.length > 1 || row[0] !== "") {
+            lines.push(row);
+        }
+        return lines.filter(r => r.some(cell => cell.trim() !== ""));
+    };
+
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target.result;
+            const allRows = parseCSV(text);
+            if (allRows.length < 2) {
+                alert('The uploaded file must contain a header row and at least one customer row.');
+                return;
+            }
+
+            const headers = allRows[0].map(h => h.trim());
+            const dataRows = allRows.slice(1);
+
+            setCsvHeaders(headers);
+            setCsvRows(dataRows);
+
+            const initialMap = {};
+            SYSTEM_FIELDS.forEach(field => {
+                const matched = headers.find(h => {
+                    const clean = h.toLowerCase();
+                    return field.synonyms.some(syn => clean === syn || clean.includes(syn));
+                });
+                initialMap[field.key] = matched || '';
+            });
+            setColumnMap(initialMap);
+            setImportStep('mapping');
+        };
+        reader.readAsText(file);
+    };
+
+    const handleProceedToPreview = () => {
+        const missingRequired = SYSTEM_FIELDS.filter(f => f.required && !columnMap[f.key]);
+        if (missingRequired.length > 0) {
+            alert(`Please map the following required field(s): ${missingRequired.map(f => f.label).join(', ')}`);
+            return;
+        }
+
+        const customersList = csvRows.map((row, idx) => {
+            const c = {};
+            SYSTEM_FIELDS.forEach(f => {
+                const headerName = columnMap[f.key];
+                const headerIdx = csvHeaders.indexOf(headerName);
+                let val = headerIdx > -1 ? row[headerIdx] : '';
+                
+                if (val !== undefined && val !== null) {
+                    val = val.trim();
+                } else {
+                    val = '';
+                }
+
+                if (f.key === 'outstanding_balance') {
+                    c[f.key] = parseFloat(val) || 0;
+                } else if (f.key === 'loyalty_points') {
+                    c[f.key] = parseInt(val) || 0;
+                } else {
+                    c[f.key] = val;
+                }
+            });
+            return {
+                rowNumber: idx + 2,
+                ...c
+            };
+        });
+
+        setParsedCustomers(customersList);
+        setImportStep('preview');
+    };
+
+    const handleExecuteImport = () => {
+        const invalidRows = parsedCustomers.filter(c => !c.name);
+        if (invalidRows.length > 0) {
+            alert(`Validation failed: Row(s) ${invalidRows.map(r => r.rowNumber).join(', ')} are missing customer names.`);
+            return;
+        }
+        handleImportSubmit({ customers: parsedCustomers });
+    };
+
+    const generateSampleTemplate = () => {
+        const headers = SYSTEM_FIELDS.map(f => f.label.replace(' *', ''));
+        const row1 = ['John Doe', 'john@gmail.com', '+919988776655', 'Doe Enterprises', '27DDDDD4444D4Z4', 'Delhi', '12500', '150'];
+        const row2 = ['Jane Smith', 'jane@yahoo.com', '+919876543210', 'Smith Retailers', '', 'Chennai', '0', '0'];
+        const csvContent = [headers.join(','), row1.join(','), row2.join(',')].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'cliks_customers_template.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -448,21 +625,39 @@ const BusinessCRM = () => {
                     </div>
                     <p style={{ color: '#475569', fontSize: '0.88rem', fontWeight: '500', margin: 0 }}>Manage customer profiles, credit limits, record payments, and export transaction statements.</p>
                 </div>
-                <button 
-                    onClick={(e) => { e.stopPropagation(); closeModal(); setIsModalOpen(true); }}
-                    className="crm-btn"
-                    style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                        padding: '0.5rem 1.1rem', borderRadius: '10px', 
-                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                        fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
-                        boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)',
-                        transition: 'transform 0.2s'
-                    }}
-                >
-                    <Plus size={16} />
-                    Add Customer
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button 
+                        onClick={() => {
+                            setIsImportModalOpen(true);
+                            setImportStep('upload');
+                        }}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            padding: '0.5rem 1.1rem', borderRadius: '10px', 
+                            background: 'white', color: '#475569', border: '1px solid #E2E8F0', 
+                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                        }}
+                    >
+                        <Download size={18} style={{ transform: 'rotate(180deg)' }} />
+                        Bulk Import (CSV)
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); closeModal(); setIsModalOpen(true); }}
+                        className="crm-btn"
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                            padding: '0.5rem 1.1rem', borderRadius: '10px', 
+                            background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
+                            fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                            boxShadow: '0 6px 12px rgba(27, 107, 58, 0.15)',
+                            transition: 'transform 0.2s'
+                        }}
+                    >
+                        <Plus size={16} />
+                        Add Customer
+                    </button>
+                </div>
             </div>
 
             {/* Stats Summary Bento Grid */}
@@ -1235,6 +1430,175 @@ const BusinessCRM = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Import Modal */}
+            {isImportModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(124, 58, 237, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: importStep === 'preview' ? '920px' : '580px', borderRadius: '28px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '1.5rem', transition: 'max-width 0.3s ease' }}>
+                        
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                    <Download size={20} style={{ transform: 'rotate(180deg)' }} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#6D28D9', margin: 0 }}>Customer Bulk Import (CSV)</h3>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Import thousands of customers directly from your spreadsheets.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsImportModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
+                        </div>
+
+                        {/* Step 1: Upload File */}
+                        {importStep === 'upload' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div style={{ border: '2px dashed #CBD5E1', borderRadius: '16px', padding: '3rem 2rem', textAlign: 'center', background: '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', cursor: 'pointer', position: 'relative' }}>
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={handleFileUpload}
+                                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                                    />
+                                    <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
+                                        <Download size={24} style={{ transform: 'rotate(180deg)' }} />
+                                    </div>
+                                    <div>
+                                        <p style={{ margin: 0, fontWeight: '800', color: '#1E293B', fontSize: '0.95rem' }}>Drag & Drop your CSV file here</p>
+                                        <p style={{ margin: '4px 0 0 0', color: '#64748B', fontSize: '0.8rem', fontWeight: '500' }}>or click to browse your computer (.csv only)</p>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#B45309' }}>Need a sample template?</h4>
+                                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', fontWeight: '600', lineHeight: '1.4' }}>
+                                        To ensure your columns pair properly with our system, you can download a sample template filled with mock data.
+                                    </p>
+                                    <button
+                                        onClick={generateSampleTemplate}
+                                        style={{ width: 'fit-content', border: 'none', background: '#FEF3C7', color: '#B45309', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', marginTop: '0.25rem', transition: 'all 0.15s ease' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#FDE68A'}
+                                        onMouseLeave={e => e.currentTarget.style.background = '#FEF3C7'}
+                                    >
+                                        Download CSV Template
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 2: Column Mapping */}
+                        {importStep === 'mapping' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ background: '#EFF6FF', border: '1px solid #DBEAFE', padding: '1rem', borderRadius: '16px', color: '#1E40AF', fontSize: '0.82rem', fontWeight: '600' }}>
+                                    We found <strong>{csvHeaders.length} columns</strong> and <strong>{csvRows.length} rows</strong> in <strong>{fileName}</strong>. Please map the expected system columns to your CSV fields. Unmapped fields will take default values.
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '1rem', paddingBottom: '0.5rem', borderBottom: '2px solid #CBD5E1', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                        <span>System Field</span>
+                                        <span>Mapped CSV Column</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '38vh', overflowY: 'auto', paddingRight: '4px' }}>
+                                        {SYSTEM_FIELDS.map(field => (
+                                            <div key={field.key} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', alignItems: 'center', gap: '1rem' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{field.label}</span>
+                                                <select
+                                                    value={columnMap[field.key] || ''}
+                                                    onChange={(e) => setColumnMap({ ...columnMap, [field.key]: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem', fontWeight: '750', color: columnMap[field.key] ? '#1E293B' : '#94A3B8' }}
+                                                >
+                                                    <option value="">-- Unmapped (Use Default fallback) --</option>
+                                                    {csvHeaders.map((header, idx) => (
+                                                        <option key={idx} value={header}>{header}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                                    <button
+                                        onClick={() => setImportStep('upload')}
+                                        style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer' }}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        onClick={handleProceedToPreview}
+                                        style={{ padding: '0.65rem 1.5rem', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.2)' }}
+                                    >
+                                        Proceed to Preview
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 3: Review Preview */}
+                        {importStep === 'preview' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1rem', borderRadius: '16px', color: '#065F46', fontSize: '0.82rem', fontWeight: '600' }}>
+                                    <strong>Ready to Import!</strong> Please review the matched customer details below. Red rows indicate missing required fields and must be fixed or excluded from your CSV.
+                                </div>
+
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden', maxHeight: '42vh', overflowY: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                                        <thead style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, zIndex: 1 }}>
+                                            <tr>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Row</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Customer Name *</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Email</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Phone</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Company</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>GSTIN</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>City</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Outstanding Bal</th>
+                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Loyalty Pts</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {parsedCustomers.map((c, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9', background: c.name ? 'transparent' : '#FEF2F2' }}>
+                                                    <td style={{ padding: '0.75rem', color: '#64748B', fontWeight: '700' }}>{c.rowNumber}</td>
+                                                    <td style={{ padding: '0.75rem', fontWeight: '800', color: c.name ? '#1E293B' : '#EF4444' }}>{c.name || '(MISSING NAME)'}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#475569' }}>{c.email || '—'}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#475569' }}>{c.phone || '—'}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#475569' }}>{c.company || '—'}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#475569' }}>{c.gstin || '—'}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#475569' }}>{c.city || '—'}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#047857', fontWeight: '700' }}>{formatCurrency(c.outstanding_balance)}</td>
+                                                    <td style={{ padding: '0.75rem', color: '#475569', fontWeight: '700' }}>{c.loyalty_points}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                    💡 <strong>Note:</strong> Items missing additional parameters will automatically assign blank fallbacks.
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                                    <button
+                                        onClick={() => setImportStep('mapping')}
+                                        style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer' }}
+                                    >
+                                        Back to Mapping
+                                    </button>
+                                    <button
+                                        onClick={handleExecuteImport}
+                                        disabled={importing || parsedCustomers.some(c => !c.name)}
+                                        style={{ padding: '0.65rem 2rem', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.82rem', cursor: parsedCustomers.some(c => !c.name) ? 'not-allowed' : 'pointer', boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)' }}
+                                    >
+                                        {importing ? 'Importing Customers...' : `Import ${parsedCustomers.length} Customers`}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             )}
