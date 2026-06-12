@@ -4,7 +4,7 @@ import {
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
     Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, Edit,
     Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X,
-    Settings as SettingsIcon, Globe, Shield, Coins, Zap
+    Globe, Shield, Coins, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
@@ -207,8 +207,7 @@ const BusinessCustomization = () => {
         { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'payment', label: 'Payment', icon: Coins, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
         { id: 'finPro', label: 'FIN-PRO', icon: Zap, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'settings', label: 'Settings', icon: SettingsIcon, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' }
+        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' }
     ];
 
     const renderContent = () => {
@@ -223,7 +222,6 @@ const BusinessCustomization = () => {
             case 'payment': return renderPayment();
             case 'finPro': return renderFinPro();
             case 'betaClub': return renderBetaClub();
-            case 'settings': return renderSettings();
             default: return null;
         }
     };
@@ -603,51 +601,119 @@ const BusinessCustomization = () => {
         </div>
     );
     const renderGeneral = () => (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
-            <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Application Core" icon={Sliders}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <PremiumToggleItem label="Security Passcode" desc="Validate auth tokens before destructive operations." active={config.passcode} onToggle={() => handleToggle('passcode')} />
-                        <Divider />
-                        <PremiumToggleItem label="Prevent Negative Inventory" desc="Restrict invoicing items when stock level <= 0." active={config.negativeStock} onToggle={() => handleToggle('negativeStock')} />
-                        <Divider />
-                        <PremiumToggleItem label="Lock Contact Generation" desc="Prevent new customer/supplier records within standard transaction forms." active={config.blockParties} onToggle={() => handleToggle('blockParties')} />
-                    </div>
-                </CustomizationCard>
-                <CustomizationCard title="Operational Features" icon={Truck}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <PremiumToggleItem label="Activate Delivery Challans" active={config.deliveryChallan} onToggle={() => handleToggle('deliveryChallan')} />
-                        {config.deliveryChallan && (
-                            <div style={{ marginLeft: '2.75rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', gap: '1rem' }}>
-                                <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={config.reverseGoodsLogic} 
-                                        onChange={() => handleToggle('reverseGoodsLogic')} 
-                                        style={{ accentColor: '#1B6B3A' }} 
-                                    /> Reverse Goods Logic
-                                </label>
-                                <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={config.displayAmountChallan} 
-                                        onChange={() => handleToggle('displayAmountChallan')} 
-                                        style={{ accentColor: '#1B6B3A' }} 
-                                    /> Display Amount
-                                </label>
-                            </div>
-                        )}
-                    </div>
-                </CustomizationCard>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Core & Features Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
+                <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <CustomizationCard title="Application Core" icon={Sliders}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <PremiumToggleItem label="Security Passcode" desc="Validate auth tokens before destructive operations." active={config.passcode} onToggle={() => handleToggle('passcode')} />
+                            <Divider />
+                            <PremiumToggleItem label="Prevent Negative Inventory" desc="Restrict invoicing items when stock level <= 0." active={config.negativeStock} onToggle={() => handleToggle('negativeStock')} />
+                            <Divider />
+                            <PremiumToggleItem label="Lock Contact Generation" desc="Prevent new customer/supplier records within standard transaction forms." active={config.blockParties} onToggle={() => handleToggle('blockParties')} />
+                        </div>
+                    </CustomizationCard>
+                    <CustomizationCard title="Operational Features" icon={Truck}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <PremiumToggleItem label="Activate Delivery Challans" active={config.deliveryChallan} onToggle={() => handleToggle('deliveryChallan')} />
+                            {config.deliveryChallan && (
+                                <div style={{ marginLeft: '2.75rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', gap: '1rem' }}>
+                                    <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={config.reverseGoodsLogic} 
+                                            onChange={() => handleToggle('reverseGoodsLogic')} 
+                                            style={{ accentColor: '#1B6B3A' }} 
+                                        /> Reverse Goods Logic
+                                    </label>
+                                    <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={config.displayAmountChallan} 
+                                            onChange={() => handleToggle('displayAmountChallan')} 
+                                            style={{ accentColor: '#1B6B3A' }} 
+                                        /> Display Amount
+                                    </label>
+                                </div>
+                            )}
+                        </div>
+                    </CustomizationCard>
+                </div>
+                <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <CustomizationCard title="Warehousing" icon={ArrowRightLeft}>
+                        <PremiumToggleItem label="Godown Links" active={config.godown} onToggle={() => handleToggle('godown')} />
+                    </CustomizationCard>
+                    <CustomizationCard title="Integrity" icon={Database}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <PremiumToggleItem label="Auto Backup" active={config.autoBackup} onToggle={() => handleToggle('autoBackup')} />
+                            <PremiumToggleItem label="Audit Trail" active={config.auditTrail} onToggle={() => handleToggle('auditTrail')} />
+                        </div>
+                    </CustomizationCard>
+                </div>
             </div>
-            <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Warehousing" icon={ArrowRightLeft}>
-                    <PremiumToggleItem label="Godown Links" active={config.godown} onToggle={() => handleToggle('godown')} />
-                </CustomizationCard>
-                <CustomizationCard title="Integrity" icon={Database}>
+
+            {/* System Preferences & Settings Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <CustomizationCard title="Preferences" icon={Globe}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <PremiumToggleItem label="Auto Backup" active={config.autoBackup} onToggle={() => handleToggle('autoBackup')} />
-                        <PremiumToggleItem label="Audit Trail" active={config.auditTrail} onToggle={() => handleToggle('auditTrail')} />
+                        <PremiumToggleItem 
+                            label="Dark Mode" 
+                            desc="Use a dark theme for the application interface." 
+                            active={config.darkMode} 
+                            onToggle={() => handleToggle('darkMode')} 
+                        />
+                        <Divider />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#334155' }}>Language</h4>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Current system language: English (US)</p>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', background: '#F1F5F9', borderRadius: '6px', fontWeight: '750', color: '#475569' }}>EN-US</div>
+                        </div>
+                    </div>
+                </CustomizationCard>
+
+                <CustomizationCard title="Notifications" icon={Bell}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Push Notifications" 
+                            desc="Receive real-time alerts for updates and activities." 
+                            active={config.notifications} 
+                            onToggle={() => handleToggle('notifications')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Email Digest" 
+                            desc="Receive a weekly summary of your financial activity." 
+                            active={config.emailDigest} 
+                            onToggle={() => handleToggle('emailDigest')} 
+                        />
+                    </div>
+                </CustomizationCard>
+
+                <CustomizationCard title="Privacy & Security" icon={Shield}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <PremiumToggleItem 
+                            label="Public Profile" 
+                            desc="Allow other users on the platform to find you." 
+                            active={config.publicProfile} 
+                            onToggle={() => handleToggle('publicProfile')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Two-Factor Authentication" 
+                            desc="Add an extra layer of security to your account." 
+                            active={config.twoFactor} 
+                            onToggle={() => handleToggle('twoFactor')} 
+                        />
+                        <Divider />
+                        <PremiumToggleItem 
+                            label="Data & Analytics" 
+                            desc="Allow usage data to be collected to improve experience." 
+                            active={config.dataSharing} 
+                            onToggle={() => handleToggle('dataSharing')} 
+                        />
                     </div>
                 </CustomizationCard>
             </div>
@@ -912,75 +978,6 @@ const BusinessCustomization = () => {
         </CustomizationCard>
     );
 
-    const renderSettings = () => (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
-            <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Preferences" icon={Globe}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <PremiumToggleItem 
-                            label="Dark Mode" 
-                            desc="Use a dark theme for the application interface." 
-                            active={config.darkMode} 
-                            onToggle={() => handleToggle('darkMode')} 
-                        />
-                        <Divider />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#334155' }}>Language</h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Current system language: English (US)</p>
-                            </div>
-                            <div style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', background: '#F1F5F9', borderRadius: '6px', fontWeight: '750', color: '#475569' }}>EN-US</div>
-                        </div>
-                    </div>
-                </CustomizationCard>
-                
-                <CustomizationCard title="Notifications" icon={Bell}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <PremiumToggleItem 
-                            label="Push Notifications" 
-                            desc="Receive real-time alerts for updates and activities." 
-                            active={config.notifications} 
-                            onToggle={() => handleToggle('notifications')} 
-                        />
-                        <Divider />
-                        <PremiumToggleItem 
-                            label="Email Digest" 
-                            desc="Receive a weekly summary of your financial activity." 
-                            active={config.emailDigest} 
-                            onToggle={() => handleToggle('emailDigest')} 
-                        />
-                    </div>
-                </CustomizationCard>
-            </div>
-            
-            <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Privacy & Security" icon={Shield}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <PremiumToggleItem 
-                            label="Public Profile" 
-                            desc="Allow other users on the platform to find you." 
-                            active={config.publicProfile} 
-                            onToggle={() => handleToggle('publicProfile')} 
-                        />
-                        <Divider />
-                        <PremiumToggleItem 
-                            label="Two-Factor Authentication" 
-                            desc="Add an extra layer of security to your account." 
-                            active={config.twoFactor} 
-                            onToggle={() => handleToggle('twoFactor')} 
-                        />
-                        <Divider />
-                        <PremiumToggleItem 
-                            label="Data & Analytics" 
-                            desc="Allow usage data to be collected to improve experience." 
-                            active={config.dataSharing} 
-                            onToggle={() => handleToggle('dataSharing')} 
-                        />
-                    </div>
-                </CustomizationCard>
-            </div>
-        </div>
-    );
 
     return (
         <div className="premium-container" style={{ paddingBottom: '4rem' }}>
