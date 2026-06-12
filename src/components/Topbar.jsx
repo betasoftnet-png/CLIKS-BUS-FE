@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins, X, Search } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -178,6 +178,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
+                <div className="topbar-search">
+                    <Search size={15} color="rgba(255, 255, 255, 0.6)" />
+                    <input type="text" placeholder="Search..." />
+                </div>
                 {/* Clean Coin Icon & Points Pill Widget */}
                 {(() => {
                     return (
@@ -222,6 +226,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     );
                 })()}
 
+                <ProfileDropdown
+                    onAccount={() => navigate('/profile')}
+                    onSettings={() => navigate('/settings')}
+                    onFAQ={() => navigate('/faq')}
+                    onLogout={handleLogout}
+                />
                 <button
                     onClick={() => {
                         setIsAccessDrawerOpen(true);
@@ -257,12 +267,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         style={{ width: '22px', height: '22px', objectFit: 'contain' }} 
                     />
                 </button>
-                <ProfileDropdown
-                    onAccount={() => navigate('/profile')}
-                    onSettings={() => navigate('/settings')}
-                    onFAQ={() => navigate('/faq')}
-                    onLogout={handleLogout}
-                />
             </div>
 
             <AnimatePresence>
