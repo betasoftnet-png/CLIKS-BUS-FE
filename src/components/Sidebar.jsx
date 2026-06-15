@@ -612,44 +612,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     flexShrink: 0,
                     background: '#FFFFFF'
                 }}>
-                    {/* FIN-PRO CTA Button */}
-                    {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
-                        <button
-                            onClick={() => handleItemClick('FIN-PRO', '/ca')}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.75rem 1rem',
-                                background: location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)',
-                                color: '#B8860B',
-                                border: location.pathname.includes('/ca') ? '1.5px solid #F59E0B' : '1px solid #FDE68A',
-                                cursor: 'pointer',
-                                fontWeight: '800',
-                                fontSize: '0.85rem',
-                                borderRadius: '12px',
-                                boxShadow: location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)',
-                                transition: 'all 0.2s ease',
-                                marginBottom: '0.2rem'
-                            }}
-                            onMouseOver={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(212, 175, 55, 0.15), 0 4px 6px -2px rgba(212, 175, 55, 0.05)';
-                                e.currentTarget.style.background = 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)';
-                            }}
-                            onMouseOut={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)';
-                                e.currentTarget.style.background = location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)';
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <Briefcase size={18} style={{ color: '#D4AF37' }} />
-                                <span>FIN-PRO Audit Hub</span>
-                            </div>
-                        </button>
-                    )}
+
  
                     {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
                     {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (() => {
@@ -818,6 +781,40 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         <ChevronRight size={14} style={{ opacity: 0.5 }} />
                     </button>
                 </div>
+
+                {/* FIN-PRO CTA Button */}
+                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                    <button
+                        onClick={() => handleItemClick('FIN-PRO', '/ca')}
+                        style={{
+                            width: 'calc(100% - 2rem)',
+                            margin: '0.2rem 1rem 1rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: 'transparent',
+                            color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: '750',
+                            fontSize: '0.85rem',
+                            borderRadius: '12px',
+                            transition: 'all 0.2s ease',
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.color = '#1B6B3A';
+                            e.currentTarget.style.background = '#DCF2E4';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.color = location.pathname.includes('/ca') ? '#1B6B3A' : '#475569';
+                            e.currentTarget.style.background = 'transparent';
+                        }}
+                    >
+                        <Briefcase size={18} style={{ color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569' }} />
+                        <span>FIN-PRO Audit Hub</span>
+                    </button>
+                )}
             </div>
         </aside>
     );
