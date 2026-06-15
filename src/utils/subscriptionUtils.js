@@ -5,6 +5,7 @@
 
 export const PLAN_FEATURES = {
     // Business Category Tiers
+    'Free Plan': [],
     'Starter Plan': [
         'accounting',
         'gst-filings',
@@ -119,7 +120,7 @@ export const getPlanDuration = (planName) => {
  * @returns {boolean} True if the feature is unlocked, false otherwise
  */
 export const isFeatureAllowed = (planName, featureId) => {
-    const activePlan = planName || 'Growth Plan';
+    const activePlan = planName || 'Free Plan';
     const features = PLAN_FEATURES[activePlan];
     if (!features) return false;
     return features.includes(featureId);

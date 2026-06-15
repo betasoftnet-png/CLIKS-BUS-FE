@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }) => {
                     name: 'Test User',
                     email: 'test@example.com',
                     role: 'business',
-                    tier: 'Growth Plan',
-                    subscription_days_remaining: 20
+                    tier: 'Free Plan',
+                    subscription_days_remaining: 0
                 });
                 setLoading(false);
                 return;
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
             if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null) {
                 setPlanDaysRemaining(user.subscription_days_remaining);
             } else {
-                setPlanDaysRemaining(getPlanDuration(user.tier || 'Growth Plan'));
+                setPlanDaysRemaining(getPlanDuration(user.tier || 'Free Plan'));
             }
         }
     }, [user]);
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const hasFeature = React.useCallback((featureId) => {
-        return isFeatureAllowed(user?.tier || 'Growth Plan', featureId);
+        return isFeatureAllowed(user?.tier || 'Free Plan', featureId);
     }, [user?.tier]);
 
     const ssoLogin = async (bnxToken, appType = null) => {
@@ -168,8 +168,8 @@ export const AuthProvider = ({ children }) => {
             name: 'Test User',
             email: 'test@example.com',
             role: 'business',
-            tier: 'Growth Plan',
-            subscription_days_remaining: 20
+            tier: 'Free Plan',
+            subscription_days_remaining: 0
         };
         localStorage.setItem('books_auth_token', mockToken);
         setToken(mockToken);
@@ -188,7 +188,7 @@ export const AuthProvider = ({ children }) => {
         mockLogin,
         logout,
         isAuthenticated: !!token,
-        selectedPlan: user?.tier || 'Growth Plan',
+        selectedPlan: user?.tier || 'Free Plan',
         planDaysRemaining,
         changePlan,
         hasFeature
