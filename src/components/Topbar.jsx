@@ -12,7 +12,7 @@ import { ProfileDropdown } from './ProfileDropdown';
 import { CalcPopover } from './common/CalcPopover';
 
 const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
-    const { logout, user } = useAuth();
+    const { logout, user, selectedPlan } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -46,7 +46,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         location.pathname.includes('/sales-portal/');
 
     const handleNavigation = (path) => {
-        navigate(path);
+        if (selectedPlan === 'Free Plan' && path !== '/dashboard') {
+            navigate('/subscription');
+        } else {
+            navigate(path);
+        }
     };
 
     const handleLogout = () => {

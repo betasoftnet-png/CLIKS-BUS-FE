@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { ErrorBoundary } from './components/common';
 import MainLayout from './layouts/MainLayout';
+import { FeatureGate } from './components/common/FeatureGate';
 import Landing from './pages/Landing';
 
 // Standard Imports for critical pathways to prevent chunk load failures
@@ -183,9 +184,9 @@ function AppContent() {
                     <Route path="/purchases/purchases" element={<BusinessPurchases />} />
                     <Route path="/finance/plan" element={<BusinessFinancialPlan />} />
                     <Route path="/finance/compare" element={<BusinessCompare />} />
-                    <Route path="/hr/staff" element={<BusinessStaffing />} />
-                    <Route path="/hr/attendance" element={<BusinessAttendance />} />
-                    <Route path="/hr/payroll" element={<BusinessPayroll />} />
+                    <Route path="/hr/staff" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessStaffing /></FeatureGate>} />
+                    <Route path="/hr/attendance" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessAttendance /></FeatureGate>} />
+                    <Route path="/hr/payroll" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessPayroll /></FeatureGate>} />
                     <Route path="/payments/split-collect" element={<BusinessSplitCollect />} />
                     <Route path="/sales/customers" element={<BusinessCRM />} />
 
@@ -201,9 +202,9 @@ function AppContent() {
                     <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
 
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
-                    <Route path="/inventory/warehouse" element={<BusinessWarehouse />} />
-                    <Route path="/finance/accounting" element={<BusinessAccounting />} />
-                    <Route path="/finance/gst" element={<BusinessGST />} />
+                    <Route path="/inventory/warehouse" element={<FeatureGate feature="basic-warehousing" requiredPlanName="Starter Plan"><BusinessWarehouse /></FeatureGate>} />
+                    <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
+                    <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
                     <Route path="/marketing" element={<BusinessMarketing />} />
                     <Route path="/ca" element={<BusinessCA />} />
                     <Route path="/sales/delivery" element={<BusinessDelivery />} />
