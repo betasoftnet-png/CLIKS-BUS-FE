@@ -30,6 +30,23 @@ const MainLayout = ({ children }) => {
         }
     }, [activeConfig.darkMode]);
 
+    useEffect(() => {
+        const handleResize = () => {
+            if (typeof window !== 'undefined') {
+                if (window.innerWidth <= 768) {
+                    setIsSidebarOpen(false);
+                } else {
+                    setIsSidebarOpen(true);
+                }
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
     };

@@ -1,10 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuditorSidebar from '../components/AuditorSidebar';
 import Topbar from '../components/Topbar';
 import '../App.css';
 
 const AuditorLayout = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (typeof window !== 'undefined') {
+                if (window.innerWidth <= 768) {
+                    setIsSidebarOpen(false);
+                } else {
+                    setIsSidebarOpen(true);
+                }
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
