@@ -338,9 +338,9 @@ const BusinessDashboard = () => {
                 </div>
 
                 {/* Redesigned Charts Content Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '24px', boxSizing: 'border-box' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{ boxSizing: 'border-box' }}>
                     {/* Left Column: Sales Area Graph & Top Products */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         {/* Sales Curve Graph */}
                         <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -508,7 +508,7 @@ const BusinessDashboard = () => {
                     </div>
 
                     {/* Right Column: Custom SVG Donut Expense Chart */}
-                    <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', height: 'fit-content', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                    <div className="lg:col-span-2" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', height: 'fit-content', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
                         <div>
                             <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
                             <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>

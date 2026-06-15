@@ -123,6 +123,14 @@
   gap: 0.85rem;
 }
 
+@media (max-width: 480px) {
+  .modal-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+
 /* ── Error banner ── */
 .modal-error {
   font-size: 0.82rem;

@@ -40,6 +40,19 @@
     margin: 0 auto;
 }
 
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: 0 1rem 1rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-wrapper {
+        padding: 0 0.5rem 0.5rem 0.5rem;
+    }
+}
+
+
 .container {
     max-width: 1600px;
     margin: 0 auto;

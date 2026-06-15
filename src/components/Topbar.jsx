@@ -104,7 +104,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         <img src={logoPng} alt="CLIKS Logo" style={{ width: '28px', height: '28px' }} />
                     </div>
                     <span style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: '800', letterSpacing: '0.5px' }}>
-                        Cliks Business
+                        Cliks<span className="hidden sm:inline"> Business</span>
                     </span>
                 </div>
             </div>
@@ -188,11 +188,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         <button
                             onClick={() => navigate('/payments/rewards')}
                             title="Loyalty Points - View Rewards & Offers"
+                            className="p-1.5 sm:px-3 sm:py-1.5 gap-1.5"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px',
-                                padding: '6px 12px',
                                 borderRadius: '999px',
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 backdropFilter: 'blur(4px)',
@@ -219,7 +218,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             }}
                         >
                             <Coins size={15} color="#F59E0B" style={{ filter: 'drop-shadow(0 0 2px rgba(245, 158, 11, 0.5))' }} />
-                            <span style={{ whiteSpace: 'nowrap' }}>
+                            <span className="hidden sm:inline" style={{ whiteSpace: 'nowrap' }}>
                                 {rewardPoints.toLocaleString()} Pts
                             </span>
                         </button>

@@ -75,6 +75,19 @@ body {
   animation: fadeIn 0.5s ease-out;
 }
 
+@media (max-width: 768px) {
+  .premium-container {
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .premium-container {
+    padding: 1rem 0.5rem;
+  }
+}
+
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

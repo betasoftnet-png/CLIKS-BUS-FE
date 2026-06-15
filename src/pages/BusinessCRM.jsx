@@ -661,7 +661,7 @@ const BusinessCRM = () => {
             </div>
 
             {/* Stats Summary Bento Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="tailwind-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Active Customers', value: customers.length, icon: User, color: '#7C3AED', bg: '#F3E8FF' },
                     { label: 'Total Outstanding (Receivables)', value: formatCurrency(totalOutstanding || 0), icon: AlertCircle, color: '#B91C1C', bg: '#FEF2F2' },
@@ -890,10 +890,9 @@ const BusinessCRM = () => {
 
             {/* Tab 3: Outstanding Aging & Collection Reports */}
             {activeTab === 'reports' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
-                    
+                <div className="tailwind-grid-split-3-2">
                     {/* Left Column - Outstanding & Aging Analysis */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         
                         {/* Outstanding Receivables list */}
                         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
@@ -925,7 +924,7 @@ const BusinessCRM = () => {
                                 <Clock size={16} color="#0D9488" />
                                 <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Outstanding Aging Reports</h3>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                            <div className="tailwind-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                                 {[
                                     { bucket: '0 – 15 Days', val: agingBuckets.bucket30, color: '#0891B2', bg: '#CFFAFE' },
                                     { bucket: '16 – 30 Days Overdue', val: agingBuckets.bucket60, color: '#B45309', bg: '#FFFBEB' },
@@ -942,7 +941,7 @@ const BusinessCRM = () => {
                     </div>
 
                     {/* Right Column - Top Customers & Collection Efficiency */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         
                         {/* Collection Efficiency */}
                         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>

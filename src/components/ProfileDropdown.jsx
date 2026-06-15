@@ -349,11 +349,9 @@ export function ProfileDropdown({
         triggerButton: {
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
             borderRadius: '12px',
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            padding: '6px 14px',
             fontSize: '14px',
             fontWeight: 600,
             color: '#FFFFFF',
@@ -483,6 +481,7 @@ export function ProfileDropdown({
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
+                className="gap-1.5 sm:gap-2.5 p-1.5 sm:px-3.5 sm:py-1.5"
                 style={styles.triggerButton}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
@@ -495,11 +494,12 @@ export function ProfileDropdown({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#135029'
+                    color: '#135029',
+                    flexShrink: 0
                 }}>
                     <UserIcon size={14} />
                 </div>
-                <span style={{ 
+                <span className="hidden sm:inline" style={{ 
                     textTransform: 'none', 
                     letterSpacing: '0px',
                     fontSize: '12px',
@@ -511,6 +511,7 @@ export function ProfileDropdown({
                 }}>{displayName}</span>
                 <ChevronDown
                     size={16}
+                    className="hidden sm:inline"
                     style={{
                         transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.3s ease',

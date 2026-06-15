@@ -490,7 +490,7 @@ const BusinessSuppliers = () => {
             </div>
 
             {/* Premium Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
                 {[
                     { label: 'Outstanding Payables', value: formatCurrency(totalPayablesSum), icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
                     { label: 'Advance Supplier Outflows', value: formatCurrency(totalAdvancePaymentsSum), icon: CheckCircle2, color: '#10B981', bg: '#DCF2E4' },
@@ -671,11 +671,10 @@ const BusinessSuppliers = () => {
                 </div>
             )}
 
-            {/* Tab 2: Running Ledger Statements */}
             {activeTab === 'ledger' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '2rem' }}>
+                <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                     {/* Left side list */}
-                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '28px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
+                    <div className="lg:col-span-2" style={{ background: 'white', padding: '1.5rem', borderRadius: '28px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
                         <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '1rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Select Supplier</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {suppliers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => {
@@ -701,7 +700,7 @@ const BusinessSuppliers = () => {
                     </div>
 
                     {/* Right side ledger details */}
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
+                    <div className="lg:col-span-5" style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
                         {selectedSupplier ? (
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>

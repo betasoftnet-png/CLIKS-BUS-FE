@@ -543,7 +543,7 @@ const BusinessInventory = () => {
 
             {/* Bento-style Stats Grid */}
             {/* Modern Inventory Accent Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div className="tailwind-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Stock Valuation (Cost)', value: formatCurrency(totalInventoryValue), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Low Stock SKU Alerts', value: lowStockCount, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
@@ -789,7 +789,7 @@ const BusinessInventory = () => {
 
             {/* Tab 3: Expiry & Profitability Valuation Reports */}
             {activeTab === 'reports' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
+                <div className="tailwind-grid-split-3-2">
                     
                     {/* Left Column - Expiries & Valuation metrics */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

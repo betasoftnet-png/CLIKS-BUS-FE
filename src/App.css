@@ -2511,4 +2511,30 @@ div[style*="background-color: '#F0F9F4'"] {
     to { opacity: 1; }
 }
 
+/* Tailwind Responsive Grid Helpers */
+.tailwind-grid-2 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 !important;
+}
+
+.tailwind-grid-3 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 !important;
+}
+
+.tailwind-grid-4 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 !important;
+}
+
+.tailwind-grid-split-3-2 {
+  @apply grid grid-cols-1 lg:grid-cols-5 gap-6 !important;
+}
+
+.tailwind-grid-split-3-2 > :first-child {
+  @apply lg:col-span-3 !important;
+}
+
+.tailwind-grid-split-3-2 > :last-child {
+  @apply lg:col-span-2 !important;
+}
+
+
 

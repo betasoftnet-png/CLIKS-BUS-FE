@@ -807,16 +807,13 @@ export default function BusinessCA() {
             </div>
 
             {/* Main Area - Restructured as 2-column Grid */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1.7fr 1.3fr', 
-                gap: '24px', 
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{ 
                 width: '100%',
                 alignItems: 'start'
             }}>
                 
                 {/* Left Column: FIN-PRO-Assigned Compliance Checklist & Workspaces */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
                     <AnimatePresence mode="wait">
                         {activeTab === 'auditor' && (() => {
                             // Find the connected CA's email dynamically from accepted invitations
@@ -966,7 +963,7 @@ export default function BusinessCA() {
 
                         {activeTab === 'ca_cpa' && (
                             <Motion.div key="ca_cpa" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                     {/* Jurisdiction Toggle */}
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Dynamic Jurisdiction Engine</h3>
@@ -985,7 +982,7 @@ export default function BusinessCA() {
                                     </div>
 
                                     {/* Active Tax System View */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div className="lg:col-span-2" style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
                                                 Active System Calculations - {jurisdiction === 'IN' ? 'India (GST/TDS)' : 'United States (IRS)'}
@@ -994,7 +991,7 @@ export default function BusinessCA() {
                                         </div>
 
                                         {jurisdiction === 'IN' ? (
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                 <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
                                                     <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>GSTR-3B Status</div>
                                                     <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Ready to File</div>
@@ -1012,7 +1009,7 @@ export default function BusinessCA() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                 <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
                                                     <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>IRS Form 1120</div>
                                                     <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Computed</div>
@@ -1169,7 +1166,7 @@ export default function BusinessCA() {
 
                         {activeTab === 'consultant' && (
                             <Motion.div key="consultant" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px' }}>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                     
                                     {/* Multi-Tenant Client Portfolio */}
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1207,7 +1204,7 @@ export default function BusinessCA() {
                                     </div>
 
                                     {/* Financial Forecasting & Notes Desk */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
@@ -1288,7 +1285,7 @@ export default function BusinessCA() {
                 </div>
 
                 {/* Right Column: Accountant Connection */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
                     {/* Accountant Connection Portal */}
                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
