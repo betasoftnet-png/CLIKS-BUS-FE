@@ -352,7 +352,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Reports', icon: BarChart3, path: '/reports' },
             { label: 'Barcode Gen', icon: Barcode, path: '/barcode' },
             { label: 'Marketing', icon: Megaphone, path: '/marketing' }
-
         ],
         social: [
             { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
@@ -781,41 +780,42 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         <ChevronRight size={14} style={{ opacity: 0.5 }} />
                     </button>
                 </div>
-
-                {/* FIN-PRO CTA Button */}
-                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
-                    <button
-                        onClick={() => handleItemClick('FIN-PRO', '/ca')}
-                        style={{
-                            width: 'calc(100% - 2rem)',
-                            margin: '0.2rem 1rem 1rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            padding: '0.75rem 1rem',
-                            background: 'transparent',
-                            color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontWeight: '750',
-                            fontSize: '0.85rem',
-                            borderRadius: '12px',
-                            transition: 'all 0.2s ease',
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.color = '#1B6B3A';
-                            e.currentTarget.style.background = '#DCF2E4';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.color = location.pathname.includes('/ca') ? '#1B6B3A' : '#475569';
-                            e.currentTarget.style.background = 'transparent';
-                        }}
-                    >
-                        <Briefcase size={18} style={{ color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569' }} />
-                        <span>FIN-PRO Audit Hub</span>
-                    </button>
-                )}
             </div>
+
+            {/* FIN-PRO CTA Button - FIXED AT THE BOTTOM */}
+            {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                <button
+                    onClick={() => handleItemClick('FIN-PRO', '/ca')}
+                    style={{
+                        width: 'calc(100% - 2rem)',
+                        margin: '0.2rem 1rem 1rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        background: 'transparent',
+                        color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '750',
+                        fontSize: '0.85rem',
+                        borderRadius: '12px',
+                        transition: 'all 0.2s ease',
+                        flexShrink: 0
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.color = '#1B6B3A';
+                        e.currentTarget.style.background = '#DCF2E4';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.color = location.pathname.includes('/ca') ? '#1B6B3A' : '#475569';
+                        e.currentTarget.style.background = 'transparent';
+                    }}
+                >
+                    <Briefcase size={18} style={{ color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569' }} />
+                    <span>FIN-PRO Audit Hub</span>
+                </button>
+            )}
         </aside>
     );
 };
