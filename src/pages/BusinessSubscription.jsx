@@ -53,17 +53,17 @@ const BusinessSubscription = () => {
 
             const cashfree = await load({ mode: "sandbox" });
 
-            cashfree.checkout({
+            const result = await cashfree.checkout({
                 paymentSessionId: paymentSessionId,
                 redirectTarget: "_modal"
-            }).then(async (result) => {
-                if (result.error) {
-                    alert("Gateway Interrupted: " + result.error.message);
-                } else {
-                    await changePlan(tier.name);
-                    alert(`Successfully upgraded to ${tier.name}!`);
-                }
             });
+            
+            if (result.error) {
+                alert("Gateway Interrupted: " + result.error.message);
+            } else {
+                await changePlan(tier.name);
+                alert(`Successfully upgraded to ${tier.name}!`);
+            }
 
         } catch (err) {
             console.warn("[CASHFREE GATEWAY LOGGER]:", err.message);
