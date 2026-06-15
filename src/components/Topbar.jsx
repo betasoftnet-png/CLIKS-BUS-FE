@@ -104,7 +104,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         <img src={logoPng} alt="CLIKS Logo" style={{ width: '28px', height: '28px' }} />
                     </div>
                     <span style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: '800', letterSpacing: '0.5px' }}>
-                        Cliks<span className="hidden sm:inline"> Business</span>
+                        Cliks<span className="logo-business-text"> Business</span>
                     </span>
                 </div>
             </div>
@@ -178,10 +178,18 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Right Group (Audit + Profile) */}
             <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                <div className="topbar-search">
-                    <Search size={15} color="rgba(255, 255, 255, 0.6)" />
-                    <input type="text" placeholder="Search..." />
-                </div>
+                {(() => {
+                    const searchInputRef = React.useRef(null);
+                    return (
+                        <div 
+                            className="topbar-search"
+                            onClick={() => searchInputRef.current?.focus()}
+                        >
+                            <Search size={15} color="rgba(255, 255, 255, 0.6)" />
+                            <input ref={searchInputRef} type="text" placeholder="Search..." />
+                        </div>
+                    );
+                })()}
                 {/* Clean Coin Icon & Points Pill Widget */}
                 {(() => {
                     return (

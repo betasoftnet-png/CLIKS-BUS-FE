@@ -499,7 +499,7 @@ export function ProfileDropdown({
                 }}>
                     <UserIcon size={14} />
                 </div>
-                <span className="hidden sm:inline" style={{ 
+                <span className="profile-name-text" style={{ 
                     textTransform: 'none', 
                     letterSpacing: '0px',
                     fontSize: '12px',
@@ -511,7 +511,7 @@ export function ProfileDropdown({
                 }}>{displayName}</span>
                 <ChevronDown
                     size={16}
-                    className="hidden sm:inline"
+                    className="profile-chevron"
                     style={{
                         transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.3s ease',

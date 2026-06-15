@@ -988,10 +988,54 @@
     font-weight: 600;
     width: 100%;
     padding: 0;
+    transition: width 0.25s ease, opacity 0.25s ease;
 }
 
 .topbar-search input::placeholder {
     color: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive adjustments to prevent topbar overlap on intermediate screens */
+.logo-business-text {
+    display: inline;
+}
+
+.profile-name-text, .profile-chevron {
+    display: inline;
+}
+
+@media (max-width: 1150px) {
+    .logo-business-text {
+        display: none !important;
+    }
+    .profile-name-text, .profile-chevron {
+        display: none !important;
+    }
+}
+
+@media (max-width: 950px) {
+    .topbar-search {
+        width: 38px;
+        padding: 8px;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .topbar-search input {
+        width: 0px;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .topbar-search:focus-within {
+        width: 180px;
+        padding: 6px 12px;
+        justify-content: flex-start;
+    }
+    .topbar-search:focus-within input {
+        width: 100%;
+        opacity: 1;
+        pointer-events: auto;
+        margin-left: 4px;
+    }
 }
 
 @media (max-width: 768px) {
