@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X, Search } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins, X, Search, Sliders } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -36,8 +36,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         };
     }, []);
 
-    const [isAccessDrawerOpen, setIsAccessDrawerOpen] = React.useState(false);
-    const [activeTool, setActiveTool] = React.useState(null);
+    const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
+    const [isCalcOpen, setIsCalcOpen] = React.useState(false);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -239,210 +239,209 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     onFAQ={() => navigate('/faq')}
                     onLogout={handleLogout}
                 />
-                <button
-                    onClick={() => {
-                        setIsAccessDrawerOpen(true);
-                        setActiveTool(null);
-                    }}
-                    title="Access Kit"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '11px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        outline: 'none',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.transform = 'none';
-                    }}
-                >
-                    <img 
-                        src={accessKitPng} 
-                        alt="Access Kit" 
-                        style={{ width: '22px', height: '22px', objectFit: 'contain' }} 
-                    />
-                </button>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <button
+                        onClick={() => {
+                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
+                        }}
+                        title="Access Kit"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '11px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                            e.currentTarget.style.transform = 'none';
+                        }}
+                    >
+                        <img 
+                            src={accessKitPng} 
+                            alt="Access Kit" 
+                            style={{ width: '22px', height: '22px', objectFit: 'contain' }} 
+                        />
+                    </button>
+
+                    <AnimatePresence>
+                        {isAccessPopoverOpen && (
+                            <>
+                                {/* Backdrop to close access popover */}
+                                <div 
+                                    onClick={() => setIsAccessPopoverOpen(false)}
+                                    style={{
+                                        position: 'fixed',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100vw',
+                                        height: '100vh',
+                                        zIndex: 1999,
+                                        background: 'transparent'
+                                    }}
+                                />
+
+                                {/* Small Popover Menu */}
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: 'calc(100% + 8px)',
+                                        backgroundColor: '#FFFFFF',
+                                        border: '1px solid #E2E8F0',
+                                        borderRadius: '16px',
+                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                                        padding: '10px 8px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        zIndex: 2000,
+                                        width: '56px',
+                                        fontFamily: "'Inter', sans-serif"
+                                    }}
+                                >
+                                    {/* Calculator Icon Button */}
+                                    <button
+                                        onClick={() => {
+                                            setIsCalcOpen(true);
+                                            setIsAccessPopoverOpen(false);
+                                        }}
+                                        title="BETA Calculator"
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '12px',
+                                            backgroundColor: '#ECFDF5',
+                                            border: '1px solid #D1FAE5',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#10B981',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            outline: 'none'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#D1FAE5';
+                                            e.currentTarget.style.transform = 'scale(1.05)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#ECFDF5';
+                                            e.currentTarget.style.transform = 'scale(1)';
+                                        }}
+                                    >
+                                        <Calculator size={18} />
+                                    </button>
+
+                                    {/* Divider line */}
+                                    <div style={{ width: '80%', height: '1px', backgroundColor: '#F1F5F9' }} />
+
+                                    {/* Settings Icon Button */}
+                                    <button
+                                        onClick={() => {
+                                            navigate(isAdminOrSales ? '/admin/settings' : '/customization');
+                                            setIsAccessPopoverOpen(false);
+                                        }}
+                                        title="Settings / Customization"
+                                        style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '12px',
+                                            backgroundColor: '#F8FAFC',
+                                            border: '1px solid #E2E8F0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#64748B',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            outline: 'none'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#F1F5F9';
+                                            e.currentTarget.style.transform = 'scale(1.05)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                            e.currentTarget.style.transform = 'scale(1)';
+                                        }}
+                                    >
+                                        <Sliders size={18} />
+                                    </button>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             <AnimatePresence>
-                {isAccessDrawerOpen && (
+                {isCalcOpen && (
                     <>
-                        {/* Backdrop Blur Overlay */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsAccessDrawerOpen(false)}
+                        {/* Backdrop for closing the calculator */}
+                        <div 
+                            onClick={() => setIsCalcOpen(false)}
                             style={{
                                 position: 'fixed',
                                 top: 0,
                                 left: 0,
                                 width: '100vw',
                                 height: '100vh',
-                                backgroundColor: 'rgba(15, 23, 42, 0.3)',
-                                backdropFilter: 'blur(4px)',
-                                zIndex: 2999,
+                                zIndex: 2001,
+                                background: 'transparent'
                             }}
                         />
 
-                        {/* Drawer Panel */}
+                        {/* Floating Tape Calculator */}
                         <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            transition={{ duration: 0.2 }}
                             style={{
                                 position: 'fixed',
-                                top: 0,
-                                right: 0,
-                                height: '100vh',
-                                width: '100%',
-                                maxWidth: '380px',
+                                right: '1rem',
+                                top: 'calc(64px + 6px)',
+                                width: 'calc(100vw - 24px)',
+                                maxWidth: '360px',
+                                height: 'min(580px, 80vh)',
                                 backgroundColor: '#FFFFFF',
-                                boxShadow: '-10px 0 30px rgba(15, 23, 42, 0.15)',
-                                zIndex: 3000,
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                borderRadius: '24px',
+                                border: '1px solid #E2E8F0',
+                                overflow: 'hidden',
+                                zIndex: 2002,
                                 display: 'flex',
-                                flexDirection: 'column',
-                                fontFamily: "'Inter', sans-serif",
-                                color: '#1E293B',
+                                flexDirection: 'column'
                             }}
                         >
-                            {activeTool === 'calculator' ? (
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <CalcPopover 
-                                        isInline={true} 
-                                        onCloseInline={() => setActiveTool(null)} 
-                                    />
-                                </div>
-                            ) : (
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                    {/* Drawer Header */}
-                                    <div style={{
-                                        padding: '16px 20px',
-                                        borderBottom: '1px solid #F1F5F9',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        background: '#FAFBFC'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <img src={accessKitPng} alt="Access Kit" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
-                                            <span style={{ fontSize: '16px', fontWeight: '800', color: '#1E293B', letterSpacing: '0.3px' }}>
-                                                Access Kit
-                                            </span>
-                                        </div>
-                                        <button 
-                                            onClick={() => setIsAccessDrawerOpen(false)}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                color: '#94A3B8',
-                                                padding: '4px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                borderRadius: '6px',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-
-                                    {/* Drawer Content - List of Tools */}
-                                    <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
-                                        <h3 style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-                                            Available Tools
-                                        </h3>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            {/* Calculator Tool Card */}
-                                            <button
-                                                onClick={() => setActiveTool('calculator')}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '16px',
-                                                    width: '100%',
-                                                    padding: '16px',
-                                                    borderRadius: '16px',
-                                                    border: '1px solid #E2E8F0',
-                                                    background: '#FFFFFF',
-                                                    textAlign: 'left',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                    outline: 'none',
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.borderColor = '#10B981';
-                                                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(16, 185, 129, 0.05), 0 4px 6px -2px rgba(16, 185, 129, 0.02)';
-                                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.borderColor = '#E2E8F0';
-                                                    e.currentTarget.style.boxShadow = 'none';
-                                                    e.currentTarget.style.transform = 'none';
-                                                }}
-                                            >
-                                                <div style={{
-                                                    width: '40px',
-                                                    height: '40px',
-                                                    borderRadius: '12px',
-                                                    backgroundColor: '#ECFDF5',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    color: '#10B981',
-                                                    flexShrink: 0
-                                                }}>
-                                                    <Calculator size={22} />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1F2937', margin: '0 0 2px 0' }}>
-                                                        BETA Calculator
-                                                    </h4>
-                                                    <p style={{ fontSize: '12px', color: '#6B7280', margin: 0, fontWeight: '500' }}>
-                                                        Interactive tape calculator with tax & compare utilities.
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Drawer Footer */}
-                                    <div style={{
-                                        padding: '16px 20px',
-                                        borderTop: '1px solid #F1F5F9',
-                                        textAlign: 'center',
-                                        background: '#FAFBFC'
-                                    }}>
-                                        <p style={{ fontSize: '11px', color: '#94A3B8', margin: 0, fontWeight: '600' }}>
-                                            Cliks Business Access Kit • Version 1.0
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
+                            <CalcPopover 
+                                isInline={true} 
+                                onCloseInline={() => setIsCalcOpen(false)} 
+                            />
                         </motion.div>
                     </>
                 )}
             </AnimatePresence>
+        
         </header>
     );
 };
 
 export default Topbar;
-
