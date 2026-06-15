@@ -288,102 +288,128 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         width: '100vw',
                                         height: '100vh',
                                         zIndex: 1999,
-                                        background: 'transparent'
+                                        backgroundColor: 'rgba(15, 23, 42, 0.15)',
+                                        backdropFilter: 'blur(4px)',
+                                        WebkitBackdropFilter: 'blur(4px)'
                                     }}
                                 />
 
-                                {/* Small Popover Menu */}
+                                {/* Full Screen Height Drawer from the right edge */}
                                 <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                    transition={{ duration: 0.15 }}
+                                    initial={{ x: '100%' }}
+                                    animate={{ x: 0 }}
+                                    exit={{ x: '100%' }}
+                                    transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                                     style={{
-                                        position: 'absolute',
+                                        position: 'fixed',
+                                        top: 0,
                                         right: 0,
-                                        top: 'calc(100% + 8px)',
+                                        height: '100vh',
                                         backgroundColor: '#FFFFFF',
-                                        border: '1px solid #E2E8F0',
-                                        borderRadius: '16px',
-                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                                        padding: '10px 8px',
+                                        borderLeft: '1px solid #E2E8F0',
+                                        boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.08)',
+                                        padding: '24px 8px',
                                         display: 'flex',
                                         flexDirection: 'column',
+                                        justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        gap: '10px',
                                         zIndex: 2000,
-                                        width: '56px',
+                                        width: '60px',
                                         fontFamily: "'Inter', sans-serif"
                                     }}
                                 >
-                                    {/* Calculator Icon Button */}
-                                    <button
-                                        onClick={() => {
-                                            setIsCalcOpen(true);
-                                            setIsAccessPopoverOpen(false);
-                                        }}
-                                        title="BETA Calculator"
-                                        style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '12px',
-                                            backgroundColor: '#ECFDF5',
-                                            border: '1px solid #D1FAE5',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#10B981',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s ease',
-                                            outline: 'none'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = '#D1FAE5';
-                                            e.currentTarget.style.transform = 'scale(1.05)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = '#ECFDF5';
-                                            e.currentTarget.style.transform = 'scale(1)';
-                                        }}
-                                    >
-                                        <Calculator size={18} />
-                                    </button>
+                                    {/* Top Area: Close button & Calculator */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                        <button
+                                            onClick={() => setIsAccessPopoverOpen(false)}
+                                            title="Close Drawer"
+                                            style={{
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '50%',
+                                                border: 'none',
+                                                backgroundColor: '#F1F5F9',
+                                                color: '#64748B',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#E2E8F0'}
+                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#F1F5F9'}
+                                        >
+                                            <X size={16} />
+                                        </button>
 
-                                    {/* Divider line */}
-                                    <div style={{ width: '80%', height: '1px', backgroundColor: '#F1F5F9' }} />
+                                        {/* Calculator Icon Button */}
+                                        <button
+                                            onClick={() => {
+                                                setIsCalcOpen(true);
+                                                setIsAccessPopoverOpen(false);
+                                            }}
+                                            title="BETA Calculator"
+                                            style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '12px',
+                                                backgroundColor: '#ECFDF5',
+                                                border: '1px solid #D1FAE5',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#10B981',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                outline: 'none'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#D1FAE5';
+                                                e.currentTarget.style.transform = 'scale(1.05)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#ECFDF5';
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                            }}
+                                        >
+                                            <Calculator size={18} />
+                                        </button>
+                                    </div>
 
-                                    {/* Settings Icon Button */}
-                                    <button
-                                        onClick={() => {
-                                            navigate(isAdminOrSales ? '/admin/settings' : '/customization');
-                                            setIsAccessPopoverOpen(false);
-                                        }}
-                                        title="Settings / Customization"
-                                        style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '12px',
-                                            backgroundColor: '#F8FAFC',
-                                            border: '1px solid #E2E8F0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#64748B',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s ease',
-                                            outline: 'none'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = '#F1F5F9';
-                                            e.currentTarget.style.transform = 'scale(1.05)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.backgroundColor = '#F8FAFC';
-                                            e.currentTarget.style.transform = 'scale(1)';
-                                        }}
-                                    >
-                                        <Sliders size={18} />
-                                    </button>
+                                    {/* Bottom Area: Settings / Customization */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <button
+                                            onClick={() => {
+                                                navigate(isAdminOrSales ? '/admin/settings' : '/customization');
+                                                setIsAccessPopoverOpen(false);
+                                            }}
+                                            title="Settings / Customization"
+                                            style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '12px',
+                                                backgroundColor: '#F8FAFC',
+                                                border: '1px solid #E2E8F0',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#64748B',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                outline: 'none'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#F1F5F9';
+                                                e.currentTarget.style.transform = 'scale(1.05)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                            }}
+                                        >
+                                            <Sliders size={18} />
+                                        </button>
+                                    </div>
                                 </motion.div>
                             </>
                         )}
