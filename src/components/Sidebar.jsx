@@ -403,12 +403,17 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const handleItemClick = (label, path) => {
         setActiveItem(label);
         
-        // Intercept clicks if the user is on the Free Plan (allow essential pages only)
-        const allowedFreePlanPages = ['Dashboard', 'Settings', 'Subscription', 'Help & Support', 'Business Settings', 'Profile'];
-        if (selectedPlan === 'Free Plan' && !allowedFreePlanPages.includes(label)) {
-            navigate('/subscription');
-        } else {
-            if (path) navigate(path);
+        if (path) {
+            // Intercept clicks if the user is on the Free Plan (allow essential pages, social, and payments)
+            const allowedFreePlanPages = ['Dashboard', 'Settings', 'Subscription', 'Help & Support', 'Business Settings', 'Profile'];
+            const isSocialOrPayment = path.startsWith('/social/') || path.startsWith('/payments/');
+            
+            if (selectedPlan === 'Free Plan' && !allowedFreePlanPages.includes(label) && !isSocialOrPayment) {
+                alert('You are on the Free Plan! Please subscribe to unlock full access to this feature.');
+                navigate('/subscription');
+            } else {
+                navigate(path);
+            }
         }
 
         if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) {
