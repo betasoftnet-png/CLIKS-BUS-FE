@@ -405,47 +405,36 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 height: '100vh',
                                 zIndex: 2001,
                                 backgroundColor: 'rgba(15, 23, 42, 0.3)',
-                                backdropFilter: 'blur(12px)',
-                                WebkitBackdropFilter: 'blur(12px)'
+                                backdropFilter: 'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)'
                             }}
                         />
 
-                        {/* Floating Tape Calculator (Full Screen) */}
+                        {/* Sliding Tape Calculator (Right to Left Drawer) */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                             style={{
                                 position: 'fixed',
                                 top: 0,
-                                left: 0,
-                                width: '100vw',
+                                right: 0,
+                                width: '100%',
+                                maxWidth: '360px',
                                 height: '100vh',
+                                backgroundColor: '#FFFFFF',
+                                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',
                                 zIndex: 2002,
                                 display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                background: 'transparent',
-                                pointerEvents: 'none'
+                                flexDirection: 'column',
+                                overflow: 'hidden'
                             }}
                         >
-                            <div style={{
-                                width: '100%',
-                                maxWidth: '480px',
-                                height: '100%',
-                                backgroundColor: '#FFFFFF',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden',
-                                pointerEvents: 'auto'
-                            }}>
-                                <CalcPopover 
-                                    isInline={true} 
-                                    onCloseInline={() => setIsCalcOpen(false)} 
-                                />
-                            </div>
+                            <CalcPopover 
+                                isInline={true} 
+                                onCloseInline={() => setIsCalcOpen(false)} 
+                            />
                         </motion.div>
                     </>
                 )}
