@@ -374,16 +374,28 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         const newItem = getActiveItemFromPath(location.pathname);
         setActiveItem(newItem);
 
-        navigationConfig.standard.forEach(item => {
-            if (item.children && item.children.some(child => location.pathname.includes(child.path))) {
-                setOpenMenus(prev => ({ ...prev, [item.label]: true }));
-            }
-        });
-        navigationConfig.admin.forEach(item => {
-            if (item.children && item.children.some(child => location.pathname.includes(child.path))) {
-                setOpenMenus(prev => ({ ...prev, [item.label]: true }));
-            }
-        });
+        const initialOpenMenus = {};
+        const checkAndOpen = (items) => {
+            items.forEach(item => {
+                if (item.children) {
+                    const hasActiveChild = item.children.some(child => {
+                        return child.path && (
+                            location.pathname === child.path ||
+                            (child.path !== '/' && location.pathname.startsWith(child.path + '/')) ||
+                            location.pathname.includes(child.path)
+                        );
+                    });
+                    if (hasActiveChild) {
+                        initialOpenMenus[item.label] = true;
+                    }
+                }
+            });
+        };
+
+        checkAndOpen(navigationConfig.standard);
+        checkAndOpen(navigationConfig.admin);
+
+        setOpenMenus(prev => ({ ...prev, ...initialOpenMenus }));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname]);
 
@@ -412,383 +424,366 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 <h2 className="app-title">CLIKS BUS</h2>
             </div>
 
-            <nav className="sidebar-nav" style={{ overflowY: 'auto', padding: '0.75rem' }}>
-                {isAdminMode ? (
-                    <>
-                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>PLATFORM CONTROL</div>
-                        {navigationConfig.admin.map(item => (
-                            <MenuItem
-                                key={item.label}
-                                item={item}
-                                activeItem={activeItem}
-                                openMenus={openMenus}
-                                toggleMenu={toggleMenu}
-                                handleItemClick={handleItemClick}
-                                isAdmin={true}
-                            />
-                        ))}
-                    </>
-                ) : isSalesAgentMode ? (
-                    <>
-                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#EA580C', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SALES DESK</div>
-                        {navigationConfig.salesAgent.map(item => (
-                            <MenuItem
-                                key={item.label}
-                                item={item}
-                                activeItem={activeItem}
-                                openMenus={openMenus}
-                                toggleMenu={toggleMenu}
-                                handleItemClick={handleItemClick}
-                                isSales={true}
-                            />
-                        ))}
-                    </>
-                ) : isSupportAgentMode ? (
-                    <>
-                        <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#3B82F6', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SUPPORT DESK</div>
-                        {navigationConfig.supportAgent.map(item => (
-                            <MenuItem
-                                key={item.label}
-                                item={item}
-                                activeItem={activeItem}
-                                openMenus={openMenus}
-                                toggleMenu={toggleMenu}
-                                handleItemClick={handleItemClick}
-                                isSupport={true}
-                            />
-                        ))}
-                    </>
-                ) : isSocialMode ? (
-                    <>
-                        {/* No "Social" title - removed per user request */}
-                        <div style={{ paddingTop: '1.5rem' }}>
-                            {navigationConfig.social.map(item => (
+            <div className="sidebar-scroll-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden' }}>
+                <nav className="sidebar-nav" style={{ flex: 'none', overflowY: 'visible', padding: '0.75rem' }}>
+                    {isAdminMode ? (
+                        <>
+                            <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#4F46E5', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>PLATFORM CONTROL</div>
+                            {navigationConfig.admin.map(item => (
+                                <MenuItem
+                                    key={item.label}
+                                    item={item}
+                                    activeItem={activeItem}
+                                    openMenus={openMenus}
+                                    toggleMenu={toggleMenu}
+                                    handleItemClick={handleItemClick}
+                                    isAdmin={true}
+                                />
+                            ))}
+                        </>
+                    ) : isSalesAgentMode ? (
+                        <>
+                            <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#EA580C', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SALES DESK</div>
+                            {navigationConfig.salesAgent.map(item => (
+                                <MenuItem
+                                    key={item.label}
+                                    item={item}
+                                    activeItem={activeItem}
+                                    openMenus={openMenus}
+                                    toggleMenu={toggleMenu}
+                                    handleItemClick={handleItemClick}
+                                    isSales={true}
+                                />
+                            ))}
+                        </>
+                    ) : isSupportAgentMode ? (
+                        <>
+                            <div className="sidebar-nav-header" style={{ padding: '0.5rem 1.25rem', color: '#3B82F6', fontSize: '0.75rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>SUPPORT DESK</div>
+                            {navigationConfig.supportAgent.map(item => (
+                                <MenuItem
+                                    key={item.label}
+                                    item={item}
+                                    activeItem={activeItem}
+                                    openMenus={openMenus}
+                                    toggleMenu={toggleMenu}
+                                    handleItemClick={handleItemClick}
+                                    isSupport={true}
+                                />
+                            ))}
+                        </>
+                    ) : isSocialMode ? (
+                        <>
+                            {/* No "Social" title - removed per user request */}
+                            <div style={{ paddingTop: '1.5rem' }}>
+                                {navigationConfig.social.map(item => (
+                                    <React.Fragment key={item.label}>
+                                        <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                        {item.label === 'Trading docs' && (
+                                            <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </>
+                    ) : isFinanceMode ? (
+                        <>
+                            {/* No "Finance" title - removed per user request */}
+                            {/* Add Money CTA - shows on all Finance mode pages */}
+                            <button
+                                onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
+                                style={{
+                                    width: 'calc(100% - 2rem)',
+                                    margin: '0.5rem 1rem 1.5rem 1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.65rem 1rem',
+                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                    color: '#FFFFFF',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: '800',
+                                    fontSize: '0.82rem',
+                                    boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
+                                    transition: 'all 0.2s ease',
+                                    flexShrink: 0
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
+                                <Plus size={15} strokeWidth={3} /> Add Money
+                            </button>
+                            {navigationConfig.financeMode.map(item => (
                                 <React.Fragment key={item.label}>
                                     <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
-                                    {item.label === 'Trading docs' && (
-                                        <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
+                                </React.Fragment>
+                            ))}
+                        </>
+                    ) : (
+                        <>
+                            {navigationConfig.standard.map(item => (
+                                <React.Fragment key={item.label}>
+                                    <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                    {item.label === 'Dashboard' && (
+                                        <>
+                                            <button
+                                                onClick={() => handleItemClick('Generate Invoice', '/sales/invoice?create=true')}
+                                                style={{
+                                                    width: '100%', padding: '0.75rem', borderRadius: '10px',
+                                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                                    color: 'white', border: 'none', cursor: 'pointer',
+                                                    fontWeight: '800', fontSize: '0.85rem', display: 'flex',
+                                                    alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                                    boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
+                                                    marginBottom: '8px',
+                                                    marginTop: '2px'
+                                                }}>
+                                                <Plus size={16} strokeWidth={3} /> Generate Invoice
+                                            </button>
+                                            <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
+                                        </>
                                     )}
                                 </React.Fragment>
                             ))}
-                        </div>
-                    </>
-                ) : isFinanceMode ? (
-                    <>
-                        {/* No "Finance" title - removed per user request */}
-                        {/* Add Money CTA - shows on all Finance mode pages */}
+                        </>
+                    )}
+                </nav>
+ 
+                {/* Refer & Earn Block (Moved outside the white footer box as requested) */}
+                {(isFinanceMode || isSocialMode) && (
+                    <div style={{ padding: '0rem 1rem', flexShrink: 0 }}>
                         <button
-                            onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
+                            onClick={() => {
+                                if (onReferralClick) onReferralClick();
+                                if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
+                            }}
                             style={{
-                                width: 'calc(100% - 2rem)',
-                                margin: '0.5rem 1rem 1.5rem 1rem',
+                                width: '100%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: '0.5rem',
-                                padding: '0.65rem 1rem',
-                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
-                                color: '#FFFFFF',
-                                borderRadius: '10px',
-                                border: 'none',
+                                gap: '0.65rem',
+                                padding: '0.60rem',
+                                background: 'transparent',
+                                color: '#0F172A',
+                                borderRadius: '12px',
+                                border: '1px solid transparent',
+                                cursor: 'pointer',
+                                fontWeight: '700',
+                                fontSize: '0.875rem',
+                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                outline: 'none',
+                                marginTop: '1.2rem'
+                            }}
+                            onMouseOver={() => {
+                                // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+                                // e.currentTarget.style.color = '#7C3AED';
+                                // e.currentTarget.style.borderColor = '#DDD6FE';
+                                // e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
+                                // e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#6B7280';
+                                e.currentTarget.style.borderColor = 'transparent';
+                                e.currentTarget.style.boxShadow = 'none';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
+                            <span>Refer &amp; Earn</span>
+                        </button>
+                    </div>
+                )}
+ 
+                <div style={{ flex: 1 }} />
+ 
+                {/* Fixed Sidebar Footer - Relocated based on User Specification */}
+                <div style={{
+                    padding: '1rem',
+                    borderTop: '1px solid #F1F5F9',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.6rem',
+                    flexShrink: 0,
+                    background: '#FFFFFF'
+                }}>
+                    {/* FIN-PRO CTA Button */}
+                    {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                        <button
+                            onClick={() => handleItemClick('FIN-PRO', '/ca')}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.75rem 1rem',
+                                background: location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)',
+                                color: '#B8860B',
+                                border: location.pathname.includes('/ca') ? '1.5px solid #F59E0B' : '1px solid #FDE68A',
                                 cursor: 'pointer',
                                 fontWeight: '800',
-                                fontSize: '0.82rem',
-                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
+                                fontSize: '0.85rem',
+                                borderRadius: '12px',
+                                boxShadow: location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)',
                                 transition: 'all 0.2s ease',
-                                flexShrink: 0
+                                marginBottom: '0.2rem'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(212, 175, 55, 0.15), 0 4px 6px -2px rgba(212, 175, 55, 0.05)';
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)';
+                                e.currentTarget.style.background = location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)';
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Briefcase size={18} style={{ color: '#D4AF37' }} />
+                                <span>FIN-PRO Audit Hub</span>
+                            </div>
+                        </button>
+                    )}
+ 
+                    {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
+                    {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                        <button
+                            onClick={() => handleItemClick('Subscription', '/subscription')}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.5rem 0.6rem 0.5rem 0.85rem',
+                                background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: '750',
+                                fontSize: '0.85rem',
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
+                                transition: 'all 0.2s ease',
+                                minHeight: '52px'
                             }}
                             onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                             onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                         >
-                            <Plus size={15} strokeWidth={3} /> Add Money
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                    <Crown size={18} strokeWidth={2.5} />
+                                </div>
+                                <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
+                            </div>
+ 
+                            {/* Integrated Dynamic Progress Circle requested by user */}
+                            <div style={{
+                                position: 'relative',
+                                width: '40px',
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}>
+                                <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
+                                    <circle
+                                        cx="20" cy="20" r="18"
+                                        fill="#FFFFFF"
+                                        stroke="rgba(255,255,255,0.25)"
+                                        strokeWidth="3"
+                                    />
+                                    <circle
+                                        cx="20" cy="20" r="18"
+                                        fill="none"
+                                        stroke="#FBBF24"
+                                        strokeWidth="3"
+                                        strokeDasharray="113"
+                                        strokeDashoffset={113 * (1 - 20 / 30)}
+                                        strokeLinecap="round"
+                                        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+                                    />
+                                </svg>
+                                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
+                                    <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>20</span>
+                                    <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+                                </div>
+                            </div>
                         </button>
-                        {navigationConfig.financeMode.map(item => (
-                            <React.Fragment key={item.label}>
-                                <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
-                            </React.Fragment>
-                        ))}
-                    </>
-                ) : (
-                    <>
-                        {navigationConfig.standard.map(item => (
-                            <React.Fragment key={item.label}>
-                                <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
-                                {item.label === 'Dashboard' && (
-                                    <>
-                                        <button
-                                            onClick={() => handleItemClick('Generate Invoice', '/sales/invoice?create=true')}
-                                            style={{
-                                                width: '100%', padding: '0.75rem', borderRadius: '10px',
-                                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
-                                                color: 'white', border: 'none', cursor: 'pointer',
-                                                fontWeight: '800', fontSize: '0.85rem', display: 'flex',
-                                                alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
-                                                marginBottom: '8px',
-                                                marginTop: '2px'
-                                            }}>
-                                            <Plus size={16} strokeWidth={3} /> Generate Invoice
-                                        </button>
-                                        <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
-                                    </>
-                                )}
-                            </React.Fragment>
-                        ))}
-                    </>
-                )}
-            </nav>
-
-            {/* Refer & Earn Block (Moved outside the white footer box as requested) */}
-            {(isFinanceMode || isSocialMode) && (
-                <div style={{ padding: '0rem 1rem', flexShrink: 0 }}>
+                    )}
+ 
+                    {/* Bottom Settings Block (Replaced 'My Company' from example) */}
                     <button
-                        onClick={() => {
-                            if (onReferralClick) onReferralClick();
-                            if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
-                        }}
-                        style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.65rem',
-                            padding: '0.60rem',
-                            background: 'transparent',
-                            color: '#0F172A',
-                            borderRadius: '12px',
-                            border: '1px solid transparent',
-                            cursor: 'pointer',
-                            fontWeight: '700',
-                            fontSize: '0.875rem',
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                            outline: 'none',
-                            marginTop: '1.2rem'
-                        }}
-                        onMouseOver={() => {
-                            // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
-                            // e.currentTarget.style.color = '#7C3AED';
-                            // e.currentTarget.style.borderColor = '#DDD6FE';
-                            // e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
-                            // e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#6B7280';
-                            e.currentTarget.style.borderColor = 'transparent';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                    >
-                        <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
-                        <span>Refer &amp; Earn</span>
-                    </button>
-                </div>
-            )}
-
-            {/* Fixed Sidebar Footer - Relocated based on User Specification */}
-            <div style={{
-                padding: '1rem',
-                borderTop: '1px solid #F1F5F9',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.6rem',
-                flexShrink: 0,
-                background: '#FFFFFF'
-            }}>
-                {/* FIN-PRO CTA Button */}
-                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
-                    <button
-                        onClick={() => handleItemClick('FIN-PRO', '/ca')}
+                        onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/customization')}
                         style={{
                             width: '100%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '0.75rem 1rem',
-                            background: location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)',
-                            color: '#B8860B',
-                            border: location.pathname.includes('/ca') ? '1.5px solid #F59E0B' : '1px solid #FDE68A',
+                            background: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
+                            color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
+                            borderRadius: '10px',
+                            border: '1px solid',
+                            borderColor: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
                             cursor: 'pointer',
-                            fontWeight: '800',
+                            fontWeight: '700',
                             fontSize: '0.85rem',
-                            borderRadius: '12px',
-                            boxShadow: location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)',
-                            transition: 'all 0.2s ease',
-                            marginBottom: '0.2rem'
+                            transition: 'background 0.2s'
                         }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(212, 175, 55, 0.15), 0 4px 6px -2px rgba(212, 175, 55, 0.05)';
-                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = location.pathname.includes('/ca') ? '0 4px 10px rgba(212, 175, 55, 0.15)' : '0 4px 6px -1px rgba(251, 191, 36, 0.05)';
-                            e.currentTarget.style.background = location.pathname.includes('/ca') ? 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)' : 'linear-gradient(135deg, #FFFDF0 0%, #FFFBEB 100%)';
-                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
+                        onMouseOut={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Briefcase size={18} style={{ color: '#D4AF37' }} />
-                            <span>FIN-PRO Audit Hub</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <SettingsIcon size={18} style={{ opacity: 0.8 }} />
+                            <span>Settings</span>
                         </div>
-                        {/* <span style={{ 
-                            fontSize: '0.65rem', 
-                            background: '#FEF3C7', 
-                            color: '#B8860B', 
-                            padding: '2px 6px', 
-                            borderRadius: '100px', 
-                            fontWeight: '900',
-                            border: '1px solid #FDE68A'
-                        }}>CONNECTED</span> */}
+                        <ChevronRight size={14} style={{ opacity: 0.5 }} />
                     </button>
-                )}
-
-                {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
-                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+ 
+                    {/* Help & Support Block */}
                     <button
-                        onClick={() => handleItemClick('Subscription', '/subscription')}
+                        onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
                         style={{
                             width: '100%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '0.5rem 0.6rem 0.5rem 0.85rem',
-                            background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
-                            color: '#FFFFFF',
-                            border: 'none',
+                            padding: '0.75rem 1rem',
+                            background: location.pathname.includes('/faq')
+                                ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
+                                : '#F8FAFC',
+                            color: location.pathname.includes('/faq')
+                                ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
+                                : '#334155',
+                            borderRadius: '10px',
+                            border: '1px solid',
+                            borderColor: location.pathname.includes('/faq')
+                                ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0'))
+                                : '#E2E8F0',
                             cursor: 'pointer',
-                            fontWeight: '750',
+                            fontWeight: '700',
                             fontSize: '0.85rem',
-                            borderRadius: '12px',
-                            boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
-                            transition: 'all 0.2s ease',
-                            minHeight: '52px'
+                            transition: 'background 0.2s'
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                <Crown size={18} strokeWidth={2.5} />
-                            </div>
-                            <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
-                        </div>
-
-                        {/* Integrated Dynamic Progress Circle requested by user */}
-                        <div style={{
-                            position: 'relative',
-                            width: '40px',
-                            height: '40px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                        }}>
-                            {/* Background Circular Track & Filled Disc using SVG */}
-                            <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
-                                {/* Inner solid white disc and container circle */}
-                                <circle
-                                    cx="20" cy="20" r="18"
-                                    fill="#FFFFFF"
-                                    stroke="rgba(255,255,255,0.25)"
-                                    strokeWidth="3"
-                                />
-                                {/* Gold Dynamic Progress Arc overlay (calculating ratio 20/30) */}
-                                <circle
-                                    cx="20" cy="20" r="18"
-                                    fill="none"
-                                    stroke="#FBBF24"
-                                    strokeWidth="3"
-                                    strokeDasharray="113" /* 2 * PI * r(18) */
-                                    strokeDashoffset={113 * (1 - 20 / 30)}
-                                    strokeLinecap="round"
-                                    style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-                                />
-                            </svg>
-                            {/* Center Content positioned on top */}
-                            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
-                                <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>20</span>
-                                <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
-                            </div>
-                        </div>
-                    </button>
-                )}
-
-
-
-                {/* Bottom Settings Block (Replaced 'My Company' from example) */}
-                <button
-                    // onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
-                    onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/customization')}
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
-                        // background: location.pathname.includes('/settings') ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
-                        background: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
-                        // color: location.pathname.includes('/settings') ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
-                        color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
-                        borderRadius: '10px',
-                        border: '1px solid',
-                        // borderColor: location.pathname.includes('/settings') ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
-                        borderColor: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '0.85rem',
-                        transition: 'background 0.2s'
-                    }}
-                    // onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
-                    onMouseOver={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
-                    // onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/settings') ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
-                    onMouseOut={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <SettingsIcon size={18} style={{ opacity: 0.8 }} />
-                        <span>Settings</span>
-                    </div>
-                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                </button>
-
-                {/* Help & Support Block */}
-                <button
-                    onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
-                        background: location.pathname.includes('/faq')
+                        onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4'))
+                            : '#F1F5F9'}
+                        onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
                             ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
-                            : '#F8FAFC',
-                        color: location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
-                            : '#334155',
-                        borderRadius: '10px',
-                        border: '1px solid',
-                        borderColor: location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0'))
-                            : '#E2E8F0',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '0.85rem',
-                        transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
-                        ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4'))
-                        : '#F1F5F9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
-                        ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
-                        : '#F8FAFC'}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <HelpCircle size={18} style={{ opacity: 0.8 }} />
-                        <span>Help & Support</span>
-                    </div>
-                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                </button>
+                            : '#F8FAFC'}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <HelpCircle size={18} style={{ opacity: 0.8 }} />
+                            <span>Help & Support</span>
+                        </div>
+                        <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                    </button>
+                </div>
             </div>
         </aside>
     );
