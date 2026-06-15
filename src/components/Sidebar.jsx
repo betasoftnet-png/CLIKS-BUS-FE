@@ -48,6 +48,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/auth-context';
 import '../App.css';
 import logoPng from '../assets/cliks5.png';
 
@@ -185,6 +186,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
 const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { selectedPlan, planDaysRemaining } = useAuth();
 
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
@@ -650,71 +652,103 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     )}
  
                     {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
-                    {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
-                        <button
-                            onClick={() => handleItemClick('Subscription', '/subscription')}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.5rem 0.6rem 0.5rem 0.85rem',
-                                background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontWeight: '750',
-                                fontSize: '0.85rem',
-                                borderRadius: '12px',
-                                boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
-                                transition: 'all 0.2s ease',
-                                minHeight: '52px'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                    <Crown size={18} strokeWidth={2.5} />
+                    {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (() => {
+                        const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(selectedPlan);
+                        const totalDays = isAnnual ? 365 : 30;
+                        const progressPercent = Math.min(100, Math.max(0, (planDaysRemaining / totalDays) * 100));
+                        const strokeDashoffset = 113 * (1 - progressPercent / 100);
+
+                        return (
+                            <button
+                                onClick={() => handleItemClick('Subscription', '/subscription')}
+                                style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '0.5rem 0.6rem 0.5rem 0.85rem',
+                                    background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: '750',
+                                    fontSize: '0.85rem',
+                                    borderRadius: '12px',
+                                    boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
+                                    transition: 'all 0.2s ease',
+                                    minHeight: '52px'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
+                                <style>{`
+                                    @keyframes circular-spin {
+                                        0% { transform: rotate(0deg); }
+                                        100% { transform: rotate(360deg); }
+                                    }
+                                `}</style>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                        <Crown size={18} strokeWidth={2.5} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                        <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800' }}>
+                                            {selectedPlan}
+                                        </span>
+                                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
+                                            Manage Plan
+                                        </span>
+                                    </div>
                                 </div>
-                                <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24' }}>Get Subscription</span>
-                            </div>
- 
-                            {/* Integrated Dynamic Progress Circle requested by user */}
-                            <div style={{
-                                position: 'relative',
-                                width: '40px',
-                                height: '40px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                            }}>
-                                <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
-                                    <circle
-                                        cx="20" cy="20" r="18"
-                                        fill="#FFFFFF"
-                                        stroke="rgba(255,255,255,0.25)"
-                                        strokeWidth="3"
-                                    />
-                                    <circle
-                                        cx="20" cy="20" r="18"
-                                        fill="none"
-                                        stroke="#FBBF24"
-                                        strokeWidth="3"
-                                        strokeDasharray="113"
-                                        strokeDashoffset={113 * (1 - 20 / 30)}
-                                        strokeLinecap="round"
-                                        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-                                    />
-                                </svg>
-                                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
-                                    <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>20</span>
-                                    <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+
+                                {/* Integrated Dynamic Progress Circle requested by user */}
+                                <div style={{
+                                    position: 'relative',
+                                    width: '40px',
+                                    height: '40px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
+                                    <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
+                                        <circle
+                                            cx="20" cy="20" r="18"
+                                            fill="#FFFFFF"
+                                            stroke="rgba(255,255,255,0.25)"
+                                            strokeWidth="3"
+                                        />
+                                        {/* Premium rotating loading dashed tracker circle */}
+                                        <circle
+                                            cx="20" cy="20" r="18"
+                                            fill="none"
+                                            stroke="rgba(251, 191, 36, 0.45)"
+                                            strokeWidth="1.5"
+                                            strokeDasharray="4 4"
+                                            style={{
+                                                transformOrigin: '20px 20px',
+                                                animation: 'circular-spin 6s linear infinite'
+                                            }}
+                                        />
+                                        <circle
+                                            cx="20" cy="20" r="18"
+                                            fill="none"
+                                            stroke="#FBBF24"
+                                            strokeWidth="3"
+                                            strokeDasharray="113"
+                                            strokeDashoffset={strokeDashoffset}
+                                            strokeLinecap="round"
+                                            style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+                                        />
+                                    </svg>
+                                    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
+                                        <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>{planDaysRemaining}</span>
+                                        <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </button>
-                    )}
+                            </button>
+                        );
+                    })()}
  
                     {/* Bottom Settings Block (Replaced 'My Company' from example) */}
                     <button

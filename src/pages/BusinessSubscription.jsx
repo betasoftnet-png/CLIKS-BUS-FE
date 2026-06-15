@@ -16,13 +16,13 @@ import { load } from '@cashfreepayments/cashfree-js';
 import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 
 const BusinessSubscription = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { selectedPlan: selectedTier, changePlan } = useAuth();
     const [activeCategory, setActiveCategory] = useState('business');
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
-    const [selectedTier, setSelectedTier] = useState('Growth Plan'); 
     const [isProcessing, setIsProcessing] = useState(false);
     const [firmMembersCount, setFirmMembersCount] = useState(3);
 
@@ -56,11 +56,11 @@ const BusinessSubscription = () => {
             cashfree.checkout({
                 paymentSessionId: paymentSessionId,
                 redirectTarget: "_modal"
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.error) {
                     alert("Gateway Interrupted: " + result.error.message);
                 } else {
-                    setSelectedTier(tier.name);
+                    await changePlan(tier.name);
                     alert(`Successfully upgraded to ${tier.name}!`);
                 }
             });
@@ -74,7 +74,7 @@ const BusinessSubscription = () => {
             );
 
             if (shouldSimulate) {
-                setSelectedTier(tier.name);
+                await changePlan(tier.name);
                 alert(`Successfully simulated upgrade to ${tier.name}!`);
             }
         } finally {

@@ -3,13 +3,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/authService';
 import { adminService } from '../services/adminService';
 import { supportService } from '../services/supportService';
+import { profileService } from '../services/profileService';
+import { isFeatureAllowed, getPlanDuration } from '../utils/subscriptionUtils';
 import { AuthContext } from './auth-context';
-
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('books_auth_token'));
     const [loading, setLoading] = useState(!!token);
+    const [planDaysRemaining, setPlanDaysRemaining] = useState(20);
     const queryClient = useQueryClient();
 
     const logout = React.useCallback(() => {
@@ -32,7 +34,9 @@ export const AuthProvider = ({ children }) => {
                     id: 'mock-id',
                     name: 'Test User',
                     email: 'test@example.com',
-                    role: 'business'
+                    role: 'business',
+                    tier: 'Growth Plan',
+                    subscription_days_remaining: 20
                 });
                 setLoading(false);
                 return;
@@ -54,6 +58,51 @@ export const AuthProvider = ({ children }) => {
 
         initAuth();
     }, [token, logout, user]);
+
+    useEffect(() => {
+        if (user) {
+            if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null) {
+                setPlanDaysRemaining(user.subscription_days_remaining);
+            } else {
+                setPlanDaysRemaining(getPlanDuration(user.tier || 'Growth Plan'));
+            }
+        }
+    }, [user]);
+
+    const changePlan = async (newPlanName) => {
+        const duration = getPlanDuration(newPlanName);
+        try {
+            // Hit backend database to persist updated tier & days remaining
+            const res = await profileService.updateProfile({ 
+                tier: newPlanName, 
+                subscription_days_remaining: duration 
+            });
+            
+            // Extract the user data
+            const updatedUser = res.data || res;
+            setUser(prev => ({ 
+                ...prev, 
+                ...updatedUser,
+                tier: newPlanName,
+                subscription_days_remaining: duration
+            }));
+            setPlanDaysRemaining(duration);
+            return updatedUser;
+        } catch (err) {
+            console.error("Failed to update active subscription in database:", err);
+            // Simulated/Fallback path if API fails
+            setUser(prev => ({
+                ...prev,
+                tier: newPlanName,
+                subscription_days_remaining: duration
+            }));
+            setPlanDaysRemaining(duration);
+        }
+    };
+
+    const hasFeature = React.useCallback((featureId) => {
+        return isFeatureAllowed(user?.tier || 'Growth Plan', featureId);
+    }, [user?.tier]);
 
     const ssoLogin = async (bnxToken, appType = null) => {
         const data = await authService.ssoLogin(bnxToken, appType);
@@ -118,7 +167,9 @@ export const AuthProvider = ({ children }) => {
             id: 'mock-id',
             name: 'Test User',
             email: 'test@example.com',
-            role: 'business'
+            role: 'business',
+            tier: 'Growth Plan',
+            subscription_days_remaining: 20
         };
         localStorage.setItem('books_auth_token', mockToken);
         setToken(mockToken);
@@ -136,9 +187,12 @@ export const AuthProvider = ({ children }) => {
         impersonateLogin,
         mockLogin,
         logout,
-        isAuthenticated: !!token
+        isAuthenticated: !!token,
+        selectedPlan: user?.tier || 'Growth Plan',
+        planDaysRemaining,
+        changePlan,
+        hasFeature
     };
-
 
     return (
         <AuthContext.Provider value={value}>
