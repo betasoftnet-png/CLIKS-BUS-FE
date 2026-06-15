@@ -61,11 +61,23 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null) {
-                setPlanDaysRemaining(user.subscription_days_remaining);
-            } else {
-                setPlanDaysRemaining(getPlanDuration(user.tier || 'Free Plan'));
+            let totalDays = getPlanDuration(user.tier || 'Free Plan');
+            let remaining = totalDays;
+            
+            // Calculate elapsed days since subscription started (using created_at as anchor for Day 1)
+            if (user.created_at) {
+                const start = new Date(user.created_at);
+                const now = new Date();
+                const diffTime = now.getTime() - start.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                remaining = totalDays - diffDays;
+                if (remaining < 0) remaining = 0;
+            } else if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null && user.subscription_days_remaining !== 0) {
+                remaining = user.subscription_days_remaining;
             }
+            
+            setPlanDaysRemaining(remaining);
         }
     }, [user]);
 
