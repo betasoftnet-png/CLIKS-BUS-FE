@@ -489,7 +489,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         },
         tapeArea: {
             flex: 1,
-            maxHeight: '140px',
+            maxHeight: isInline ? 'none' : '140px',
             minHeight: '70px',
             overflowY: 'auto',
             padding: '12px',
@@ -551,7 +551,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
             flexShrink: 0
         },
         keyBtn: {
-            height: '36px',
+            height: isInline ? '46px' : '36px',
             borderRadius: '8px',
             border: 'none',
             fontSize: '14px',
@@ -1030,7 +1030,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                 { label: '|x|', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.abs(v))); }},
                                 { label: '1/x', fn: () => { const v = parseFloat(activeInput); setActiveInput(v ? String(Math.round((1/v) * 1e10) / 1e10) : '0'); }},
                             ].map(({ label, fn }) => (
-                                <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: '30px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '11px', fontWeight: '850', borderRadius: '6px', border: '1px solid #E0E7FF', transition: 'background-color 0.2s' }}
+                                <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: isInline ? '36px' : '30px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '11px', fontWeight: '850', borderRadius: '6px', border: '1px solid #E0E7FF', transition: 'background-color 0.2s' }}
                                     onMouseOver={e => e.currentTarget.style.backgroundColor = '#E0E7FF'}
                                     onMouseOut={e => e.currentTarget.style.backgroundColor = '#EEF2FF'}
                                 >
@@ -1610,7 +1610,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                     { label: '|x|', fn: () => { const v = parseFloat(activeInput); setActiveInput(String(Math.abs(v))); }},
                                     { label: '1/x', fn: () => { const v = parseFloat(activeInput); setActiveInput(v ? String(Math.round((1/v) * 1e10) / 1e10) : '0'); }},
                                 ].map(({ label, fn }) => (
-                                    <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: '30px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '11px', fontWeight: '850', borderRadius: '6px', border: '1px solid #E0E7FF', transition: 'background-color 0.2s' }}
+                                    <button key={label} onClick={fn} style={{ ...styles.keyBtn, height: isInline ? '36px' : '30px', backgroundColor: '#EEF2FF', color: '#4F46E5', fontSize: '11px', fontWeight: '850', borderRadius: '6px', border: '1px solid #E0E7FF', transition: 'background-color 0.2s' }}
                                         onMouseOver={e => e.currentTarget.style.backgroundColor = '#E0E7FF'}
                                         onMouseOut={e => e.currentTarget.style.backgroundColor = '#EEF2FF'}
                                     >

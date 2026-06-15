@@ -394,7 +394,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             <AnimatePresence>
                 {isCalcOpen && (
                     <>
-                        {/* Backdrop for closing the calculator */}
+                        {/* Backdrop with premium blur */}
                         <div 
                             onClick={() => setIsCalcOpen(false)}
                             style={{
@@ -404,37 +404,48 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 width: '100vw',
                                 height: '100vh',
                                 zIndex: 2001,
-                                background: 'transparent'
+                                backgroundColor: 'rgba(15, 23, 42, 0.3)',
+                                backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)'
                             }}
                         />
 
-                        {/* Floating Tape Calculator */}
+                        {/* Floating Tape Calculator (Full Screen) */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
                             style={{
                                 position: 'fixed',
-                                right: '1rem',
-                                top: 'calc(64px + 6px)',
-                                width: 'calc(100vw - 24px)',
-                                maxWidth: '360px',
-                                height: 'min(580px, 80vh)',
-                                backgroundColor: '#FFFFFF',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                                borderRadius: '24px',
-                                border: '1px solid #E2E8F0',
-                                overflow: 'hidden',
+                                top: 0,
+                                left: 0,
+                                width: '100vw',
+                                height: '100vh',
                                 zIndex: 2002,
                                 display: 'flex',
-                                flexDirection: 'column'
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                background: 'transparent',
+                                pointerEvents: 'none'
                             }}
                         >
-                            <CalcPopover 
-                                isInline={true} 
-                                onCloseInline={() => setIsCalcOpen(false)} 
-                            />
+                            <div style={{
+                                width: '100%',
+                                maxWidth: '480px',
+                                height: '100%',
+                                backgroundColor: '#FFFFFF',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                pointerEvents: 'auto'
+                            }}>
+                                <CalcPopover 
+                                    isInline={true} 
+                                    onCloseInline={() => setIsCalcOpen(false)} 
+                                />
+                            </div>
                         </motion.div>
                     </>
                 )}
