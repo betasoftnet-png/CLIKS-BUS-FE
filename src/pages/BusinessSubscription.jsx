@@ -20,7 +20,7 @@ import { useCurrency, useAuth } from '../context';
 
 const BusinessSubscription = () => {
     const { currency, formatCurrency } = useCurrency();
-    const { user, selectedPlan: selectedTier, changePlan } = useAuth();
+    const { user, selectedPlan: selectedTier, changePlan, planDaysRemaining } = useAuth();
     const [activeCategory, setActiveCategory] = useState('business');
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -412,7 +412,13 @@ const BusinessSubscription = () => {
                 }}>
                     <div style={{ textAlign: 'left' }}>
                         <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#DCF2E4', textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>Next Renewal</p>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>01 May, 2027</h3>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '900', margin: 0 }}>
+                            {selectedTier === 'Free Plan' ? '-' : (() => {
+                                const d = new Date();
+                                d.setDate(d.getDate() + (planDaysRemaining || 0));
+                                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            })()}
+                        </h3>
                     </div>
                     <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
                     <div style={{ textAlign: 'left' }}>

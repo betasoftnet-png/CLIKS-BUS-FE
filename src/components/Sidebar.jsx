@@ -636,7 +636,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             alignItems: 'center',
                             gap: '0.75rem',
                             padding: '0.6rem 0.85rem',
-                            background: 'inherit',
+                            background: '#DCF2E4',
                             color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
                             border: 'none',
                             cursor: 'pointer',
