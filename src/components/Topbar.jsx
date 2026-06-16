@@ -39,6 +39,19 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
 
+    // Push main content aside when AccessKit is opened
+    React.useEffect(() => {
+        const appBody = document.querySelector('.app-body');
+        if (appBody) {
+            appBody.style.transition = 'padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            if (isAccessPopoverOpen) {
+                appBody.style.paddingRight = '60px';
+            } else {
+                appBody.style.paddingRight = '0px';
+            }
+        }
+    }, [isAccessPopoverOpen]);
+
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
         ['admin', 'sales'].includes(user?.role) || 
