@@ -623,7 +623,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 flexDirection: 'column',
                 gap: '0.6rem',
                 flexShrink: 0,
-                background: '#FFFFFF',
+                background: '#DCF2E4',
                 zIndex: 10
             }}>
                 {/* FIN-PRO CTA Button - Fixed, below marketing, above subscription */}
@@ -636,7 +636,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             alignItems: 'center',
                             gap: '0.75rem',
                             padding: '0.6rem 0.85rem',
-                            background: '#DCF2E4',
+                            background: 'transparent',
                             color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
                             border: 'none',
                             cursor: 'pointer',
