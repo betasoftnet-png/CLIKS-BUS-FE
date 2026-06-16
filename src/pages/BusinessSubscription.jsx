@@ -243,10 +243,33 @@ const BusinessSubscription = () => {
         ]
     };
 
-    const invoices = [
-        { id: 'INV-2026-041', date: '2026-05-01', tier: 'Growth Plan', amount: 6999, status: 'Paid', method: 'UPI (Razorpay)' },
-        { id: 'INV-2026-029', date: '2025-05-01', tier: 'Growth Plan', amount: 6999, status: 'Paid', method: 'Bank Transfer' }
-    ];
+    const getDynamicInvoices = () => {
+        if (!user || !user.tier || user.tier === 'Free Plan') return [];
+        
+        let amount = 0;
+        for (const cat in allTiers) {
+            const match = allTiers[cat].find(t => t.name === user.tier);
+            if (match) {
+                amount = match.priceAnnually || match.price;
+                break;
+            }
+        }
+
+        const billingDate = user.updated_at ? new Date(user.updated_at) : new Date();
+
+        return [
+            { 
+                id: `INV-${billingDate.getFullYear()}-${String(billingDate.getMonth() + 1).padStart(2, '0')}${Math.floor(Math.random() * 90) + 10}`, 
+                date: billingDate.toISOString().split('T')[0], 
+                tier: user.tier, 
+                amount: amount, 
+                status: 'Paid', 
+                method: 'Cashfree PG' 
+            }
+        ];
+    };
+
+    const invoices = getDynamicInvoices();
 
     const getRenewalDetails = () => {
         let foundTier = null;

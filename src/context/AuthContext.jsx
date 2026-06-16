@@ -17,6 +17,14 @@ export const AuthProvider = ({ children }) => {
     const logout = React.useCallback(() => {
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
+        
+        // Clear all local storage keys to prevent data leakage across accounts
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('cliks_') || key.startsWith('books_')) {
+                localStorage.removeItem(key);
+            }
+        });
+
         setToken(null);
         setUser(null);
         // Clear query cache to prevent User B from seeing User A's cached data
@@ -119,6 +127,13 @@ export const AuthProvider = ({ children }) => {
     const ssoLogin = async (bnxToken, appType = null) => {
         const data = await authService.ssoLogin(bnxToken, appType);
         const { accessToken, user: newUser } = data;
+
+        // Clear all previous local storage keys before logging in a new user
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('cliks_') || key.startsWith('books_')) {
+                localStorage.removeItem(key);
+            }
+        });
 
         localStorage.setItem('books_auth_token', accessToken);
         localStorage.setItem('bnx_auth_token', bnxToken);
