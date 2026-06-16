@@ -349,7 +349,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             onMouseEnter={e => e.currentTarget.style.backgroundColor = '#E2E8F0'}
                                             onMouseLeave={e => e.currentTarget.style.backgroundColor = '#F1F5F9'}
                                         >
-                                            <X size={12} />
+                                            <X size={14} />
                                         </button>
 
                                         {/* Dynamic tools mapping */}
@@ -371,7 +371,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                     onClick={tool.action}
                                                     title={tool.name}
                                                     style={{
-                                                        width: '26px', height: '26px', borderRadius: '8px',
+                                                        width: '28px', height: '28px', borderRadius: '10px',
                                                         backgroundColor: tool.bg, border: `1px solid ${tool.bg}`,
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
@@ -384,7 +384,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                         e.currentTarget.style.transform = 'scale(1)';
                                                     }}
                                                 >
-                                                    <Icon size={12} />
+                                                    <Icon size={14} />
                                                 </button>
                                             );
                                         })}
@@ -396,14 +396,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             onClick={() => alert('Edit Access Kit mode coming soon!')}
                                             title="Edit Access Kit"
                                             style={{
-                                                width: '26px', height: '26px', borderRadius: '8px', backgroundColor: '#F8FAFC',
+                                                width: '28px', height: '28px', borderRadius: '10px', backgroundColor: '#F8FAFC',
                                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <Edit size={12} />
+                                            <Edit size={14} />
                                         </button>
                                         <button
                                             onClick={() => {
@@ -412,14 +412,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             }}
                                             title="Settings / Customization"
                                             style={{
-                                                width: '26px', height: '26px', borderRadius: '8px', backgroundColor: '#F8FAFC',
+                                                width: '28px', height: '28px', borderRadius: '10px', backgroundColor: '#F8FAFC',
                                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <Sliders size={12} />
+                                            <Sliders size={14} />
                                         </button>
                                     </div>
                                 </motion.div>
