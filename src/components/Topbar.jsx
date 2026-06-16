@@ -289,18 +289,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     onClick={() => setIsAccessPopoverOpen(false)}
                                     style={{
                                         position: 'fixed',
-                                        top: 0,
+                                        top: '64px',
                                         left: 0,
                                         width: '100vw',
-                                        height: '100vh',
+                                        height: 'calc(100vh - 64px)',
                                         zIndex: 1999,
-                                        backgroundColor: 'rgba(15, 23, 42, 0.15)',
-                                        backdropFilter: 'blur(4px)',
-                                        WebkitBackdropFilter: 'blur(4px)'
+                                        backgroundColor: 'rgba(15, 23, 42, 0.15)'
                                     }}
                                 />
 
-                                {/* Full Screen Height Drawer from the right edge */}
+                                {/* Drawer from the right edge */}
                                 <motion.div
                                     initial={{ x: '100%' }}
                                     animate={{ x: 0 }}
@@ -308,9 +306,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                                     style={{
                                         position: 'fixed',
-                                        top: 0,
+                                        top: '64px',
                                         right: 0,
-                                        height: '100vh',
+                                        height: 'calc(100vh - 64px)',
                                         backgroundColor: '#FFFFFF',
                                         borderLeft: '1px solid #E2E8F0',
                                         boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.08)',
