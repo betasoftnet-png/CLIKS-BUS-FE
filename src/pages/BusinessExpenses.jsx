@@ -285,12 +285,11 @@ const BusinessExpenses = () => {
             </div>
 
             {/* Stats Summary Bento Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Total Operational Costs (MTD)', value: formatCurrency(totalExpenseSpent), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'GST Input Tax Credits (ITC)', value: formatCurrency(Math.round(totalITCClaimsAccumulated)), icon: Percent, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Active Monthly Recurrings', value: `${recurrings.length} Automation`, icon: Calendar, color: '#8B5CF6', bg: '#F5F3FF' },
-                    { label: 'Pending Staff Claims', value: `${claims.filter(c => c.reimbursement_status === 'Pending').length} Claims`, icon: Clock, color: '#10B981', bg: '#ECFDF5' }
+                    { label: 'Active Monthly Recurrings', value: `${recurrings.length} Automation`, icon: Calendar, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>

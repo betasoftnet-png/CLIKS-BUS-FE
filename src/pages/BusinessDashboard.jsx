@@ -131,22 +131,6 @@ const BusinessDashboard = () => {
         queryFn: expensesService.getExpenses
     });
 
-    const stats = [
-        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: ShoppingBag, color: '#1B6B3A' },
-        { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? formatCurrency(summary.total_purchases) : formatCurrency(0), change: 'Live', icon: Briefcase, color: '#064E3B' },
-        { label: 'Total Expenses', value: summary?.total_expenses !== undefined ? formatCurrency(summary.total_expenses) : formatCurrency(0), change: 'Live', icon: TrendingUp, color: '#059669' },
-        {
-            label: 'Est. Net Profit',
-            value: (() => {
-                const profit = (summary?.total_sales || 0) - (summary?.total_purchases || 0) - (summary?.total_expenses || 0);
-                return formatCurrency(profit);
-            })(),
-            change: 'Live',
-            icon: ArrowUpRight,
-            color: '#10B981'
-        }
-    ];
-
     // Compute live expense groups for Donut Chart
     const rawExpenses = expensesList?.data || expensesList || [];
     const expenseGroups = rawExpenses.reduce((acc, exp) => {
@@ -166,6 +150,22 @@ const BusinessDashboard = () => {
 
     const finalExpenseCategories = expenseCategories || [];
     const finalTotalExpensesSum = totalExpensesSum || 0;
+
+    const stats = [
+        { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: ShoppingBag, color: '#1B6B3A' },
+        { label: 'Total Purchases', value: summary?.total_purchases !== undefined ? formatCurrency(summary.total_purchases) : formatCurrency(0), change: 'Live', icon: Briefcase, color: '#064E3B' },
+        { label: 'Total Expenses', value: formatCurrency(finalTotalExpensesSum), change: 'Live', icon: TrendingUp, color: '#059669' },
+        {
+            label: 'Est. Net Profit',
+            value: (() => {
+                const profit = (parseFloat(summary?.total_sales) || 0) - (parseFloat(summary?.total_purchases) || 0) - finalTotalExpensesSum;
+                return formatCurrency(profit);
+            })(),
+            change: 'Live',
+            icon: ArrowUpRight,
+            color: '#10B981'
+        }
+    ];
 
     // Beautiful emerald/mint/rich color scheme
     const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];

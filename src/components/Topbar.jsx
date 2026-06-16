@@ -317,7 +317,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
                                         zIndex: 2000,
-                                        width: '60px',
+                                        width: '64px',
                                         fontFamily: "'Inter', sans-serif"
                                     }}
                                 >
@@ -326,10 +326,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         display: 'flex', 
                                         flexDirection: 'column', 
                                         alignItems: 'center', 
-                                        gap: '8px',
+                                        gap: '10px',
                                         flex: 1,
                                         overflowY: 'auto',
-                                        paddingBottom: '12px',
+                                        paddingBottom: '16px',
                                         width: '100%',
                                         msOverflowStyle: 'none',
                                         scrollbarWidth: 'none'
@@ -342,7 +342,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             onClick={() => setIsAccessPopoverOpen(false)}
                                             title="Close Drawer"
                                             style={{
-                                                width: '24px', height: '24px', borderRadius: '50%', border: 'none',
+                                                width: '28px', height: '28px', borderRadius: '50%', border: 'none',
                                                 backgroundColor: '#F1F5F9', color: '#64748B', display: 'flex',
                                                 alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
                                             }}
@@ -371,7 +371,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                     onClick={tool.action}
                                                     title={tool.name}
                                                     style={{
-                                                        width: '28px', height: '28px', borderRadius: '10px',
+                                                        width: '34px', height: '34px', borderRadius: '10px',
                                                         backgroundColor: tool.bg, border: `1px solid ${tool.bg}`,
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
@@ -384,26 +384,26 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                         e.currentTarget.style.transform = 'scale(1)';
                                                     }}
                                                 >
-                                                    <Icon size={14} />
+                                                    <Icon size={16} />
                                                 </button>
                                             );
                                         })}
                                     </div>
 
                                     {/* Bottom Area: Edit & Settings */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', paddingTop: '12px', borderTop: '1px solid #F1F5F9', width: '100%' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', paddingTop: '12px', borderTop: '1px solid #F1F5F9', width: '100%' }}>
                                         <button
                                             onClick={() => alert('Edit Access Kit mode coming soon!')}
                                             title="Edit Access Kit"
                                             style={{
-                                                width: '28px', height: '28px', borderRadius: '10px', backgroundColor: '#F8FAFC',
+                                                width: '34px', height: '34px', borderRadius: '10px', backgroundColor: '#F8FAFC',
                                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <Edit size={14} />
+                                            <Edit size={16} />
                                         </button>
                                         <button
                                             onClick={() => {
@@ -412,14 +412,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             }}
                                             title="Settings / Customization"
                                             style={{
-                                                width: '28px', height: '28px', borderRadius: '10px', backgroundColor: '#F8FAFC',
+                                                width: '34px', height: '34px', borderRadius: '10px', backgroundColor: '#F8FAFC',
                                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <Sliders size={14} />
+                                            <Sliders size={16} />
                                         </button>
                                     </div>
                                 </motion.div>
