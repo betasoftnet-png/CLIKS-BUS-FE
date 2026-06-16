@@ -338,20 +338,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             .access-tools-scroll::-webkit-scrollbar { display: none; }
                                         `}</style>
                                         
-                                        <button
-                                            onClick={() => setIsAccessPopoverOpen(false)}
-                                            title="Close Drawer"
-                                            style={{
-                                                width: '28px', height: '28px', borderRadius: '50%', border: 'none',
-                                                backgroundColor: '#F1F5F9', color: '#64748B', display: 'flex',
-                                                alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#E2E8F0'}
-                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-                                        >
-                                            <X size={14} />
-                                        </button>
-
                                         {/* Dynamic tools mapping */}
                                         {[
                                             { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } },
