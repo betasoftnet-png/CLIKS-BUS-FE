@@ -613,222 +613,219 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 )}
  
                 <div style={{ flex: 1 }} />
- 
-                {/* Fixed Sidebar Footer - Relocated based on User Specification */}
-                <div style={{
-                    padding: '1rem',
-                    borderTop: '1px solid #F1F5F9',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.6rem',
-                    flexShrink: 0,
-                    background: '#FFFFFF'
-                }}>
+            </div> {/* END OF sidebar-scroll-container */}
 
- 
-                    {/* Unified Subscription Conversion Card (Requested 'Connected' Look) */}
-                    {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (() => {
-                        const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(selectedPlan);
-                        const totalDays = isAnnual ? 365 : 30;
-                        const progressPercent = Math.min(100, Math.max(0, (planDaysRemaining / totalDays) * 100));
-                        const strokeDashoffset = 113 * (1 - progressPercent / 100);
-
-                        return (
-                            <button
-                                onClick={() => handleItemClick('Subscription', '/subscription')}
-                                style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '0.5rem 0.6rem 0.5rem 0.85rem',
-                                    background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
-                                    color: '#FFFFFF',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontWeight: '750',
-                                    fontSize: '0.85rem',
-                                    borderRadius: '12px',
-                                    boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
-                                    transition: 'all 0.2s ease',
-                                    minHeight: '52px'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                            >
-                                <style>{`
-                                    @keyframes circular-spin {
-                                        0% { transform: rotate(0deg); }
-                                        100% { transform: rotate(360deg); }
-                                    }
-                                `}</style>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                        <Crown size={18} strokeWidth={2.5} />
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                        <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800' }}>
-                                            {selectedPlan}
-                                        </span>
-                                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
-                                            Manage Plan
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Integrated Dynamic Progress Circle requested by user */}
-                                <div style={{
-                                    position: 'relative',
-                                    width: '40px',
-                                    height: '40px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0
-                                }}>
-                                    <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
-                                        <circle
-                                            cx="20" cy="20" r="18"
-                                            fill="#FFFFFF"
-                                            stroke="rgba(255,255,255,0.25)"
-                                            strokeWidth="3"
-                                        />
-                                        {/* Premium rotating loading dashed tracker circle */}
-                                        <circle
-                                            cx="20" cy="20" r="18"
-                                            fill="none"
-                                            stroke="rgba(251, 191, 36, 0.45)"
-                                            strokeWidth="1.5"
-                                            strokeDasharray="4 4"
-                                            style={{
-                                                transformOrigin: '20px 20px',
-                                                animation: 'circular-spin 6s linear infinite'
-                                            }}
-                                        />
-                                        <circle
-                                            cx="20" cy="20" r="18"
-                                            fill="none"
-                                            stroke="#FBBF24"
-                                            strokeWidth="3"
-                                            strokeDasharray="113"
-                                            strokeDashoffset={strokeDashoffset}
-                                            strokeLinecap="round"
-                                            style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-                                        />
-                                    </svg>
-                                    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
-                                        <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>{planDaysRemaining}</span>
-                                        <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
-                                    </div>
-                                </div>
-                            </button>
-                        );
-                    })()}
- 
-                    {/* Bottom Settings Block (Replaced 'My Company' from example) */}
+            {/* Fixed Sidebar Footer - Relocated outside scroll container based on User Specification */}
+            <div style={{
+                padding: '0.75rem 1rem 1rem 1rem',
+                borderTop: '1px solid #F1F5F9',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem',
+                flexShrink: 0,
+                background: '#FFFFFF',
+                zIndex: 10
+            }}>
+                {/* FIN-PRO CTA Button - Fixed, below marketing, above subscription */}
+                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
                     <button
-                        onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/customization')}
+                        onClick={() => handleItemClick('FIN-PRO', '/ca')}
                         style={{
                             width: '100%',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.75rem 1rem',
-                            background: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
-                            color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
-                            borderRadius: '10px',
-                            border: '1px solid',
-                            borderColor: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
+                            gap: '0.75rem',
+                            padding: '0.6rem 0.85rem',
+                            background: 'transparent',
+                            color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
+                            border: 'none',
                             cursor: 'pointer',
-                            fontWeight: '700',
+                            fontWeight: '750',
                             fontSize: '0.85rem',
-                            transition: 'background 0.2s'
+                            borderRadius: '10px',
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
-                        onMouseOut={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.color = '#1B6B3A';
+                            e.currentTarget.style.background = '#DCF2E4';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.color = location.pathname.includes('/ca') ? '#1B6B3A' : '#475569';
+                            e.currentTarget.style.background = 'transparent';
+                        }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <SettingsIcon size={18} style={{ opacity: 0.8 }} />
-                            <span>Settings</span>
-                        </div>
-                        <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                        <Briefcase size={18} style={{ color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569' }} />
+                        <span>FIN-PRO Audit Hub</span>
                     </button>
+                )}
  
-                    {/* Help & Support Block */}
-                    <button
-                        onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
-                        style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.75rem 1rem',
-                            background: location.pathname.includes('/faq')
-                                ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
-                                : '#F8FAFC',
-                            color: location.pathname.includes('/faq')
-                                ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
-                                : '#334155',
-                            borderRadius: '10px',
-                            border: '1px solid',
-                            borderColor: location.pathname.includes('/faq')
-                                ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0'))
-                                : '#E2E8F0',
-                            cursor: 'pointer',
-                            fontWeight: '700',
-                            fontSize: '0.85rem',
-                            transition: 'background 0.2s'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4'))
-                            : '#F1F5F9'}
-                        onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
-                            : '#F8FAFC'}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <HelpCircle size={18} style={{ opacity: 0.8 }} />
-                            <span>Help & Support</span>
-                        </div>
-                        <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                    </button>
-                </div>
-            </div>
+                {/* Unified Subscription Conversion Card */}
+                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (() => {
+                    const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(selectedPlan);
+                    const totalDays = isAnnual ? 365 : 30;
+                    const progressPercent = Math.min(100, Math.max(0, (planDaysRemaining / totalDays) * 100));
+                    const strokeDashoffset = 113 * (1 - progressPercent / 100);
 
-            {/* FIN-PRO CTA Button - FIXED AT THE BOTTOM */}
-            {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                    return (
+                        <button
+                            onClick={() => handleItemClick('Subscription', '/subscription')}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.5rem 0.6rem 0.5rem 0.85rem',
+                                background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: '750',
+                                fontSize: '0.85rem',
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
+                                transition: 'all 0.2s ease',
+                                minHeight: '52px'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            <style>{`
+                                @keyframes circular-spin {
+                                    0% { transform: rotate(0deg); }
+                                    100% { transform: rotate(360deg); }
+                                }
+                            `}</style>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                    <Crown size={18} strokeWidth={2.5} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800' }}>
+                                        {selectedPlan}
+                                    </span>
+                                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
+                                        Manage Plan
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Integrated Dynamic Progress Circle */}
+                            <div style={{
+                                position: 'relative',
+                                width: '40px',
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}>
+                                <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
+                                    <circle
+                                        cx="20" cy="20" r="18"
+                                        fill="#FFFFFF"
+                                        stroke="rgba(255,255,255,0.25)"
+                                        strokeWidth="3"
+                                    />
+                                    <circle
+                                        cx="20" cy="20" r="18"
+                                        fill="none"
+                                        stroke="rgba(251, 191, 36, 0.45)"
+                                        strokeWidth="1.5"
+                                        strokeDasharray="4 4"
+                                        style={{
+                                            transformOrigin: '20px 20px',
+                                            animation: 'circular-spin 6s linear infinite'
+                                        }}
+                                    />
+                                    <circle
+                                        cx="20" cy="20" r="18"
+                                        fill="none"
+                                        stroke="#FBBF24"
+                                        strokeWidth="3"
+                                        strokeDasharray="113"
+                                        strokeDashoffset={strokeDashoffset}
+                                        strokeLinecap="round"
+                                        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+                                    />
+                                </svg>
+                                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
+                                    <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>{planDaysRemaining}</span>
+                                    <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
+                                </div>
+                            </div>
+                        </button>
+                    );
+                })()}
+ 
+                {/* Bottom Settings Block */}
                 <button
-                    onClick={() => handleItemClick('FIN-PRO', '/ca')}
+                    onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/customization')}
                     style={{
-                        width: 'calc(100% - 2rem)',
-                        margin: '0.2rem 1rem 1rem 1rem',
+                        width: '100%',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.75rem',
+                        justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: 'transparent',
-                        color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
-                        border: 'none',
+                        background: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
+                        color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
+                        borderRadius: '10px',
+                        border: '1px solid',
+                        borderColor: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
                         cursor: 'pointer',
-                        fontWeight: '750',
+                        fontWeight: '700',
                         fontSize: '0.85rem',
-                        borderRadius: '12px',
-                        transition: 'all 0.2s ease',
-                        flexShrink: 0
+                        transition: 'background 0.2s'
                     }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.color = '#1B6B3A';
-                        e.currentTarget.style.background = '#DCF2E4';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.color = location.pathname.includes('/ca') ? '#1B6B3A' : '#475569';
-                        e.currentTarget.style.background = 'transparent';
-                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
                 >
-                    <Briefcase size={18} style={{ color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569' }} />
-                    <span>FIN-PRO Audit Hub</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <SettingsIcon size={18} style={{ opacity: 0.8 }} />
+                        <span>Settings</span>
+                    </div>
+                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
                 </button>
-            )}
+ 
+                {/* Help & Support Block */}
+                <button
+                    onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        background: location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
+                            : '#F8FAFC',
+                        color: location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
+                            : '#334155',
+                        borderRadius: '10px',
+                        border: '1px solid',
+                        borderColor: location.pathname.includes('/faq')
+                            ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0'))
+                            : '#E2E8F0',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
+                        ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4'))
+                        : '#F1F5F9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
+                        ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
+                        : '#F8FAFC'}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <HelpCircle size={18} style={{ opacity: 0.8 }} />
+                        <span>Help & Support</span>
+                    </div>
+                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                </button>
+            </div>
         </aside>
     );
 };
