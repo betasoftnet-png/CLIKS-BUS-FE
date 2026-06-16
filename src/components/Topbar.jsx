@@ -284,20 +284,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     <AnimatePresence>
                         {isAccessPopoverOpen && (
                             <>
-                                {/* Backdrop to close access popover */}
-                                <div 
-                                    onClick={() => setIsAccessPopoverOpen(false)}
-                                    style={{
-                                        position: 'fixed',
-                                        top: '64px',
-                                        left: 0,
-                                        width: '100vw',
-                                        height: 'calc(100vh - 64px)',
-                                        zIndex: 1999,
-                                        backgroundColor: 'rgba(15, 23, 42, 0.15)'
-                                    }}
-                                />
-
                                 {/* Drawer from the right edge */}
                                 <motion.div
                                     initial={{ x: '100%' }}
