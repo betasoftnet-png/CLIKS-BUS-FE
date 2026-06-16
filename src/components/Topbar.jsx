@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X, Search, Sliders } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -321,23 +321,30 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         fontFamily: "'Inter', sans-serif"
                                     }}
                                 >
-                                    {/* Top Area: Close button & Calculator */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                    {/* Top Area: Scrollable Tool List */}
+                                    <div className="access-tools-scroll" style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        gap: '12px',
+                                        flex: 1,
+                                        overflowY: 'auto',
+                                        paddingBottom: '16px',
+                                        width: '100%',
+                                        msOverflowStyle: 'none',
+                                        scrollbarWidth: 'none'
+                                    }}>
+                                        <style>{`
+                                            .access-tools-scroll::-webkit-scrollbar { display: none; }
+                                        `}</style>
+                                        
                                         <button
                                             onClick={() => setIsAccessPopoverOpen(false)}
                                             title="Close Drawer"
                                             style={{
-                                                width: '36px',
-                                                height: '36px',
-                                                borderRadius: '50%',
-                                                border: 'none',
-                                                backgroundColor: '#F1F5F9',
-                                                color: '#64748B',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
+                                                width: '36px', height: '36px', borderRadius: '50%', border: 'none',
+                                                backgroundColor: '#F1F5F9', color: '#64748B', display: 'flex',
+                                                alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
                                             }}
                                             onMouseEnter={e => e.currentTarget.style.backgroundColor = '#E2E8F0'}
                                             onMouseLeave={e => e.currentTarget.style.backgroundColor = '#F1F5F9'}
@@ -345,42 +352,59 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             <X size={16} />
                                         </button>
 
-                                        {/* Calculator Icon Button */}
-                                        <button
-                                            onClick={() => {
-                                                setIsCalcOpen(true);
-                                                setIsAccessPopoverOpen(false);
-                                            }}
-                                            title="BETA Calculator"
-                                            style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: '12px',
-                                                backgroundColor: '#ECFDF5',
-                                                border: '1px solid #D1FAE5',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: '#10B981',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease',
-                                                outline: 'none'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#D1FAE5';
-                                                e.currentTarget.style.transform = 'scale(1.05)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#ECFDF5';
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                            }}
-                                        >
-                                            <Calculator size={18} />
-                                        </button>
+                                        {/* Dynamic tools mapping */}
+                                        {[
+                                            { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } },
+                                            { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
+                                            { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
+                                            { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
+                                            { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
+                                            { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
+                                            { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
+                                            { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
+                                            { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
+                                        ].map((tool, idx) => {
+                                            const Icon = tool.icon;
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={tool.action}
+                                                    title={tool.name}
+                                                    style={{
+                                                        width: '40px', height: '40px', borderRadius: '12px',
+                                                        backgroundColor: tool.bg, border: `1px solid ${tool.bg}`,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
+                                                        outline: 'none', flexShrink: 0
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                    }}
+                                                >
+                                                    <Icon size={18} />
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
-                                    {/* Bottom Area: Settings / Customization */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    {/* Bottom Area: Edit & Settings */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', paddingTop: '12px', borderTop: '1px solid #F1F5F9', width: '100%' }}>
+                                        <button
+                                            onClick={() => alert('Edit Access Kit mode coming soon!')}
+                                            title="Edit Access Kit"
+                                            style={{
+                                                width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#F8FAFC',
+                                                border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                        >
+                                            <Edit size={18} />
+                                        </button>
                                         <button
                                             onClick={() => {
                                                 navigate(isAdminOrSales ? '/admin/settings' : '/customization');
@@ -388,27 +412,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             }}
                                             title="Settings / Customization"
                                             style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: '12px',
-                                                backgroundColor: '#F8FAFC',
-                                                border: '1px solid #E2E8F0',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: '#64748B',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease',
-                                                outline: 'none'
+                                                width: '40px', height: '40px', borderRadius: '12px', backgroundColor: '#F8FAFC',
+                                                border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#F1F5F9';
-                                                e.currentTarget.style.transform = 'scale(1.05)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#F8FAFC';
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
                                             <Sliders size={18} />
                                         </button>
