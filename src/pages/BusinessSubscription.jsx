@@ -20,7 +20,7 @@ import { useCurrency, useAuth } from '../context';
 
 const BusinessSubscription = () => {
     const { currency, formatCurrency } = useCurrency();
-    const { selectedPlan: selectedTier, changePlan } = useAuth();
+    const { user, selectedPlan: selectedTier, changePlan } = useAuth();
     const [activeCategory, setActiveCategory] = useState('business');
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [isProcessing, setIsProcessing] = useState(false);
