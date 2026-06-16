@@ -62,7 +62,7 @@ const BusinessSubscription = () => {
                 alert("Gateway Interrupted: " + result.error.message);
             } else {
                 await changePlan(tier.name);
-                alert(`Successfully upgraded to ${tier.name}!`);
+                // Removed the blocking alert so the UI instantly and seamlessly updates to show the active plan.
             }
 
         } catch (err) {
