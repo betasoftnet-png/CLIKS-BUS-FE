@@ -458,6 +458,43 @@ const BusinessStaffing = () => {
         return h > 0 ? h : 1;
     }
 
+    const handleOpenEditMode = (emp) => {
+        setEditForm({
+            employee_id: emp.employee_id,
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            email: emp.email,
+            phone: emp.phone_number,
+            basic_salary: emp.basic_salary,
+            department: emp.department_name,
+            designation: emp.designation_name,
+            joining_date: emp.joining_date,
+            gender: emp.gender,
+            date_of_birth: emp.date_of_birth,
+            blood_group: emp.blood_group,
+            employment_type: emp.employment_type,
+            reporting_manager: emp.reporting_manager,
+            shift_name: emp.shift_name,
+            address_line_1: emp.address_line_1,
+            city: emp.city,
+            state: emp.state,
+            pincode: emp.pincode,
+            emergency_contact_name: emp.emergency_contact_name,
+            emergency_contact_number: emp.emergency_contact_number,
+            bank_name: emp.bank_name,
+            account_number: emp.account_number,
+            ifsc_code: emp.ifsc_code,
+            pf_number: emp.pf_number,
+            pan_number: emp.pan_number,
+            leave_balance: emp.leave_balance,
+            salary_type: emp.salary_type,
+            performance_rating: emp.performance_rating,
+            target_score: emp.target_score
+        });
+        setSelectedEmployee(emp);
+        setIsEditing(true);
+    };
+
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
@@ -611,8 +648,7 @@ const BusinessStaffing = () => {
                                                     <button
                                                         onClick={(e) => { 
                                                             e.stopPropagation(); 
-                                                            setSelectedEmployee(emp);
-                                                            setIsEditing(true);
+                                                            handleOpenEditMode(emp);
                                                         }}
                                                         style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', color: '#64748B', cursor: 'pointer' }}
                                                         title="Edit Profile"
@@ -1027,34 +1063,7 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     {!isEditing && (
                                         <button
-                                            onClick={() => {
-                                                setEditForm({
-                                                    employee_id: currentSelectedEmployee.employee_id,
-                                                    first_name: currentSelectedEmployee.first_name,
-                                                    last_name: currentSelectedEmployee.last_name,
-                                                    email: currentSelectedEmployee.email,
-                                                    phone: currentSelectedEmployee.phone_number,
-                                                    basic_salary: currentSelectedEmployee.basic_salary,
-                                                    department: currentSelectedEmployee.department_name,
-                                                    designation: currentSelectedEmployee.designation_name,
-                                                    joining_date: currentSelectedEmployee.joining_date,
-                                                    gender: currentSelectedEmployee.gender,
-                                                    date_of_birth: currentSelectedEmployee.date_of_birth,
-                                                    blood_group: currentSelectedEmployee.blood_group,
-                                                    employment_type: currentSelectedEmployee.employment_type,
-                                                    reporting_manager: currentSelectedEmployee.reporting_manager,
-                                                    shift_name: currentSelectedEmployee.shift_name,
-                                                    address_line_1: currentSelectedEmployee.address_line_1,
-                                                    emergency_contact_name: currentSelectedEmployee.emergency_contact_name,
-                                                    emergency_contact_number: currentSelectedEmployee.emergency_contact_number,
-                                                    bank_name: currentSelectedEmployee.bank_name,
-                                                    account_number: currentSelectedEmployee.account_number,
-                                                    ifsc_code: currentSelectedEmployee.ifsc_code,
-                                                    pf_number: currentSelectedEmployee.pf_number,
-                                                    pan_number: currentSelectedEmployee.pan_number
-                                                });
-                                                setIsEditing(true);
-                                            }}
+                                            onClick={() => handleOpenEditMode(currentSelectedEmployee)}
                                             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(236, 72, 153, 0.2)' }}
                                         >
                                             <Edit2 size={14} /> Edit Profile
