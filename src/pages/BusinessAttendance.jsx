@@ -45,6 +45,8 @@ const BusinessAttendance = () => {
     const [selectedDateDetails, setSelectedDateDetails] = useState(null);
     const [lookupDate, setLookupDate] = useState(new Date().toISOString().split('T')[0]);
     const [calendarEmployeeName, setCalendarEmployeeName] = useState('');
+    const [calendarDate, setCalendarDate] = useState(new Date());
+    const [historyCalendarDate, setHistoryCalendarDate] = useState(new Date());
 
     const queryClient = useQueryClient();
 
@@ -871,10 +873,9 @@ const BusinessAttendance = () => {
 
             {/* Tab 5: Calendar View */}
             {activeTab === 'calendar' && (() => {
-                const currentDate = new Date();
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth(); // 0-indexed
-                const monthName = currentDate.toLocaleString('default', { month: 'long' });
+                const year = calendarDate.getFullYear();
+                const month = calendarDate.getMonth(); // 0-indexed
+                const monthName = calendarDate.toLocaleString('default', { month: 'long' });
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
                 const days = [];
@@ -884,7 +885,21 @@ const BusinessAttendance = () => {
                 return (
                     <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Monthly Attendance Calendar — {monthName} {year}</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <button 
+                                    onClick={() => setCalendarDate(new Date(year, month - 1, 1))}
+                                    style={{ border: '1px solid #E2E8F0', background: 'white', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', fontWeight: 'bold' }}
+                                >
+                                    &lt;
+                                </button>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>{monthName} {year} Calendar</h3>
+                                <button 
+                                    onClick={() => setCalendarDate(new Date(year, month + 1, 1))}
+                                    style={{ border: '1px solid #E2E8F0', background: 'white', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', fontWeight: 'bold' }}
+                                >
+                                    &gt;
+                                </button>
+                            </div>
                             <select 
                                 value={calendarEmployeeName} 
                                 onChange={(e) => setCalendarEmployeeName(e.target.value)}
@@ -1172,10 +1187,9 @@ const BusinessAttendance = () => {
                 const absents = empLogs.filter(l => l.attendance_status === 'absent').length;
                 const lates = empLogs.filter(l => l.attendance_status === 'late').length;
 
-                const currentDate = new Date();
-                const year = currentDate.getFullYear();
-                const month = currentDate.getMonth(); // 0-indexed
-                const monthName = currentDate.toLocaleString('default', { month: 'long' });
+                const year = historyCalendarDate.getFullYear();
+                const month = historyCalendarDate.getMonth(); // 0-indexed
+                const monthName = historyCalendarDate.toLocaleString('default', { month: 'long' });
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
                 const days = [];
@@ -1187,9 +1201,25 @@ const BusinessAttendance = () => {
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                         <div style={{ background: 'white', width: '100%', maxWidth: '540px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <div>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>📅 Attendance History Calendar</h3>
-                                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>{name} · {monthName} {year}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div>
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>📅 Attendance History Calendar</h3>
+                                        <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>{name} · {monthName} {year}</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                                        <button 
+                                            onClick={() => setHistoryCalendarDate(new Date(year, month - 1, 1))}
+                                            style={{ border: '1px solid #E2E8F0', background: '#F8FAFC', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', fontWeight: 'bold' }}
+                                        >
+                                            &lt;
+                                        </button>
+                                        <button 
+                                            onClick={() => setHistoryCalendarDate(new Date(year, month + 1, 1))}
+                                            style={{ border: '1px solid #E2E8F0', background: '#F8FAFC', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B', fontWeight: 'bold' }}
+                                        >
+                                            &gt;
+                                        </button>
+                                    </div>
                                 </div>
                                 <button onClick={() => setSelectedEmployeeHistory(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
