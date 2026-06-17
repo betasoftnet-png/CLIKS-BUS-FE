@@ -191,7 +191,6 @@ const BusinessStaffing = () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
             alert('Employee profile updated successfully!');
             setIsEditing(false);
-            setShowEditModal(false);
         },
         onError: (err) => {
             console.error('Update Employee Error:', err);
