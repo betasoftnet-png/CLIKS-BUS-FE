@@ -137,26 +137,58 @@ const BusinessAttendance = () => {
     };
 
     // Process lists with fallbacks
-    const attendanceLogs = dbLogs.length > 0 ? dbLogs.map(log => ({
-        attendance_id: log.id,
-        employee_id: log.employee_id || 'EMP-001',
-        employee_name: log.employee_name || 'Arun Kumar (Sales)',
-        attendance_date: log.date || '2026-05-08',
-        attendance_status: log.status || 'present',
-        check_in_time: log.check_in_time || '09:00 AM',
-        check_out_time: log.check_out_time || '06:00 PM',
-        first_punch: log.first_punch || '09:00 AM',
-        last_punch: log.last_punch || '06:00 PM',
-        total_work_hours: parseFloat(log.total_work_hours) || 9.0,
-        break_hours: parseFloat(log.break_hours) || 1.0,
-        productive_hours: parseFloat(log.productive_hours) || 8.0,
-        overtime_hours: parseFloat(log.overtime_hours) || 0,
-        late_by_minutes: parseInt(log.late_by_minutes) || 0,
-        early_exit_minutes: parseInt(log.early_exit_minutes) || 0,
-        geo_fence_status: log.geo_fence_status || 'Inside',
-        location_address: log.location_address || 'Main Office Complex, Mumbai',
-        device_id: log.device_id || 'BIOMETRIC-MUM-1'
-    })) : [];
+    const calculateDuration = (inTime12, outTime12) => {
+        if (!inTime12 || !outTime12) return 0;
+        const parseMinutes = (time12) => {
+            const time24 = convertTo24Hour(time12);
+            if (!time24) return 0;
+            const [h, m] = time24.split(':').map(Number);
+            return (h * 60) + (m || 0);
+        };
+        let start = parseMinutes(inTime12);
+        let end = parseMinutes(outTime12);
+        if (end < start) end += 24 * 60; // Handle cross-midnight shifts
+        return (end - start) / 60;
+    };
+
+    const attendanceLogs = dbLogs.length > 0 ? dbLogs.map(log => {
+        const checkIn = log.check_in_time || '09:00 AM';
+        const checkOut = log.check_out_time || '06:00 PM';
+        
+        let dbTotalHours = parseFloat(log.total_work_hours);
+        let dbProdHours = parseFloat(log.productive_hours);
+        let dbBreakHours = parseFloat(log.break_hours) || 1.0;
+        
+        let computedTotal = calculateDuration(checkIn, checkOut);
+        
+        const finalTotalWork = !isNaN(dbTotalHours) ? dbTotalHours : parseFloat(computedTotal.toFixed(1));
+        let finalProductive = !isNaN(dbProdHours) ? dbProdHours : Math.max(0, parseFloat((computedTotal - dbBreakHours).toFixed(1)));
+        
+        if (!finalTotalWork && computedTotal === 0) {
+            finalProductive = 8.0;
+        }
+
+        return {
+            attendance_id: log.id,
+            employee_id: log.employee_id || 'EMP-001',
+            employee_name: log.employee_name || 'Arun Kumar (Sales)',
+            attendance_date: log.date || '2026-05-08',
+            attendance_status: log.status || 'present',
+            check_in_time: checkIn,
+            check_out_time: checkOut,
+            first_punch: log.first_punch || checkIn,
+            last_punch: log.last_punch || checkOut,
+            total_work_hours: finalTotalWork || 9.0,
+            break_hours: dbBreakHours,
+            productive_hours: finalProductive || 8.0,
+            overtime_hours: parseFloat(log.overtime_hours) || 0,
+            late_by_minutes: parseInt(log.late_by_minutes) || 0,
+            early_exit_minutes: parseInt(log.early_exit_minutes) || 0,
+            geo_fence_status: log.geo_fence_status || 'Inside',
+            location_address: log.location_address || 'Main Office Complex, Mumbai',
+            device_id: log.device_id || 'BIOMETRIC-MUM-1'
+        };
+    }) : [];
 
     const shifts = dbShifts.length > 0 ? dbShifts : [];
 
@@ -199,12 +231,23 @@ const BusinessAttendance = () => {
     // Submissions
     const handleAddPunch = (e) => {
         e.preventDefault();
+        
+        const in12 = convertTo12Hour(punchForm.check_in_time);
+        const out12 = convertTo12Hour(punchForm.check_out_time);
+        
+        const computedTotal = calculateDuration(in12, out12);
+        const breakHrs = 1.0;
+        const computedProd = Math.max(0, computedTotal - breakHrs);
+
         addPunchMutation.mutate({
             employee_id: punchForm.employee_id,
             employee_name: punchForm.employee_name,
-            check_in_time: convertTo12Hour(punchForm.check_in_time),
-            check_out_time: convertTo12Hour(punchForm.check_out_time),
+            check_in_time: in12,
+            check_out_time: out12,
             late_by_minutes: parseInt(punchForm.late_by_minutes) || 0,
+            productive_hours: parseFloat(computedProd.toFixed(1)),
+            total_work_hours: parseFloat(computedTotal.toFixed(1)),
+            break_hours: breakHrs,
             location_address: punchForm.location_address || 'Main Office Complex, Mumbai',
             status: parseInt(punchForm.late_by_minutes) > 15 ? 'late' : 'present',
             date: new Date().toISOString().split('T')[0]
@@ -224,13 +267,20 @@ const BusinessAttendance = () => {
 
     const handleEditPunchSubmit = (e) => {
         e.preventDefault();
+        const in12 = convertTo12Hour(editForm.check_in_time);
+        const out12 = convertTo12Hour(editForm.check_out_time);
+        
+        const computedTotal = calculateDuration(in12, out12);
+        const breakHrs = 1.0;
+        const computedProd = Math.max(0, computedTotal - breakHrs);
+        
         const payload = {
             date: editForm.attendance_date,
-            check_in_time: convertTo12Hour(editForm.check_in_time),
-            check_out_time: convertTo12Hour(editForm.check_out_time),
+            check_in_time: in12,
+            check_out_time: out12,
             late_by_minutes: parseInt(editForm.late_by_minutes) || 0,
-            productive_hours: parseFloat(editForm.productive_hours) || 8.0,
-            total_work_hours: (parseFloat(editForm.productive_hours) || 8.0) + 1.0,
+            productive_hours: parseFloat(computedProd.toFixed(1)),
+            total_work_hours: parseFloat(computedTotal.toFixed(1)),
             location_address: editForm.location_address || 'Main Office Complex, Mumbai',
             status: editForm.status
         };
