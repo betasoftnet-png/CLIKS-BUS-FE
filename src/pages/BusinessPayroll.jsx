@@ -101,31 +101,52 @@ const BusinessPayroll = () => {
     });
 
     // Process lists with fallbacks
-    const payrollRecords = dbRecords.length > 0 ? dbRecords.map(rec => ({
-        payroll_id: rec.id,
-        employee_id: rec.employee_id || 'EMP-001',
-        employee_name: rec.employee_name || 'Arun Kumar (Sales)',
-        payroll_month: rec.month || 'May 2026',
-        payroll_status: rec.status || 'processed',
-        salary_type: rec.salary_type || 'Monthly',
-        basic_salary: parseFloat(rec.basic_salary) || 30000,
-        hra_amount: parseFloat(rec.hra_amount) || 5000,
-        special_allowance: parseFloat(rec.special_allowance) || 2000,
-        bonus_amount: parseFloat(rec.bonus_amount) || 0,
-        overtime_pay: parseFloat(rec.overtime_pay) || 0,
-        pf_deduction: parseFloat(rec.pf_deduction) || 1800,
-        esi_deduction: parseFloat(rec.esi_deduction) || 325,
-        tds_deduction: parseFloat(rec.tds_deduction) || 500,
-        professional_tax: parseFloat(rec.professional_tax) || 200,
-        loan_deduction: parseFloat(rec.loan_deduction) || 0,
-        payable_days: parseInt(rec.payable_days) || 30,
-        bank_name: rec.bank_name || 'HDFC Bank',
-        account_number: rec.account_number || '50100223344551',
-        payslip_number: rec.payslip_number || 'PSN-2026-091',
-        pan_number: rec.pan_number || 'ABCDE1234F',
-        uan_number: rec.uan_number || '100223344111',
-        esi_number: rec.esi_number || '3122334455001'
-    })) : [];
+    const getVal = (val, def) => (val !== undefined && val !== null) ? parseFloat(val) : def;
+
+    const payrollRecords = dbRecords.length > 0 ? dbRecords.map(rec => {
+        const emp = staffList.find(s => s.name === rec.employee_name || s.id === (rec.employee_id || '').replace('EMP-', '')) || {};
+        let bData = {};
+        let addrMeta = {};
+        try { bData = typeof emp.bank_details === 'string' ? JSON.parse(emp.bank_details) : (emp.bank_details || {}); } catch(e){}
+        try { addrMeta = typeof emp.address === 'string' ? JSON.parse(emp.address) : (emp.address || {}); } catch(e){}
+
+        let basic = getVal(rec.basic_salary, null);
+        if (basic === null) {
+            let totalAmt = getVal(rec.amount, null);
+            if (totalAmt !== null) {
+                basic = totalAmt - getVal(rec.hra_amount, 0) - getVal(rec.special_allowance, 0) - getVal(rec.bonus_amount, 0);
+            } else {
+                basic = 30000;
+            }
+        }
+
+        return {
+            payroll_id: rec.id,
+            employee_id: rec.employee_id || 'EMP-001',
+            employee_name: rec.employee_name || 'Arun Kumar (Sales)',
+            payroll_month: rec.month || 'May 2026',
+            payroll_status: rec.status || 'processed',
+            salary_type: rec.salary_type || 'Monthly',
+            basic_salary: basic,
+            hra_amount: getVal(rec.hra_amount, 5000),
+            special_allowance: getVal(rec.special_allowance, 2000),
+            bonus_amount: getVal(rec.bonus_amount, 0),
+            overtime_pay: getVal(rec.overtime_pay, 0),
+            pf_deduction: getVal(rec.pf_deduction, 1800),
+            esi_deduction: getVal(rec.esi_deduction, 325),
+            tds_deduction: getVal(rec.tds_deduction, 500),
+            professional_tax: getVal(rec.professional_tax, 200),
+            loan_deduction: getVal(rec.loan_deduction, 0),
+            payable_days: parseInt(rec.payable_days) || 30,
+            
+            bank_name: bData.bank_name || emp.bank_name || rec.bank_name || 'HDFC Bank',
+            account_number: bData.account_number || emp.account_number || rec.account_number || '50100223344551',
+            payslip_number: rec.payslip_number || `PSN-2026-${rec.id ? rec.id * 8 : '091'}`,
+            pan_number: addrMeta.pan_number || emp.pan_number || rec.pan_number || 'ABCDE1234F',
+            uan_number: addrMeta.pf_number || emp.pf_number || rec.uan_number || '100223344111',
+            esi_number: emp.esi_number || rec.esi_number || '3122334455001'
+        };
+    }) : [];
 
     const loans = dbRecords.length > 0 && dbRecords.some(rec => rec.loans_data) ? dbRecords.filter(rec => rec.loans_data).map(rec => {
         let lData = {};
@@ -172,6 +193,7 @@ const BusinessPayroll = () => {
             employee_id: payForm.employee_id,
             employee_name: payForm.employee_name,
             amount: total,
+            basic_salary: base,
             month: 'May 2026',
             status: 'processed',
             hra_amount: hra,
