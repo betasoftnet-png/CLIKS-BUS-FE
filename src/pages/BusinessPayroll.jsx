@@ -104,7 +104,7 @@ const BusinessPayroll = () => {
     const getVal = (val, def) => (val !== undefined && val !== null) ? parseFloat(val) : def;
 
     const payrollRecords = dbRecords.length > 0 ? dbRecords.map(rec => {
-        const emp = staffList.find(s => s.name === rec.employee_name || s.id === (rec.employee_id || '').replace('EMP-', '')) || {};
+        const emp = staffList.find(s => s.name === rec.employee_name || s.id === String(rec.employee_id || '').replace('EMP-', '')) || {};
         let bData = {};
         let addrMeta = {};
         try { bData = typeof emp.bank_details === 'string' ? JSON.parse(emp.bank_details) : (emp.bank_details || {}); } catch(e){}
