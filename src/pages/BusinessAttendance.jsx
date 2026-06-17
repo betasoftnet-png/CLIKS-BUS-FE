@@ -223,6 +223,7 @@ const BusinessAttendance = () => {
     });
 
     const [shiftForm, setShiftForm] = useState({
+        shift_id: null,
         shift_name: 'Flexible Evening Shift',
         shift_start_time: '03:00 PM',
         shift_end_time: '12:00 AM',
@@ -291,7 +292,11 @@ const BusinessAttendance = () => {
     const handleCreateShift = (e) => {
         e.preventDefault();
         // Since shift setup is mock / dynamic config:
-        alert('New assigned work roster shift created successfully!');
+        if (shiftForm.shift_id) {
+            alert('Assigned work roster shift updated successfully!');
+        } else {
+            alert('New assigned work roster shift created successfully!');
+        }
         setIsShiftModalOpen(false);
     };
 
@@ -724,7 +729,10 @@ const BusinessAttendance = () => {
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Roster Shifts & Work Timings</h3>
-                        <button onClick={() => setIsShiftModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Add Roster Shift</button>
+                        <button onClick={() => {
+                            setShiftForm({ shift_id: null, shift_name: '', shift_start_time: '', shift_end_time: '', grace_time: 15 });
+                            setIsShiftModalOpen(true);
+                        }} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Add Roster Shift</button>
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead style={{ background: '#F8FAFC' }}>
@@ -734,6 +742,7 @@ const BusinessAttendance = () => {
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Shift Timing</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Shift Type</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Allowed Grace Time</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -746,6 +755,25 @@ const BusinessAttendance = () => {
                                         <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{s.shift_type.toUpperCase()}</span>
                                     </td>
                                     <td style={{ padding: '1rem', fontWeight: '750', color: '#64748B' }}>{s.grace_time} Minutes</td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <button
+                                            onClick={() => {
+                                                setShiftForm({
+                                                    shift_id: s.shift_id,
+                                                    shift_name: s.shift_name,
+                                                    shift_start_time: s.shift_start_time,
+                                                    shift_end_time: s.shift_end_time,
+                                                    grace_time: s.grace_time
+                                                });
+                                                setIsShiftModalOpen(true);
+                                            }}
+                                            onMouseOver={(e) => { e.currentTarget.style.background = '#3B82F6'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#3B82F6'; }}
+                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
+                                            style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                                        >
+                                            Edit
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -1065,7 +1093,7 @@ const BusinessAttendance = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Add Roster Shift Timings</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{shiftForm.shift_id ? 'Edit' : 'Add'} Roster Shift Timings</h3>
                             <button onClick={() => setIsShiftModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
