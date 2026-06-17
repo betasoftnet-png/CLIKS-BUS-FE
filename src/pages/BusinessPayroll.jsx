@@ -805,15 +805,120 @@ const BusinessPayroll = () => {
                                 {/* Download Payslip Button */}
                                 <button
                                     onClick={() => {
-                                        const content = `PAYSLIP\n${rec.payslip_number} | ${rec.payroll_month}\nEmployee: ${rec.employee_name}\nBank: ${rec.bank_name} - ${rec.account_number}\nPAN: ${rec.pan_number} | UAN: ${rec.uan_number}\n\nGross: ${formatCurrency(gross)}\nDeductions: -${formatCurrency(deductions)}\nNET PAY: ${formatCurrency(netPay)}`;
-                                        const blob = new Blob([content], { type: 'text/plain' });
-                                        const url = URL.createObjectURL(blob);
-                                        const a = document.createElement('a'); a.href = url; a.download = `${rec.payslip_number}.txt`; a.click();
-                                        URL.revokeObjectURL(url);
+                                        const htmlTemplate = `
+                                            <html>
+                                            <head>
+                                                <title>Payslip - ${rec.employee_name}</title>
+                                                <style>
+                                                    body { font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 40px; background: #f9f9f9; }
+                                                    .payslip-container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); padding: 40px; border-top: 6px solid #059669; }
+                                                    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+                                                    .company-info h1 { margin: 0; color: #059669; font-size: 28px; letter-spacing: -0.5px; }
+                                                    .company-info p { margin: 4px 0 0; color: #666; font-size: 14px; }
+                                                    .payslip-title h2 { margin: 0 0 5px 0; color: #111; font-size: 24px; text-align: right; text-transform: uppercase; letter-spacing: 1px; }
+                                                    .payslip-title p { margin: 0; color: #777; text-align: right; font-size: 14px; }
+                                                    .emp-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #fdfdfd; padding: 20px; border-radius: 6px; border: 1px solid #f0f0f0; }
+                                                    .emp-details div p { margin: 5px 0; font-size: 14px; }
+                                                    .emp-details strong { display: inline-block; width: 120px; color: #555; }
+                                                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                                                    th { background: #f4fbf7; color: #047857; padding: 12px 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #d1fae5; }
+                                                    td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #444; }
+                                                    .amount { text-align: right; font-family: monospace; font-size: 15px; }
+                                                    .net-pay { background: #059669; color: white; padding: 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+                                                    .net-pay h3 { margin: 0; font-size: 18px; font-weight: normal; }
+                                                    .net-pay h1 { margin: 0; font-size: 32px; font-family: monospace; }
+                                                    .footer { text-align: center; margin-top: 40px; color: #888; font-size: 12px; padding-top: 20px; border-top: 1px dashed #ddd; }
+                                                    @media print { body { background: #fff; padding: 0; } .payslip-container { box-shadow: none; padding: 0; border: none; } }
+                                                </style>
+                                            </head>
+                                            <body onload="setTimeout(function() { window.print(); }, 500)">
+                                                <div class="payslip-container">
+                                                    <div class="header">
+                                                        <div class="company-info">
+                                                            <h1>CLIK Business</h1>
+                                                            <p>123 Business Avenue, Tech Park</p>
+                                                            <p>HQ Location</p>
+                                                        </div>
+                                                        <div class="payslip-title">
+                                                            <h2>PAYSLIP</h2>
+                                                            <p><strong>Month:</strong> ${rec.payroll_month}</p>
+                                                            <p><strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="emp-details">
+                                                        <div>
+                                                            <p><strong>Employee Name:</strong> <span style="color:#111; font-weight:bold;">${rec.employee_name}</span></p>
+                                                            <p><strong>Employee ID:</strong> EMP-${rec.employee_id || '001'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p><strong>Bank Name:</strong> ${rec.bank_name}</p>
+                                                            <p><strong>Account A/C:</strong> ${rec.account_number}</p>
+                                                            <p><strong>PAN Number:</strong> ${rec.pan_number}</p>
+                                                            <p><strong>UAN Number:</strong> ${rec.uan_number}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <table>
+                                                        <thead>
+                                                            <tr>
+                                                                <th style="width: 50%;">Earnings</th>
+                                                                <th class="amount" style="width: 50%;">Amount (INR)</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            ${rec.basic_salary > 0 ? '<tr><td>Basic Salary</td><td class="amount">' + rec.basic_salary.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.hra_amount > 0 ? '<tr><td>HRA Allowance</td><td class="amount">' + rec.hra_amount.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.special_allowance > 0 ? '<tr><td>Special Allowance</td><td class="amount">' + rec.special_allowance.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.bonus_amount > 0 ? '<tr><td>Bonus / Incentives</td><td class="amount">' + rec.bonus_amount.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.overtime_pay > 0 ? '<tr><td>Overtime Pay</td><td class="amount">' + rec.overtime_pay.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            <tr style="background: #fafafa; font-weight: bold;">
+                                                                <td>Total Gross Earnings</td>
+                                                                <td class="amount">${gross.toLocaleString('en-IN')}</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+
+                                                    <table>
+                                                        <thead>
+                                                            <tr>
+                                                                <th style="width: 50%; background: #fef2f2; color: #dc2626; border-bottom-color: #fecaca;">Deductions</th>
+                                                                <th class="amount" style="width: 50%; background: #fef2f2; color: #dc2626; border-bottom-color: #fecaca;">Amount (INR)</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            ${rec.pf_deduction > 0 ? '<tr><td>EPF (12%)</td><td class="amount">' + rec.pf_deduction.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.esi_deduction > 0 ? '<tr><td>ESI</td><td class="amount">' + rec.esi_deduction.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.tds_deduction > 0 ? '<tr><td>TDS Income Tax</td><td class="amount">' + rec.tds_deduction.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.professional_tax > 0 ? '<tr><td>Professional Tax</td><td class="amount">' + rec.professional_tax.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            ${rec.loan_deduction > 0 ? '<tr><td>Loan EMI</td><td class="amount">' + rec.loan_deduction.toLocaleString('en-IN') + '</td></tr>' : ''}
+                                                            <tr style="background: #fafafa; font-weight: bold;">
+                                                                <td>Total Deductions</td>
+                                                                <td class="amount">${deductions.toLocaleString('en-IN')}</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+
+                                                    <div class="net-pay">
+                                                        <h3>Net Take Home Pay</h3>
+                                                        <h1>INR ${netPay.toLocaleString('en-IN')}</h1>
+                                                    </div>
+
+                                                    <div class="footer">
+                                                        <p>This is a system generated payslip and does not require a signature.</p>
+                                                        <p>Generated by CLIK Business OS &bull; Ref: ${rec.payslip_number}</p>
+                                                    </div>
+                                                </div>
+                                            </body>
+                                            </html>
+                                        `;
+                                        const win = window.open('', '_blank');
+                                        win.document.write(htmlTemplate);
+                                        win.document.close();
                                     }}
                                     style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 8px 16px rgba(5, 150, 105, 0.15)' }}
                                 >
-                                    <Download size={16} /> Download Official Payslip (TXT)
+                                    <Download size={16} /> Generate & Print Official Payslip (PDF)
                                 </button>
                             </div>
                         )}
