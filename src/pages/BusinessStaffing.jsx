@@ -226,9 +226,9 @@ const BusinessStaffing = () => {
             emergency_contact_name: e.emergency_contact ? (safeParse(e.emergency_contact).name || 'Suresh Mehra') : 'Suresh Mehra (Father)',
             emergency_contact_number: e.emergency_contact ? (safeParse(e.emergency_contact).phone || '+91 91111 00000') : '+91 91111 00000',
             address_line_1: e.address ? (addrMeta.line1 || 'Plot 102, Anna Nagar') : 'Plot 102, Anna Nagar',
-            city: e.city || 'Chennai',
-            state: e.state || 'Tamil Nadu',
-            pincode: e.pincode || '600040',
+            city: e.city || addrMeta.city || 'Chennai',
+            state: e.state || addrMeta.state || 'Tamil Nadu',
+            pincode: e.pincode || addrMeta.pincode || '600040',
             department_name: e.department || 'Operations',
             designation_name: e.designation || addrMeta.designation_name || 'Inventory Associate',
             reporting_manager: e.reporting_manager || addrMeta.reporting_manager || 'Ankit Sharma (Sales Lead)',
@@ -271,6 +271,9 @@ const BusinessStaffing = () => {
         joining_date: new Date().toISOString().split('T')[0],
         reporting_manager: 'Ankit Sharma (Sales Lead)',
         address_line_1: '',
+        city: '',
+        state: '',
+        pincode: '',
         emergency_contact_name: '',
         emergency_contact_number: '',
         pf_number: '',
@@ -297,6 +300,9 @@ const BusinessStaffing = () => {
         const finalManager = newEmp.reporting_manager || 'Ankit Sharma (Sales Lead)';
         const finalShift = newEmp.shift_name || 'Morning Shift (6 AM - 2 PM)';
         const finalAddress = newEmp.address_line_1 || 'Plot No. 12, Anna Nagar';
+        const finalCity = newEmp.city || 'Chennai';
+        const finalState = newEmp.state || 'Tamil Nadu';
+        const finalPincode = newEmp.pincode || '600040';
         const finalEmergName = newEmp.emergency_contact_name || 'Vijay Kumar (Father)';
         const finalEmergPhone = newEmp.emergency_contact_number || '+91 98765 99911';
 
@@ -318,6 +324,9 @@ const BusinessStaffing = () => {
             shift: JSON.stringify({ shift: finalShift }),
             address: JSON.stringify({ 
                 line1: finalAddress,
+                city: finalCity,
+                state: finalState,
+                pincode: finalPincode,
                 date_of_birth: newEmp.date_of_birth,
                 blood_group: newEmp.blood_group,
                 gender: newEmp.gender,
@@ -960,6 +969,20 @@ const BusinessStaffing = () => {
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
                                         <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Plot No. 12, Anna Nagar (Default)" />
                                     </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>City</label>
+                                            <input type="text" value={newEmp.city} onChange={(e) => setNewEmp({ ...newEmp, city: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Chennai" />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>State</label>
+                                            <input type="text" value={newEmp.state} onChange={(e) => setNewEmp({ ...newEmp, state: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Tamil Nadu" />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Pincode</label>
+                                            <input type="text" value={newEmp.pincode} onChange={(e) => setNewEmp({ ...newEmp, pincode: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="600040" />
+                                        </div>
+                                    </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
@@ -1371,7 +1394,7 @@ const BusinessStaffing = () => {
                                             Contact & Emergency Info
                                         </h4>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Residential Address</span> <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', maxWidth: '380px' }}>{currentSelectedEmployee.address_line_1}, {currentSelectedEmployee.city}, {currentSelectedEmployee.state} - {currentSelectedEmployee.pincode}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Residential Address</span> <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', maxWidth: '380px' }}>{currentSelectedEmployee.address_line_1}{currentSelectedEmployee.city ? `, ${currentSelectedEmployee.city}` : ''}{currentSelectedEmployee.state ? `, ${currentSelectedEmployee.state}` : ''}{currentSelectedEmployee.pincode ? ` - ${currentSelectedEmployee.pincode}` : ''}</span></div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.15rem' }}>
                                                 <span style={{ color: '#64748B', fontWeight: '600' }}>Emergency Contact</span> 
                                                 <span style={{ fontWeight: '750', color: '#E11D48', textAlign: 'right' }}>
