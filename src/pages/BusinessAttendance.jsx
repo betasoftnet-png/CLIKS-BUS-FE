@@ -161,10 +161,11 @@ const BusinessAttendance = () => {
         
         let computedTotal = calculateDuration(checkIn, checkOut);
         
-        const finalTotalWork = !isNaN(dbTotalHours) ? dbTotalHours : parseFloat(computedTotal.toFixed(1));
-        let finalProductive = !isNaN(dbProdHours) ? dbProdHours : Math.max(0, parseFloat((computedTotal - dbBreakHours).toFixed(1)));
+        // Force strict dynamic calculation on the frontend, overriding any backend default 8.0 value.
+        const finalTotalWork = parseFloat(computedTotal.toFixed(1));
+        let finalProductive = Math.max(0, parseFloat((computedTotal - dbBreakHours).toFixed(1)));
         
-        if (!finalTotalWork && computedTotal === 0) {
+        if (computedTotal === 0) {
             finalProductive = 8.0;
         }
 

@@ -299,14 +299,14 @@ const BusinessStaffing = () => {
             blood_group: newEmp.blood_group,
             employment_type: newEmp.employment_type,
             reporting_manager: finalManager,
-            shift: { shift: finalShift },
-            address: { line1: finalAddress },
-            emergency_contact: { name: finalEmergName, phone: finalEmergPhone },
-            bank_details: {
+            shift: JSON.stringify({ shift: finalShift }),
+            address: JSON.stringify({ line1: finalAddress }),
+            emergency_contact: JSON.stringify({ name: finalEmergName, phone: finalEmergPhone }),
+            bank_details: JSON.stringify({
                 bank_name: finalBankName,
                 account_number: finalAccountNo,
                 ifsc_code: finalIfsc
-            },
+            }),
             pf_number: finalPf,
             pan_number: finalPan,
             leave_balance: parseInt(newEmp.leave_balance) || 14
@@ -342,10 +342,10 @@ const BusinessStaffing = () => {
             blood_group: editForm.blood_group,
             employment_type: editForm.employment_type,
             reporting_manager: editForm.reporting_manager,
-            shift: { shift: editForm.shift_name },
-            address: { line1: editForm.address_line_1 },
-            emergency_contact: { name: editForm.emergency_contact_name, phone: editForm.emergency_contact_number },
-            bank_details: { bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: editForm.ifsc_code },
+            shift: JSON.stringify({ shift: editForm.shift_name }),
+            address: JSON.stringify({ line1: editForm.address_line_1 }),
+            emergency_contact: JSON.stringify({ name: editForm.emergency_contact_name, phone: editForm.emergency_contact_number }),
+            bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: editForm.ifsc_code }),
             pf_number: editForm.pf_number,
             pan_number: editForm.pan_number
         };
@@ -414,7 +414,7 @@ const BusinessStaffing = () => {
     );
 
     const totalHeadcount = employees.length;
-    const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + emp.basic_salary, 0);
+    const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + (parseFloat(emp.basic_salary) || 0), 0);
     const averageRating = (employees.reduce((sum, emp) => sum + emp.performance_rating, 0) / headcountSafe(totalHeadcount)).toFixed(1);
 
     function headcountSafe(h) {
@@ -1271,23 +1271,35 @@ const BusinessStaffing = () => {
                                                 <Eye size={13} /> View All Records
                                             </button>
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', fontSize: '0.85rem' }}>
-                                            <div style={{ background: 'white', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                                                <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Days Present</span>
-                                                <span style={{ fontSize: '1.35rem', fontWeight: '900', color: '#10B981' }}>{22 - (currentSelectedEmployee.leave_balance % 4)}</span>
-                                                <span style={{ fontSize: '0.68rem', color: '#94A3B8', display: 'block', marginTop: '0.15rem', fontWeight: '600' }}>This Month</span>
-                                            </div>
-                                            <div style={{ background: 'white', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                                                <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Leaves Taken</span>
-                                                <span style={{ fontSize: '1.35rem', fontWeight: '900', color: '#EF4444' }}>{(currentSelectedEmployee.leave_balance % 4)}</span>
-                                                <span style={{ fontSize: '0.68rem', color: '#94A3B8', display: 'block', marginTop: '0.15rem', fontWeight: '600' }}>This Month</span>
-                                            </div>
-                                            <div style={{ background: 'white', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                                                <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Net Est. Payout</span>
-                                                <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B' }}>{formatCurrency(currentSelectedEmployee.basic_salary - ((currentSelectedEmployee.leave_balance % 4) * (currentSelectedEmployee.basic_salary / 30)))}</span>
-                                                <span style={{ fontSize: '0.68rem', color: '#94A3B8', display: 'block', marginTop: '0.15rem', fontWeight: '600' }}>After Deductions</span>
-                                            </div>
-                                        </div>
+                                        {(() => {
+                                            const joinD = new Date(currentSelectedEmployee.joining_date);
+                                            const now = new Date();
+                                            const isThisMonth = joinD.getMonth() === now.getMonth() && joinD.getFullYear() === now.getFullYear();
+                                            const daysPassed = isThisMonth ? Math.max(0, now.getDate() - joinD.getDate() + 1) : 22;
+                                            const leaves = isThisMonth ? 0 : (currentSelectedEmployee.leave_balance % 4);
+                                            const present = Math.max(0, daysPassed - leaves);
+                                            const netPayout = currentSelectedEmployee.basic_salary - (leaves * (currentSelectedEmployee.basic_salary / 30));
+                                            
+                                            return (
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', fontSize: '0.85rem' }}>
+                                                    <div style={{ background: 'white', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                        <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Days Present</span>
+                                                        <span style={{ fontSize: '1.35rem', fontWeight: '900', color: '#10B981' }}>{present}</span>
+                                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', display: 'block', marginTop: '0.15rem', fontWeight: '600' }}>This Month</span>
+                                                    </div>
+                                                    <div style={{ background: 'white', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                        <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Leaves Taken</span>
+                                                        <span style={{ fontSize: '1.35rem', fontWeight: '900', color: '#EF4444' }}>{leaves}</span>
+                                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', display: 'block', marginTop: '0.15rem', fontWeight: '600' }}>This Month</span>
+                                                    </div>
+                                                    <div style={{ background: 'white', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                        <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748B', fontWeight: '800', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Net Est. Payout</span>
+                                                        <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B' }}>{formatCurrency(netPayout)}</span>
+                                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', display: 'block', marginTop: '0.15rem', fontWeight: '600' }}>After Deductions</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                     
                                     {/* Contact Details Card */}
