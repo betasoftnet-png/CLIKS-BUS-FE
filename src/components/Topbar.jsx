@@ -5,7 +5,7 @@ import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
 import logoPng from '../assets/cliks5.png'; // Final branding
-import accessKitPng from '../assets/ACCESS KIT.png';
+import accessKitPng from '../assets/ACCESS_KIT.png';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ProfileDropdown } from './ProfileDropdown';
@@ -258,7 +258,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     onFAQ={() => navigate('/faq')}
                     onLogout={handleLogout}
                 />
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+
+                {/* Vertical Divider */}
+                <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255, 255, 255, 0.2)', marginLeft: '4px', marginRight: '4px' }} />
+
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: '-10px' }}>
                     <button
                         onClick={() => {
                             setIsAccessPopoverOpen(!isAccessPopoverOpen);
