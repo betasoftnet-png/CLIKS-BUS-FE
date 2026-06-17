@@ -64,6 +64,24 @@ const BusinessAttendance = () => {
     });
 
     // Mutations
+    const createShiftMutation = useMutation({
+        mutationFn: (data) => attendanceService.createShift(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['shifts'] });
+            alert('New assigned work roster shift created successfully!');
+            setIsShiftModalOpen(false);
+        }
+    });
+
+    const updateShiftMutation = useMutation({
+        mutationFn: ({ id, data }) => attendanceService.updateShift(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['shifts'] });
+            alert('Assigned work roster shift updated successfully!');
+            setIsShiftModalOpen(false);
+        }
+    });
+
     const addPunchMutation = useMutation({
         mutationFn: (data) => attendanceService.createPunch(data),
         onSuccess: () => {
@@ -291,13 +309,11 @@ const BusinessAttendance = () => {
 
     const handleCreateShift = (e) => {
         e.preventDefault();
-        // Since shift setup is mock / dynamic config:
         if (shiftForm.shift_id) {
-            alert('Assigned work roster shift updated successfully!');
+            updateShiftMutation.mutate({ id: shiftForm.shift_id, data: shiftForm });
         } else {
-            alert('New assigned work roster shift created successfully!');
+            createShiftMutation.mutate(shiftForm);
         }
-        setIsShiftModalOpen(false);
     };
 
     const handleApproveCorrection = (corId) => {

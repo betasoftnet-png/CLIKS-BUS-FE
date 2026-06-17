@@ -12,6 +12,7 @@ export const attendanceService = {
     rejectRegularization: (id) => apiClient.post(`/attendance/${id}/reject`).then(res => res.data.data || res.data),
     getShifts: () => apiClient.get('/attendance/shifts').then(res => res.data.data || res.data),
     createShift: (data) => apiClient.post('/attendance/shift', data).then(res => res.data.data || res.data),
+    updateShift: (id, data) => apiClient.put(`/attendance/shift/${id}`, data).then(res => res.data.data || res.data),
 };
 
 export default attendanceService;
