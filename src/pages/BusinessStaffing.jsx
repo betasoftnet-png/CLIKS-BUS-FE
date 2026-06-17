@@ -147,7 +147,20 @@ const BusinessStaffing = () => {
     });
 
     const createEmpMutation = useMutation({
-        mutationFn: (data) => staffingService.createEmployee(data),
+        mutationFn: async (data) => {
+            const res = await staffingService.createEmployee(data);
+            const empId = res.data?.id || res.id;
+            if (empId) {
+                // Backend's POST /staff ignores these fields, so we must PUT them right after creation
+                await staffingService.updateEmployee(empId, {
+                    address: data.address,
+                    emergency_contact: data.emergency_contact,
+                    bank_details: data.bank_details,
+                    shift: data.shift
+                });
+            }
+            return res;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['employees'] });
             alert('Employee onboarding sequence completed! Welcome package circular emailed.');
