@@ -325,14 +325,14 @@ const BusinessAttendance = () => {
         log.attendance_status.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const totalLogsCount = attendanceLogs.length;
-    const presentsCount = attendanceLogs.filter(l => l.attendance_status === 'present').length;
-    const latesCount = attendanceLogs.filter(l => l.attendance_status === 'late').length;
-    const attendancePercentage = Math.round(((presentsCount + latesCount) / totalLogsCountSafe(totalLogsCount)) * 100);
-
-    function totalLogsCountSafe(c) {
-        return c > 0 ? c : 1;
-    }
+    const currentDayStr = new Date().toISOString().split('T')[0];
+    const todayAllLogs = attendanceLogs.filter(l => l.attendance_date === currentDayStr);
+    const totalStaffCount = dbEmployees.length > 0 ? dbEmployees.length : 1;
+    
+    const presentsCount = todayAllLogs.filter(l => l.attendance_status === 'present').length;
+    const latesCount = todayAllLogs.filter(l => l.attendance_status === 'late').length;
+    
+    const attendancePercentage = Math.min(100, Math.round(((presentsCount + latesCount) / totalStaffCount) * 100));
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
