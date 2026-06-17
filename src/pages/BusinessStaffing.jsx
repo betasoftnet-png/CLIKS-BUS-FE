@@ -161,40 +161,40 @@ const BusinessStaffing = () => {
             }
             return res;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            alert('Employee onboarding sequence completed! Welcome package circular emailed.');
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['employees'] });
+            toast.success('Employee onboarding sequence completed! Welcome package circular emailed.');
             setIsOnboardModalOpen(false);
         }
     });
 
     const deleteEmpMutation = useMutation({
         mutationFn: (id) => staffingService.deleteEmployee(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            alert('Employee profile marked inactive and deboarded.');
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['employees'] });
+            toast.success('Employee profile marked inactive and deboarded.');
         }
     });
 
     const performanceMutation = useMutation({
         mutationFn: ({ id, rating, target_score }) => staffingService.updatePerformance(id, rating, target_score),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            alert('Employee appraisal target score & performance ratings locked successfully!');
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['employees'] });
+            toast.success('Employee appraisal target score & performance ratings locked successfully!');
             setIsPerformanceModalOpen(false);
         }
     });
 
     const updateEmpMutation = useMutation({
         mutationFn: ({ id, data }) => staffingService.updateEmployee(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['employees'] });
-            alert('Employee profile updated successfully!');
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['employees'] });
+            toast.success('Employee profile updated successfully!');
             setIsEditing(false);
+            setShowEditModal(false);
         },
-        onError: (err) => {
-            console.error('Failed to update employee profile:', err);
-            alert('Failed to save changes. Please try again.');
+        onError: () => {
+            toast.error('Failed to save changes. Please try again.');
         }
     });
 
