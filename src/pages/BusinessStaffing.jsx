@@ -163,7 +163,7 @@ const BusinessStaffing = () => {
         },
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
-            toast.success('Employee onboarding sequence completed! Welcome package circular emailed.');
+            alert('Employee onboarding sequence completed! Welcome package circular emailed.');
             setIsOnboardModalOpen(false);
         }
     });
@@ -172,7 +172,7 @@ const BusinessStaffing = () => {
         mutationFn: (id) => staffingService.deleteEmployee(id),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
-            toast.success('Employee profile marked inactive and deboarded.');
+            alert('Employee profile marked inactive and deboarded.');
         }
     });
 
@@ -180,7 +180,7 @@ const BusinessStaffing = () => {
         mutationFn: ({ id, rating, target_score }) => staffingService.updatePerformance(id, rating, target_score),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
-            toast.success('Employee appraisal target score & performance ratings locked successfully!');
+            alert('Employee appraisal target score & performance ratings locked successfully!');
             setIsPerformanceModalOpen(false);
         }
     });
@@ -189,13 +189,13 @@ const BusinessStaffing = () => {
         mutationFn: ({ id, data }) => staffingService.updateEmployee(id, data),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
-            toast.success('Employee profile updated successfully!');
+            alert('Employee profile updated successfully!');
             setIsEditing(false);
             setShowEditModal(false);
         },
         onError: (err) => {
             console.error('Update Employee Error:', err);
-            toast.error('Failed to save changes. Please try again.');
+            alert('Failed to save changes. Please try again.');
         }
     });
 
