@@ -193,7 +193,8 @@ const BusinessStaffing = () => {
             setIsEditing(false);
             setShowEditModal(false);
         },
-        onError: () => {
+        onError: (err) => {
+            console.error('Update Employee Error:', err);
             toast.error('Failed to save changes. Please try again.');
         }
     });
@@ -233,7 +234,7 @@ const BusinessStaffing = () => {
             designation_name: e.designation || addrMeta.designation_name || 'Inventory Associate',
             reporting_manager: e.reporting_manager || addrMeta.reporting_manager || 'Ankit Sharma (Sales Lead)',
             employment_type: e.employment_type || addrMeta.employment_type || 'Full-time',
-            salary_type: e.salary_type || 'Monthly',
+            salary_type: e.salary_type || addrMeta.salary_type || 'Monthly',
             basic_salary: parseFloat(e.salary) || 35000,
             bank_name: e.bank_details ? (safeParse(e.bank_details).bank_name || 'HDFC Bank') : 'HDFC Bank',
             account_number: e.bank_details ? (safeParse(e.bank_details).account_number || '50100223344551') : '50100223344551',
@@ -244,8 +245,8 @@ const BusinessStaffing = () => {
             pan_file: 'pan_arun.pdf',
             shift_name: e.shift ? (safeParse(e.shift).shift || 'General Shift (9 AM - 6 PM)') : 'General Shift (9 AM - 6 PM)',
             leave_balance: e.leave_balance || addrMeta.leave_balance || 14,
-            performance_rating: e.performance_rating || 4.5,
-            target_score: e.target_score || 92,
+            performance_rating: e.performance_rating || addrMeta.performance_rating || 4.5,
+            target_score: e.target_score || addrMeta.target_score || 92,
             role_name: e.role || 'Staff Personnel'
         };
     }) : [];
@@ -361,15 +362,11 @@ const BusinessStaffing = () => {
             name: `${editForm.first_name} ${editForm.last_name}`,
             email: editForm.email,
             phone: editForm.phone,
-            salary: parseFloat(editForm.basic_salary) || 0,
             department: editForm.department,
             designation: editForm.designation,
+            salary: parseFloat(editForm.basic_salary) || 0,
+            status: editForm.employee_status,
             hire_date: editForm.joining_date,
-            gender: editForm.gender,
-            date_of_birth: editForm.date_of_birth,
-            blood_group: editForm.blood_group,
-            employment_type: editForm.employment_type,
-            reporting_manager: editForm.reporting_manager,
             shift: JSON.stringify({ shift: editForm.shift_name }),
             address: JSON.stringify({ 
                 line1: editForm.address_line_1,
@@ -382,12 +379,13 @@ const BusinessStaffing = () => {
                 pf_number: editForm.pf_number,
                 leave_balance: parseInt(editForm.leave_balance) || 14,
                 designation_name: editForm.designation,
-                joining_date: editForm.joining_date
+                joining_date: editForm.joining_date,
+                salary_type: editForm.salary_type,
+                performance_rating: editForm.performance_rating,
+                target_score: editForm.target_score
             }),
             emergency_contact: JSON.stringify({ name: editForm.emergency_contact_name, phone: editForm.emergency_contact_number }),
-            bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: editForm.ifsc_code }),
-            pf_number: editForm.pf_number,
-            pan_number: editForm.pan_number
+            bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: editForm.ifsc_code })
         };
         updateEmpMutation.mutate({ id: editForm.employee_id, data: payload });
     };
