@@ -110,14 +110,19 @@ const BusinessPayroll = () => {
         try { bData = typeof emp.bank_details === 'string' ? JSON.parse(emp.bank_details) : (emp.bank_details || {}); } catch(e){}
         try { addrMeta = typeof emp.address === 'string' ? JSON.parse(emp.address) : (emp.address || {}); } catch(e){}
 
-        let basic = getVal(rec.basic_salary, null);
-        if (basic === null) {
-            let totalAmt = getVal(rec.amount, null);
-            if (totalAmt !== null) {
-                basic = totalAmt - getVal(rec.hra_amount, 0) - getVal(rec.special_allowance, 0) - getVal(rec.bonus_amount, 0);
-            } else {
-                basic = 30000;
-            }
+        let totalAmt = getVal(rec.amount, null);
+        let returnedBasic = getVal(rec.basic_salary, null);
+        
+        let hra = getVal(rec.hra_amount, totalAmt !== null ? 0 : 5000);
+        let spec = getVal(rec.special_allowance, totalAmt !== null ? 0 : 2000);
+        let bonus = getVal(rec.bonus_amount, 0);
+        let overtime = getVal(rec.overtime_pay, 0);
+        
+        let basic;
+        if (totalAmt !== null) {
+            basic = totalAmt - hra - spec - bonus - overtime;
+        } else {
+            basic = returnedBasic !== null ? returnedBasic : 30000;
         }
 
         return {
@@ -128,10 +133,10 @@ const BusinessPayroll = () => {
             payroll_status: rec.status || 'processed',
             salary_type: rec.salary_type || 'Monthly',
             basic_salary: basic,
-            hra_amount: getVal(rec.hra_amount, 5000),
-            special_allowance: getVal(rec.special_allowance, 2000),
-            bonus_amount: getVal(rec.bonus_amount, 0),
-            overtime_pay: getVal(rec.overtime_pay, 0),
+            hra_amount: hra,
+            special_allowance: spec,
+            bonus_amount: bonus,
+            overtime_pay: overtime,
             pf_deduction: getVal(rec.pf_deduction, 1800),
             esi_deduction: getVal(rec.esi_deduction, 325),
             tds_deduction: getVal(rec.tds_deduction, 500),
@@ -342,7 +347,7 @@ const BusinessPayroll = () => {
                     </div>
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        <table style={{ width: '100%', minWidth: 'max-content', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
                             <FilterableTableHead columns={[
         { key: 'payslip_ref', label: 'Payslip Ref', placeholder: 'e.g. PAY-001' },
         { key: 'employee_name', label: 'Employee', placeholder: 'Name' },
@@ -391,7 +396,7 @@ const BusinessPayroll = () => {
                                                 {rec.payroll_status !== 'paid' && (
                                                     <button 
                                                         onClick={() => handleReleaseSalary(rec.payroll_id)}
-                                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                                     >Release Salary</button>
                                                 )}
                                             </td>
