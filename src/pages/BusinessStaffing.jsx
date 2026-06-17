@@ -566,7 +566,7 @@ const BusinessStaffing = () => {
                                     { key: 'contact', label: 'Contact Info', placeholder: 'Phone/Email' },
                                     { key: 'emergency', label: 'Emergency Person', placeholder: 'Name' },
                                     { key: 'personal', label: 'Personal Info', placeholder: 'DOB' },
-                                    { key: 'location', label: 'Work Location', placeholder: 'City' },
+                                    { key: 'location', label: 'Residential Address', placeholder: 'City' },
                                     { key: '_actions', label: 'Action', noFilter: true }
                                 ]} onFilterChange={setColFilters} />
                                 <tbody>
@@ -607,12 +607,26 @@ const BusinessStaffing = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.city}, {emp.state} ({emp.pincode})</span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteEmployee(emp.employee_id); }}
-                                                    style={{ border: 'none', background: '#FEF2F2', padding: '0.5rem', borderRadius: '10px', color: '#EF4444', cursor: 'pointer' }}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        onClick={(e) => { 
+                                                            e.stopPropagation(); 
+                                                            setSelectedEmployee(emp);
+                                                            setIsEditing(true);
+                                                        }}
+                                                        style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', color: '#64748B', cursor: 'pointer' }}
+                                                        title="Edit Profile"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteEmployee(emp.employee_id); }}
+                                                        style={{ border: 'none', background: '#FEF2F2', padding: '0.5rem', borderRadius: '10px', color: '#EF4444', cursor: 'pointer' }}
+                                                        title="Delete Employee"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
