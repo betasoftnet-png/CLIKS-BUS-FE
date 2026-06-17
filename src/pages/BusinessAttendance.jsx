@@ -44,6 +44,7 @@ const BusinessAttendance = () => {
     const [selectedEmployeeHistory, setSelectedEmployeeHistory] = useState(null);
     const [selectedDateDetails, setSelectedDateDetails] = useState(null);
     const [lookupDate, setLookupDate] = useState(new Date().toISOString().split('T')[0]);
+    const [calendarEmployeeName, setCalendarEmployeeName] = useState('');
 
     const queryClient = useQueryClient();
 
@@ -191,7 +192,7 @@ const BusinessAttendance = () => {
             attendance_id: log.id,
             employee_id: log.employee_id || 'EMP-001',
             employee_name: log.employee_name || 'Arun Kumar (Sales)',
-            attendance_date: log.date || '2026-05-08',
+            attendance_date: log.date || new Date().toISOString().split('T')[0],
             attendance_status: log.status || 'present',
             check_in_time: checkIn,
             check_out_time: checkOut,
@@ -214,7 +215,7 @@ const BusinessAttendance = () => {
     const corrections = dbLogs.length > 0 && dbLogs.some(log => log.approval_status) ? dbLogs.filter(log => log.approval_status).map(log => ({
         correction_request_id: log.id,
         employee_name: log.employee_name || 'Arun Kumar',
-        attendance_date: log.date || '2026-05-08',
+        attendance_date: log.date || new Date().toISOString().split('T')[0],
         missed_punch_reason: log.missed_punch_reason || 'Travel time delay',
         proposed_punch_in: log.proposed_punch_in || '09:00 AM',
         proposed_punch_out: log.proposed_punch_out || '06:00 PM',
@@ -870,7 +871,10 @@ const BusinessAttendance = () => {
 
             {/* Tab 5: Calendar View */}
             {activeTab === 'calendar' && (() => {
-                const year = 2026, month = 4; // May 2026 (0-indexed)
+                const currentDate = new Date();
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth(); // 0-indexed
+                const monthName = currentDate.toLocaleString('default', { month: 'long' });
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
                 const days = [];
@@ -879,16 +883,34 @@ const BusinessAttendance = () => {
                 const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
                 return (
                     <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Monthly Attendance Calendar — May 2026</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Monthly Attendance Calendar — {monthName} {year}</h3>
+                            <select 
+                                value={calendarEmployeeName} 
+                                onChange={(e) => setCalendarEmployeeName(e.target.value)}
+                                style={{ padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}
+                            >
+                                <option value="">Select an Employee...</option>
+                                {dbEmployees.map(emp => {
+                                    const name = emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+                                    return <option key={emp.id} value={name}>{name}</option>;
+                                })}
+                            </select>
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '8px' }}>
                             {dayNames.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', padding: '8px 0' }}>{d}</div>)}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
                             {days.map((day, idx) => {
                                 if (!day) return <div key={idx} />;
-                                const dateStr = `2026-05-${String(day).padStart(2,'0')}`;
-                                const logs = attendanceLogs.filter(l => l.attendance_date === dateStr);
-                                const status = logs.length > 0 ? (logs[0].attendance_status === 'present' ? 'present' : logs[0].attendance_status === 'late' ? 'late' : 'absent') : 'none';
+                                const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                                let status = 'none';
+                                if (calendarEmployeeName) {
+                                    const employeeLog = attendanceLogs.find(l => l.employee_name.toLowerCase() === calendarEmployeeName.toLowerCase() && l.attendance_date === dateStr);
+                                    if (employeeLog) {
+                                        status = employeeLog.attendance_status === 'present' ? 'present' : employeeLog.attendance_status === 'late' ? 'late' : 'absent';
+                                    }
+                                }
                                 const bg = status === 'present' ? '#D1FAE5' : status === 'late' ? '#FEF3C7' : status === 'absent' ? '#FEE2E2' : '#F8FAFC';
                                 const color = status === 'present' ? '#065F46' : status === 'late' ? '#92400E' : status === 'absent' ? '#991B1B' : '#94A3B8';
                                 return (
@@ -1150,7 +1172,10 @@ const BusinessAttendance = () => {
                 const absents = empLogs.filter(l => l.attendance_status === 'absent').length;
                 const lates = empLogs.filter(l => l.attendance_status === 'late').length;
 
-                const year = 2026, month = 4; // May 2026
+                const currentDate = new Date();
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth(); // 0-indexed
+                const monthName = currentDate.toLocaleString('default', { month: 'long' });
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
                 const days = [];
@@ -1164,7 +1189,7 @@ const BusinessAttendance = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                 <div>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>📅 Attendance History Calendar</h3>
-                                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>{name} · May 2026</p>
+                                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '600', margin: '4px 0 0 0' }}>{name} · {monthName} {year}</p>
                                 </div>
                                 <button onClick={() => setSelectedEmployeeHistory(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
@@ -1189,7 +1214,7 @@ const BusinessAttendance = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
                                 {days.map((day, idx) => {
                                     if (!day) return <div key={idx} />;
-                                    const dateStr = `2026-05-${String(day).padStart(2,'0')}`;
+                                    const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
                                     const log = empLogs.find(l => l.attendance_date === dateStr);
                                     const status = log ? log.attendance_status : 'none';
                                     const bg = status === 'present' ? '#D1FAE5' : status === 'late' ? '#FEF3C7' : status === 'absent' ? '#FEE2E2' : '#F8FAFC';
