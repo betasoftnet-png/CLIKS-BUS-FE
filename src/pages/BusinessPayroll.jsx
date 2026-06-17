@@ -110,20 +110,19 @@ const BusinessPayroll = () => {
         try { bData = typeof emp.bank_details === 'string' ? JSON.parse(emp.bank_details) : (emp.bank_details || {}); } catch(e){}
         try { addrMeta = typeof emp.address === 'string' ? JSON.parse(emp.address) : (emp.address || {}); } catch(e){}
 
-        let totalAmt = getVal(rec.amount, null);
-        let returnedBasic = getVal(rec.basic_salary, null);
-        
-        let hra = getVal(rec.hra_amount, totalAmt !== null ? 0 : 5000);
-        let spec = getVal(rec.special_allowance, totalAmt !== null ? 0 : 2000);
+        let hra = getVal(rec.hra_amount, 0);
+        let spec = getVal(rec.special_allowance, 0);
         let bonus = getVal(rec.bonus_amount, 0);
         let overtime = getVal(rec.overtime_pay, 0);
         
-        let basic;
+        let returnedGross = getVal(rec.basic_salary, 30000);
+        let totalAmt = getVal(rec.amount, null);
         if (totalAmt !== null) {
-            basic = totalAmt - hra - spec - bonus - overtime;
-        } else {
-            basic = returnedBasic !== null ? returnedBasic : 30000;
+             returnedGross = totalAmt;
         }
+        
+        let basic = returnedGross - hra - spec - bonus - overtime;
+        if (basic < 0) basic = returnedGross;
 
         return {
             payroll_id: rec.id,
