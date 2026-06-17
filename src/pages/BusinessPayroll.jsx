@@ -342,7 +342,7 @@ const BusinessPayroll = () => {
                     </div>
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
                             <FilterableTableHead columns={[
         { key: 'payslip_ref', label: 'Payslip Ref', placeholder: 'e.g. PAY-001' },
         { key: 'employee_name', label: 'Employee', placeholder: 'Name' },
@@ -408,28 +408,30 @@ const BusinessPayroll = () => {
             {activeTab === 'structures' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Compensation Breakdown Structure (Annual CTC)</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Basic Base Salary</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>House Rent Allowance (HRA)</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Special Allowances</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Approx Annual Cost (CTC)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
-                                <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
-                                    <td style={{ padding: '1rem' }}>{formatCurrency(rec.basic_salary)} / Month</td>
-                                    <td style={{ padding: '1rem', color: '#1B6B3A', fontWeight: '700' }}>{formatCurrency(rec.hra_amount)} / Month</td>
-                                    <td style={{ padding: '1rem' }}>{formatCurrency(rec.special_allowance)} / Month</td>
-                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency((rec.basic_salary + rec.hra_amount + rec.special_allowance) * 12)}</td>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Basic Base Salary</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>House Rent Allowance (HRA)</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Special Allowances</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Approx Annual Cost (CTC)</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
+                                    <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
+                                        <td style={{ padding: '1rem' }}>{formatCurrency(rec.basic_salary)} / Month</td>
+                                        <td style={{ padding: '1rem', color: '#1B6B3A', fontWeight: '700' }}>{formatCurrency(rec.hra_amount)} / Month</td>
+                                        <td style={{ padding: '1rem' }}>{formatCurrency(rec.special_allowance)} / Month</td>
+                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency((rec.basic_salary + rec.hra_amount + rec.special_allowance) * 12)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -437,28 +439,30 @@ const BusinessPayroll = () => {
             {activeTab === 'compliance' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Statutory EPF, ESI, PAN Compliance Identifiers</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>PAN Number</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Universal Account Number (UAN)</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>ESI Identification No</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly EPF Contribution</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
-                                <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '700', fontFamily: 'monospace' }}>{rec.pan_number}</td>
-                                    <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.uan_number || 'N/A'}</td>
-                                    <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.esi_number || 'N/A'}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{formatCurrency(rec.pf_deduction)} (Auto EPF 12%)</td>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>PAN Number</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Universal Account Number (UAN)</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>ESI Identification No</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly EPF Contribution</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => (
+                                    <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{rec.employee_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', fontFamily: 'monospace' }}>{rec.pan_number}</td>
+                                        <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.uan_number || 'N/A'}</td>
+                                        <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.esi_number || 'N/A'}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{formatCurrency(rec.pf_deduction)} (Auto EPF 12%)</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -469,7 +473,8 @@ const BusinessPayroll = () => {
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Active Loans & Salary Advance Balances</h3>
                         <button onClick={() => setIsLoanModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Grant Employee Loan</button>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
                         <thead style={{ background: '#F8FAFC' }}>
                             <tr>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
@@ -491,6 +496,7 @@ const BusinessPayroll = () => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             )}
             </div>
