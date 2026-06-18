@@ -297,8 +297,18 @@ const BusinessMarketing = () => {
     const handleCreateCampaign = async (e) => {
         e.preventDefault();
         try {
-            await createMutation.mutateAsync(formData);
+            const res = await createMutation.mutateAsync(formData);
+            const newCampaign = res?.data || res || formData;
             setIsComposeOpen(false);
+
+            if (formData.campaign_status === 'Sent') {
+                const triggerCamp = {
+                    ...formData,
+                    id: newCampaign.id || Math.floor(Math.random() * 10000)
+                };
+                await triggerManualLaunch(triggerCamp);
+            }
+
             // Reset Form
             setFormData({
                 campaign_name: '',
@@ -956,6 +966,31 @@ const BusinessMarketing = () => {
                                             </select>
                                         </div>
                                     </div>
+
+                                    {formData.campaign_status === 'Scheduled' && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Scheduled Date *</label>
+                                                <input 
+                                                    type="date" 
+                                                    required
+                                                    value={formData.scheduled_date} 
+                                                    onChange={e => setFormData({ ...formData, scheduled_date: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Scheduled Time *</label>
+                                                <input 
+                                                    type="time" 
+                                                    required
+                                                    value={formData.scheduled_time} 
+                                                    onChange={e => setFormData({ ...formData, scheduled_time: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* SECTION 2: AUDIENCE */}
