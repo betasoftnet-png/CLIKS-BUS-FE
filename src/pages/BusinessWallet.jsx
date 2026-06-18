@@ -7,24 +7,22 @@ import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import FilterableTableHead from '../components/FilterableTableHead';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../context';
+import businessWalletService from '../services/businessWalletService';
 
 const BusinessWallet = () => {
     const { currency, formatCurrency } = useCurrency();
-    // Persisted LocalState for the Wallet context
-    const [balance, setBalance] = useState(() => {
-        const saved = localStorage.getItem('cliks_wallet_balance');
-        return saved ? parseFloat(saved) : 25000.00;
+    const queryClient = useQueryClient();
+    const { data: walletData, isLoading } = useQuery({
+        queryKey: ['business_wallet'],
+        queryFn: businessWalletService.getWallet
     });
 
-    const [history, setHistory] = useState(() => {
-        const saved = localStorage.getItem('cliks_wallet_history');
-        return saved ? JSON.parse(saved) : [
-            { id: 'TX-48901', type: 'CREDIT', amount: 15000, description: 'Opening Balance Auto Load', date: '14 May, 2026 • 10:24 AM' },
-            { id: 'TX-48902', type: 'DEBIT', amount: 3500, description: 'Supplier Settlement (Disbursement)', date: '13 May, 2026 • 04:45 PM' },
-            { id: 'TX-48903', type: 'CREDIT', amount: 13500, description: 'Quick QR Fund Transfer', date: '12 May, 2026 • 11:15 AM' }
-        ];
-    });
+    const balance = walletData?.wallet?.balance || 0;
+    const history = walletData?.history || [];
+    const rewardPoints = walletData?.wallet?.reward_points || 0;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [colFilters, setColFilters] = React.useState({});
@@ -33,14 +31,33 @@ const BusinessWallet = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const location = useLocation();
 
-    // Reward points state synced with localStorage
-    const [rewardPoints, setRewardPoints] = useState(() => {
-        const saved = localStorage.getItem('cliks_reward_points');
-        return saved ? parseInt(saved, 10) : 1450;
-    });
-
     const [activeTab, setActiveTab] = useState('gateway'); // 'gateway' | 'points'
     const [pointsToConvert, setPointsToConvert] = useState('');
+
+    const convertPointsMutation = useMutation({
+        mutationFn: businessWalletService.convertPoints,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['business_wallet']);
+            setPointsToConvert('');
+            setIsModalOpen(false);
+            alert(`🎉 Successfully converted reward points!`);
+        },
+        onError: (err) => {
+            alert('Failed to convert points: ' + err.message);
+        }
+    });
+
+    const addMoneyMutation = useMutation({
+        mutationFn: businessWalletService.addMoney,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['business_wallet']);
+            setAddForm({ amount: '', description: '' });
+            setIsModalOpen(false);
+        },
+        onError: (err) => {
+            alert('Failed to save transaction: ' + err.message);
+        }
+    });
 
     // Auto-open Add Money modal if navigated from sidebar button
     useEffect(() => {
@@ -53,18 +70,7 @@ const BusinessWallet = () => {
         }
     }, [location.search]);
 
-    // Update persisted storage on mutation
-    useEffect(() => {
-        localStorage.setItem('cliks_wallet_balance', balance.toString());
-    }, [balance]);
 
-    useEffect(() => {
-        localStorage.setItem('cliks_wallet_history', JSON.stringify(history));
-    }, [history]);
-
-    useEffect(() => {
-        localStorage.setItem('cliks_reward_points', rewardPoints.toString());
-    }, [rewardPoints]);
 
     const handleConvertPoints = (e) => {
         e.preventDefault();
@@ -77,26 +83,8 @@ const BusinessWallet = () => {
             alert(`Insufficient points balance. You have ${rewardPoints} points.`);
             return;
         }
-
-        const creditAmount = pts / 100; // 100 Points = 1.00 Rupee
-        const now = new Date();
-        const formattedDate = now.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
         
-        const newTxId = `TX-PTS-${Date.now()}`;
-        const newTx = {
-            id: newTxId,
-            type: 'CREDIT',
-            amount: creditAmount,
-            description: `Loyalty Points Conversion (${pts} Pts converted)`,
-            date: formattedDate
-        };
-
-        setRewardPoints(prev => prev - pts);
-        setBalance(prev => prev + creditAmount);
-        setHistory(prev => [newTx, ...prev]);
-        setPointsToConvert('');
-        setIsModalOpen(false);
-        alert(`🎉 Successfully converted ${pts} reward points to ${formatCurrency(creditAmount)}!`);
+        convertPointsMutation.mutate({ points: pts, conversionRate: 100 });
     };
 
     const handleAddMoney = async (e) => {
@@ -154,7 +142,7 @@ const BusinessWallet = () => {
                     alert("Gateway Interrupted: " + result.error.message);
                 } else {
                     // Successful flow settlement
-                    executeLocalWalletCredit(amt, actualOrderId);
+                    addMoneyMutation.mutate({ amount: amt, description: addForm.description.trim() || 'UPI / Bank Load', transaction_ref: actualOrderId });
                 }
             });
 
@@ -169,43 +157,35 @@ const BusinessWallet = () => {
             );
 
             if (shouldSimulate) {
-                executeLocalWalletCredit(amt, `TX-${Math.floor(10000 + Math.random() * 90000)}`);
+                addMoneyMutation.mutate({ amount: amt, description: addForm.description.trim() || 'Simulated Load', transaction_ref: `TX-${Math.floor(10000 + Math.random() * 90000)}` });
             }
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const executeLocalWalletCredit = (amt, txnId) => {
-        const now = new Date();
-        const formattedDate = now.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' • ' + now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
-
-        const newTx = {
-            id: txnId,
-            type: 'CREDIT',
-            amount: amt,
-            description: addForm.description.trim() || '',
-            date: formattedDate
-        };
-
-        setBalance(prev => prev + amt);
-        setHistory(prev => [newTx, ...prev]);
-        setAddForm({ amount: '', description: '' });
-        setIsModalOpen(false);
-    };
-
     const filteredHistory = history.filter(item => {
-        const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.id.toLowerCase().includes(searchTerm.toLowerCase());
+        const desc = item.description || '';
+        const id = item.transaction_ref || '';
+        const matchesSearch = desc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            id.toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchId = !colFilters.transaction_id || item.id.toLowerCase().includes(colFilters.transaction_id.toLowerCase());
-        const matchDate = !colFilters.date || item.date.toLowerCase().includes(colFilters.date.toLowerCase());
-        const matchDesc = !colFilters.description || item.description.toLowerCase().includes(colFilters.description.toLowerCase());
+        const matchId = !colFilters.transaction_id || id.toLowerCase().includes(colFilters.transaction_id.toLowerCase());
+        
+        // Handle SQLite created_at timestamps safely
+        const itemDateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+        const matchDate = !colFilters.date || itemDateStr.toLowerCase().includes(colFilters.date.toLowerCase());
+        
+        const matchDesc = !colFilters.description || desc.toLowerCase().includes(colFilters.description.toLowerCase());
         const matchDirection = !colFilters.direction || (item.type === 'CREDIT' ? 'in' : 'out').includes(colFilters.direction.toLowerCase());
-        const matchAmount = !colFilters.amount || String(item.amount).includes(colFilters.amount);
+        const matchAmount = !colFilters.amount || String(item.amount || '').includes(colFilters.amount);
 
         return matchesSearch && matchId && matchDate && matchDesc && matchDirection && matchAmount;
     });
+
+    if (isLoading) {
+        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Loader className="animate-spin text-emerald-600" size={32} /></div>;
+    }
 
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -251,7 +231,7 @@ const BusinessWallet = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem' }}>
                         <span style={{ fontSize: '1.75rem', fontWeight: '850', color: '#064E3B', marginRight: '2px' }}>{currency.symbol}</span>
                         <h2 style={{ fontSize: '2.25rem', fontWeight: '850', color: '#064E3B', margin: 0, letterSpacing: '-0.01em' }}>
-                            {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {balance.toLocaleString(currency.code === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
                     </div>
                 </div>
@@ -329,9 +309,11 @@ const BusinessWallet = () => {
                                     return (
                                         <tr key={tx.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}>
                                             <td style={{ padding: '1.25rem 2rem' }}>
-                                                <span style={{ fontFamily: 'monospace', fontWeight: '750', color: '#64748B', fontSize: '0.85rem' }}>{tx.id}</span>
+                                                <span style={{ fontFamily: 'monospace', fontWeight: '750', color: '#64748B', fontSize: '0.85rem' }}>{tx.transaction_ref}</span>
                                             </td>
-                                            <td style={{ padding: '1.25rem 2rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>{tx.date}</td>
+                                            <td style={{ padding: '1.25rem 2rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>
+                                                {tx.created_at ? new Date(tx.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                            </td>
                                             <td style={{ padding: '1.25rem 2rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{tx.description || '-'}</td>
                                             <td style={{ padding: '1.25rem 2rem' }}>
                                                 <div style={{ 
