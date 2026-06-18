@@ -1133,7 +1133,10 @@ export default function BusinessPitches() {
                         maxWidth: '500px',
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                         overflow: 'hidden',
-                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        maxHeight: '90vh'
                     }}>
                         {/* Glassmorphic Header Cover */}
                         <div style={{
@@ -1143,7 +1146,8 @@ export default function BusinessPitches() {
                             position: 'relative',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '0.5rem'
+                            gap: '0.5rem',
+                            flexShrink: 0
                         }}>
                             <button 
                                 onClick={() => setSelectedConnectPitch(null)}
@@ -1163,7 +1167,7 @@ export default function BusinessPitches() {
                             </p>
                         </div>
 
-                        <div style={{ padding: '2rem' }}>
+                        <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
                             {/* Venture Details Section */}
                             <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.03em', marginBottom: '1rem' }}>
                                 Venture Details
