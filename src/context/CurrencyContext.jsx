@@ -35,7 +35,8 @@ export const CurrencyProvider = ({ children }) => {
     // Global helper function to format any numeric amount
     const formatCurrency = (amount) => {
         const num = parseFloat(amount || 0);
-        return `${currency.symbol}${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+        const locale = currency.code === 'INR' ? 'en-IN' : 'en-US';
+        return `${currency.symbol}${num.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     };
 
     // Default to India

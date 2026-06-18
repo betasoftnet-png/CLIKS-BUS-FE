@@ -20,7 +20,7 @@ export const goalWalletService = {
     claimWallet: async (id) => await apiClient.post(`/goal-wallets/${id}/claim`).then(res => res.data.data || res.data),
     
     // Delete wallet
-    deleteWallet: async (id) => await apiClient.delete(`/goal-wallets/${id}`).then(res => res.data.data || res.data),
+    deleteWallet: async (id) => await apiClient.delete(`/goal-wallets/${id}`).then(res => res ? (res.data?.data || res.data || res) : null),
 
     // Update wallet
     updateWallet: async (id, data) => await apiClient.patch(`/goal-wallets/${id}`, data).then(res => res.data.data || res.data),
