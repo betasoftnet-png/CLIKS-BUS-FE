@@ -7,7 +7,6 @@ import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import FilterableTableHead from '../components/FilterableTableHead';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../context';
 import businessWalletService from '../services/businessWalletService';
