@@ -175,9 +175,10 @@ const BusinessPurposeWallet = () => {
 
     // Derived Statistics
     const wallets = Array.isArray(responseData) ? responseData : [];
-    const activeWallets = wallets.filter(w => w.status !== 'completed').length;
-    const totalAllocated = wallets.reduce((sum, w) => sum + parseFloat(w.current_amount || 0), 0);
-    const totalTarget = wallets.reduce((sum, w) => sum + parseFloat(w.target_amount || 0), 0);
+    const activeWalletsData = wallets.filter(w => w.status !== 'completed');
+    const activeWallets = activeWalletsData.length;
+    const totalAllocated = activeWalletsData.reduce((sum, w) => sum + parseFloat(w.current_amount || 0), 0);
+    const totalTarget = activeWalletsData.reduce((sum, w) => sum + parseFloat(w.target_amount || 0), 0);
     const globalProgress = totalTarget > 0 ? Math.round((totalAllocated / totalTarget) * 100) : 0;
 
     const filteredWallets = wallets.filter(wallet => {
