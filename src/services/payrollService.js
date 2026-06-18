@@ -8,6 +8,7 @@ export const payrollService = {
     processPayroll: (data) => apiClient.post('/payroll', data).then(res => res.data.data || res.data),
     releaseSalary: (id) => apiClient.post(`/payroll/${id}/payment`).then(res => res.data.data || res.data),
     createLoan: (id, data) => apiClient.post(`/payroll/${id}/loan`, data).then(res => res.data.data || res.data),
+    deletePayroll: (id) => apiClient.delete(`/payroll/${id}`).then(res => res.data.data || res.data),
 };
 
 export default payrollService;

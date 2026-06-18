@@ -394,12 +394,20 @@ const BusinessPayroll = () => {
                                                 }}>{rec.payroll_status.toUpperCase()}</span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                {rec.payroll_status !== 'paid' && (
-                                                    <button 
-                                                        onClick={() => handleReleaseSalary(rec.payroll_id)}
-                                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                                    >Release Salary</button>
-                                                )}
+                                                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                    {rec.payroll_status !== 'paid' && (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); handleReleaseSalary(rec.payroll_id); }}
+                                                            style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                        >Release Salary</button>
+                                                    )}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }}
+                                                        style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: 'none', background: '#FEF2F2', color: '#EF4444', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                                    >
+                                                        <Trash2 size={13} /> Delete
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
