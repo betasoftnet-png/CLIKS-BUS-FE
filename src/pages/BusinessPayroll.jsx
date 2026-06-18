@@ -358,7 +358,7 @@ const BusinessPayroll = () => {
         { key: 'net_pay', label: 'Net Take Home', placeholder: 'e.g. 48000' },
         { key: 'bank_account', label: 'Bank Account', placeholder: 'Account' },
         { key: 'status', label: 'Status', placeholder: 'e.g. Paid' },
-        { key: '_actions', label: 'Action', noFilter: true }
+        { key: '_actions', label: 'Actions', noFilter: true, align: 'center' }
     ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => {
@@ -393,8 +393,8 @@ const BusinessPayroll = () => {
                                                     fontWeight: '800', fontSize: '0.75rem'
                                                 }}>{rec.payroll_status.toUpperCase()}</span>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', alignItems: 'center' }}>
                                                     {rec.payroll_status !== 'paid' && (
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleReleaseSalary(rec.payroll_id); }}
