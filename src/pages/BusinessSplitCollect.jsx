@@ -208,7 +208,7 @@ const BusinessSplitCollect = () => {
     };
 
     const handleDeleteGroup = async (groupId) => {
-        if (window.confirm('Are you sure you want to delete this split group? All logged expenses will be lost.')) {
+        if (await window.confirm('Are you sure you want to delete this split group? All logged expenses will be lost.')) {
             try {
                 await splitExpenseService.deleteSplit(groupId);
             } catch (err) {
@@ -418,7 +418,7 @@ const BusinessSplitCollect = () => {
     };
 
     const handleDeleteExpense = async (expenseId) => {
-        if (window.confirm('Delete this expense?')) {
+        if (await window.confirm('Delete this expense?')) {
             try {
                 await splitExpenseService.deleteExpense(selectedSplitId, expenseId);
             } catch (err) {
@@ -523,7 +523,7 @@ const BusinessSplitCollect = () => {
     // Handle instant settlement log
     const handleSettleDebt = async (debt) => {
         if (!activeSplit) return;
-        if (window.confirm(`Mark settlement: does ${debt.from} paid ${activeSplit.currencySymbol}${debt.amount.toLocaleString()} to ${debt.to}?`)) {
+        if (await window.confirm(`Mark settlement: does ${debt.from} paid ${activeSplit.currencySymbol}${debt.amount.toLocaleString()} to ${debt.to}?`)) {
             // Settle creates a custom expense compensating the debt
             const settlementExpense = {
                 id: 'exp-settle-' + Date.now(),

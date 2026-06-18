@@ -2031,8 +2031,8 @@ export default function BusinessCA() {
                                                             </td>
                                                             <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                                                                 <button
-                                                                    onClick={() => {
-                                                                        if (confirm(`Are you sure you want to remove ${member.name} from the practice team?`)) {
+                                                                    onClick={async () => {
+                                                                        if (await window.confirm(`Are you sure you want to remove ${member.name} from the practice team?`)) {
                                                                             removeTeamMemberMutation.mutate(member.id);
                                                                         }
                                                                     }}
@@ -2144,7 +2144,7 @@ export default function BusinessCA() {
                                                                     {req.type === 'Incoming' ? (
                                                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                                             <button
-                                                                                onClick={() => {
+                                                                                onClick={async () => {
                                                                                     acceptTeamRequestMutation.mutate(req.id);
                                                                                 }}
                                                                                 style={{
@@ -2161,8 +2161,8 @@ export default function BusinessCA() {
                                                                                 Accept
                                                                             </button>
                                                                             <button
-                                                                                onClick={() => {
-                                                                                    if (confirm(`Reject request from ${req.name}?`)) {
+                                                                                onClick={async () => {
+                                                                                    if (await window.confirm(`Reject request from ${req.name}?`)) {
                                                                                         rejectTeamRequestMutation.mutate(req.id);
                                                                                     }
                                                                                 }}
@@ -2182,8 +2182,8 @@ export default function BusinessCA() {
                                                                         </div>
                                                                     ) : (
                                                                         <button
-                                                                            onClick={() => {
-                                                                                if (confirm(`Cancel invitation to ${req.name}?`)) {
+                                                                            onClick={async () => {
+                                                                                if (await window.confirm(`Cancel invitation to ${req.name}?`)) {
                                                                                     cancelTeamRequestMutation.mutate(req.id);
                                                                                 }
                                                                             }}

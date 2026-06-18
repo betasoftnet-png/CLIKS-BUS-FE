@@ -402,7 +402,7 @@ const BusinessPayroll = () => {
                                                         >Release Salary</button>
                                                     )}
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }}
+                                                        onClick={async (e) => { e.stopPropagation(); if (await window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }}
                                                         style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: 'none', background: '#FEF2F2', color: '#EF4444', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                                                     >
                                                         <Trash2 size={13} /> Delete
@@ -673,7 +673,7 @@ const BusinessPayroll = () => {
                                     <Edit2 size={13} /> Edit
                                 </button>
                                 <button 
-                                    onClick={() => { if (window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }} 
+                                    onClick={async () => { if (await window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }} 
                                     style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
                                     onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
                                     onMouseLeave={e => e.currentTarget.style.background = '#FEF2F2'}

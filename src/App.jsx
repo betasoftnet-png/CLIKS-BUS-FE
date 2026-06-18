@@ -142,6 +142,76 @@ const GlobalAlert = () => {
   );
 };
 
+const GlobalConfirm = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [resolvePromise, setResolvePromise] = useState(null);
+
+  useEffect(() => {
+    const originalConfirm = window.confirm;
+    window.confirm = (msg) => {
+      setMessage(msg);
+      setIsOpen(true);
+      return new Promise((resolve) => {
+        setResolvePromise(() => resolve);
+      });
+    };
+    return () => {
+      window.confirm = originalConfirm;
+    };
+  }, []);
+
+  const handleAction = (result) => {
+    setIsOpen(false);
+    if (resolvePromise) resolvePromise(result);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', padding: '2rem', animation: 'fadeIn 0.2s ease-out'
+    }}>
+      <div style={{
+        background: 'white', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '400px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #E2E8F0',
+        transform: 'translateY(0)', animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+        </div>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B', textAlign: 'center', marginBottom: '1.5rem', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>
+          {String(message)}
+        </h3>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button 
+            onClick={() => handleAction(false)}
+            style={{
+              flex: 1, padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0',
+              background: '#F8FAFC', color: '#64748B', fontWeight: '800', fontSize: '1rem', cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => handleAction(true)}
+            style={{
+              flex: 1, padding: '0.85rem', borderRadius: '14px', border: 'none',
+              background: '#EF4444', color: 'white', fontWeight: '800', fontSize: '1rem', cursor: 'pointer',
+              boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)'
+            }}
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function AppContent() {
   return (
     <Router>
@@ -289,6 +359,7 @@ function App() {
   return (
     <>
       <GlobalAlert />
+      <GlobalConfirm />
       <AppContent />
     </>
   );

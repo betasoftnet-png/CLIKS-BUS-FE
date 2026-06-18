@@ -1584,11 +1584,11 @@ const BusinessPeople = () => {
                                     </button>
 
                                     <button
-                                        onClick={(e) => {
+                                        onClick={async (e) => {
                                             e.stopPropagation();
 
                                             if (
-                                                confirm(
+                                                await window.confirm(
                                                     'Are you sure you want to delete this transaction?'
                                                 )
                                             ) {
@@ -1733,9 +1733,9 @@ const BusinessPeople = () => {
                                                                                     <Edit2 size={14} />
                                                                                 </button>
                                                                                 <button
-                                                                                    onClick={(e) => {
+                                                                                    onClick={async (e) => {
                                                                                         e.stopPropagation();
-                                                                                        if (window.confirm('Are you sure you want to delete this alert?')) {
+                                                                                        if (await window.confirm('Are you sure you want to delete this alert?')) {
                                                                                             deleteReminderMutation.mutate(rem);
                                                                                         }
                                                                                     }}
