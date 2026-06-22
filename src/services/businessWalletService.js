@@ -1,4 +1,4 @@
-import apiClient from '../api/apiClient';
+import { apiClient } from '../api/client';
 
 export const businessWalletService = {
     // Fetch the main business wallet and its transactions
