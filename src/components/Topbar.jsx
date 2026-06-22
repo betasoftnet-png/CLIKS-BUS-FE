@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, Minus } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, Minus, Check } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -37,8 +37,23 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     }, []);
 
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
-    const [isAccessExpanded, setIsAccessExpanded] = React.useState(false);
+    const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
+    const [pinnedTools, setPinnedTools] = React.useState(() => {
+        const saved = localStorage.getItem('cliks_pinned_tools');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        return ['Calendar', 'Calculator', 'Contact', 'Beta Trust'];
+    });
+
+    React.useEffect(() => {
+        localStorage.setItem('cliks_pinned_tools', JSON.stringify(pinnedTools));
+    }, [pinnedTools]);
 
     // Push main content aside when AccessKit is opened
     React.useEffect(() => {
@@ -268,7 +283,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         onClick={() => {
                             setIsAccessPopoverOpen(!isAccessPopoverOpen);
                             if (isAccessPopoverOpen) {
-                                setIsAccessExpanded(false);
+                                setIsEditingAccess(false);
                             }
                         }}
                         title="Access Kit"
@@ -348,14 +363,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         
                                         {/* Dynamic tools mapping */}
                                         {(() => {
-                                            const calculatorTool = { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } };
-                                            const calendarTool = { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') };
-                                            const contactTool = { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') };
-                                            const betaTrustTool = { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') };
-
-                                            const initialTools = [calendarTool, calculatorTool, contactTool, betaTrustTool];
-
-                                            const remainingTools = [
+                                            const allAvailableTools = [
+                                                { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
+                                                { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } },
+                                                { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
+                                                { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
                                                 { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
                                                 { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
                                                 { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
@@ -363,9 +375,74 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                 { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
                                             ];
 
-                                            const visibleTools = isAccessExpanded 
-                                                ? [...initialTools, ...remainingTools]
-                                                : initialTools;
+                                            const toggleToolPin = (toolName) => {
+                                                setPinnedTools(prev => {
+                                                    if (prev.includes(toolName)) {
+                                                        if (prev.length === 1) return prev; // Keep at least one tool
+                                                        return prev.filter(name => name !== toolName);
+                                                    } else {
+                                                        return [...prev, toolName];
+                                                    }
+                                                });
+                                            };
+
+                                            if (isEditingAccess) {
+                                                return (
+                                                    <>
+                                                        <div style={{ fontSize: '10px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Edit Pins</div>
+                                                        {allAvailableTools.map((tool, idx) => {
+                                                            const Icon = tool.icon;
+                                                            const isPinned = pinnedTools.includes(tool.name);
+                                                            return (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => toggleToolPin(tool.name)}
+                                                                    title={`${isPinned ? 'Unpin' : 'Pin'} ${tool.name}`}
+                                                                    style={{
+                                                                        width: '34px', height: '34px', borderRadius: '10px',
+                                                                        backgroundColor: isPinned ? tool.bg : '#F8FAFC',
+                                                                        border: isPinned ? `2px solid ${tool.color}` : '1.5px dashed #CBD5E1',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                        color: isPinned ? tool.color : '#94A3B8',
+                                                                        cursor: 'pointer', transition: 'all 0.2s ease',
+                                                                        outline: 'none', flexShrink: 0,
+                                                                        position: 'relative',
+                                                                        opacity: isPinned ? 1 : 0.6
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        e.currentTarget.style.transform = 'scale(1)';
+                                                                    }}
+                                                                >
+                                                                    <Icon size={16} />
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        <button
+                                                            onClick={() => setIsEditingAccess(false)}
+                                                            title="Done Editing"
+                                                            style={{
+                                                                width: '34px', height: '34px', borderRadius: '10px',
+                                                                backgroundColor: '#10B981', border: 'none',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease',
+                                                                outline: 'none', flexShrink: 0,
+                                                                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
+                                                                marginTop: '4px'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                        >
+                                                            <Check size={16} />
+                                                        </button>
+                                                    </>
+                                                );
+                                            }
+
+                                            // Normal Mode: Show only pinned tools
+                                            const visibleTools = allAvailableTools.filter(t => pinnedTools.includes(t.name));
 
                                             return (
                                                 <>
@@ -394,14 +471,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                             </button>
                                                         );
                                                     })}
-                                                    
-                                                    {/* Toggle expand/collapse button */}
                                                     <button
-                                                        onClick={() => setIsAccessExpanded(!isAccessExpanded)}
-                                                        title={isAccessExpanded ? "Show Less" : "Show More"}
+                                                        onClick={() => setIsEditingAccess(true)}
+                                                        title="Add/Edit Icons"
                                                         style={{
                                                             width: '34px', height: '34px', borderRadius: '10px',
-                                                            backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0',
+                                                            backgroundColor: '#F8FAFC', border: '1.5px dashed #E2E8F0',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease',
                                                             outline: 'none', flexShrink: 0
@@ -415,7 +490,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                             e.currentTarget.style.backgroundColor = '#F8FAFC';
                                                         }}
                                                     >
-                                                        {isAccessExpanded ? <Minus size={16} /> : <Plus size={16} />}
+                                                        <Plus size={16} />
                                                     </button>
                                                 </>
                                             );
@@ -425,7 +500,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     {/* Bottom Area: Edit & Settings */}
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', paddingTop: '12px', borderTop: '1px solid #F1F5F9', width: '100%' }}>
                                         <button
-                                            onClick={() => alert('Edit Access Kit mode coming soon!')}
+                                            onClick={() => setIsEditingAccess(!isEditingAccess)}
                                             title="Edit Access Kit"
                                             style={{
                                                 width: '34px', height: '34px', borderRadius: '10px', backgroundColor: '#F8FAFC',
