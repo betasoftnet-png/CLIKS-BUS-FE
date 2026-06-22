@@ -355,7 +355,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     style={{
                                         position: 'fixed',
                                         top: '64px',
-                                        right: isCalcOpen && !isMobile ? '360px' : 0,
+                                        right: 0,
                                         height: 'calc(100vh - 64px)',
                                         backgroundColor: '#FFFFFF',
                                         borderLeft: '1px solid #E2E8F0',
@@ -367,8 +367,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         alignItems: 'center',
                                         zIndex: 2000,
                                         width: '64px',
-                                        fontFamily: "'Inter', sans-serif",
-                                        transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        fontFamily: "'Inter', sans-serif"
                                     }}
                                 >
                                     {/* Top Area: Scrollable Tool List */}
@@ -593,7 +592,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             style={{
                                 position: 'fixed',
                                 top: 0,
-                                right: 0,
+                                right: isAccessPopoverOpen && !isMobile ? '64px' : 0,
                                 width: '100%',
                                 maxWidth: '360px',
                                 height: '100vh',
@@ -602,7 +601,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 zIndex: 2002,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
+                                transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                             }}
                         >
                             <CalcPopover 
