@@ -75,10 +75,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             let paddingRight = 0;
             const isDesktop = window.innerWidth > 768;
 
-            if (isCalcOpen) {
-                paddingRight = isDesktop ? 360 : 0;
-            } else if (isAccessPopoverOpen) {
-                paddingRight = 60;
+            if (isDesktop) {
+                if (isCalcOpen && isAccessPopoverOpen) {
+                    paddingRight = 424; // 360px (Calculator) + 64px (Access Popover)
+                } else if (isCalcOpen) {
+                    paddingRight = 360;
+                } else if (isAccessPopoverOpen) {
+                    paddingRight = 64;
+                }
+            } else {
+                paddingRight = 0; // Overlays on mobile
             }
             appBody.style.paddingRight = `${paddingRight}px`;
         };
@@ -349,7 +355,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     style={{
                                         position: 'fixed',
                                         top: '64px',
-                                        right: 0,
+                                        right: isCalcOpen && !isMobile ? '360px' : 0,
                                         height: 'calc(100vh - 64px)',
                                         backgroundColor: '#FFFFFF',
                                         borderLeft: '1px solid #E2E8F0',
@@ -361,7 +367,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         alignItems: 'center',
                                         zIndex: 2000,
                                         width: '64px',
-                                        fontFamily: "'Inter', sans-serif"
+                                        fontFamily: "'Inter', sans-serif",
+                                        transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                     }}
                                 >
                                     {/* Top Area: Scrollable Tool List */}
@@ -385,7 +392,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         {(() => {
                                             const allAvailableTools = [
                                                 { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
-                                                { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } },
+                                                { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => setIsCalcOpen(prev => !prev) },
                                                 { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
                                                 { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
                                                 { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
