@@ -55,18 +55,38 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         localStorage.setItem('cliks_pinned_tools', JSON.stringify(pinnedTools));
     }, [pinnedTools]);
 
-    // Push main content aside when AccessKit is opened
+    const [isMobile, setIsMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+    React.useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Push main content aside when AccessKit or Calculator is opened
     React.useEffect(() => {
         const appBody = document.querySelector('.app-body');
-        if (appBody) {
+        if (!appBody) return;
+
+        const updatePadding = () => {
             appBody.style.transition = 'padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            if (isAccessPopoverOpen) {
-                appBody.style.paddingRight = '60px';
-            } else {
-                appBody.style.paddingRight = '0px';
+            let paddingRight = 0;
+            const isDesktop = window.innerWidth > 768;
+
+            if (isCalcOpen) {
+                paddingRight = isDesktop ? 360 : 0;
+            } else if (isAccessPopoverOpen) {
+                paddingRight = 60;
             }
-        }
-    }, [isAccessPopoverOpen]);
+            appBody.style.paddingRight = `${paddingRight}px`;
+        };
+
+        updatePadding();
+        window.addEventListener('resize', updatePadding);
+        return () => window.removeEventListener('resize', updatePadding);
+    }, [isAccessPopoverOpen, isCalcOpen]);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -539,21 +559,23 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             <AnimatePresence>
                 {isCalcOpen && (
                     <>
-                        {/* Backdrop with premium blur */}
-                        <div 
-                            onClick={() => setIsCalcOpen(false)}
-                            style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                width: '100vw',
-                                height: '100vh',
-                                zIndex: 2001,
-                                backgroundColor: 'rgba(15, 23, 42, 0.3)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)'
-                            }}
-                        />
+                        {/* Backdrop with premium blur - ONLY on mobile screens */}
+                        {isMobile && (
+                            <div 
+                                onClick={() => setIsCalcOpen(false)}
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100vw',
+                                    height: '100vh',
+                                    zIndex: 2001,
+                                    backgroundColor: 'rgba(15, 23, 42, 0.2)',
+                                    backdropFilter: 'blur(4.5px)',
+                                    WebkitBackdropFilter: 'blur(4.5px)'
+                                }}
+                            />
+                        )}
 
                         {/* Sliding Tape Calculator (Right to Left Drawer) */}
                         <motion.div
