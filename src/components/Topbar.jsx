@@ -571,10 +571,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 onClick={() => setIsCalcOpen(false)}
                                 style={{
                                     position: 'fixed',
-                                    top: 0,
+                                    top: '64px',
                                     left: 0,
                                     width: '100vw',
-                                    height: '100vh',
+                                    height: 'calc(100vh - 64px)',
                                     zIndex: 2001,
                                     backgroundColor: 'rgba(15, 23, 42, 0.2)',
                                     backdropFilter: 'blur(4.5px)',
@@ -591,11 +591,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                             style={{
                                 position: 'fixed',
-                                top: 0,
+                                top: '64px',
                                 right: isAccessPopoverOpen && !isMobile ? '64px' : 0,
                                 width: '100%',
                                 maxWidth: '360px',
-                                height: '100vh',
+                                height: 'calc(100vh - 64px)',
                                 backgroundColor: '#FFFFFF',
                                 boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',
                                 zIndex: 2002,
