@@ -8,7 +8,6 @@ import { FeatureGate } from './components/common/FeatureGate';
 import Landing from './pages/Landing';
 
 // Standard Imports for critical pathways to prevent chunk load failures
-import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import FAQ from './pages/FAQ';
@@ -218,11 +217,6 @@ function AppContent() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
-        <Route path="/auth" element={
-          <Suspense fallback={<PageLoader />}>
-            <Auth />
-          </Suspense>
-        } />
         <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
         <Route path="/admin/login" element={
           <Suspense fallback={<PageLoader />}>

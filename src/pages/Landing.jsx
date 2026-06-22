@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowRight, ShieldCheck, TrendingUp,
     PlayCircle, Users, Shield, Star, CreditCard, LineChart,
@@ -7,7 +7,7 @@ import {
     Check, BarChart3, Package, ShoppingCart, Wallet, Receipt,
     Warehouse, Factory, FileText, Clock, Truck, Briefcase,
     Zap, Globe, Monitor, Lock, Headphones, Award, ChevronRight,
-    DollarSign, PieChart, LayoutDashboard
+    DollarSign, PieChart, LayoutDashboard, Loader2, AlertCircle, ArrowLeft
 } from 'lucide-react';
 
 import { Loader } from '../components/common';
@@ -72,20 +72,70 @@ const CONSOLE_TABS = [
 
 const Landing = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [scrolled, setScrolled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [activeConsoleTab, setActiveConsoleTab] = useState('invoicing');
-    const [, setMobileMenuOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, ssoLogin } = useAuth();
+    const [isProcessingAuth, setIsProcessingAuth] = useState(false);
+    const [authError, setAuthError] = useState('');
+    const [processedCode, setProcessedCode] = useState(null);
+
+    const CLIENT_ID = 'cliks-business';
+    const REDIRECT_URI = 'https://cliksbusiness.com/';
+    const BNX_AUTH_URL = 'https://www.b2auth.com';
+    const BNX_API_URL = 'https://api.bnxmail.com';
+
     useScrollAnimation(loading);
 
+    const handleOAuthCallback = React.useCallback(async (code) => {
+        setIsProcessingAuth(true);
+        setAuthError('');
+
+        try {
+            // 1. Exchange code for BNX token
+            const tokenRes = await fetch(`${BNX_API_URL}/api/oauth/token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grantType: 'authorization_code',
+                    code,
+                    clientId: CLIENT_ID,
+                    clientSecret: 'secure-cliks-biz-secret-2026',
+                    redirectUri: REDIRECT_URI
+                })
+            });
+
+            const tokenData = await tokenRes.json();
+            console.log(tokenData);
+
+            if (!tokenData.success) {
+                throw new Error('Failed to get BNX token');
+            }
+
+            const bnxToken = tokenData.data.access_token;
+
+            // 2. Perform SSO Login with backend
+            await ssoLogin(bnxToken, 'BUSINESS');
+            navigate('/dashboard');
+        } catch (err) {
+            console.error('SSO Exchange error:', err);
+            setAuthError('Authentication failed. Please try again.');
+        } finally {
+            setIsProcessingAuth(false);
+        }
+    }, [ssoLogin, navigate]);
+
+    // Guard: Redirect to dashboard if authenticated
     useEffect(() => {
         if (isAuthenticated) {
             navigate('/dashboard', { replace: true });
         }
     }, [isAuthenticated, user, navigate]);
 
+    // Initial loader & scroll observer
     useEffect(() => {
         const timer = setTimeout(() => setLoading(false), 500);
         const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -95,6 +145,262 @@ const Landing = () => {
             window.removeEventListener('scroll', handleScroll);
         };
     }, []);
+
+    // Check query params for OAuth code
+    useEffect(() => {
+        if (isAuthenticated) return;
+
+        const urlParams = new URLSearchParams(location.search);
+        const code = urlParams.get('code');
+
+        if (code && code !== processedCode) {
+            setProcessedCode(code);
+            handleOAuthCallback(code);
+        }
+    }, [location, processedCode, handleOAuthCallback, isAuthenticated]);
+
+    const handleLogin = (e) => {
+        if (e) e.preventDefault();
+        const state = 'cliks-business-auth-state';
+        window.location.href =
+            `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&mode=business`;
+    };
+
+    if (isProcessingAuth || authError) {
+        return (
+            <div style={{
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                background: "linear-gradient(135deg, #F0FDF4 0%, #E8F5E9 50%, #C8E6C9 100%)",
+                fontFamily: "'Inter', sans-serif",
+                padding: "20px",
+                position: "relative",
+                overflow: "hidden",
+                width: "100vw"
+            }}>
+                {/* Dynamic background bubbles */}
+                <div style={{
+                    position: "absolute",
+                    top: "-10%",
+                    left: "-10%",
+                    width: "40vw",
+                    height: "40vw",
+                    background: "radial-gradient(circle, rgba(76, 175, 80, 0.1) 0%, transparent 70%)",
+                    borderRadius: "50%",
+                    pointerEvents: "none"
+                }} />
+                <div style={{
+                    position: "absolute",
+                    bottom: "-10%",
+                    right: "-10%",
+                    width: "45vw",
+                    height: "45vw",
+                    background: "radial-gradient(circle, rgba(34, 139, 34, 0.08) 0%, transparent 70%)",
+                    borderRadius: "50%",
+                    pointerEvents: "none"
+                }} />
+
+                {/* Premium Loader/Error Card */}
+                <div style={{
+                    background: "rgba(255, 255, 255, 0.8)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    borderRadius: "24px",
+                    border: "1px solid rgba(255, 255, 255, 0.6)",
+                    boxShadow: "0 20px 40px rgba(27, 107, 58, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6)",
+                    padding: "48px 40px",
+                    width: "100%",
+                    maxWidth: "440px",
+                    textAlign: "center",
+                    zIndex: 10,
+                    transform: "translateY(0)",
+                    animation: "pulseCard 4s ease-in-out infinite"
+                }}>
+                    <style>{`
+                        @keyframes pulseCard {
+                            0%, 100% { transform: translateY(0); }
+                            50% { transform: translateY(-4px); }
+                        }
+                        @keyframes spinCustom {
+                            from { transform: rotate(0deg); }
+                            to { transform: rotate(360deg); }
+                        }
+                    `}</style>
+
+                    {/* Logo and Brand */}
+                    <div style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        marginBottom: "32px"
+                    }}>
+                        <div style={{
+                            padding: '6px',
+                            background: '#E8F5E9',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <img
+                                src={logoPng}
+                                alt="CLIKS Logo"
+                                style={{ width: '40px', height: '40px' }}
+                            />
+                        </div>
+                        <span style={{
+                            fontSize: "22px",
+                            fontWeight: "800",
+                            color: "#064E3B",
+                            letterSpacing: "0.5px"
+                        }}>
+                            CLIKS
+                        </span>
+                    </div>
+
+                    {authError ? (
+                        <div>
+                            <div style={{
+                                width: "60px",
+                                height: "60px",
+                                borderRadius: "50%",
+                                background: "#FFEBEE",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                margin: "0 auto 24px",
+                                color: "#D32F2F"
+                            }}>
+                                <AlertCircle size={32} />
+                            </div>
+                            <h2 style={{
+                                fontSize: "20px",
+                                fontWeight: "800",
+                                color: "#C62828",
+                                marginBottom: "12px"
+                            }}>
+                                Authentication Failed
+                            </h2>
+                            <p style={{
+                                fontSize: "14px",
+                                color: "#546E7A",
+                                lineHeight: "1.6",
+                                marginBottom: "28px"
+                            }}>
+                                {authError}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setAuthError('');
+                                    navigate('/', { replace: true });
+                                }}
+                                style={{
+                                    width: "100%",
+                                    padding: "14px 20px",
+                                    background: "#1B6B3A",
+                                    color: "#FFFFFF",
+                                    border: "none",
+                                    borderRadius: "12px",
+                                    fontSize: "15px",
+                                    fontWeight: "700",
+                                    cursor: "pointer",
+                                    boxShadow: "0 6px 20px rgba(27, 107, 58, 0.2)",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    transition: "background 0.2s"
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = "#14522B"}
+                                onMouseLeave={e => e.currentTarget.style.background = "#1B6B3A"}
+                            >
+                                <ArrowLeft size={18} />
+                                Back to Home
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <div style={{
+                                position: "relative",
+                                width: "80px",
+                                height: "80px",
+                                margin: "0 auto 28px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center"
+                            }}>
+                                {/* Inner pulsing circle */}
+                                <div style={{
+                                    position: "absolute",
+                                    width: "64px",
+                                    height: "64px",
+                                    borderRadius: "50%",
+                                    background: "rgba(27, 107, 58, 0.05)",
+                                    border: "2px solid rgba(27, 107, 58, 0.1)",
+                                    animation: "pulseRing 2s ease-in-out infinite"
+                                }} />
+                                <style>{`
+                                    @keyframes pulseRing {
+                                        0% { transform: scale(0.9); opacity: 0.5; }
+                                        50% { transform: scale(1.1); opacity: 1; }
+                                        100% { transform: scale(0.9); opacity: 0.5; }
+                                    }
+                                `}</style>
+
+                                {/* Rotating Spinner Ring */}
+                                <div style={{
+                                    position: "absolute",
+                                    width: "80px",
+                                    height: "80px",
+                                    borderRadius: "50%",
+                                    border: "4px solid transparent",
+                                    borderTopColor: "#1B6B3A",
+                                    borderRightColor: "#1B6B3A",
+                                    animation: "spinCustom 1s linear infinite"
+                                }} />
+
+                                <Loader2 size={32} style={{ color: "#1B6B3A", position: "relative", zIndex: 2 }} className="animate-spin" />
+                            </div>
+
+                            <h2 style={{
+                                fontSize: "20px",
+                                fontWeight: "800",
+                                color: "#064E3B",
+                                marginBottom: "8px"
+                            }}>
+                                Securing your session...
+                            </h2>
+                            <p style={{
+                                fontSize: "14px",
+                                color: "#546E7A",
+                                lineHeight: "1.6"
+                            }}>
+                                Connecting safely with BNX Mail accounts to build your personalized finance console.
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer lock note */}
+                <div style={{
+                    marginTop: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "#64748B",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    zIndex: 10
+                }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#1B6B3A" }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    SSL Encrypted connection
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -107,11 +413,6 @@ const Landing = () => {
             </div>
         );
     }
-
-    const handleLogin = (e) => {
-        if (e) e.preventDefault();
-        navigate('/auth');
-    };
 
     const scrollToSection = (id) => {
         const element = document.getElementById(id);
