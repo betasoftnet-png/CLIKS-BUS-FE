@@ -365,7 +365,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         flexDirection: 'column',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        zIndex: 2000,
+                                        zIndex: isCalcOpen && !isMobile ? 2005 : 2000,
                                         width: '64px',
                                         fontFamily: "'Inter', sans-serif"
                                     }}
