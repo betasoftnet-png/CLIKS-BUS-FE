@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, Minus } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -37,6 +37,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     }, []);
 
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
+    const [isAccessExpanded, setIsAccessExpanded] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
 
     // Push main content aside when AccessKit is opened
@@ -266,6 +267,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     <button
                         onClick={() => {
                             setIsAccessPopoverOpen(!isAccessPopoverOpen);
+                            if (isAccessPopoverOpen) {
+                                setIsAccessExpanded(false);
+                            }
                         }}
                         title="Access Kit"
                         style={{
@@ -343,41 +347,79 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         `}</style>
                                         
                                         {/* Dynamic tools mapping */}
-                                        {[
-                                            { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } },
-                                            { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
-                                            { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
-                                            { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
-                                            { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
-                                            { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
-                                            { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
-                                            { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
-                                            { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
-                                        ].map((tool, idx) => {
-                                            const Icon = tool.icon;
+                                        {(() => {
+                                            const calculatorTool = { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => { setIsCalcOpen(true); setIsAccessPopoverOpen(false); } };
+                                            const calendarTool = { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') };
+                                            const contactTool = { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') };
+                                            const betaTrustTool = { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') };
+
+                                            const initialTools = [calendarTool, calculatorTool, contactTool, betaTrustTool];
+
+                                            const remainingTools = [
+                                                { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
+                                                { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
+                                                { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
+                                                { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
+                                                { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
+                                            ];
+
+                                            const visibleTools = isAccessExpanded 
+                                                ? [...initialTools, ...remainingTools]
+                                                : initialTools;
+
                                             return (
-                                                <button
-                                                    key={idx}
-                                                    onClick={tool.action}
-                                                    title={tool.name}
-                                                    style={{
-                                                        width: '34px', height: '34px', borderRadius: '10px',
-                                                        backgroundColor: tool.bg, border: `1px solid ${tool.bg}`,
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
-                                                        outline: 'none', flexShrink: 0
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1)';
-                                                    }}
-                                                >
-                                                    <Icon size={16} />
-                                                </button>
+                                                <>
+                                                    {visibleTools.map((tool, idx) => {
+                                                        const Icon = tool.icon;
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={tool.action}
+                                                                title={tool.name}
+                                                                style={{
+                                                                    width: '34px', height: '34px', borderRadius: '10px',
+                                                                    backgroundColor: tool.bg, border: `1px solid ${tool.bg}`,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                    color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
+                                                                    outline: 'none', flexShrink: 0
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                                }}
+                                                            >
+                                                                <Icon size={16} />
+                                                            </button>
+                                                        );
+                                                    })}
+                                                    
+                                                    {/* Toggle expand/collapse button */}
+                                                    <button
+                                                        onClick={() => setIsAccessExpanded(!isAccessExpanded)}
+                                                        title={isAccessExpanded ? "Show Less" : "Show More"}
+                                                        style={{
+                                                            width: '34px', height: '34px', borderRadius: '10px',
+                                                            backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease',
+                                                            outline: 'none', flexShrink: 0
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1.05)';
+                                                            e.currentTarget.style.backgroundColor = '#F1F5F9';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                            e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                                        }}
+                                                    >
+                                                        {isAccessExpanded ? <Minus size={16} /> : <Plus size={16} />}
+                                                    </button>
+                                                </>
                                             );
-                                        })}
+                                        })()}
                                     </div>
 
                                     {/* Bottom Area: Edit & Settings */}
