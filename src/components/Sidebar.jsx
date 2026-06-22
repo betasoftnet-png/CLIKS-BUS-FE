@@ -50,7 +50,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/auth-context';
 import '../App.css';
-import logoPng from '../assets/cliks5.png';
+import logoPng from '../assets/cliks6.png';
 
 const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false }) => {
     const IconComp = item.icon;

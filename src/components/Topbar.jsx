@@ -4,7 +4,7 @@ import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Conta
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
-import logoPng from '../assets/cliks5.png'; // Final branding
+import logoPng from '../assets/cliks6.png'; // Final branding
 import accessKitPng from '../assets/ACCESS_KIT.png';
 import { motion, AnimatePresence } from 'framer-motion';
 
