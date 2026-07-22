@@ -765,18 +765,17 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC',
+                        background: '#FFFFFF',
                         color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
                         borderRadius: '10px',
-                        border: '1px solid',
-                        borderColor: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#C7D2FE' : '#BBF7D0') : '#E2E8F0',
+                        border: '1px solid #D8F3E5',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '0.85rem',
                         transition: 'background 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#E0E7FF' : '#F0FDF4') : '#F1F5F9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#EEF2FF' : '#F0FDF4') : '#F8FAFC'}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#F9FBF9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <SettingsIcon size={18} style={{ opacity: 0.8 }} />
@@ -794,28 +793,19 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        background: location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
-                            : '#F8FAFC',
+                        background: '#FFFFFF',
                         color: location.pathname.includes('/faq')
                             ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
                             : '#334155',
                         borderRadius: '10px',
-                        border: '1px solid',
-                        borderColor: location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#C7D2FE' : (isSalesAgentMode ? '#FED7AA' : '#BBF7D0'))
-                            : '#E2E8F0',
+                        border: '1px solid #D8F3E5',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '0.85rem',
                         transition: 'background 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
-                        ? (isAdminMode ? '#E0E7FF' : (isSalesAgentMode ? '#FFEDD5' : '#F0FDF4'))
-                        : '#F1F5F9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = location.pathname.includes('/faq')
-                        ? (isAdminMode ? '#EEF2FF' : (isSalesAgentMode ? '#FFF7ED' : '#F0FDF4'))
-                        : '#F8FAFC'}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#F9FBF9'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <HelpCircle size={18} style={{ opacity: 0.8 }} />
