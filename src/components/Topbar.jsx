@@ -150,6 +150,8 @@ const SettingsDrawer = ({ isOpen, onClose, isAdminOrSales }) => {
     );
 };
 
+
+
 const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const { logout, user, selectedPlan } = useAuth();
     const location = useLocation();
@@ -723,12 +725,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     flexShrink: 0
                 }}>
                     <button
-                        onClick={() => {
-                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
-                            setIsLauncherOpen(false);
-                            setIsCalcOpen(false);
-                        }}
-                        title={isAccessPopoverOpen ? "Close Settings" : "Open Settings"}
+                        title="Settings / Customization"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -736,7 +733,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '11px',
-                            backgroundColor: isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                             cursor: 'pointer',
                             color: '#FFFFFF',
@@ -988,9 +985,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             title="Settings / Customization"
                             style={{
                                 width: '38px', height: '38px', borderRadius: '12px', 
-                                backgroundColor: isAccessPopoverOpen ? '#DCF2E4' : '#F8FAFC',
+                                backgroundColor: '#F8FAFC',
                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: isAccessPopoverOpen ? '#1B6B3A' : '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
