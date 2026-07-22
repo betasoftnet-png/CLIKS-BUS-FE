@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, Minus, Check } from 'lucide-react';
+import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, Minus, Check, ChevronRight, SlidersHorizontal, Palette, Bell, User, Lock, Info } from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -10,6 +10,145 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { ProfileDropdown } from './ProfileDropdown';
 import { CalcPopover } from './common/CalcPopover';
+import ProductLauncher from './ProductLauncher';
+
+/* ─── Settings Drawer ─────────────────────────────────────────────── */
+const SettingsDrawer = ({ isOpen, onClose, isAdminOrSales }) => {
+    const navigate = useNavigate();
+
+    React.useEffect(() => {
+        const handler = (e) => { if (e.key === 'Escape') onClose(); };
+        if (isOpen) document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [isOpen, onClose]);
+
+    const sections = [
+        { icon: <SlidersHorizontal size={18} />, label: 'General', description: 'App preferences & defaults', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
+        { icon: <Palette size={18} />, label: 'Appearance', description: 'Theme, colors, display', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
+        { icon: <Bell size={18} />, label: 'Notifications', description: 'Alerts, reminders, push', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
+        { icon: <User size={18} />, label: 'Account', description: 'Profile & personal info', action: () => { navigate('/books/profile'); onClose(); } },
+        { icon: <Lock size={18} />, label: 'Security', description: 'Password, 2FA, sessions', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
+        { icon: <SlidersHorizontal size={18} />, label: 'Preferences', description: 'Language, currency, region', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
+        { icon: <Info size={18} />, label: 'About', description: 'Version, licenses, updates', action: () => { navigate('/books/faq'); onClose(); } },
+    ];
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    <div 
+                        onClick={onClose} 
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: 'calc(100vw - 64px)',
+                            height: '100vh',
+                            zIndex: 1999,
+                            backgroundColor: 'transparent'
+                        }}
+                    />
+                    <motion.div 
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            right: '64px',
+                            width: '360px',
+                            height: '100vh',
+                            backgroundColor: '#FFFFFF',
+                            borderLeft: '1px solid #99DBC3',
+                            boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.05)',
+                            zIndex: 2000,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            fontFamily: "'Inter', sans-serif"
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.75rem 1rem',
+                            borderBottom: '1px solid #f1f5f9',
+                            height: '64px',
+                            flexShrink: 0
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '1.1rem', color: '#1B6B3A' }}>
+                                <SlidersHorizontal size={18} />
+                                <span>Settings</span>
+                            </div>
+                            <button 
+                                onClick={onClose} 
+                                aria-label="Close settings"
+                                style={{
+                                    border: 'none',
+                                    background: '#f8fafc',
+                                    color: '#64748b',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    outline: 'none'
+                                }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {sections.map((s) => (
+                                    <li key={s.label}>
+                                        <button 
+                                            onClick={s.action}
+                                            style={{
+                                                width: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '0.75rem 1rem',
+                                                background: '#FFFFFF',
+                                                border: '1px solid #f1f5f9',
+                                                borderRadius: '12px',
+                                                cursor: 'pointer',
+                                                textAlign: 'left',
+                                                transition: 'all 0.2s ease',
+                                                outline: 'none'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                                e.currentTarget.style.borderColor = '#E2E8F0';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                                e.currentTarget.style.borderColor = '#f1f5f9';
+                                            }}
+                                        >
+                                            <span style={{ color: '#1B6B3A', display: 'flex', alignItems: 'center' }}>{s.icon}</span>
+                                            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#1e293b' }}>{s.label}</span>
+                                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>{s.description}</span>
+                                            </span>
+                                            <ChevronRight size={15} style={{ color: '#cbd5e1' }} />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+};
 
 const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const { logout, user, selectedPlan } = useAuth();
@@ -46,6 +185,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
+    const [isLauncherOpen, setIsLauncherOpen] = React.useState(false);
     const [pinnedTools, setPinnedTools] = React.useState(() => {
         const saved = localStorage.getItem('cliks_pinned_tools');
         if (saved) {
@@ -72,7 +212,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Push main content aside when AccessKit or Calculator is opened
+    // Push main content aside when right toolbar or drawer panels are opened
     React.useEffect(() => {
         const appBody = document.querySelector('.app-body');
         if (!appBody) return;
@@ -83,12 +223,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             const isDesktop = window.innerWidth > 768;
 
             if (isDesktop) {
-                if (isCalcOpen && isAccessPopoverOpen) {
-                    paddingRight = 424; // 360px (Calculator) + 64px (Access Popover)
-                } else if (isCalcOpen) {
-                    paddingRight = 360;
-                } else if (isAccessPopoverOpen) {
-                    paddingRight = 64;
+                const isAnyDrawerOpen = isCalcOpen || isLauncherOpen || isAccessPopoverOpen;
+                if (isAnyDrawerOpen) {
+                    paddingRight = 424; // 360px (Drawer) + 64px (Toolbar)
+                } else {
+                    paddingRight = 64; // Toolbar always takes 64px
                 }
             } else {
                 paddingRight = 0; // Overlays on mobile
@@ -99,7 +238,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         updatePadding();
         window.addEventListener('resize', updatePadding);
         return () => window.removeEventListener('resize', updatePadding);
-    }, [isAccessPopoverOpen, isCalcOpen]);
+    }, [isAccessPopoverOpen, isCalcOpen, isLauncherOpen]);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -450,363 +589,32 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
                 {/* Vertical Divider */}
                 <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255, 255, 255, 0.2)', marginLeft: '14px', marginRight: '4px' }} />
-
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: '-10px' }}>
-                    <button
-                        onClick={() => {
-                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
-                            if (isAccessPopoverOpen) {
-                                setIsEditingAccess(false);
-                            }
-                        }}
-                        title="Access Kit"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '11px',
-                            backgroundColor: isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            outline: 'none',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                            color: '#FFFFFF'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)';
-                            e.currentTarget.style.transform = 'none';
-                        }}
-                    >
-                        <Sliders size={18} />
-                    </button>
-
-                    <AnimatePresence>
-                        {isAccessPopoverOpen && (
-                            <>
-                                {/* Drawer from the right edge */}
-                                <motion.div
-                                    initial={{ x: '100%' }}
-                                    animate={{ x: 0 }}
-                                    exit={{ x: '100%' }}
-                                    transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-                                    style={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        right: 0,
-                                        height: '100vh',
-                                        backgroundColor: '#FFFFFF',
-                                        borderLeft: '1px solid #99DBC3',
-                                        boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        zIndex: isCalcOpen && !isMobile ? 2005 : 2000,
-                                        width: '64px',
-                                        fontFamily: "'Inter', sans-serif",
-                                        paddingBottom: '20px'
-                                    }}
-                                >
-                                    {/* Top green header block */}
-                                    <div style={{
-                                        width: '100%',
-                                        height: '64px',
-                                        backgroundColor: '#135029',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                                        flexShrink: 0,
-                                        marginBottom: '20px'
-                                    }}>
-                                        <button
-                                            onClick={() => {
-                                                setIsAccessPopoverOpen(false);
-                                                setIsEditingAccess(false);
-                                            }}
-                                            title="Close Access Kit"
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: '36px',
-                                                height: '36px',
-                                                borderRadius: '11px',
-                                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                                cursor: 'pointer',
-                                                color: '#FFFFFF',
-                                                outline: 'none'
-                                            }}
-                                        >
-                                            <Sliders size={18} />
-                                        </button>
-                                    </div>
-
-                                    {/* Scrollable Tool List */}
-                                    <div className="access-tools-scroll" style={{ 
-                                        display: 'flex', 
-                                        flexDirection: 'column', 
-                                        alignItems: 'center', 
-                                        gap: '12px',
-                                        flex: 1,
-                                        overflowY: 'auto',
-                                        width: '100%',
-                                        msOverflowStyle: 'none',
-                                        scrollbarWidth: 'none'
-                                    }}>
-                                        <style>{`
-                                            .access-tools-scroll::-webkit-scrollbar { display: none; }
-                                        `}</style>
-                                        
-                                        {/* Blue B Logo Button */}
-                                        <button
-                                            onClick={() => handleNavigation('/dashboard')}
-                                            title="Books Module"
-                                            style={{
-                                                width: '38px',
-                                                height: '38px',
-                                                borderRadius: '12px',
-                                                backgroundColor: '#FFFFFF',
-                                                border: '1.5px solid #CBD5E1',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s ease',
-                                                outline: 'none',
-                                                flexShrink: 0
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.transform = 'scale(1.05)';
-                                                e.currentTarget.style.borderColor = '#94A3B8';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                                e.currentTarget.style.borderColor = '#CBD5E1';
-                                            }}
-                                        >
-                                            <img src="/beta_logo.png" alt="Beta Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
-                                        </button>
- 
-                                        {/* Horizontal Separator */}
-                                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8, flexShrink: 0 }} />
- 
-                                        {/* Dynamic tools mapping */}
-                                        {(() => {
-                                            const allAvailableTools = [
-                                                { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
-                                                { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => setIsCalcOpen(prev => !prev) },
-                                                { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
-                                                { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
-                                                { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
-                                                { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
-                                                { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
-                                                { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
-                                                { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
-                                            ];
- 
-                                            const toggleToolPin = (toolName) => {
-                                                setPinnedTools(prev => {
-                                                    if (prev.includes(toolName)) {
-                                                        if (prev.length === 1) return prev; // Keep at least one tool
-                                                        return prev.filter(name => name !== toolName);
-                                                    } else {
-                                                        return [...prev, toolName];
-                                                    }
-                                                });
-                                            };
- 
-                                            if (isEditingAccess) {
-                                                return (
-                                                    <>
-                                                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', textAlign: 'center' }}>Edit Pins</div>
-                                                        {allAvailableTools.map((tool, idx) => {
-                                                            const Icon = tool.icon;
-                                                            const isPinned = pinnedTools.includes(tool.name);
-                                                            return (
-                                                                <button
-                                                                    key={idx}
-                                                                    onClick={() => toggleToolPin(tool.name)}
-                                                                    title={`${isPinned ? 'Unpin' : 'Pin'} ${tool.name}`}
-                                                                    style={{
-                                                                        width: '38px', height: '38px', borderRadius: '12px',
-                                                                        backgroundColor: isPinned ? tool.bg : '#F8FAFC',
-                                                                        border: isPinned ? `2px solid ${tool.color}` : '1.5px dashed #CBD5E1',
-                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                        color: isPinned ? tool.color : '#94A3B8',
-                                                                        cursor: 'pointer', transition: 'all 0.2s ease',
-                                                                        outline: 'none', flexShrink: 0,
-                                                                        position: 'relative',
-                                                                        opacity: isPinned ? 1 : 0.6
-                                                                    }}
-                                                                    onMouseEnter={(e) => {
-                                                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                                                    }}
-                                                                    onMouseLeave={(e) => {
-                                                                        e.currentTarget.style.transform = 'scale(1)';
-                                                                    }}
-                                                                >
-                                                                    <Icon size={18} />
-                                                                </button>
-                                                            );
-                                                        })}
-                                                        <button
-                                                            onClick={() => setIsEditingAccess(false)}
-                                                            title="Done Editing"
-                                                            style={{
-                                                                width: '38px', height: '38px', borderRadius: '12px',
-                                                                backgroundColor: '#10B981', border: 'none',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease',
-                                                                outline: 'none', flexShrink: 0,
-                                                                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
-                                                                marginTop: '4px'
-                                                             }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                        >
-                                                            <Check size={18} />
-                                                        </button>
-                                                    </>
-                                                );
-                                            }
- 
-                                            // Normal Mode: Show only pinned tools
-                                            const visibleTools = allAvailableTools.filter(t => pinnedTools.includes(t.name));
- 
-                                            return (
-                                                <>
-                                                    {visibleTools.map((tool, idx) => {
-                                                        const Icon = tool.icon;
-                                                        return (
-                                                            <button
-                                                                key={idx}
-                                                                onClick={tool.action}
-                                                                title={tool.name}
-                                                                style={{
-                                                                    width: '38px', height: '38px', borderRadius: '12px',
-                                                                    backgroundColor: tool.bg, border: 'none',
-                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                    color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
-                                                                    outline: 'none', flexShrink: 0
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                                }}
-                                                            >
-                                                                <Icon size={18} />
-                                                            </button>
-                                                        );
-                                                    })}
-                                                    <button
-                                                        onClick={() => setIsEditingAccess(true)}
-                                                        title="Add/Edit Icons"
-                                                        style={{
-                                                            width: '38px', height: '38px', borderRadius: '12px',
-                                                            backgroundColor: 'transparent', border: '1.5px dashed #CBD5E1',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s ease',
-                                                            outline: 'none', flexShrink: 0
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.transform = 'scale(1.05)';
-                                                            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.transform = 'scale(1)';
-                                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                                        }}
-                                                    >
-                                                        <Plus size={18} />
-                                                    </button>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
- 
-                                    {/* Bottom Area: Edit & Settings */}
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        flexDirection: 'column', 
-                                        alignItems: 'center', 
-                                        gap: '12px', 
-                                        paddingTop: '16px', 
-                                        width: '100%',
-                                        flexShrink: 0
-                                    }}>
-                                        {/* Horizontal Separator */}
-                                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
- 
-                                        <button
-                                            onClick={() => setIsEditingAccess(!isEditingAccess)}
-                                            title="Edit Access Kit"
-                                            style={{
-                                                width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
-                                                border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                        >
-                                            <Edit size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                navigate(isAdminOrSales ? '/admin/settings' : '/customization');
-                                                setIsAccessPopoverOpen(false);
-                                            }}
-                                            title="Settings / Customization"
-                                            style={{
-                                                width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
-                                                border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                        >
-                                            <Sliders size={18} />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
-                </div>
             </div>
 
+            {/* Sliding Drawer Panels */}
             <AnimatePresence>
-                {isCalcOpen && (
-                    <>
-                        {/* Backdrop with premium blur - ONLY on mobile screens */}
-                        {isMobile && (
-                            <div 
-                                onClick={() => setIsCalcOpen(false)}
-                                style={{
-                                    position: 'fixed',
-                                    top: '64px',
-                                    left: 0,
-                                    width: '100vw',
-                                    height: 'calc(100vh - 64px)',
-                                    zIndex: 2001,
-                                    backgroundColor: 'rgba(15, 23, 42, 0.2)',
-                                    backdropFilter: 'blur(4.5px)',
-                                    WebkitBackdropFilter: 'blur(4.5px)'
-                                }}
-                            />
-                        )}
+                {/* Settings Drawer */}
+                <SettingsDrawer 
+                    isOpen={isAccessPopoverOpen} 
+                    onClose={() => setIsAccessPopoverOpen(false)} 
+                    isAdminOrSales={isAdminOrSales}
+                />
 
-                        {/* Sliding Tape Calculator (Right to Left Drawer) */}
+                {/* Beta Products Launcher Drawer */}
+                {isLauncherOpen && (
+                    <>
+                        <div 
+                            onClick={() => setIsLauncherOpen(false)}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                width: 'calc(100vw - 64px)',
+                                height: '100vh',
+                                zIndex: 1999,
+                                backgroundColor: 'transparent'
+                            }}
+                        />
                         <motion.div
                             initial={{ x: '100%' }}
                             animate={{ x: 0 }}
@@ -814,18 +622,57 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                             style={{
                                 position: 'fixed',
-                                top: '64px',
-                                right: isAccessPopoverOpen && !isMobile ? '64px' : 0,
-                                width: '100%',
-                                maxWidth: '360px',
-                                height: 'calc(100vh - 64px)',
+                                top: 0,
+                                right: '64px',
+                                width: '360px',
+                                height: '100vh',
                                 backgroundColor: '#FFFFFF',
-                                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.15)',
-                                zIndex: 2002,
+                                borderLeft: '1px solid #99DBC3',
+                                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.05)',
+                                zIndex: 2000,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                overflow: 'hidden',
-                                transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <ProductLauncher onClose={() => setIsLauncherOpen(false)} />
+                        </motion.div>
+                    </>
+                )}
+
+                {/* Calculator Drawer */}
+                {isCalcOpen && (
+                    <>
+                        <div 
+                            onClick={() => setIsCalcOpen(false)}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                width: 'calc(100vw - 64px)',
+                                height: '100vh',
+                                zIndex: 1999,
+                                backgroundColor: 'transparent'
+                            }}
+                        />
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                right: '64px',
+                                width: '360px',
+                                height: '100vh',
+                                backgroundColor: '#FFFFFF',
+                                borderLeft: '1px solid #99DBC3',
+                                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.05)',
+                                zIndex: 2000,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden'
                             }}
                         >
                             <CalcPopover 
@@ -836,7 +683,304 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     </>
                 )}
             </AnimatePresence>
-        
+
+            {/* Fixed Right Toolbar */}
+            <div
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    right: 0,
+                    height: '100vh',
+                    backgroundColor: '#FFFFFF',
+                    borderLeft: '1px solid #99DBC3',
+                    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    zIndex: 2005,
+                    width: '64px',
+                    fontFamily: "'Inter', sans-serif",
+                    paddingBottom: '20px'
+                }}
+            >
+                {/* Top green header block */}
+                <div style={{
+                    width: '100%',
+                    height: '64px',
+                    backgroundColor: '#135029',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    flexShrink: 0,
+                    marginBottom: '20px'
+                }}>
+                    <button
+                        onClick={() => {
+                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
+                            setIsLauncherOpen(false);
+                            setIsCalcOpen(false);
+                        }}
+                        title={isAccessPopoverOpen ? "Close Settings" : "Open Settings"}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '11px',
+                            backgroundColor: isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            cursor: 'pointer',
+                            color: '#FFFFFF',
+                            outline: 'none',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <Sliders size={18} />
+                    </button>
+                </div>
+
+                {/* Scrollable Tool List */}
+                <div className="access-tools-scroll" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    gap: '12px',
+                    flex: 1,
+                    overflowY: 'auto',
+                    width: '100%',
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none'
+                }}>
+                    <style>{`
+                        .access-tools-scroll::-webkit-scrollbar { display: none; }
+                    `}</style>
+                    
+                    {/* Blue B Logo Button */}
+                    <button
+                        onClick={() => {
+                            setIsLauncherOpen(!isLauncherOpen);
+                            setIsCalcOpen(false);
+                            setIsAccessPopoverOpen(false);
+                        }}
+                        title="Beta Products Launcher"
+                        style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '12px',
+                            backgroundColor: isLauncherOpen ? '#DCF2E4' : '#FFFFFF',
+                            border: isLauncherOpen ? '1.5px solid #1B6B3A' : '1.5px solid #CBD5E1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            flexShrink: 0
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#94A3B8';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#CBD5E1';
+                        }}
+                    >
+                        <img src="/beta_logo.png" alt="Beta Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                    </button>
+
+                    {/* Horizontal Separator */}
+                    <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8, flexShrink: 0 }} />
+
+                    {/* Dynamic tools mapping */}
+                    {(() => {
+                        const allAvailableTools = [
+                            { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
+                            { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => {
+                                setIsCalcOpen(!isCalcOpen);
+                                setIsLauncherOpen(false);
+                                setIsAccessPopoverOpen(false);
+                            } },
+                            { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
+                            { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
+                            { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
+                            { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
+                            { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
+                            { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
+                            { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
+                        ];
+
+                        const toggleToolPin = (toolName) => {
+                            setPinnedTools(prev => {
+                                if (prev.includes(toolName)) {
+                                    if (prev.length === 1) return prev; // Keep at least one tool
+                                    return prev.filter(name => name !== toolName);
+                                } else {
+                                    return [...prev, toolName];
+                                }
+                            });
+                        };
+
+                        if (isEditingAccess) {
+                            return (
+                                <>
+                                    <div style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', textAlign: 'center' }}>Edit Pins</div>
+                                    {allAvailableTools.map((tool, idx) => {
+                                        const Icon = tool.icon;
+                                        const isPinned = pinnedTools.includes(tool.name);
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => toggleToolPin(tool.name)}
+                                                title={`${isPinned ? 'Unpin' : 'Pin'} ${tool.name}`}
+                                                style={{
+                                                    width: '38px', height: '38px', borderRadius: '12px',
+                                                    backgroundColor: isPinned ? tool.bg : '#F8FAFC',
+                                                    border: isPinned ? `2px solid ${tool.color}` : '1.5px dashed #CBD5E1',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    color: isPinned ? tool.color : '#94A3B8',
+                                                    cursor: 'pointer', transition: 'all 0.2s ease',
+                                                    outline: 'none', flexShrink: 0,
+                                                    position: 'relative',
+                                                    opacity: isPinned ? 1 : 0.6
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                }}
+                                            >
+                                                <Icon size={18} />
+                                            </button>
+                                        );
+                                    })}
+                                    <button
+                                        onClick={() => setIsEditingAccess(false)}
+                                        title="Done Editing"
+                                        style={{
+                                            width: '38px', height: '38px', borderRadius: '12px',
+                                            backgroundColor: '#10B981', border: 'none',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease',
+                                            outline: 'none', flexShrink: 0,
+                                            boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
+                                            marginTop: '4px'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        <Check size={18} />
+                                    </button>
+                                </>
+                            );
+                        }
+
+                        // Normal Mode: Show only pinned tools
+                        const visibleTools = allAvailableTools.filter(t => pinnedTools.includes(t.name));
+
+                        return (
+                            <>
+                                {visibleTools.map((tool, idx) => {
+                                    const Icon = tool.icon;
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={tool.action}
+                                            title={tool.name}
+                                            style={{
+                                                width: '38px', height: '38px', borderRadius: '12px',
+                                                backgroundColor: tool.bg, border: 'none',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
+                                                outline: 'none', flexShrink: 0
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1.05)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                            }}
+                                        >
+                                            <Icon size={18} />
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    onClick={() => setIsEditingAccess(true)}
+                                    title="Add/Edit Icons"
+                                    style={{
+                                        width: '38px', height: '38px', borderRadius: '12px',
+                                        backgroundColor: 'transparent', border: '1.5px dashed #CBD5E1',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s ease',
+                                        outline: 'none', flexShrink: 0
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                        e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    <Plus size={18} />
+                                </button>
+                            </>
+                        );
+                    })()}
+                </div>
+
+                {/* Bottom Area: Edit & Settings */}
+                <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    gap: '12px', 
+                    paddingTop: '16px', 
+                    width: '100%',
+                    flexShrink: 0
+                }}>
+                    {/* Horizontal Separator */}
+                    <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
+
+                    <button
+                        onClick={() => setIsEditingAccess(!isEditingAccess)}
+                        title="Edit Access Kit"
+                        style={{
+                            width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
+                            border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                        <Edit size={18} />
+                    </button>
+                    <button
+                        onClick={() => {
+                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
+                            setIsLauncherOpen(false);
+                            setIsCalcOpen(false);
+                        }}
+                        title="Settings / Customization"
+                        style={{
+                            width: '38px', height: '38px', borderRadius: '12px', 
+                            backgroundColor: isAccessPopoverOpen ? '#DCF2E4' : '#F8FAFC',
+                            border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: isAccessPopoverOpen ? '#1B6B3A' : '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                        <Sliders size={18} />
+                    </button>
+                </div>
+            </div>
         </header>
     );
 };

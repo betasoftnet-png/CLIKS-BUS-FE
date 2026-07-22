@@ -337,6 +337,10 @@ function AppContent() {
                     <Route path="/social/investors" element={<Navigate to="/social/betaclub" replace />} />
                     <Route path="/social/trading" element={<BusinessTrading />} />
                     <Route path="/referral" element={<BusinessReferral />} />
+                    <Route path="/cliks" element={<BusinessPlaceholder title="Cliks" />} />
+                    <Route path="/bnxmail" element={<BusinessPlaceholder title="BNXmail" />} />
+                    <Route path="/bit-tool" element={<BusinessPlaceholder title="Bit-Tool" />} />
+                    <Route path="/b2auth" element={<BusinessPlaceholder title="B2Auth" />} />
 
                   </Routes>
                 </Suspense>
