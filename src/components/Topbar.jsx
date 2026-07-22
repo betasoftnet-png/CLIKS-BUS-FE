@@ -12,143 +12,7 @@ import { ProfileDropdown } from './ProfileDropdown';
 import { CalcPopover } from './common/CalcPopover';
 import ProductLauncher from './ProductLauncher';
 
-/* ─── Settings Drawer ─────────────────────────────────────────────── */
-const SettingsDrawer = ({ isOpen, onClose, isAdminOrSales }) => {
-    const navigate = useNavigate();
 
-    React.useEffect(() => {
-        const handler = (e) => { if (e.key === 'Escape') onClose(); };
-        if (isOpen) document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
-    }, [isOpen, onClose]);
-
-    const sections = [
-        { icon: <SlidersHorizontal size={18} />, label: 'General', description: 'App preferences & defaults', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
-        { icon: <Palette size={18} />, label: 'Appearance', description: 'Theme, colors, display', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
-        { icon: <Bell size={18} />, label: 'Notifications', description: 'Alerts, reminders, push', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
-        { icon: <User size={18} />, label: 'Account', description: 'Profile & personal info', action: () => { navigate('/books/profile'); onClose(); } },
-        { icon: <Lock size={18} />, label: 'Security', description: 'Password, 2FA, sessions', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
-        { icon: <SlidersHorizontal size={18} />, label: 'Preferences', description: 'Language, currency, region', action: () => { navigate(isAdminOrSales ? '/admin/settings' : '/customization'); onClose(); } },
-        { icon: <Info size={18} />, label: 'About', description: 'Version, licenses, updates', action: () => { navigate('/books/faq'); onClose(); } },
-    ];
-
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    <div 
-                        onClick={onClose} 
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            width: 'calc(100vw - 64px)',
-                            height: '100vh',
-                            zIndex: 1999,
-                            backgroundColor: 'transparent'
-                        }}
-                    />
-                    <motion.div 
-                        initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            right: '64px',
-                            width: '360px',
-                            height: '100vh',
-                            backgroundColor: '#FFFFFF',
-                            borderLeft: '1px solid #99DBC3',
-                            boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.05)',
-                            zIndex: 2000,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden',
-                            fontFamily: "'Inter', sans-serif"
-                        }}
-                    >
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '0.75rem 1rem',
-                            borderBottom: '1px solid #f1f5f9',
-                            height: '64px',
-                            flexShrink: 0
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '1.1rem', color: '#1B6B3A' }}>
-                                <SlidersHorizontal size={18} />
-                                <span>Settings</span>
-                            </div>
-                            <button 
-                                onClick={onClose} 
-                                aria-label="Close settings"
-                                style={{
-                                    border: 'none',
-                                    background: '#f8fafc',
-                                    color: '#64748b',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    outline: 'none'
-                                }}
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {sections.map((s) => (
-                                    <li key={s.label}>
-                                        <button 
-                                            onClick={s.action}
-                                            style={{
-                                                width: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '12px',
-                                                padding: '0.75rem 1rem',
-                                                background: '#FFFFFF',
-                                                border: '1px solid #f1f5f9',
-                                                borderRadius: '12px',
-                                                cursor: 'pointer',
-                                                textAlign: 'left',
-                                                transition: 'all 0.2s ease',
-                                                outline: 'none'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#F8FAFC';
-                                                e.currentTarget.style.borderColor = '#E2E8F0';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#FFFFFF';
-                                                e.currentTarget.style.borderColor = '#f1f5f9';
-                                            }}
-                                        >
-                                            <span style={{ color: '#1B6B3A', display: 'flex', alignItems: 'center' }}>{s.icon}</span>
-                                            <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#1e293b' }}>{s.label}</span>
-                                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>{s.description}</span>
-                                            </span>
-                                            <ChevronRight size={15} style={{ color: '#cbd5e1' }} />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
-    );
-};
 
 
 
@@ -184,7 +48,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         { id: 2, text: "Monthly tax compliance report is ready for audit", time: "2 hours ago", read: false },
         { id: 3, text: "Welcome to Cliks Business standard dashboard!", time: "1 day ago", read: true }
     ]);
-    const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
+    const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
     const [isLauncherOpen, setIsLauncherOpen] = React.useState(false);
@@ -225,11 +89,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             const isDesktop = window.innerWidth > 768;
 
             if (isDesktop) {
-                const isAnyDrawerOpen = isCalcOpen || isLauncherOpen || isAccessPopoverOpen;
-                if (isAnyDrawerOpen) {
+                if (isCalcOpen || isLauncherOpen) {
                     paddingRight = 424; // 360px (Drawer) + 64px (Toolbar)
-                } else {
+                } else if (isRightSidebarOpen) {
                     paddingRight = 64; // Toolbar always takes 64px
+                } else {
+                    paddingRight = 0; // Toolbar hidden by default
                 }
             } else {
                 paddingRight = 0; // Overlays on mobile
@@ -240,7 +105,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         updatePadding();
         window.addEventListener('resize', updatePadding);
         return () => window.removeEventListener('resize', updatePadding);
-    }, [isAccessPopoverOpen, isCalcOpen, isLauncherOpen]);
+    }, [isRightSidebarOpen, isCalcOpen, isLauncherOpen]);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -290,7 +155,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     ];
 
     return (
-        <header className="topbar">
+        <header className="topbar" style={{ paddingLeft: '1.5rem', paddingRight: '88px' }}>
             {/* Left: Branding / App Switcher */}
             <div className="topbar-left">
                 {/* ... existing logo code ... */}
@@ -605,12 +470,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
             {/* Sliding Drawer Panels */}
             <AnimatePresence>
-                {/* Settings Drawer */}
-                <SettingsDrawer 
-                    isOpen={isAccessPopoverOpen} 
-                    onClose={() => setIsAccessPopoverOpen(false)} 
-                    isAdminOrSales={isAdminOrSales}
-                />
 
                 {/* Beta Products Launcher Drawer */}
                 {isLauncherOpen && (
@@ -696,8 +555,49 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                 )}
             </AnimatePresence>
 
+            {/* Always Visible Top-Right Toolbar Toggle Button */}
+            {!isRightSidebarOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    right: 0,
+                    width: '64px',
+                    height: '64px',
+                    backgroundColor: '#135029',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1001,
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                    <button
+                        onClick={() => setIsRightSidebarOpen(true)}
+                        title="Open Toolbar"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '11px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            cursor: 'pointer',
+                            color: '#FFFFFF',
+                            outline: 'none',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <Sliders size={18} />
+                    </button>
+                </div>
+            )}
+
             {/* Fixed Right Toolbar */}
-            <div
+            <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: isRightSidebarOpen ? 0 : '100%' }}
+                transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                 style={{
                     position: 'fixed',
                     top: 0,
@@ -726,11 +626,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                 }}>
                     <button
                         onClick={() => {
-                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
+                            setIsRightSidebarOpen(false);
                             setIsLauncherOpen(false);
                             setIsCalcOpen(false);
                         }}
-                        title="Settings / Customization"
+                        title="Close Toolbar"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -738,7 +638,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '11px',
-                            backgroundColor: isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.25)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                             cursor: 'pointer',
                             color: '#FFFFFF',
@@ -822,7 +722,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => {
                                     setIsCalcOpen(!isCalcOpen);
                                     setIsLauncherOpen(false);
-                                    setIsAccessPopoverOpen(false);
                                 } },
                                 { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
                                 { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
@@ -982,11 +881,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             <Edit size={18} />
                         </button>
                         <button
-                            onClick={() => {
-                                setIsAccessPopoverOpen(!isAccessPopoverOpen);
-                                setIsLauncherOpen(false);
-                                setIsCalcOpen(false);
-                            }}
                             title="Settings / Customization"
                             style={{
                                 width: '38px', height: '38px', borderRadius: '12px', 
