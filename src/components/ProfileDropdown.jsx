@@ -349,15 +349,16 @@ export function ProfileDropdown({
         triggerButton: {
             display: 'flex',
             alignItems: 'center',
-            borderRadius: '12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '999px',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
-            fontSize: '14px',
-            fontWeight: 600,
+            fontSize: '13px',
+            fontWeight: 700,
             color: '#FFFFFF',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             outline: 'none',
+            height: '36px',
         },
         dropdownMenu: {
             position: 'absolute',
@@ -482,9 +483,12 @@ export function ProfileDropdown({
                 type="button"
                 onClick={() => setOpen(!open)}
                 className="gap-1.5 sm:gap-2.5 p-1.5 sm:px-3.5 sm:py-1.5"
-                style={styles.triggerButton}
+                style={{
+                    ...styles.triggerButton,
+                    backgroundColor: open ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)'
+                }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = open ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)'}
             >
                 <div style={{
                     width: '24px',
@@ -502,8 +506,8 @@ export function ProfileDropdown({
                 <span className="profile-name-text" style={{ 
                     textTransform: 'none', 
                     letterSpacing: '0px',
-                    fontSize: '12px',
-                    fontWeight: '500',
+                    fontSize: '13px',
+                    fontWeight: '700',
                     maxWidth: '100px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',

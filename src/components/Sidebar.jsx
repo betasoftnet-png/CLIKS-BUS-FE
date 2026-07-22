@@ -235,7 +235,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/marketing')) return 'Marketing';
         if (path.includes('/ca')) return 'FIN-PRO';
         if (path.includes('/social/betaclub')) return 'BETA Club';
-        if (path.includes('/social/meetup')) return 'Meetup';
+        if (path.includes('/social/meetup')) return 'BETA Club';
         if (path.includes('/social/trading')) return 'Trading docs';
         if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
@@ -354,9 +354,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Marketing', icon: Megaphone, path: '/marketing' }
         ],
         social: [
-            { label: 'Meetup', icon: Calendar, path: '/social/meetup' },
-            { label: 'Trading docs', icon: LineChart, path: '/social/trading' },
-            { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub', color: '#FFD700' }
+            { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub', color: '#FFD700' },
+            { label: 'Trading docs', icon: LineChart, path: '/social/trading' }
         ],
         financeMode: [
             { label: 'People', icon: Users, path: '/payments/people' },
@@ -565,52 +564,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     )}
                 </nav>
  
-                {/* Refer & Earn Block (Moved outside the white footer box as requested) */}
-                {(isFinanceMode || isSocialMode) && (
-                    <div style={{ padding: '0rem 1rem', flexShrink: 0 }}>
-                        <button
-                            onClick={() => {
-                                if (onReferralClick) onReferralClick();
-                                if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
-                            }}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.65rem',
-                                padding: '0.60rem',
-                                background: 'transparent',
-                                color: '#0F172A',
-                                borderRadius: '12px',
-                                border: '1px solid transparent',
-                                cursor: 'pointer',
-                                fontWeight: '700',
-                                fontSize: '0.875rem',
-                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                outline: 'none',
-                                marginTop: '1.2rem'
-                            }}
-                            onMouseOver={() => {
-                                // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
-                                // e.currentTarget.style.color = '#7C3AED';
-                                // e.currentTarget.style.borderColor = '#DDD6FE';
-                                // e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
-                                // e.currentTarget.style.transform = 'translateY(-1px)';
-                            }}
-                            onMouseOut={(e) => {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#6B7280';
-                                e.currentTarget.style.borderColor = 'transparent';
-                                e.currentTarget.style.boxShadow = 'none';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                        >
-                            <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
-                            <span>Refer &amp; Earn</span>
-                        </button>
-                    </div>
-                )}
+
  
                 <div style={{ flex: 1 }} />
             </div> {/* END OF sidebar-scroll-container */}
@@ -757,7 +711,51 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         </button>
                     );
                 })()}
- 
+                {/* Refer & Earn Block */}
+                {(isFinanceMode || isSocialMode) && (
+                    <button
+                        onClick={() => {
+                            if (onReferralClick) onReferralClick();
+                            if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
+                        }}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.65rem',
+                            padding: '0.60rem',
+                            background: 'transparent',
+                            color: '#0F172A',
+                            borderRadius: '12px',
+                            border: '1px solid transparent',
+                            cursor: 'pointer',
+                            fontWeight: '700',
+                            fontSize: '0.875rem',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            outline: 'none',
+                            marginBottom: '6px'
+                        }}
+                        onMouseOver={() => {
+                            // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
+                            // e.currentTarget.style.color = '#7C3AED';
+                            // e.currentTarget.style.borderColor = '#DDD6FE';
+                            // e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
+                            // e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = '#6B7280';
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
+                        <span>Refer &amp; Earn</span>
+                    </button>
+                )}
+
                 {/* Bottom Settings Block */}
                 <button
                     onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/customization')}

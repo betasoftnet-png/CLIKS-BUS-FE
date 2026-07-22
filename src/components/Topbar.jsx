@@ -36,6 +36,13 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         };
     }, []);
 
+    const [isSearchExpanded, setIsSearchExpanded] = React.useState(false);
+    const [isNotificationOpen, setIsNotificationOpen] = React.useState(false);
+    const [notifications, setNotifications] = React.useState([
+        { id: 1, text: "New sales invoice generated #INV-2026-004", time: "5 mins ago", read: false },
+        { id: 2, text: "Monthly tax compliance report is ready for audit", time: "2 hours ago", read: false },
+        { id: 3, text: "Welcome to Cliks Business standard dashboard!", time: "1 day ago", read: true }
+    ]);
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
@@ -138,7 +145,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const navItems = [
         { name: 'Books', url: '/dashboard', icon: BookOpen, active: activeModule === 'books' },
         { name: 'Payments', url: '/payments/people', icon: Calculator, active: isFinanceActive },
-        { name: 'Social', url: '/social/meetup', icon: Users, active: isSocialActive },
+        { name: 'Social', url: '/social/betaclub', icon: Users, active: isSocialActive },
     ];
 
     return (
@@ -238,61 +245,201 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             )}
 
             {/* Right Group (Audit + Profile) */}
-            <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
+            <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '1rem' }}>
+                {/* Search circular button */}
                 {(() => {
                     const searchInputRef = React.useRef(null);
+                    React.useEffect(() => {
+                        if (isSearchExpanded) {
+                            searchInputRef.current?.focus();
+                        }
+                    }, [isSearchExpanded]);
+
                     return (
-                        <div 
-                            className="topbar-search"
-                            onClick={() => searchInputRef.current?.focus()}
-                        >
-                            <Search size={15} color="rgba(255, 255, 255, 0.6)" />
-                            <input ref={searchInputRef} type="text" placeholder="Search..." />
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            {isSearchExpanded ? (
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                                    borderRadius: '999px',
+                                    padding: '5px 12px',
+                                    width: '180px',
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                                }}>
+                                    <Search size={14} color="#FFFFFF" style={{ opacity: 0.8 }} />
+                                    <input 
+                                        ref={searchInputRef}
+                                        type="text" 
+                                        placeholder="Search..." 
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            outline: 'none',
+                                            color: '#FFFFFF',
+                                            fontSize: '12px',
+                                            width: '100%',
+                                            fontWeight: '600',
+                                            padding: 0
+                                        }}
+                                        onBlur={() => setIsSearchExpanded(false)}
+                                    />
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setIsSearchExpanded(true)}
+                                    title="Search"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                                        cursor: 'pointer',
+                                        color: '#FFFFFF',
+                                        outline: 'none',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'}
+                                >
+                                    <Search size={18} />
+                                </button>
+                            )}
                         </div>
                     );
                 })()}
-                {/* Clean Coin Icon & Points Pill Widget */}
-                {(() => {
-                    return (
-                        <button
-                            onClick={() => navigate('/payments/rewards')}
-                            title="Loyalty Points - View Rewards & Offers"
-                            className="p-1.5 sm:px-3 sm:py-1.5 gap-1.5"
-                            style={{
+
+                {/* Notification Bell Button */}
+                <div style={{ position: 'relative' }}>
+                    <button
+                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                        title="Notifications"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '11px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            cursor: 'pointer',
+                            color: '#FFFFFF',
+                            outline: 'none',
+                            position: 'relative',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'}
+                    >
+                        {/* Custom bell svg matching screenshot */}
+                        <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            width="18" 
+                            height="18" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                        >
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+                        </svg>
+                        
+                        {/* Red Badge */}
+                        {notifications.filter(n => !n.read).length > 0 && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '-3px',
+                                right: '-3px',
+                                backgroundColor: '#EF4444',
+                                color: '#FFFFFF',
+                                borderRadius: '50%',
+                                width: '16px',
+                                height: '16px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                borderRadius: '999px',
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                backdropFilter: 'blur(4px)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)',
-                                color: '#FFFFFF',
-                                fontSize: '13px',
-                                fontWeight: '750',
-                                cursor: 'pointer',
-                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                outline: 'none'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-                                e.currentTarget.style.boxShadow = '0 6px 15px rgba(245, 158, 11, 0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'none';
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                                e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.05)';
-                            }}
-                        >
-                            <Coins size={15} color="#F59E0B" style={{ filter: 'drop-shadow(0 0 2px rgba(245, 158, 11, 0.5))' }} />
-                            <span className="hidden sm:inline" style={{ whiteSpace: 'nowrap' }}>
-                                {rewardPoints.toLocaleString()} Pts
-                            </span>
-                        </button>
-                    );
-                })()}
+                                justifyContent: 'center',
+                                fontSize: '9px',
+                                fontWeight: '900',
+                                border: '2px solid #135029'
+                            }}>
+                                {notifications.filter(n => !n.read).length}
+                            </div>
+                        )}
+                    </button>
+                    
+                    <AnimatePresence>
+                        {isNotificationOpen && (
+                            <>
+                                <div 
+                                    onClick={() => setIsNotificationOpen(false)}
+                                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2008 }}
+                                />
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 10px)',
+                                        right: '-40px',
+                                        width: '280px',
+                                        backgroundColor: '#FFFFFF',
+                                        borderRadius: '14px',
+                                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                                        border: '1px solid #E2E8F0',
+                                        zIndex: 2009,
+                                        padding: '12px',
+                                        fontFamily: "'Inter', sans-serif"
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>Notifications</span>
+                                        {notifications.filter(n => !n.read).length > 0 && (
+                                            <button 
+                                                onClick={() => {
+                                                    setNotifications(notifications.map(n => ({ ...n, read: true })));
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: '#1B6B3A', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}
+                                            >
+                                                Mark all read
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {notifications.map(notification => (
+                                            <div 
+                                                key={notification.id}
+                                                style={{
+                                                    padding: '8px',
+                                                    borderRadius: '8px',
+                                                    backgroundColor: notification.read ? 'transparent' : '#F0FDF4',
+                                                    border: notification.read ? 'none' : '1px solid #DCF2E4',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '2px'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '11.5px', color: '#334155', fontWeight: notification.read ? '500' : '650' }}>{notification.text}</span>
+                                                <span style={{ fontSize: '10px', color: '#94A3B8' }}>{notification.time}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 <ProfileDropdown
                     onAccount={() => navigate('/profile')}
@@ -320,27 +467,24 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '11px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            backgroundColor: isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
                             outline: 'none',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                            color: '#FFFFFF'
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                             e.currentTarget.style.transform = 'translateY(-1px)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                            e.currentTarget.style.backgroundColor = isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)';
                             e.currentTarget.style.transform = 'none';
                         }}
                     >
-                        <img 
-                            src={accessKitPng} 
-                            alt="Access Kit" 
-                            style={{ width: '22px', height: '22px', objectFit: 'contain' }} 
-                        />
+                        <Sliders size={18} />
                     </button>
 
                     <AnimatePresence>
@@ -358,9 +502,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         right: 0,
                                         height: 'calc(100vh - 64px)',
                                         backgroundColor: '#FFFFFF',
-                                        borderLeft: '1px solid #E2E8F0',
-                                        boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.08)',
-                                        padding: '24px 8px',
+                                        borderLeft: '1px solid #CBD5E1',
+                                        boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
+                                        padding: '20px 0',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'space-between',
@@ -387,6 +531,45 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             .access-tools-scroll::-webkit-scrollbar { display: none; }
                                         `}</style>
                                         
+                                        {/* Blue B Logo Button */}
+                                        <button
+                                            onClick={() => handleNavigation('/dashboard')}
+                                            title="Books Module"
+                                            style={{
+                                                width: '38px',
+                                                height: '38px',
+                                                borderRadius: '12px',
+                                                backgroundColor: '#FFFFFF',
+                                                border: '1.5px solid #CBD5E1',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                outline: 'none',
+                                                flexShrink: 0
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1.05)';
+                                                e.currentTarget.style.borderColor = '#94A3B8';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                                e.currentTarget.style.borderColor = '#CBD5E1';
+                                            }}
+                                        >
+                                            <span style={{ 
+                                                fontFamily: 'Georgia, serif', 
+                                                color: '#1D4ED8',
+                                                fontSize: '22px', 
+                                                fontWeight: 'bold',
+                                                lineHeight: 1
+                                            }}>B</span>
+                                        </button>
+
+                                        {/* Horizontal Separator */}
+                                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8 }} />
+
                                         {/* Dynamic tools mapping */}
                                         {(() => {
                                             const allAvailableTools = [
@@ -415,7 +598,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             if (isEditingAccess) {
                                                 return (
                                                     <>
-                                                        <div style={{ fontSize: '10px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Edit Pins</div>
+                                                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', textAlign: 'center' }}>Edit Pins</div>
                                                         {allAvailableTools.map((tool, idx) => {
                                                             const Icon = tool.icon;
                                                             const isPinned = pinnedTools.includes(tool.name);
@@ -425,7 +608,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                                     onClick={() => toggleToolPin(tool.name)}
                                                                     title={`${isPinned ? 'Unpin' : 'Pin'} ${tool.name}`}
                                                                     style={{
-                                                                        width: '34px', height: '34px', borderRadius: '10px',
+                                                                        width: '38px', height: '38px', borderRadius: '12px',
                                                                         backgroundColor: isPinned ? tool.bg : '#F8FAFC',
                                                                         border: isPinned ? `2px solid ${tool.color}` : '1.5px dashed #CBD5E1',
                                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -442,7 +625,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                                         e.currentTarget.style.transform = 'scale(1)';
                                                                     }}
                                                                 >
-                                                                    <Icon size={16} />
+                                                                    <Icon size={18} />
                                                                 </button>
                                                             );
                                                         })}
@@ -450,7 +633,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                             onClick={() => setIsEditingAccess(false)}
                                                             title="Done Editing"
                                                             style={{
-                                                                width: '34px', height: '34px', borderRadius: '10px',
+                                                                width: '38px', height: '38px', borderRadius: '12px',
                                                                 backgroundColor: '#10B981', border: 'none',
                                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease',
@@ -461,7 +644,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                                         >
-                                                            <Check size={16} />
+                                                            <Check size={18} />
                                                         </button>
                                                     </>
                                                 );
@@ -480,8 +663,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                                 onClick={tool.action}
                                                                 title={tool.name}
                                                                 style={{
-                                                                    width: '34px', height: '34px', borderRadius: '10px',
-                                                                    backgroundColor: tool.bg, border: `1px solid ${tool.bg}`,
+                                                                    width: '38px', height: '38px', borderRadius: '12px',
+                                                                    backgroundColor: tool.bg, border: 'none',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                     color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
                                                                     outline: 'none', flexShrink: 0
@@ -493,7 +676,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                                     e.currentTarget.style.transform = 'scale(1)';
                                                                 }}
                                                             >
-                                                                <Icon size={16} />
+                                                                <Icon size={18} />
                                                             </button>
                                                         );
                                                     })}
@@ -501,22 +684,22 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                         onClick={() => setIsEditingAccess(true)}
                                                         title="Add/Edit Icons"
                                                         style={{
-                                                            width: '34px', height: '34px', borderRadius: '10px',
-                                                            backgroundColor: '#F8FAFC', border: '1.5px dashed #E2E8F0',
+                                                            width: '38px', height: '38px', borderRadius: '12px',
+                                                            backgroundColor: 'transparent', border: '1.5px dashed #CBD5E1',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease',
+                                                            color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s ease',
                                                             outline: 'none', flexShrink: 0
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             e.currentTarget.style.transform = 'scale(1.05)';
-                                                            e.currentTarget.style.backgroundColor = '#F1F5F9';
+                                                            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
                                                         }}
                                                         onMouseLeave={(e) => {
                                                             e.currentTarget.style.transform = 'scale(1)';
-                                                            e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                                            e.currentTarget.style.backgroundColor = 'transparent';
                                                         }}
                                                     >
-                                                        <Plus size={16} />
+                                                        <Plus size={18} />
                                                     </button>
                                                 </>
                                             );
@@ -529,14 +712,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             onClick={() => setIsEditingAccess(!isEditingAccess)}
                                             title="Edit Access Kit"
                                             style={{
-                                                width: '34px', height: '34px', borderRadius: '10px', backgroundColor: '#F8FAFC',
+                                                width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
                                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <Edit size={16} />
+                                            <Edit size={18} />
                                         </button>
                                         <button
                                             onClick={() => {
@@ -545,14 +728,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             }}
                                             title="Settings / Customization"
                                             style={{
-                                                width: '34px', height: '34px', borderRadius: '10px', backgroundColor: '#F8FAFC',
+                                                width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
                                                 border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <Sliders size={16} />
+                                            <Sliders size={18} />
                                         </button>
                                     </div>
                                 </motion.div>
