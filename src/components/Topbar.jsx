@@ -590,7 +590,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                 {/* Vertical Divider */}
                 <div style={{ 
                     width: '1px', 
-                    height: '24px', 
+                    height: '32px', 
+                    minHeight: '32px',
+                    maxHeight: '32px',
                     backgroundColor: 'rgba(255, 255, 255, 0.2)', 
                     marginLeft: '14px', 
                     marginRight: '4px',
