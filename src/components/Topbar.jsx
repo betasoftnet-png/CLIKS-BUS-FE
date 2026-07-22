@@ -50,6 +50,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     ]);
     const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
+    const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
     const [isCalcOpen, setIsCalcOpen] = React.useState(false);
     const [isLauncherOpen, setIsLauncherOpen] = React.useState(false);
     const [pinnedTools, setPinnedTools] = React.useState(() => {
@@ -553,6 +554,314 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         </motion.div>
                     </>
                 )}
+
+                {/* Fixed Right Toolbar */}
+                {isRightSidebarOpen && (
+                    <motion.div
+                        key="right-toolbar"
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            right: 0,
+                            height: '100vh',
+                            backgroundColor: '#FFFFFF',
+                            boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            zIndex: 2005,
+                            width: '64px',
+                            fontFamily: "'Inter', sans-serif"
+                        }}
+                    >
+                        {/* Top green header block */}
+                        <div style={{
+                            width: '100%',
+                            height: '64px',
+                            backgroundColor: '#135029',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                            flexShrink: 0
+                        }}>
+                            <button
+                                onClick={() => {
+                                    setIsRightSidebarOpen(false);
+                                    setIsLauncherOpen(false);
+                                    setIsCalcOpen(false);
+                                }}
+                                title="Close Toolbar"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '11px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    cursor: 'pointer',
+                                    color: '#FFFFFF',
+                                    outline: 'none',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <Sliders size={18} />
+                            </button>
+                        </div>
+
+                        {/* Toolbar Body Container (adds left border below header block) */}
+                        <div style={{
+                            width: '100%',
+                            height: 'calc(100vh - 64px)',
+                            borderLeft: '1px solid #99DBC3',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            paddingBottom: '20px',
+                            paddingTop: '20px'
+                        }}>
+                            {/* Scrollable Tool List */}
+                            <div className="access-tools-scroll" style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '12px',
+                                flex: 1,
+                                overflowY: 'auto',
+                                width: '100%',
+                                msOverflowStyle: 'none',
+                                scrollbarWidth: 'none'
+                            }}>
+                                <style>{`
+                                    .access-tools-scroll::-webkit-scrollbar { display: none; }
+                                `}</style>
+
+                                {/* Blue B Logo Button */}
+                                <button
+                                    onClick={() => {
+                                        setIsLauncherOpen(!isLauncherOpen);
+                                        setIsCalcOpen(false);
+                                        setIsAccessPopoverOpen(false);
+                                    }}
+                                    title="Beta Products Launcher"
+                                    style={{
+                                        width: '38px',
+                                        height: '38px',
+                                        borderRadius: '12px',
+                                        backgroundColor: isLauncherOpen ? '#DCF2E4' : '#FFFFFF',
+                                        border: isLauncherOpen ? '1.5px solid #1B6B3A' : '1.5px solid #CBD5E1',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        outline: 'none',
+                                        flexShrink: 0
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                        e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#94A3B8';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#CBD5E1';
+                                    }}
+                                >
+                                    <img src="/beta_logo.png" alt="Beta Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                                </button>
+
+                                {/* Horizontal Separator */}
+                                <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8, flexShrink: 0 }} />
+
+                                {/* Dynamic tools mapping */}
+                                {(() => {
+                                    const allAvailableTools = [
+                                        { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
+                                        { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => {
+                                            setIsCalcOpen(!isCalcOpen);
+                                            setIsLauncherOpen(false);
+                                        } },
+                                        { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
+                                        { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
+                                        { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
+                                        { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
+                                        { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
+                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
+                                        { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
+                                    ];
+
+                                    const toggleToolPin = (toolName) => {
+                                        setPinnedTools(prev => {
+                                            if (prev.includes(toolName)) {
+                                                if (prev.length === 1) return prev; // Keep at least one tool
+                                                return prev.filter(name => name !== toolName);
+                                            } else {
+                                                return [...prev, toolName];
+                                            }
+                                        });
+                                    };
+
+                                    if (isEditingAccess) {
+                                        return (
+                                            <>
+                                                <div style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', textAlign: 'center' }}>Edit Pins</div>
+                                                {allAvailableTools.map((tool, idx) => {
+                                                    const Icon = tool.icon;
+                                                    const isPinned = pinnedTools.includes(tool.name);
+                                                    return (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => toggleToolPin(tool.name)}
+                                                            title={`${isPinned ? 'Unpin' : 'Pin'} ${tool.name}`}
+                                                            style={{
+                                                                width: '38px', height: '38px', borderRadius: '12px',
+                                                                backgroundColor: isPinned ? tool.bg : '#F8FAFC',
+                                                                border: isPinned ? `2px solid ${tool.color}` : '1.5px dashed #CBD5E1',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                color: isPinned ? tool.color : '#94A3B8',
+                                                                cursor: 'pointer', transition: 'all 0.2s ease',
+                                                                outline: 'none', flexShrink: 0,
+                                                                position: 'relative',
+                                                                opacity: isPinned ? 1 : 0.6
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.transform = 'scale(1.05)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.transform = 'scale(1)';
+                                                            }}
+                                                        >
+                                                            <Icon size={18} />
+                                                        </button>
+                                                    );
+                                                })}
+                                                <button
+                                                    onClick={() => setIsEditingAccess(false)}
+                                                    title="Done Editing"
+                                                    style={{
+                                                        width: '38px', height: '38px', borderRadius: '12px',
+                                                        backgroundColor: '#10B981', border: 'none',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease',
+                                                        outline: 'none', flexShrink: 0,
+                                                        boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
+                                                        marginTop: '4px'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                >
+                                                    <Check size={18} />
+                                                </button>
+                                            </>
+                                        );
+                                    }
+
+                                    // Normal Mode: Show only pinned tools
+                                    const visibleTools = allAvailableTools.filter(t => pinnedTools.includes(t.name));
+
+                                    return (
+                                        <>
+                                            {visibleTools.map((tool, idx) => {
+                                                const Icon = tool.icon;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={tool.action}
+                                                        title={tool.name}
+                                                        style={{
+                                                            width: '38px', height: '38px', borderRadius: '12px',
+                                                            backgroundColor: tool.bg, border: 'none',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
+                                                            outline: 'none', flexShrink: 0
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1.05)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                        }}
+                                                    >
+                                                        <Icon size={18} />
+                                                    </button>
+                                                );
+                                            })}
+                                            <button
+                                                onClick={() => setIsEditingAccess(true)}
+                                                title="Add/Edit Icons"
+                                                style={{
+                                                    width: '38px', height: '38px', borderRadius: '12px',
+                                                    backgroundColor: 'transparent', border: '1.5px dashed #CBD5E1',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s ease',
+                                                    outline: 'none', flexShrink: 0
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                    e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
+                                            >
+                                                <Plus size={18} />
+                                            </button>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Bottom Area: Edit & Settings */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '12px',
+                                paddingTop: '16px',
+                                width: '100%',
+                                flexShrink: 0
+                            }}>
+                                {/* Horizontal Separator */}
+                                <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
+
+                                <button
+                                    onClick={() => setIsEditingAccess(!isEditingAccess)}
+                                    title="Edit Access Kit"
+                                    style={{
+                                        width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
+                                        border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                >
+                                    <Edit size={18} />
+                                </button>
+                                <button
+                                    title="Settings / Customization"
+                                    style={{
+                                        width: '38px', height: '38px', borderRadius: '12px',
+                                        backgroundColor: '#F8FAFC',
+                                        border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                >
+                                    <Sliders size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
             </AnimatePresence>
 
             {/* Always Visible Top-Right Toolbar Toggle Button */}
@@ -592,310 +901,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     </button>
                 </div>
             )}
-
-            {/* Fixed Right Toolbar */}
-            <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: isRightSidebarOpen ? 0 : '100%' }}
-                transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-                style={{
-                    position: 'fixed',
-                    top: 0,
-                    right: 0,
-                    height: '100vh',
-                    backgroundColor: '#FFFFFF',
-                    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    zIndex: 2005,
-                    width: '64px',
-                    fontFamily: "'Inter', sans-serif"
-                }}
-            >
-                {/* Top green header block */}
-                <div style={{
-                    width: '100%',
-                    height: '64px',
-                    backgroundColor: '#135029',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    flexShrink: 0
-                }}>
-                    <button
-                        onClick={() => {
-                            setIsRightSidebarOpen(false);
-                            setIsLauncherOpen(false);
-                            setIsCalcOpen(false);
-                        }}
-                        title="Close Toolbar"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '11px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            cursor: 'pointer',
-                            color: '#FFFFFF',
-                            outline: 'none',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <Sliders size={18} />
-                    </button>
-                </div>
-
-                {/* Toolbar Body Container (adds left border below header block) */}
-                <div style={{
-                    width: '100%',
-                    height: 'calc(100vh - 64px)',
-                    borderLeft: '1px solid #99DBC3',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingBottom: '20px',
-                    paddingTop: '20px'
-                }}>
-                    {/* Scrollable Tool List */}
-                    <div className="access-tools-scroll" style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
-                        gap: '12px',
-                        flex: 1,
-                        overflowY: 'auto',
-                        width: '100%',
-                        msOverflowStyle: 'none',
-                        scrollbarWidth: 'none'
-                    }}>
-                        <style>{`
-                            .access-tools-scroll::-webkit-scrollbar { display: none; }
-                        `}</style>
-                        
-                        {/* Blue B Logo Button */}
-                        <button
-                            onClick={() => {
-                                setIsLauncherOpen(!isLauncherOpen);
-                                setIsCalcOpen(false);
-                                setIsAccessPopoverOpen(false);
-                            }}
-                            title="Beta Products Launcher"
-                            style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '12px',
-                                backgroundColor: isLauncherOpen ? '#DCF2E4' : '#FFFFFF',
-                                border: isLauncherOpen ? '1.5px solid #1B6B3A' : '1.5px solid #CBD5E1',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                outline: 'none',
-                                flexShrink: 0
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.05)';
-                                e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#94A3B8';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#CBD5E1';
-                            }}
-                        >
-                            <img src="/beta_logo.png" alt="Beta Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
-                        </button>
-
-                        {/* Horizontal Separator */}
-                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8, flexShrink: 0 }} />
-
-                        {/* Dynamic tools mapping */}
-                        {(() => {
-                            const allAvailableTools = [
-                                { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
-                                { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => {
-                                    setIsCalcOpen(!isCalcOpen);
-                                    setIsLauncherOpen(false);
-                                } },
-                                { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
-                                { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
-                                { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
-                                { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
-                                { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
-                                { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
-                                { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
-                            ];
-
-                            const toggleToolPin = (toolName) => {
-                                setPinnedTools(prev => {
-                                    if (prev.includes(toolName)) {
-                                        if (prev.length === 1) return prev; // Keep at least one tool
-                                        return prev.filter(name => name !== toolName);
-                                    } else {
-                                        return [...prev, toolName];
-                                    }
-                                });
-                            };
-
-                            if (isEditingAccess) {
-                                return (
-                                    <>
-                                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', textAlign: 'center' }}>Edit Pins</div>
-                                        {allAvailableTools.map((tool, idx) => {
-                                            const Icon = tool.icon;
-                                            const isPinned = pinnedTools.includes(tool.name);
-                                            return (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => toggleToolPin(tool.name)}
-                                                    title={`${isPinned ? 'Unpin' : 'Pin'} ${tool.name}`}
-                                                    style={{
-                                                        width: '38px', height: '38px', borderRadius: '12px',
-                                                        backgroundColor: isPinned ? tool.bg : '#F8FAFC',
-                                                        border: isPinned ? `2px solid ${tool.color}` : '1.5px dashed #CBD5E1',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        color: isPinned ? tool.color : '#94A3B8',
-                                                        cursor: 'pointer', transition: 'all 0.2s ease',
-                                                        outline: 'none', flexShrink: 0,
-                                                        position: 'relative',
-                                                        opacity: isPinned ? 1 : 0.6
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.transform = 'scale(1)';
-                                                    }}
-                                                >
-                                                    <Icon size={18} />
-                                                </button>
-                                            );
-                                        })}
-                                        <button
-                                            onClick={() => setIsEditingAccess(false)}
-                                            title="Done Editing"
-                                            style={{
-                                                width: '38px', height: '38px', borderRadius: '12px',
-                                                backgroundColor: '#10B981', border: 'none',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.2s ease',
-                                                outline: 'none', flexShrink: 0,
-                                                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
-                                                marginTop: '4px'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                        >
-                                            <Check size={18} />
-                                        </button>
-                                    </>
-                                );
-                            }
-
-                            // Normal Mode: Show only pinned tools
-                            const visibleTools = allAvailableTools.filter(t => pinnedTools.includes(t.name));
-
-                            return (
-                                <>
-                                    {visibleTools.map((tool, idx) => {
-                                        const Icon = tool.icon;
-                                        return (
-                                            <button
-                                                key={idx}
-                                                onClick={tool.action}
-                                                title={tool.name}
-                                                style={{
-                                                    width: '38px', height: '38px', borderRadius: '12px',
-                                                    backgroundColor: tool.bg, border: 'none',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
-                                                    outline: 'none', flexShrink: 0
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                }}
-                                            >
-                                                <Icon size={18} />
-                                            </button>
-                                        );
-                                    })}
-                                    <button
-                                        onClick={() => setIsEditingAccess(true)}
-                                        title="Add/Edit Icons"
-                                        style={{
-                                            width: '38px', height: '38px', borderRadius: '12px',
-                                            backgroundColor: 'transparent', border: '1.5px dashed #CBD5E1',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            color: '#94a3b8', cursor: 'pointer', transition: 'all 0.2s ease',
-                                            outline: 'none', flexShrink: 0
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.transform = 'scale(1.05)';
-                                            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform = 'scale(1)';
-                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                        }}
-                                    >
-                                        <Plus size={18} />
-                                    </button>
-                                </>
-                            );
-                        })()}
-                    </div>
-
-                    {/* Bottom Area: Edit & Settings */}
-                    <div style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
-                        gap: '12px', 
-                        paddingTop: '16px', 
-                        width: '100%',
-                        flexShrink: 0
-                    }}>
-                        {/* Horizontal Separator */}
-                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
-
-                        <button
-                            onClick={() => setIsEditingAccess(!isEditingAccess)}
-                            title="Edit Access Kit"
-                            style={{
-                                width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
-                                border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                            <Edit size={18} />
-                        </button>
-                        <button
-                            title="Settings / Customization"
-                            style={{
-                                width: '38px', height: '38px', borderRadius: '12px', 
-                                backgroundColor: '#F8FAFC',
-                                border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                            <Sliders size={18} />
-                        </button>
-                    </div>
-                </div>
-            </div>
         </header>
     );
 };
