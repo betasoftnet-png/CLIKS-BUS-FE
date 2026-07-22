@@ -71,7 +71,6 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     if (isBetaClub) {
         primaryColor = '#FFD700'; // Vibrant gold icon (#FFD700)
         activeBg = '#FFFDF0'; // Soft golden background hover states
-        activeText = '#FFD700'; // Set text color explicitly to gold
         darkTextColor = '#D97706'; // Warm golden amber for subheader labels
     } else if (isCa) {
         primaryColor = '#D4AF37'; // Elegant gold icon (#D4AF37)
@@ -91,7 +90,6 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         } else if (isBetaClub) {
             backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient
             primaryColor = '#FFD700'; // Keep the icon vibrant gold when active
-            activeText = '#FFD700'; // Pure gold text when active as requested
             darkTextColor = '#D97706'; // Warm golden amber for subheader labels
         } else if (isCa) {
             backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient

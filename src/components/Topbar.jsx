@@ -449,7 +449,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                 />
 
                 {/* Vertical Divider */}
-                <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255, 255, 255, 0.2)', marginLeft: '4px', marginRight: '4px' }} />
+                <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255, 255, 255, 0.2)', marginLeft: '14px', marginRight: '4px' }} />
 
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: '-10px' }}>
                     <button
@@ -498,31 +498,66 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                                     style={{
                                         position: 'fixed',
-                                        top: '64px',
+                                        top: 0,
                                         right: 0,
-                                        height: 'calc(100vh - 64px)',
+                                        height: '100vh',
                                         backgroundColor: '#FFFFFF',
-                                        borderLeft: '1px solid #CBD5E1',
+                                        borderLeft: '1px solid #99DBC3',
                                         boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
-                                        padding: '20px 0',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
                                         zIndex: isCalcOpen && !isMobile ? 2005 : 2000,
                                         width: '64px',
-                                        fontFamily: "'Inter', sans-serif"
+                                        fontFamily: "'Inter', sans-serif",
+                                        paddingBottom: '20px'
                                     }}
                                 >
-                                    {/* Top Area: Scrollable Tool List */}
+                                    {/* Top green header block */}
+                                    <div style={{
+                                        width: '100%',
+                                        height: '64px',
+                                        backgroundColor: '#135029',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                                        flexShrink: 0,
+                                        marginBottom: '20px'
+                                    }}>
+                                        <button
+                                            onClick={() => {
+                                                setIsAccessPopoverOpen(false);
+                                                setIsEditingAccess(false);
+                                            }}
+                                            title="Close Access Kit"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '11px',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                cursor: 'pointer',
+                                                color: '#FFFFFF',
+                                                outline: 'none'
+                                            }}
+                                        >
+                                            <Sliders size={18} />
+                                        </button>
+                                    </div>
+
+                                    {/* Scrollable Tool List */}
                                     <div className="access-tools-scroll" style={{ 
                                         display: 'flex', 
                                         flexDirection: 'column', 
                                         alignItems: 'center', 
-                                        gap: '10px',
+                                        gap: '12px',
                                         flex: 1,
                                         overflowY: 'auto',
-                                        paddingBottom: '16px',
                                         width: '100%',
                                         msOverflowStyle: 'none',
                                         scrollbarWidth: 'none'
@@ -558,18 +593,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                 e.currentTarget.style.borderColor = '#CBD5E1';
                                             }}
                                         >
-                                            <span style={{ 
-                                                fontFamily: 'Georgia, serif', 
-                                                color: '#1D4ED8',
-                                                fontSize: '22px', 
-                                                fontWeight: 'bold',
-                                                lineHeight: 1
-                                            }}>B</span>
+                                            <img src="/beta_logo.png" alt="Beta Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
                                         </button>
-
+ 
                                         {/* Horizontal Separator */}
-                                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8 }} />
-
+                                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8, flexShrink: 0 }} />
+ 
                                         {/* Dynamic tools mapping */}
                                         {(() => {
                                             const allAvailableTools = [
@@ -583,7 +612,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                 { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
                                                 { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
                                             ];
-
+ 
                                             const toggleToolPin = (toolName) => {
                                                 setPinnedTools(prev => {
                                                     if (prev.includes(toolName)) {
@@ -594,7 +623,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                     }
                                                 });
                                             };
-
+ 
                                             if (isEditingAccess) {
                                                 return (
                                                     <>
@@ -640,7 +669,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                                 outline: 'none', flexShrink: 0,
                                                                 boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
                                                                 marginTop: '4px'
-                                                            }}
+                                                             }}
                                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                                         >
@@ -649,10 +678,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                     </>
                                                 );
                                             }
-
+ 
                                             // Normal Mode: Show only pinned tools
                                             const visibleTools = allAvailableTools.filter(t => pinnedTools.includes(t.name));
-
+ 
                                             return (
                                                 <>
                                                     {visibleTools.map((tool, idx) => {
@@ -705,9 +734,20 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                             );
                                         })()}
                                     </div>
-
+ 
                                     {/* Bottom Area: Edit & Settings */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', paddingTop: '12px', borderTop: '1px solid #F1F5F9', width: '100%' }}>
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        gap: '12px', 
+                                        paddingTop: '16px', 
+                                        width: '100%',
+                                        flexShrink: 0
+                                    }}>
+                                        {/* Horizontal Separator */}
+                                        <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
+ 
                                         <button
                                             onClick={() => setIsEditingAccess(!isEditingAccess)}
                                             title="Edit Access Kit"
