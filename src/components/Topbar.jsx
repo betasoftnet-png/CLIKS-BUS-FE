@@ -588,7 +588,15 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                 />
 
                 {/* Vertical Divider */}
-                <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255, 255, 255, 0.2)', marginLeft: '14px', marginRight: '4px' }} />
+                <div style={{ 
+                    width: '1px', 
+                    height: '24px', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+                    marginLeft: '14px', 
+                    marginRight: '4px',
+                    alignSelf: 'center',
+                    flexShrink: 0
+                }} />
             </div>
 
             {/* Sliding Drawer Panels */}
