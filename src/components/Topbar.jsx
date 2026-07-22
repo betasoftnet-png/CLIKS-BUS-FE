@@ -156,7 +156,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     ];
 
     return (
-        <header className="topbar" style={{ paddingLeft: '1.5rem', paddingRight: '88px' }}>
+        <header className="topbar" style={{ paddingLeft: '1.5rem', paddingRight: '64px' }}>
             {/* Left: Branding / App Switcher */}
             <div className="topbar-left">
                 {/* ... existing logo code ... */}
@@ -252,7 +252,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             )}
 
             {/* Right Group (Audit + Profile) */}
-            <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '1rem' }}>
+            <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '0' }}>
                 {/* Search circular button */}
                 {(() => {
                     const searchInputRef = React.useRef(null);
@@ -462,8 +462,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     minHeight: '28px',
                     maxHeight: '28px',
                     backgroundColor: 'rgba(255, 255, 255, 0.18)', 
-                    marginLeft: '12px', 
-                    marginRight: '12px',
+                    marginLeft: '6px',
+                    marginRight: '16px',
                     alignSelf: 'center',
                     flexShrink: 0
                 }} />
