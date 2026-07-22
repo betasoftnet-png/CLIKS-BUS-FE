@@ -725,6 +725,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     flexShrink: 0
                 }}>
                     <button
+                        onClick={() => {
+                            setIsAccessPopoverOpen(!isAccessPopoverOpen);
+                            setIsLauncherOpen(false);
+                            setIsCalcOpen(false);
+                        }}
                         title="Settings / Customization"
                         style={{
                             display: 'flex',
@@ -733,7 +738,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '11px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            backgroundColor: isAccessPopoverOpen ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
                             cursor: 'pointer',
                             color: '#FFFFFF',
