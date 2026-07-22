@@ -332,7 +332,7 @@ function AppContent() {
                     <Route path="/sales/pos" element={<Navigate to="/pos" replace />} />
                     <Route path="/customization" element={<BusinessCustomization />} />
                     <Route path="/subscription" element={<BusinessSubscription />} />
-                    <Route path="/social/meetup" element={<BusinessMeetup />} />
+                    <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />
                     <Route path="/social/betaclub" element={<BusinessPitches />} />
                     <Route path="/social/investors" element={<Navigate to="/social/betaclub" replace />} />
                     <Route path="/social/trading" element={<BusinessTrading />} />
