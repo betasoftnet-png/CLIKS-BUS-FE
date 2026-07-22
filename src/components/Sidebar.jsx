@@ -710,49 +710,42 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     );
                 })()}
                 {/* Refer & Earn Block */}
-                {(isFinanceMode || isSocialMode) && (
-                    <button
-                        onClick={() => {
-                            if (onReferralClick) onReferralClick();
-                            if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
-                        }}
-                        style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.65rem',
-                            padding: '0.60rem',
-                            background: 'transparent',
-                            color: '#0F172A',
-                            borderRadius: '12px',
-                            border: '1px solid transparent',
-                            cursor: 'pointer',
-                            fontWeight: '700',
-                            fontSize: '0.875rem',
-                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                            outline: 'none',
-                            marginBottom: '6px'
-                        }}
-                        onMouseOver={() => {
-                            // e.currentTarget.style.background = 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)';
-                            // e.currentTarget.style.color = '#7C3AED';
-                            // e.currentTarget.style.borderColor = '#DDD6FE';
-                            // e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.15)';
-                            // e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = '#6B7280';
-                            e.currentTarget.style.borderColor = 'transparent';
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                    >
-                        <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
-                        <span>Refer &amp; Earn</span>
-                    </button>
-                )}
+                {(isFinanceMode || isSocialMode) && (() => {
+                    const isReferralActive = location.pathname.includes('/referral') || activeItem === 'Refer & Earn';
+                    return (
+                        <button
+                            onClick={() => {
+                                if (onReferralClick) onReferralClick();
+                                if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
+                            }}
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.75rem 1rem',
+                                background: '#FFFFFF',
+                                color: isReferralActive ? '#1B6B3A' : '#334155',
+                                borderRadius: '10px',
+                                border: '1px solid #D8F3E5',
+                                cursor: 'pointer',
+                                fontWeight: '700',
+                                fontSize: '0.85rem',
+                                transition: 'background 0.2s',
+                                outline: 'none',
+                                marginBottom: '6px'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#F9FBF9'}
+                            onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <Gift size={18} strokeWidth={2.5} style={{ color: isReferralActive ? '#1B6B3A' : '#8B5CF6', flexShrink: 0 }} />
+                                <span>Refer &amp; Earn</span>
+                            </div>
+                            <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                        </button>
+                    );
+                })()}
 
                 {/* Bottom Settings Block */}
                 <button
