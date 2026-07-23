@@ -51,8 +51,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
-    const [isCalcOpen, setIsCalcOpen] = React.useState(false);
-    const [isLauncherOpen, setIsLauncherOpen] = React.useState(false);
+    
+    const isLauncherActive = location.pathname === '/beta-launcher';
+    const isCalcActive = location.pathname === '/calculator';
     const [pinnedTools, setPinnedTools] = React.useState(() => {
         const saved = localStorage.getItem('cliks_pinned_tools');
         if (saved) {
@@ -90,9 +91,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             const isDesktop = window.innerWidth > 768;
 
             if (isDesktop) {
-                if (isCalcOpen || isLauncherOpen) {
-                    paddingRight = 424; // 360px (Drawer) + 64px (Toolbar)
-                } else if (isRightSidebarOpen) {
+                if (isRightSidebarOpen) {
                     paddingRight = 64; // Toolbar always takes 64px
                 } else {
                     paddingRight = 0; // Toolbar hidden by default
@@ -106,7 +105,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
         updatePadding();
         window.addEventListener('resize', updatePadding);
         return () => window.removeEventListener('resize', updatePadding);
-    }, [isRightSidebarOpen, isCalcOpen, isLauncherOpen]);
+    }, [isRightSidebarOpen]);
 
     // Rigid Mode Derivation for Admin & Sales desks to omit redundant consumer modules
     const isAdminOrSales = 
@@ -472,89 +471,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             {/* Sliding Drawer Panels */}
             <AnimatePresence>
 
-                {/* Beta Products Launcher Drawer */}
-                {isLauncherOpen && (
-                    <>
-                        <div 
-                            onClick={() => setIsLauncherOpen(false)}
-                            style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                width: 'calc(100vw - 64px)',
-                                height: '100vh',
-                                zIndex: 1999,
-                                backgroundColor: 'transparent'
-                            }}
-                        />
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-                            style={{
-                                position: 'fixed',
-                                top: 0,
-                                right: '64px',
-                                width: '360px',
-                                height: '100vh',
-                                backgroundColor: '#FFFFFF',
-                                borderLeft: '1px solid #99DBC3',
-                                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.05)',
-                                zIndex: 2000,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden'
-                            }}
-                        >
-                            <ProductLauncher onClose={() => setIsLauncherOpen(false)} />
-                        </motion.div>
-                    </>
-                )}
-
-                {/* Calculator Drawer */}
-                {isCalcOpen && (
-                    <>
-                        <div 
-                            onClick={() => setIsCalcOpen(false)}
-                            style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                width: 'calc(100vw - 64px)',
-                                height: '100vh',
-                                zIndex: 1999,
-                                backgroundColor: 'transparent'
-                            }}
-                        />
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-                            style={{
-                                position: 'fixed',
-                                top: 0,
-                                right: '64px',
-                                width: '360px',
-                                height: '100vh',
-                                backgroundColor: '#FFFFFF',
-                                borderLeft: '1px solid #99DBC3',
-                                boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.05)',
-                                zIndex: 2000,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden'
-                            }}
-                        >
-                            <CalcPopover 
-                                isInline={true} 
-                                onCloseInline={() => setIsCalcOpen(false)} 
-                            />
-                        </motion.div>
-                    </>
-                )}
-
                 {/* Fixed Right Toolbar */}
                 {isRightSidebarOpen && (
                     <motion.div
@@ -565,9 +481,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                         transition={{ type: 'spring', damping: 26, stiffness: 220 }}
                         style={{
                             position: 'fixed',
-                            top: 0,
+                            top: '64px',
                             right: 0,
-                            height: '100vh',
+                            height: 'calc(100vh - 64px)',
                             backgroundColor: '#FFFFFF',
                             boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
                             display: 'flex',
@@ -575,51 +491,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                             alignItems: 'center',
                             zIndex: 2005,
                             width: '64px',
-                            fontFamily: "'Inter', sans-serif"
+                            fontFamily: "'Inter', sans-serif",
+                            borderLeft: '1px solid #99DBC3'
                         }}
                     >
-                        {/* Top green header block */}
+                        {/* Toolbar Body Container */}
                         <div style={{
                             width: '100%',
-                            height: '64px',
-                            backgroundColor: '#135029',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                            flexShrink: 0
-                        }}>
-                            <button
-                                onClick={() => {
-                                    setIsRightSidebarOpen(false);
-                                    setIsLauncherOpen(false);
-                                    setIsCalcOpen(false);
-                                }}
-                                title="Close Toolbar"
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: '11px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                                    cursor: 'pointer',
-                                    color: '#FFFFFF',
-                                    outline: 'none',
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                <Sliders size={18} />
-                            </button>
-                        </div>
-
-                        {/* Toolbar Body Container (adds left border below header block) */}
-                        <div style={{
-                            width: '100%',
-                            height: 'calc(100vh - 64px)',
-                            borderLeft: '1px solid #99DBC3',
+                            height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
@@ -646,17 +525,15 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 {/* Blue B Logo Button */}
                                 <button
                                     onClick={() => {
-                                        setIsLauncherOpen(!isLauncherOpen);
-                                        setIsCalcOpen(false);
-                                        setIsAccessPopoverOpen(false);
+                                        navigate('/beta-launcher');
                                     }}
                                     title="Beta Products Launcher"
                                     style={{
                                         width: '38px',
                                         height: '38px',
                                         borderRadius: '12px',
-                                        backgroundColor: isLauncherOpen ? '#DCF2E4' : '#FFFFFF',
-                                        border: isLauncherOpen ? '1.5px solid #1B6B3A' : '1.5px solid #CBD5E1',
+                                        backgroundColor: isLauncherActive ? '#DCF2E4' : '#FFFFFF',
+                                        border: isLauncherActive ? '1.5px solid #1B6B3A' : '1.5px solid #CBD5E1',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -667,11 +544,11 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.transform = 'scale(1.05)';
-                                        e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#94A3B8';
+                                        e.currentTarget.style.borderColor = isLauncherActive ? '#1B6B3A' : '#94A3B8';
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.transform = 'scale(1)';
-                                        e.currentTarget.style.borderColor = isLauncherOpen ? '#1B6B3A' : '#CBD5E1';
+                                        e.currentTarget.style.borderColor = isLauncherActive ? '#1B6B3A' : '#CBD5E1';
                                     }}
                                 >
                                     <img src="/beta_logo.png" alt="Beta Logo" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
@@ -682,19 +559,18 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
 
                                 {/* Dynamic tools mapping */}
                                 {(() => {
+                                    const getToolPath = (name) => '/' + name.toLowerCase().replace('contact', 'contact').replace('beta trust', 'beta-trust');
+
                                     const allAvailableTools = [
-                                        { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => alert('Calendar module coming soon!') },
-                                        { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => {
-                                            setIsCalcOpen(!isCalcOpen);
-                                            setIsLauncherOpen(false);
-                                        } },
-                                        { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => alert('Contact module coming soon!') },
-                                        { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => alert('Beta Trust module coming soon!') },
-                                        { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => alert('Keyboard module coming soon!') },
-                                        { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => alert('Translator module coming soon!') },
-                                        { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => alert('Lens module coming soon!') },
-                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => alert('Weather module coming soon!') },
-                                        { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => alert('News module coming soon!') }
+                                        { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => navigate('/calendar') },
+                                        { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => navigate('/calculator') },
+                                        { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => navigate('/contact') },
+                                        { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => navigate('/beta-trust') },
+                                        { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => navigate('/keyboard') },
+                                        { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => navigate('/translator') },
+                                        { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => navigate('/lens') },
+                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => navigate('/weather') },
+                                        { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => navigate('/news') }
                                     ];
 
                                     const toggleToolPin = (toolName) => {
@@ -770,6 +646,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                         <>
                                             {visibleTools.map((tool, idx) => {
                                                 const Icon = tool.icon;
+                                                const isActive = location.pathname === getToolPath(tool.name);
                                                 return (
                                                     <button
                                                         key={idx}
@@ -777,7 +654,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                                         title={tool.name}
                                                         style={{
                                                             width: '38px', height: '38px', borderRadius: '12px',
-                                                            backgroundColor: tool.bg, border: 'none',
+                                                            backgroundColor: isActive ? '#DCF2E4' : tool.bg,
+                                                            border: isActive ? `2px solid ${tool.color}` : 'none',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                             color: tool.color, cursor: 'pointer', transition: 'all 0.2s ease',
                                                             outline: 'none', flexShrink: 0
@@ -865,42 +743,48 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
             </AnimatePresence>
 
             {/* Always Visible Top-Right Toolbar Toggle Button */}
-            {!isRightSidebarOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    right: 0,
-                    width: '64px',
-                    height: '64px',
-                    backgroundColor: '#135029',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1001,
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-                }}>
-                    <button
-                        onClick={() => setIsRightSidebarOpen(true)}
-                        title="Open Toolbar"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '11px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            cursor: 'pointer',
-                            color: '#FFFFFF',
-                            outline: 'none',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <Sliders size={18} />
-                    </button>
-                </div>
-            )}
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                width: '64px',
+                height: '64px',
+                backgroundColor: '#135029',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1001,
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+                <button
+                    onClick={() => {
+                        if (isRightSidebarOpen) {
+                            setIsRightSidebarOpen(false);
+                            setIsLauncherOpen(false);
+                            setIsCalcOpen(false);
+                        } else {
+                            setIsRightSidebarOpen(true);
+                        }
+                    }}
+                    title={isRightSidebarOpen ? "Close Toolbar" : "Open Toolbar"}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '11px',
+                        backgroundColor: isRightSidebarOpen ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        cursor: 'pointer',
+                        color: '#FFFFFF',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    <Sliders size={18} />
+                </button>
+            </div>
         </header>
     );
 };

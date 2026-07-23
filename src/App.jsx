@@ -76,6 +76,8 @@ import BusinessPaymentPlan from './pages/BusinessPaymentPlan';
 import BusinessMeetup from './pages/BusinessMeetup';
 import BusinessPitches from './pages/BusinessPitches';
 import VerifyPass from './pages/VerifyPass';
+import BusinessCalculator from './pages/BusinessCalculator';
+import BusinessLauncher from './pages/BusinessLauncher';
 
 import './App.css';
 
@@ -341,6 +343,17 @@ function AppContent() {
                     <Route path="/bnxmail" element={<BusinessPlaceholder title="BNXmail" />} />
                     <Route path="/bit-tool" element={<BusinessPlaceholder title="Bit-Tool" />} />
                     <Route path="/b2auth" element={<BusinessPlaceholder title="B2Auth" />} />
+
+                    <Route path="/calculator" element={<BusinessCalculator />} />
+                    <Route path="/beta-launcher" element={<BusinessLauncher />} />
+                    <Route path="/calendar" element={<BusinessPlaceholder title="Calendar" />} />
+                    <Route path="/contact" element={<BusinessPlaceholder title="Contact / ID Card" />} />
+                    <Route path="/beta-trust" element={<BusinessPlaceholder title="Beta Trust" />} />
+                    <Route path="/keyboard" element={<BusinessPlaceholder title="Keyboard" />} />
+                    <Route path="/translator" element={<BusinessPlaceholder title="Translator" />} />
+                    <Route path="/lens" element={<BusinessPlaceholder title="Lens" />} />
+                    <Route path="/weather" element={<BusinessPlaceholder title="Weather" />} />
+                    <Route path="/news" element={<BusinessPlaceholder title="News" />} />
 
                   </Routes>
                 </Suspense>
