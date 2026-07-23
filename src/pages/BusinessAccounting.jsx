@@ -97,6 +97,7 @@ const BusinessAccounting = () => {
             queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
             setIsEntryModalOpen(false);
+            resetForm();
             alert('Financial Entry registered and saved successfully!');
         }
     });
@@ -167,11 +168,22 @@ const BusinessAccounting = () => {
     const [entryForm, setEntryForm] = useState({
         entry_type: 'income',
         date: new Date().toISOString().split('T')[0],
-        amount: '',
+        amount: '0',
         category: 'Sales Revenue',
         mode: 'Cash in Hand',
         notes: ''
     });
+
+    const resetForm = () => {
+        setEntryForm({
+            entry_type: 'income',
+            date: new Date().toISOString().split('T')[0],
+            amount: '0',
+            category: 'Sales Revenue',
+            mode: 'Cash in Hand',
+            notes: ''
+        });
+    };
 
     const handleSaveEntry = (e) => {
         e.preventDefault();
@@ -347,7 +359,10 @@ const BusinessAccounting = () => {
                         <Download size={15} /> Secure FIN-PRO Export
                     </button>
                     <button
-                        onClick={() => setIsEntryModalOpen(true)}
+                        onClick={() => {
+                            resetForm();
+                            setIsEntryModalOpen(true);
+                        }}
                         className="crm-btn"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)' }}
                     >
