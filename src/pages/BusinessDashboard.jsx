@@ -12,7 +12,6 @@ import {
     Clock,
     Target,
     ArrowUpRight,
-    Search,
     Plus,
     X,
     Settings,
@@ -206,14 +205,7 @@ const BusinessDashboard = () => {
                     <p>Monitor your enterprise performance and operations.</p>
                 </div>
                 <div className="dashboard-header-actions">
-                    <div className="dashboard-search-wrapper">
-                        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                        <input
-                            type="text"
-                            placeholder="Search analytics..."
-                            className="dashboard-search-input"
-                        />
-                    </div>
+
 
                     <button
                         onClick={() => setIsModalOpen(true)}

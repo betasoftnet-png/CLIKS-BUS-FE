@@ -567,8 +567,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 <div style={{ flex: 1 }} />
             </div> {/* END OF sidebar-scroll-container */}
 
-            {/* Refer & Earn Block (Original style) - rendered for Social mode above the footer */}
-            {isSocialMode && (
+            {/* Refer & Earn Block (Original style) - rendered for Social/Finance mode above the footer */}
+            {(isSocialMode || isFinanceMode) && (
                 <div style={{ padding: '0 1rem', marginBottom: '0.75rem', flexShrink: 0 }}>
                     <button
                         onClick={() => {
@@ -659,10 +659,13 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 )}
  
                 {/* Unified Subscription Conversion Card */}
-                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (() => {
-                    const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(selectedPlan);
+                {(!isAdminMode && !isSalesAgentMode) && (() => {
+                    const displayPlan = (isSocialMode || isFinanceMode) ? 'Elite Suite' : selectedPlan;
+                    const displayDays = (isSocialMode || isFinanceMode) ? 365 : planDaysRemaining;
+
+                    const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(displayPlan);
                     const totalDays = isAnnual ? 365 : 30;
-                    const progressPercent = Math.min(100, Math.max(0, (planDaysRemaining / totalDays) * 100));
+                    const progressPercent = Math.min(100, Math.max(0, (displayDays / totalDays) * 100));
                     const strokeDashoffset = 113 * (1 - progressPercent / 100);
 
                     return (
@@ -700,7 +703,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                     <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800' }}>
-                                        {selectedPlan}
+                                        {displayPlan}
                                     </span>
                                     <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
                                         Manage Plan
@@ -748,50 +751,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                     />
                                 </svg>
                                 <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
-                                    <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>{planDaysRemaining}</span>
+                                    <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>{displayDays}</span>
                                     <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
                                 </div>
                             </div>
                         </button>
                     );
                 })()}
-                {/* Refer & Earn Block */}
-                {isFinanceMode && (() => {
-                    const isReferralActive = location.pathname.includes('/referral') || activeItem === 'Refer & Earn';
-                    return (
-                        <button
-                            onClick={() => {
-                                if (onReferralClick) onReferralClick();
-                                if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) onClose();
-                            }}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.75rem 1rem',
-                                background: '#FFFFFF',
-                                color: isReferralActive ? '#1B6B3A' : '#334155',
-                                borderRadius: '10px',
-                                border: '1px solid #D8F3E5',
-                                cursor: 'pointer',
-                                fontWeight: '700',
-                                fontSize: '0.85rem',
-                                transition: 'background 0.2s',
-                                outline: 'none',
-                                marginBottom: '6px'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#F9FBF9'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <Gift size={18} strokeWidth={2.5} style={{ color: isReferralActive ? '#1B6B3A' : '#8B5CF6', flexShrink: 0 }} />
-                                <span>Refer &amp; Earn</span>
-                            </div>
-                            <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                        </button>
-                    );
-                })()}
+
 
                 {/* Bottom Settings Block */}
                 <button

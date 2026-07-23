@@ -442,11 +442,11 @@ const ProductLauncher = ({ onClose }) => {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 0.75rem 1rem;
+                    padding: 0.4rem 1rem;
                     border-bottom: 1px solid #f1f5f9;
                     width: 100%;
                     flex-wrap: nowrap;
-                    height: 64px;
+                    height: 52px;
                     flex-shrink: 0;
                 }
                 .launcher-header-left {
@@ -518,13 +518,13 @@ const ProductLauncher = ({ onClose }) => {
                 }
 
                 .launcher-scrollable {
-                    padding: 1rem;
+                    padding: 0.75rem;
                     overflow-y: auto;
                     overflow-x: hidden;
                     flex: 1;
                     display: flex;
                     flex-direction: column;
-                    gap: 1rem;
+                    gap: 0.75rem;
                     width: 100%;
                 }
                 
@@ -555,16 +555,16 @@ const ProductLauncher = ({ onClose }) => {
                     background: #f8fafc;
                     border: 1px solid #e2e8f0;
                     border-radius: 16px;
-                    padding: 0.75rem;
+                    padding: 0.55rem;
                     width: 100%;
-                    gap: 0.75rem;
+                    gap: 0.55rem;
                     align-items: stretch;
                 }
                 .launcher-toggle-header {
                     display: flex;
                     align-items: center;
                     border-bottom: 1px solid #e2e8f0;
-                    padding-bottom: 0.5rem;
+                    padding-bottom: 0.35rem;
                     width: 100%;
                 }
                 .launcher-toggle-half {
@@ -624,7 +624,7 @@ const ProductLauncher = ({ onClose }) => {
                 .launcher-split-grid {
                     display: grid;
                     grid-template-columns: repeat(4, 1fr);
-                    gap: 0.75rem;
+                    gap: 0.6rem;
                 }
                 .launcher-mini-item-wrapper {
                     display: flex;
@@ -639,8 +639,8 @@ const ProductLauncher = ({ onClose }) => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 58px;
-                    height: 58px;
+                    width: 55px;
+                    height: 55px;
                     border-radius: 16px;
                     background: #ffffff;
                     border: 1px solid #e2e8f0;
@@ -750,12 +750,13 @@ const ProductLauncher = ({ onClose }) => {
                 .launcher-main-grid {
                     display: grid;
                     grid-template-columns: repeat(4, 1fr);
-                    gap: 0.75rem;
+                    column-gap: 0.75rem;
+                    row-gap: 0.55rem;
                     width: 100%;
                     justify-items: center;
                     align-items: center;
                 }
-
+ 
                 .launcher-all-card {
                     position: relative;
                     display: flex;
@@ -763,8 +764,8 @@ const ProductLauncher = ({ onClose }) => {
                     align-items: center;
                     justify-content: center;
                     gap: 6px;
-                    width: 74px;
-                    height: 74px;
+                    width: 70px;
+                    height: 70px;
                     border-radius: 16px;
                     cursor: pointer;
                     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -790,17 +791,17 @@ const ProductLauncher = ({ onClose }) => {
                     align-items: center;
                     justify-content: center;
                     flex-shrink: 0;
-                    width: 34px;
-                    height: 34px;
+                    width: 30px;
+                    height: 30px;
                 }
                 .launcher-grid-img-icon {
-                    width: 34px;
-                    height: 34px;
+                    width: 30px;
+                    height: 30px;
                     object-fit: contain;
                 }
                 .launcher-mini-img-icon {
-                    width: 26px;
-                    height: 26px;
+                    width: 24px;
+                    height: 24px;
                     object-fit: contain;
                 }
                 .launcher-all-card:hover {
@@ -854,7 +855,7 @@ const ProductLauncher = ({ onClose }) => {
                     align-items: center;
                     justify-content: center;
                     text-align: center;
-                    padding: 0.75rem;
+                    padding: 0.55rem;
                     background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(248, 250, 252, 0.85) 100%);
                     border: 1px solid rgba(226, 232, 240, 0.8);
                     border-radius: 20px;
@@ -863,7 +864,8 @@ const ProductLauncher = ({ onClose }) => {
                                 inset 0 1px 0 rgba(255, 255, 255, 0.6);
                     backdrop-filter: blur(12px);
                     width: 100%;
-                    gap: 0.35rem;
+                    gap: 0.25rem;
+                    margin-top: -0.1rem;
                 }
                 .launcher-labs-glow {
                     position: absolute;
@@ -993,7 +995,7 @@ const ProductLauncher = ({ onClose }) => {
                 }
 
                 .launcher-footer {
-                    padding: 0.65rem 1rem;
+                    padding: 0.4rem 1rem;
                     background: #f8fafc;
                     border-top: 1px solid #f1f5f9;
                     display: flex;
@@ -1007,7 +1009,7 @@ const ProductLauncher = ({ onClose }) => {
                     letter-spacing: 0.5px;
                     width: 100%;
                     flex-shrink: 0;
-                    height: 48px;
+                    height: 40px;
                 }
                 .launcher-footer-divider {
                     color: #cbd5e1;
