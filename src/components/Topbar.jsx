@@ -16,7 +16,7 @@ import ProductLauncher from './ProductLauncher';
 
 
 
-const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
+const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel }) => {
     const { logout, user, selectedPlan } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -52,8 +52,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
     
-    const isLauncherActive = location.pathname === '/beta-launcher';
-    const isCalcActive = location.pathname === '/calculator';
+    const isLauncherActive = activePanel === 'Beta Products';
+    const isCalcActive = activePanel === 'Calculator';
     const [pinnedTools, setPinnedTools] = React.useState(() => {
         const saved = localStorage.getItem('cliks_pinned_tools');
         if (saved) {
@@ -174,8 +174,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
                     title="Toggle Sidebar"
                 >
-                    <div className="brand-logo-small" style={{ backgroundColor: '#f0fdf4', borderRadius: '8px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
-                        <img src={logoPng} alt="CLIKS Logo" style={{ width: '28px', height: '28px' }} />
+                    <div className="brand-logo-small" style={{ backgroundColor: '#FFFFFF', borderRadius: '8px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+                        <img src={logoPng} alt="CLIKS Logo" style={{ width: '75%', height: '75%', objectFit: 'contain' }} />
                     </div>
                     <span style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: '800', letterSpacing: '0.5px' }}>
                         Cliks<span className="logo-business-text"> Business</span>
@@ -525,7 +525,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                 {/* Blue B Logo Button */}
                                 <button
                                     onClick={() => {
-                                        navigate('/beta-launcher');
+                                        setActivePanel(activePanel === 'Beta Products' ? null : 'Beta Products');
                                     }}
                                     title="Beta Products Launcher"
                                     style={{
@@ -562,15 +562,15 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                                     const getToolPath = (name) => '/' + name.toLowerCase().replace('contact', 'contact').replace('beta trust', 'beta-trust');
 
                                     const allAvailableTools = [
-                                        { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => navigate('/calendar') },
-                                        { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => navigate('/calculator') },
-                                        { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => navigate('/contact') },
-                                        { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => navigate('/beta-trust') },
-                                        { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => navigate('/keyboard') },
-                                        { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => navigate('/translator') },
-                                        { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => navigate('/lens') },
-                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => navigate('/weather') },
-                                        { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => navigate('/news') }
+                                        { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => setActivePanel(activePanel === 'Calendar' ? null : 'Calendar') },
+                                        { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => setActivePanel(activePanel === 'Calculator' ? null : 'Calculator') },
+                                        { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => setActivePanel(activePanel === 'Contact' ? null : 'Contact') },
+                                        { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => setActivePanel(activePanel === 'Beta Trust' ? null : 'Beta Trust') },
+                                        { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => setActivePanel(activePanel === 'Keyboard' ? null : 'Keyboard') },
+                                        { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => setActivePanel(activePanel === 'Translator' ? null : 'Translator') },
+                                        { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => setActivePanel(activePanel === 'Lens' ? null : 'Lens') },
+                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => setActivePanel(activePanel === 'Weather' ? null : 'Weather') },
+                                        { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => setActivePanel(activePanel === 'News' ? null : 'News') }
                                     ];
 
                                     const toggleToolPin = (toolName) => {
@@ -760,8 +760,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen }) => {
                     onClick={() => {
                         if (isRightSidebarOpen) {
                             setIsRightSidebarOpen(false);
-                            setIsLauncherOpen(false);
-                            setIsCalcOpen(false);
+                            if (setActivePanel) setActivePanel(null);
                         } else {
                             setIsRightSidebarOpen(true);
                         }
