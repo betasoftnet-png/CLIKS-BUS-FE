@@ -150,7 +150,7 @@ const ProductLauncher = ({ onClose }) => {
             {/* Header */}
             <div className="launcher-header-wrapper">
                 <div className="launcher-header-left">
-                    <h2 id="launcher-title" className="launcher-brand-title" style={{ color: '#1B6B3A' }}>
+                    <h2 id="launcher-title" className="launcher-brand-title" style={{ color: '#004aad' }}>
                         BETA
                     </h2>
                 </div>
@@ -422,6 +422,8 @@ const ProductLauncher = ({ onClose }) => {
 
             {/* Premium Styles */}
             <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Saira+Stencil+One&display=swap');
+
                 .launcher-panel-content {
                     display: flex;
                     flex-direction: column;
