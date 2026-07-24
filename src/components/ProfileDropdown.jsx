@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
@@ -365,10 +365,10 @@ export function ProfileDropdown({
             right: 0,
             top: 'calc(100% + 10px)',
             zIndex: 1000,
-            width: '260px',
-            borderRadius: '16px',
+            width: '290px',
+            borderRadius: '24px',
             backgroundColor: '#ffffff',
-            boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.25)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
             border: '1px solid #e5e7eb',
             overflow: 'hidden',
             padding: '8px',
@@ -411,7 +411,7 @@ export function ProfileDropdown({
             transition: 'all 0.15s ease',
         },
         logoutItem: {
-            color: '#ef4444',
+            color: '#D93025',
         },
         submenuHeader: {
             display: 'flex',
@@ -651,33 +651,107 @@ export function ProfileDropdown({
                             </div>
                         ) : (
                             <>
-                                <div style={styles.header}>
-                                    <p style={styles.signedInText}>Signed in as</p>
-                                    <p style={styles.emailText} title={displayEmail}>{displayEmail}</p>
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        gap: '6px', 
-                                        marginTop: '6px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        color: '#4b5563'
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    padding: '24px 16px 18px 16px',
+                                    borderBottom: '1px solid #f3f4f6',
+                                    textAlign: 'center'
+                                }}>
+                                    {/* Avatar circular */}
+                                    <div style={{
+                                        position: 'relative',
+                                        width: '80px',
+                                        height: '80px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#1A73E8',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#ffffff',
+                                        fontSize: '32px',
+                                        fontWeight: '700',
+                                        marginBottom: '12px',
+                                        boxShadow: '0 4px 12px rgba(26, 115, 232, 0.15)'
                                     }}>
-                                        <span>{countryFlag}</span>
-                                        <span>{selectedCountry || "Select Country"}</span>
+                                        {displayName.charAt(0).toUpperCase()}
+                                        
+                                        {/* Camera Icon Overlap */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: '0',
+                                            right: '0',
+                                            width: '26px',
+                                            height: '26px',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#ffffff',
+                                            border: '1px solid #d1d5db',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.08)'
+                                        }}>
+                                            <Camera size={13} color="#5f6368" />
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    {/* User Name */}
+                                    <div style={{
+                                        fontSize: '16px',
+                                        fontWeight: '700',
+                                        color: '#202124',
+                                        marginBottom: '2px'
+                                    }}>
+                                        {displayName}
+                                    </div>
+
+                                    {/* Email */}
+                                    <div style={{
+                                        fontSize: '13px',
+                                        color: '#5f6368',
+                                        marginBottom: '16px',
+                                        maxWidth: '100%',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                    }}>
+                                        {displayEmail}
+                                    </div>
+
+                                    {/* Manage Account Button */}
                                     <button
                                         onClick={() => { onAccount?.(); setOpen(false); }}
-                                        style={styles.menuItem}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            padding: '8px 16px',
+                                            borderRadius: '999px',
+                                            border: '1px solid #e5e7eb',
+                                            backgroundColor: '#ffffff',
+                                            fontSize: '13px',
+                                            fontWeight: '700',
+                                            color: '#1f2937',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#f9fafb';
+                                            e.currentTarget.style.borderColor = '#d1d5db';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#ffffff';
+                                            e.currentTarget.style.borderColor = '#e5e7eb';
+                                        }}
                                     >
-                                        <User size={18} />
-                                        Account Profile
+                                        <UserCog size={14} color="#4b5563" />
+                                        Manage your account
                                     </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0 0 0' }}>
                                     
                                     <button
                                         style={styles.menuItem}
