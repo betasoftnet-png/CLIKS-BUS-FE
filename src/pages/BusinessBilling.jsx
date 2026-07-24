@@ -1451,9 +1451,12 @@ const BusinessBilling = () => {
                                     {activeConfig.loyalty !== false && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                                    ⭐ Available Points : {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0}
-                                                </span>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
+                                                    <Tag size={12} /> Loyalty Points
+                                                </label>
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem', margin: '0.1rem 0' }}>
+                                                ⭐ Available Points: {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0}
                                             </div>
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                 <input 
