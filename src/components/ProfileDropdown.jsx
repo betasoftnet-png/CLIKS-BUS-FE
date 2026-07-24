@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
@@ -751,7 +751,31 @@ export function ProfileDropdown({
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0' }}>
+                                    <button
+                                        onClick={() => {
+                                            window.location.href = '/login';
+                                        }}
+                                        style={styles.menuItem}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        <UserPlus size={18} color="#5f6368" />
+                                        <span>Add another account</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => { onLogout?.(); setOpen(false); }}
+                                        style={styles.menuItem}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        <LogOut size={18} color="#5f6368" />
+                                        <span>Sign out of this account</span>
+                                    </button>
+
+                                    <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '6px 8px' }} />
+
                                     <button
                                         onClick={() => { onLogout?.(); setOpen(false); }}
                                         style={{ ...styles.menuItem, ...styles.logoutItem, justifyContent: 'center', fontWeight: '800' }}
