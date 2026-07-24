@@ -904,7 +904,7 @@ export function ProfileDropdown({
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <LogOut size={18} color="#5f6368" />
-                                        <span>Sign out of this account</span>
+                                        <span>Sign out of all accounts</span>
                                     </button>
 
                                     <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '6px 8px' }} />
