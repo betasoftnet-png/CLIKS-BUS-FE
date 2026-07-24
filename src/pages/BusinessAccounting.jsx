@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -120,6 +120,34 @@ const BusinessAccounting = () => {
         queryKey: ['bankAccounts'],
         queryFn: () => accountingService.getBankAccounts()
     });
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return dateStr;
+        const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+            return `${match[3]}-${match[2]}-${match[1]}`;
+        }
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${dd}-${mm}-${yyyy}`;
+        } catch (e) {
+            return dateStr;
+        }
+    };
+
+    useEffect(() => {
+        if (dbBankAccounts && dbBankAccounts.length > 0) {
+            const exists = dbBankAccounts.some(a => a.id === selectedAccId);
+            if (!exists) {
+                setSelectedAccId(dbBankAccounts[0].id);
+            }
+        }
+    }, [dbBankAccounts, selectedAccId]);
 
     // Mutations
     const recordEntryMutation = useMutation({
@@ -527,7 +555,38 @@ const BusinessAccounting = () => {
                     const activeIndex = accountsToDisplay.findIndex(a => a.id === selectedAccId);
                     const selectedIndex = activeIndex !== -1 ? activeIndex : 0;
                     const selectedAccount = accountsToDisplay[selectedIndex];
-                    const selectedTransactions = mockTransactions[selectedAccount?.id || (selectedIndex + 1)] || mockTransactions[1];
+
+                    const accountTransactions = dbLedger
+                        .filter(tx => selectedAccount && String(tx.mode).toLowerCase() === String(selectedAccount.account_name).toLowerCase())
+                        .sort((a, b) => a.id - b.id);
+
+                    const initialBalance = selectedAccount 
+                        ? (parseFloat(selectedAccount.balance) || 0) 
+                          - (parseFloat(selectedAccount.total_income) || 0) 
+                          + (parseFloat(selectedAccount.total_expenses) || 0)
+                        : 0;
+
+                    let runningBal = initialBalance;
+                    const processedTxList = accountTransactions.map(tx => {
+                        const type = tx.entry_type === 'income' ? 'Credit' : 'Debit';
+                        if (type === 'Credit') {
+                            runningBal += tx.amount;
+                        } else {
+                            runningBal -= tx.amount;
+                        }
+                        return {
+                            date: formatDate(tx.date),
+                            description: tx.notes || tx.category || 'Transaction Entry',
+                            type: type,
+                            amount: tx.amount,
+                            balance: runningBal
+                        };
+                    });
+
+                    const finalTxList = [...processedTxList].reverse();
+                    const selectedTransactions = finalTxList.length > 0 
+                        ? finalTxList 
+                        : (mockTransactions[selectedAccount?.id] || mockTransactions[selectedAccount?.account_name === 'Cash in Hand' ? 1 : 2] || []);
 
                     const totalCashVal = dbBankAccounts.length > 0
                         ? dbBankAccounts.filter(a => a.bank_type === 'Cash' || a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
@@ -640,7 +699,7 @@ const BusinessAccounting = () => {
                                                     <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Description</th>
                                                     <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Type</th>
                                                     <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Amount</th>
-                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Balance</th>
+                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Balance After</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
