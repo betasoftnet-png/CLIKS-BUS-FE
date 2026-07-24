@@ -751,99 +751,10 @@ export function ProfileDropdown({
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0 0 0' }}>
-                                    
-                                    <button
-                                        style={styles.menuItem}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <Globe size={18} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                            <span>Language</span>
-                                            <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>English</span>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setIsCurrencySelectorOpen(true)}
-                                        style={styles.menuItem}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <Coins size={18} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                            <span>Currency</span>
-                                            <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '550' }}>{selectedCurrency}</span>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setIsCountrySelectorOpen(true)}
-                                        style={styles.menuItem}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <Flag size={18} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                            <span>Country</span>
-                                            <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '550' }}>{selectedCountry}</span>
-                                        </div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setIsTrustOpen(!isTrustOpen)}
-                                        style={styles.menuItem}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <ShieldCheck size={18} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                            <span>Beta Trust</span>
-                                            <span style={{ fontSize: '11.5px', color: '#10B981', fontWeight: '800' }}>{trustData.total}%</span>
-                                        </div>
-                                    </button>
-
-                                    {isTrustOpen && (
-                                        <div style={{
-                                            background: '#f8fafc',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '10px',
-                                            padding: '12px',
-                                            margin: '4px 8px 8px 8px',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '6px'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Base Score</span>
-                                                <span style={{ fontWeight: '700', color: '#10B981' }}>{trustData.base}%</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Subscription Bonus</span>
-                                                <span style={{ fontWeight: '700', color: trustData.sub > 0 ? '#10B981' : '#94a3b8' }}>+{trustData.sub}%</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Profile Completeness</span>
-                                                <span style={{ fontWeight: '700', color: trustData.profile > 0 ? '#10B981' : '#94a3b8' }}>+{trustData.profile}%</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                                                <span style={{ color: '#64748b', fontWeight: '600' }}>Daily Activity Bonus</span>
-                                                <span style={{ fontWeight: '700', color: trustData.activity > 0 ? '#10B981' : '#94a3b8' }}>+{trustData.activity}%</span>
-                                            </div>
-                                            <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '4px 0' }} />
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800' }}>
-                                                <span style={{ color: '#1e293b' }}>Total Trust Score</span>
-                                                <span style={{ color: '#047857' }}>{trustData.total}%</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '8px 0' }} />
-                                    
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px' }}>
                                     <button
                                         onClick={() => { onLogout?.(); setOpen(false); }}
-                                        style={{ ...styles.menuItem, ...styles.logoutItem }}
+                                        style={{ ...styles.menuItem, ...styles.logoutItem, justifyContent: 'center', fontWeight: '800' }}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
