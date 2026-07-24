@@ -208,6 +208,12 @@ const BusinessAccounting = () => {
         queryFn: () => accountingService.getBankAccounts()
     });
 
+    const { data: dbPurchases = [] } = useQuery({
+        queryKey: ['purchases'],
+        queryFn: () => accountingService.getPurchases(),
+        refetchOnWindowFocus: false
+    });
+
     const formatDate = (dateStr) => {
         if (!dateStr) return 'N/A';
         if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return dateStr;
@@ -239,15 +245,38 @@ const BusinessAccounting = () => {
     // Mutations
     const recordEntryMutation = useMutation({
         mutationFn: (data) => accountingService.recordEntry(data),
-        onSuccess: () => {
+        onSuccess: (res, variables) => {
             queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
             queryClient.invalidateQueries({ queryKey: ['ledger'] });
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
             setIsEntryModalOpen(false);
             resetForm();
-            alert('Financial Entry registered and saved successfully!');
+
+            // Dynamic success notifications
+            const type = variables.entry_type;
+            if (type === 'income') {
+                alert('Income recorded successfully.');
+            } else if (type === 'credit_sale') {
+                alert('Credit Sale created successfully.');
+            } else if (type === 'customer_payment') {
+                alert('Customer payment recorded successfully.');
+            } else if (type === 'expense') {
+                alert('Expense recorded successfully.');
+            } else if (type === 'credit_purchase') {
+                alert('Credit Purchase created successfully.');
+            } else if (type === 'supplier_payment') {
+                alert('Supplier payment recorded successfully.');
+            } else if (type === 'bank_deposit') {
+                alert('Bank deposit recorded successfully.');
+            } else if (type === 'bank_withdrawal') {
+                alert('Bank withdrawal recorded successfully.');
+            } else {
+                alert('Financial Entry registered and saved successfully!');
+            }
         }
     });
 
@@ -336,36 +365,252 @@ const BusinessAccounting = () => {
         setIsExportModalOpen(false);
     };
 
+    // Unique Number Generators
+    const generateUniqueInvoiceNumber = () => {
+        let num;
+        let isDuplicate = true;
+        let limit = 0;
+        while (isDuplicate && limit < 100) {
+            num = 'INV-' + Math.floor(100000 + Math.random() * 900000);
+            isDuplicate = dbInvoices.some(inv => inv.invoice_number === num);
+            limit++;
+        }
+        return num;
+    };
+
+    const generateUniqueBillNumber = () => {
+        let num;
+        let isDuplicate = true;
+        let limit = 0;
+        while (isDuplicate && limit < 100) {
+            num = 'BILL-' + Math.floor(100000 + Math.random() * 900000);
+            isDuplicate = dbPurchases.some(b => b.purchase_number === num);
+            limit++;
+        }
+        return num;
+    };
+
     // Form inputs state
     const [entryForm, setEntryForm] = useState({
         entry_type: 'income',
         date: new Date().toISOString().split('T')[0],
-        amount: '0',
+        amount: '',
         category: 'Sales Revenue',
         mode: 'Cash in Hand',
-        notes: ''
+        notes: '',
+        customer_name: '',
+        invoice_number: '',
+        due_date: '',
+        supplier_name: '',
+        bill_number: '',
+        reference_number: '',
+        payment_mode_from: 'Cash in Hand',
+        payment_mode_to: 'HDFC Bank Account'
     });
 
     const resetForm = () => {
         setEntryForm({
             entry_type: 'income',
             date: new Date().toISOString().split('T')[0],
-            amount: '0',
+            amount: '',
             category: 'Sales Revenue',
             mode: 'Cash in Hand',
-            notes: ''
+            notes: '',
+            customer_name: '',
+            invoice_number: '',
+            due_date: '',
+            supplier_name: '',
+            bill_number: '',
+            reference_number: '',
+            payment_mode_from: 'Cash in Hand',
+            payment_mode_to: 'HDFC Bank Account'
         });
+    };
+
+    const handleEntryTypeChange = (newType) => {
+        let updates = { entry_type: newType };
+        if (newType === 'income') {
+            updates.category = 'Sales Revenue';
+            updates.mode = 'Cash in Hand';
+        } else if (newType === 'credit_sale') {
+            updates.category = 'Sales Revenue';
+            updates.invoice_number = generateUniqueInvoiceNumber();
+            updates.due_date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        } else if (newType === 'customer_payment') {
+            updates.category = 'Invoice Payment';
+            updates.mode = 'Cash in Hand';
+            
+            const pendingInvoices = dbInvoices.filter(inv => {
+                const dueVal = parseFloat(inv.due_amount !== undefined ? inv.due_amount : (inv.total_amount || inv.amount || 0));
+                return dueVal > 0 && String(inv.status).toLowerCase() !== 'paid';
+            });
+            if (pendingInvoices.length > 0) {
+                updates.customer_name = pendingInvoices[0].client_name;
+                updates.invoice_number = pendingInvoices[0].invoice_number;
+                updates.amount = String(pendingInvoices[0].due_amount);
+            } else {
+                updates.customer_name = '';
+                updates.invoice_number = '';
+                updates.amount = '';
+            }
+        } else if (newType === 'expense') {
+            updates.category = 'Rent & Utilities';
+            updates.mode = 'Cash in Hand';
+        } else if (newType === 'credit_purchase') {
+            updates.category = 'Inventory Purchases';
+            updates.bill_number = generateUniqueBillNumber();
+            updates.due_date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        } else if (newType === 'supplier_payment') {
+            updates.category = 'Supplier Payment';
+            updates.mode = 'Cash in Hand';
+
+            const pendingBills = dbPurchases.filter(b => (parseFloat(b.grand_total) - parseFloat(b.paid_amount || 0)) > 0);
+            if (pendingBills.length > 0) {
+                updates.supplier_name = pendingBills[0].supplier_name;
+                updates.bill_number = pendingBills[0].purchase_number;
+                updates.amount = String(parseFloat(pendingBills[0].grand_total) - parseFloat(pendingBills[0].paid_amount || 0));
+            } else {
+                updates.supplier_name = '';
+                updates.bill_number = '';
+                updates.amount = '';
+            }
+        } else if (newType === 'bank_deposit') {
+            updates.category = 'Contra';
+            updates.payment_mode_from = 'Cash in Hand';
+            const bankAcc = dbBankAccounts.find(a => a.account_name !== 'Cash in Hand');
+            updates.payment_mode_to = bankAcc ? bankAcc.account_name : 'HDFC Bank Account';
+        } else if (newType === 'bank_withdrawal') {
+            updates.category = 'Contra';
+            const bankAcc = dbBankAccounts.find(a => a.account_name !== 'Cash in Hand');
+            updates.payment_mode_from = bankAcc ? bankAcc.account_name : 'HDFC Bank Account';
+            updates.payment_mode_to = 'Cash in Hand';
+        }
+        setEntryForm(prev => ({ ...prev, ...updates }));
+    };
+
+    const handleCustomerChange = (custName) => {
+        const pendingInvoices = dbInvoices.filter(inv => {
+            const dueVal = parseFloat(inv.due_amount !== undefined ? inv.due_amount : (inv.total_amount || inv.amount || 0));
+            return dueVal > 0 && String(inv.status).toLowerCase() !== 'paid';
+        });
+        const custInvoices = pendingInvoices.filter(inv => inv.client_name === custName);
+        const firstInv = custInvoices[0];
+        setEntryForm(prev => ({
+            ...prev,
+            customer_name: custName,
+            invoice_number: firstInv ? firstInv.invoice_number : '',
+            amount: firstInv ? String(firstInv.due_amount) : ''
+        }));
+    };
+
+    const handleInvoiceChange = (invNum) => {
+        const pendingInvoices = dbInvoices.filter(inv => {
+            const dueVal = parseFloat(inv.due_amount !== undefined ? inv.due_amount : (inv.total_amount || inv.amount || 0));
+            return dueVal > 0 && String(inv.status).toLowerCase() !== 'paid';
+        });
+        const inv = pendingInvoices.find(i => i.invoice_number === invNum);
+        setEntryForm(prev => ({
+            ...prev,
+            invoice_number: invNum,
+            amount: inv ? String(inv.due_amount) : ''
+        }));
+    };
+
+    const handleSupplierChange = (suppName) => {
+        const pendingBills = dbPurchases.filter(b => (parseFloat(b.grand_total) - parseFloat(b.paid_amount || 0)) > 0);
+        const suppBills = pendingBills.filter(b => b.supplier_name === suppName);
+        const firstBill = suppBills[0];
+        setEntryForm(prev => ({
+            ...prev,
+            supplier_name: suppName,
+            bill_number: firstBill ? firstBill.purchase_number : '',
+            amount: firstBill ? String(parseFloat(firstBill.grand_total) - parseFloat(firstBill.paid_amount || 0)) : ''
+        }));
+    };
+
+    const handleBillChange = (billNum) => {
+        const pendingBills = dbPurchases.filter(b => (parseFloat(b.grand_total) - parseFloat(b.paid_amount || 0)) > 0);
+        const bill = pendingBills.find(b => b.purchase_number === billNum);
+        setEntryForm(prev => ({
+            ...prev,
+            bill_number: billNum,
+            amount: bill ? String(parseFloat(bill.grand_total) - parseFloat(bill.paid_amount || 0)) : ''
+        }));
     };
 
     const handleSaveEntry = (e) => {
         e.preventDefault();
+        
+        const amt = parseFloat(entryForm.amount) || 0;
+        if (amt <= 0) {
+            alert("Amount must be greater than zero.");
+            return;
+        }
+
+        if (entryForm.entry_type === 'income' || entryForm.entry_type === 'credit_sale') {
+            if (!entryForm.customer_name) {
+                alert("Customer Name is mandatory.");
+                return;
+            }
+        }
+
+        if (entryForm.entry_type === 'credit_sale') {
+            if (!entryForm.due_date) {
+                alert("Due Date is mandatory.");
+                return;
+            }
+            const dup = dbInvoices.some(inv => inv.invoice_number === entryForm.invoice_number);
+            if (dup) {
+                alert("Invoice number already exists.");
+                return;
+            }
+        }
+
+        if (entryForm.entry_type === 'credit_purchase') {
+            if (!entryForm.supplier_name) {
+                alert("Supplier is mandatory.");
+                return;
+            }
+            if (!entryForm.due_date) {
+                alert("Due Date is mandatory.");
+                return;
+            }
+            const dup = dbPurchases.some(b => b.purchase_number === entryForm.bill_number);
+            if (dup) {
+                alert("Bill number already exists.");
+                return;
+            }
+        }
+
+        if (entryForm.entry_type === 'customer_payment') {
+            if (!entryForm.invoice_number) {
+                alert("Invoice Number is mandatory.");
+                return;
+            }
+        }
+
+        if (entryForm.entry_type === 'supplier_payment') {
+            if (!entryForm.bill_number) {
+                alert("Bill Number is mandatory.");
+                return;
+            }
+        }
+
         recordEntryMutation.mutate({
             entry_type: entryForm.entry_type,
             date: entryForm.date,
-            amount: parseFloat(entryForm.amount) || 0,
+            amount: amt,
             category: entryForm.category,
             mode: entryForm.mode,
-            notes: entryForm.notes
+            notes: entryForm.notes,
+            customer_name: entryForm.customer_name,
+            invoice_number: entryForm.invoice_number,
+            due_date: entryForm.due_date,
+            supplier_name: entryForm.supplier_name,
+            bill_number: entryForm.bill_number,
+            reference_number: entryForm.reference_number,
+            payment_mode_from: entryForm.payment_mode_from,
+            payment_mode_to: entryForm.payment_mode_to
         });
     };
 
@@ -2021,69 +2266,323 @@ const BusinessAccounting = () => {
             </div>
 
             {/* Record Entry Modal */}
-            {isEntryModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>New Financial Entry</h2>
-                            <button onClick={() => setIsEntryModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+            {isEntryModalOpen && (() => {
+                const activeBankAccounts = dbBankAccounts.length > 0 ? dbBankAccounts : [
+                    { account_name: 'Cash in Hand' },
+                    { account_name: 'HDFC Bank Account' },
+                    { account_name: 'ICICI Bank Account' },
+                    { account_name: 'UPI / Razorpay' }
+                ];
+                const pendingInvoices = dbInvoices.filter(inv => {
+                    const dueVal = parseFloat(inv.due_amount !== undefined ? inv.due_amount : (inv.total_amount || inv.amount || 0));
+                    return dueVal > 0 && String(inv.status).toLowerCase() !== 'paid';
+                });
+                const pendingCustomers = Array.from(new Set(pendingInvoices.map(inv => inv.client_name)));
+                const pendingBills = dbPurchases.filter(b => (parseFloat(b.grand_total) - parseFloat(b.paid_amount || 0)) > 0);
+                const pendingSuppliers = Array.from(new Set(pendingBills.map(b => b.supplier_name)));
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '20px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>New Financial Entry</h2>
+                                <button onClick={() => setIsEntryModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+                            <form onSubmit={handleSaveEntry} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Entry Type</label>
+                                        <select value={entryForm.entry_type} onChange={(e) => handleEntryTypeChange(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                            <option value="income">Income / Sales</option>
+                                            <option value="credit_sale">Credit Sale</option>
+                                            <option value="customer_payment">Customer Payment</option>
+                                            <option value="expense">Expense</option>
+                                            <option value="credit_purchase">Credit Purchase</option>
+                                            <option value="supplier_payment">Supplier Payment</option>
+                                            <option value="bank_deposit">Bank Deposit</option>
+                                            <option value="bank_withdrawal">Bank Withdrawal</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
+                                        <input type="date" value={entryForm.date} onChange={(e) => setEntryForm({ ...entryForm, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                    </div>
+                                </div>
+
+                                {/* Dynamic Fields - Render based on Selected Entry Type */}
+
+                                {/* 1. Income / Sales */}
+                                {entryForm.entry_type === 'income' && (
+                                    <>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name</label>
+                                            <input required type="text" placeholder="Customer Name" value={entryForm.customer_name} onChange={(e) => setEntryForm({ ...entryForm, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category</label>
+                                                <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    <option value="Sales Revenue">Sales Revenue</option>
+                                                    <option value="Other Income">Other Income</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
+                                                <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 2. Credit Sale */}
+                                {entryForm.entry_type === 'credit_sale' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name</label>
+                                                <input required type="text" placeholder="Customer Name" value={entryForm.customer_name} onChange={(e) => setEntryForm({ ...entryForm, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Number (Auto)</label>
+                                                <input disabled type="text" value={entryForm.invoice_number} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B', fontWeight: '600' }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Sales Category</label>
+                                                <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    <option value="Sales Revenue">Sales Revenue</option>
+                                                    <option value="Other Income">Other Income</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
+                                                <input required type="date" value={entryForm.due_date} onChange={(e) => setEntryForm({ ...entryForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 3. Customer Payment */}
+                                {entryForm.entry_type === 'customer_payment' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer</label>
+                                                {pendingCustomers.length > 0 ? (
+                                                    <select value={entryForm.customer_name} onChange={(e) => handleCustomerChange(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                        <option value="">-- Select Customer --</option>
+                                                        {pendingCustomers.map(cust => (
+                                                            <option key={cust} value={cust}>{cust}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input disabled type="text" value="No pending customers" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B' }} />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pending Invoice</label>
+                                                {pendingInvoices.filter(i => i.client_name === entryForm.customer_name).length > 0 ? (
+                                                    <select value={entryForm.invoice_number} onChange={(e) => handleInvoiceChange(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                        <option value="">-- Select Invoice --</option>
+                                                        {pendingInvoices.filter(i => i.client_name === entryForm.customer_name).map(inv => (
+                                                            <option key={inv.invoice_number} value={inv.invoice_number}>{inv.invoice_number} (Due: {formatCurrency(inv.due_amount !== undefined ? inv.due_amount : inv.total_amount || inv.amount || 0)})</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input disabled type="text" value="No pending invoices" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B' }} />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
+                                                <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reference #</label>
+                                                <input type="text" placeholder="UPI / Bank Txn ID" value={entryForm.reference_number} onChange={(e) => setEntryForm({ ...entryForm, reference_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 4. Expense */}
+                                {entryForm.entry_type === 'expense' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Category</label>
+                                                <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    <option value="Rent & Utilities">Rent & Utilities</option>
+                                                    <option value="Marketing">Marketing</option>
+                                                    <option value="Salary / Payroll">Salary / Payroll</option>
+                                                    <option value="Office Expenses">Office Expenses</option>
+                                                    <option value="Inventory Purchase">Inventory Purchase</option>
+                                                    <option value="Travel & Meals">Travel & Meals</option>
+                                                    <option value="Other Expenses">Other Expenses</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
+                                                <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 5. Credit Purchase */}
+                                {entryForm.entry_type === 'credit_purchase' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier</label>
+                                                <input required type="text" placeholder="Supplier Name" value={entryForm.supplier_name} onChange={(e) => setEntryForm({ ...entryForm, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bill Number (Auto)</label>
+                                                <input disabled type="text" value={entryForm.bill_number} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B', fontWeight: '600' }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Purchase Category</label>
+                                                <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    <option value="Inventory Purchases">Inventory Purchases</option>
+                                                    <option value="Operational Expenses">Operational Expenses</option>
+                                                    <option value="Raw Materials">Raw Materials</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
+                                                <input required type="date" value={entryForm.due_date} onChange={(e) => setEntryForm({ ...entryForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 6. Supplier Payment */}
+                                {entryForm.entry_type === 'supplier_payment' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier</label>
+                                                {pendingSuppliers.length > 0 ? (
+                                                    <select value={entryForm.supplier_name} onChange={(e) => handleSupplierChange(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                        <option value="">-- Select Supplier --</option>
+                                                        {pendingSuppliers.map(supp => (
+                                                            <option key={supp} value={supp}>{supp}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input disabled type="text" value="No pending suppliers" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B' }} />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pending Bill</label>
+                                                {pendingBills.filter(b => b.supplier_name === entryForm.supplier_name).length > 0 ? (
+                                                    <select value={entryForm.bill_number} onChange={(e) => handleBillChange(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                        <option value="">-- Select Bill --</option>
+                                                        {pendingBills.filter(b => b.supplier_name === entryForm.supplier_name).map(b => (
+                                                            <option key={b.purchase_number} value={b.purchase_number}>{b.purchase_number} (Due: {formatCurrency(parseFloat(b.grand_total) - parseFloat(b.paid_amount || 0))})</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input disabled type="text" value="No pending bills" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B' }} />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
+                                                <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reference #</label>
+                                                <input type="text" placeholder="Cheque / Txn ID" value={entryForm.reference_number} onChange={(e) => setEntryForm({ ...entryForm, reference_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 7. Bank Deposit */}
+                                {entryForm.entry_type === 'bank_deposit' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Source (From)</label>
+                                                <select value={entryForm.payment_mode_from} onChange={(e) => setEntryForm({ ...entryForm, payment_mode_from: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Deposit To (Bank)</label>
+                                                <select value={entryForm.payment_mode_to} onChange={(e) => setEntryForm({ ...entryForm, payment_mode_to: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.filter(acc => acc.account_name !== 'Cash in Hand').map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* 8. Bank Withdrawal */}
+                                {entryForm.entry_type === 'bank_withdrawal' && (
+                                    <>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Withdraw From (Bank)</label>
+                                                <select value={entryForm.payment_mode_from} onChange={(e) => setEntryForm({ ...entryForm, payment_mode_from: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                    {activeBankAccounts.filter(acc => acc.account_name !== 'Cash in Hand').map(acc => (
+                                                        <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination (To)</label>
+                                                <input disabled type="text" value="Cash in Hand" style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B', fontWeight: '600' }} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol})</label>
+                                    <input required type="number" step="any" placeholder="0.00" value={entryForm.amount} onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Notes / Reference</label>
+                                    <input placeholder={entryForm.entry_type === 'bank_withdrawal' ? "e.g. Petty Cash / Office Expense" : "e.g. Inv #123 or Bill Reference"} value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                </div>
+
+                                <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
+                                    Save Financial Entry
+                                </button>
+                            </form>
                         </div>
-                        <form onSubmit={handleSaveEntry} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Entry Type</label>
-                                    <select value={entryForm.entry_type} onChange={(e) => setEntryForm({ ...entryForm, entry_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                        <option value="income">Income / Sales</option>
-                                        <option value="expense">Expense / Purchase</option>
-                                        <option value="transfer">Bank Transfer</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
-                                    <input type="date" value={entryForm.date} onChange={(e) => setEntryForm({ ...entryForm, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol})</label>
-                                <input required type="number" placeholder="0.00" value={entryForm.amount} onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category</label>
-                                    <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                        <option value="Sales Revenue">Sales Revenue</option>
-                                        <option value="Rent & Utilities">Rent & Utilities</option>
-                                        <option value="Marketing">Marketing</option>
-                                        <option value="Inventory Purchase">Inventory Purchase</option>
-                                        <option value="Salary / Payroll">Salary / Payroll</option>
-                                        <option value="Other Income">Other Income</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account / Mode</label>
-                                    <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
-                                        <option value="Cash in Hand">Cash in Hand</option>
-                                        <option value="HDFC Bank Account">HDFC Bank Account</option>
-                                        <option value="ICICI Bank Account">ICICI Bank Account</option>
-                                        <option value="UPI / Razorpay">UPI / Razorpay</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Notes / Reference</label>
-                                <input placeholder="e.g. Inv #123 or Bill Reference" value={entryForm.notes} onChange={(e) => setEntryForm({ ...entryForm, notes: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
-                            </div>
-
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
-                                Save Financial Entry
-                            </button>
-                        </form>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Unified FIN-PRO Export Limits Console */}
             {isExportModalOpen && (
