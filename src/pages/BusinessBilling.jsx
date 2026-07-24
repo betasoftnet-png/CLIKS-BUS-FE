@@ -45,6 +45,23 @@ import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 
+const DEFAULT_DROPDOWNS = {
+    invoiceTypes: ['GST', 'Non-GST', 'Quotation', 'Proforma Invoice'],
+    invoiceStatuses: ['Draft', 'Unpaid', 'Paid', 'Overdue'],
+    paymentModes: ['Cash', 'UPI', 'Bank', 'Credit'],
+    terms: ['Due on Receipt', 'Net 15 Days', 'Net 30 Days', 'Net 60 Days'],
+    units: ['Pcs', 'Kg', 'Mtr', 'Box', 'Nos'],
+    gstRates: ['0%', '5%', '12%', '18%', '28%'],
+    discountTypes: ['Percentage', 'Flat Amount']
+};
+
+const getDaysFromTerms = (termText) => {
+    if (!termText) return 0;
+    if (termText.toLowerCase().includes('receipt')) return 0;
+    const match = termText.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+};
+
 const BusinessBilling = () => {
     const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
@@ -79,6 +96,108 @@ const BusinessBilling = () => {
         refetchOnWindowFocus: false
     });
     const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
+    const dropdownOptions = React.useMemo(() => activeConfig?.invoiceDropdownOptions || DEFAULT_DROPDOWNS, [activeConfig]);
+
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [localDropdowns, setLocalDropdowns] = useState(null);
+
+    const updateSettingsMutation = useMutation({
+        mutationFn: (newSettings) => settingsService.updateSettings(newSettings),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
+        }
+    });
+
+    React.useEffect(() => {
+        if (isSettingsModalOpen) {
+            setLocalDropdowns(JSON.parse(JSON.stringify(dropdownOptions)));
+        }
+    }, [isSettingsModalOpen, dropdownOptions]);
+
+    const handleSettingsOptionAdd = (key) => {
+        const titleMap = {
+            invoiceTypes: 'Invoice Type',
+            invoiceStatuses: 'Invoice Status',
+            paymentModes: 'Payment Mode',
+            terms: 'Terms',
+            units: 'Units',
+            gstRates: 'GST %',
+            discountTypes: 'Discount Types'
+        };
+        const val = window.prompt(`Enter new value for ${titleMap[key] || key}:`);
+        if (val && val.trim()) {
+            setLocalDropdowns(prev => ({
+                ...prev,
+                [key]: [...(prev[key] || []), val.trim()]
+            }));
+        }
+    };
+
+    const handleSettingsOptionEdit = (key, index) => {
+        const oldVal = localDropdowns[key][index];
+        const val = window.prompt(`Edit value:`, oldVal);
+        if (val && val.trim() && val.trim() !== oldVal) {
+            setLocalDropdowns(prev => {
+                const list = [...(prev[key] || [])];
+                list[index] = val.trim();
+                return { ...prev, [key]: list };
+            });
+        }
+    };
+
+    const handleSettingsOptionDelete = (key, index) => {
+        const oldVal = localDropdowns[key][index];
+        if (window.confirm(`Are you sure you want to delete "${oldVal}"?`)) {
+            setLocalDropdowns(prev => ({
+                ...prev,
+                [key]: (prev[key] || []).filter((_, idx) => idx !== index)
+            }));
+        }
+    };
+
+    const handleSaveChanges = () => {
+        updateSettingsMutation.mutate({
+            ...activeConfig,
+            invoiceDropdownOptions: localDropdowns
+        }, {
+            onSuccess: () => {
+                setIsSettingsModalOpen(false);
+                alert('Invoice Settings saved successfully!');
+            }
+        });
+    };
+
+    React.useEffect(() => {
+        if (isModalOpen && !editingInvoice) {
+            const types = dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes;
+            const statuses = dropdownOptions.invoiceStatuses || DEFAULT_DROPDOWNS.invoiceStatuses;
+            const paymentModes = dropdownOptions.paymentModes || DEFAULT_DROPDOWNS.paymentModes;
+            const units = dropdownOptions.units || DEFAULT_DROPDOWNS.units;
+            const gstRates = dropdownOptions.gstRates || DEFAULT_DROPDOWNS.gstRates;
+
+            setFormData(prev => {
+                const nextType = types.includes(prev.invoice_type) ? prev.invoice_type : (types[0] || 'GST');
+                const nextStatus = statuses.includes(prev.status) ? prev.status : (statuses[0] || 'Unpaid');
+                const nextPaymentMode = paymentModes.includes(prev.payment_mode) ? prev.payment_mode : (paymentModes[0] || 'Cash');
+                const nextItems = prev.items.map(item => {
+                    const nextUnit = units.includes(item.unit) ? item.unit : (units[0] || 'Pcs');
+                    const firstGstRateText = gstRates[0] || '18%';
+                    const firstGstRateVal = parseFloat(firstGstRateText.replace(/[^0-9.]/g, '')) || 0;
+                    const isRateValid = gstRates.some(g => (parseFloat(g.replace(/[^0-9.]/g, '')) || 0) === item.tax_rate);
+                    const nextTaxRate = isRateValid ? item.tax_rate : firstGstRateVal;
+                    return { ...item, unit: nextUnit, tax_rate: nextTaxRate };
+                });
+
+                return {
+                    ...prev,
+                    invoice_type: nextType,
+                    status: nextStatus,
+                    payment_mode: nextPaymentMode,
+                    items: nextItems
+                };
+            });
+        }
+    }, [isModalOpen, editingInvoice, dropdownOptions]);
 
     React.useEffect(() => {
         if (isModalOpen && activeConfig?.quickEntry) {
@@ -946,6 +1065,7 @@ const BusinessBilling = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <button 
                                     type="button"
+                                    onClick={() => setIsSettingsModalOpen(true)}
                                     style={{ 
                                         display: 'flex', alignItems: 'center', gap: '6px', 
                                         padding: '0.5rem 0.9rem', borderRadius: '8px', 
@@ -1006,19 +1126,17 @@ const BusinessBilling = () => {
                                             invoice_number: `${nextPrefix}${prev.invoice_number.replace(/^[^-]+-/, '')}`
                                         }));
                                     }} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
-                                        <option>GST</option>
-                                        <option>Non-GST</option>
-                                        <option>Proforma</option>
-                                        <option>Quotation</option>
+                                        {(dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes).map((type, idx) => (
+                                            <option key={idx}>{type}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Status</label>
                                     <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
-                                        <option>Draft</option>
-                                        <option>Unpaid</option>
-                                        <option>Paid</option>
-                                        <option>Overdue</option>
+                                        {(dropdownOptions.invoiceStatuses || DEFAULT_DROPDOWNS.invoiceStatuses).map((status, idx) => (
+                                            <option key={idx}>{status}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
@@ -1206,11 +1324,9 @@ const BusinessBilling = () => {
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
                                                 <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
-                                                    <option>Pcs</option>
-                                                    <option>Kg</option>
-                                                    <option>Mtr</option>
-                                                    <option>Box</option>
-                                                    <option>Nos</option>
+                                                    {(dropdownOptions.units || DEFAULT_DROPDOWNS.units).map((unit, uIdx) => (
+                                                        <option key={uIdx}>{unit}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                             <div>
@@ -1227,11 +1343,10 @@ const BusinessBilling = () => {
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>GST %</label>
                                                     <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
-                                                        <option value={0}>0%</option>
-                                                        <option value={5}>5%</option>
-                                                        <option value={12}>12%</option>
-                                                        <option value={18}>18%</option>
-                                                        <option value={28}>28%</option>
+                                                        {(dropdownOptions.gstRates || DEFAULT_DROPDOWNS.gstRates).map((gRate, gIdx) => {
+                                                            const rateVal = parseFloat(gRate.replace(/[^0-9.]/g, '')) || 0;
+                                                            return <option key={gIdx} value={rateVal}>{gRate}</option>;
+                                                        })}
                                                     </select>
                                                 </div>
                                             )}
@@ -1246,8 +1361,8 @@ const BusinessBilling = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Payment Mode</label>
-                                        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
-                                            {['Cash', 'UPI', 'Bank', 'Credit'].map(mode => (
+                                        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                                            {(dropdownOptions.paymentModes || DEFAULT_DROPDOWNS.paymentModes).map(mode => (
                                                 <button 
                                                     key={mode}
                                                     type="button"
@@ -1380,10 +1495,9 @@ const BusinessBilling = () => {
                                                     }} 
                                                     style={{ width: '100%', padding: '0.5rem 0.5rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px', background: 'white', outline: 'none' }}
                                                 >
-                                                    <option value="0">Due on Receipt</option>
-                                                    <option value="15">Net 15 Days</option>
-                                                    <option value="30">Net 30 Days</option>
-                                                    <option value="60">Net 60 Days</option>
+                                                    {(dropdownOptions.terms || DEFAULT_DROPDOWNS.terms).map((t, idx) => (
+                                                        <option key={idx} value={getDaysFromTerms(t)}>{t}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                             <div>
@@ -1491,6 +1605,92 @@ const BusinessBilling = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Invoice Settings Modal */}
+            {isSettingsModalOpen && localDropdowns && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', overflowY: 'auto', padding: '1rem' }}>
+                    <div style={{ 
+                        background: 'white', 
+                        width: '100%',
+                        maxWidth: '850px', 
+                        borderRadius: '20px', 
+                        padding: '2rem', 
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', 
+                        maxHeight: '90vh', 
+                        overflow: 'hidden', 
+                        display: 'flex', 
+                        flexDirection: 'column' 
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Invoice Settings</h2>
+                            <button onClick={() => setIsSettingsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex' }}><X size={18} /></button>
+                        </div>
+
+                        {/* Modal Body: Grid of configurable options */}
+                        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
+                                {[
+                                    { key: 'invoiceTypes', title: 'Invoice Type' },
+                                    { key: 'invoiceStatuses', title: 'Invoice Status' },
+                                    { key: 'paymentModes', title: 'Payment Mode' },
+                                    { key: 'terms', title: 'Terms' },
+                                    { key: 'units', title: 'Units' },
+                                    { key: 'gstRates', title: 'GST %' },
+                                    { key: 'discountTypes', title: 'Discount Types' }
+                                ].map((sec) => (
+                                    <div key={sec.key} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                            <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1E293B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sec.title}</h4>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleSettingsOptionAdd(sec.key)} 
+                                                style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.75rem', fontWeight: '800', color: '#BE185D', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                                            >
+                                                <Plus size={12} /> Add
+                                            </button>
+                                        </div>
+                                        <div style={{ flex: 1, maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            {localDropdowns[sec.key]?.length === 0 ? (
+                                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', padding: '0.5rem', textAlign: 'center' }}>No options configured</div>
+                                            ) : (
+                                                localDropdowns[sec.key]?.map((val, idx) => (
+                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: 'white', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>{val}</span>
+                                                        <div style={{ display: 'flex', gap: '2px' }}>
+                                                            <button type="button" onClick={() => handleSettingsOptionEdit(sec.key, idx)} style={{ padding: '0.2rem', color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}><Edit2 size={12} /></button>
+                                                            <button type="button" onClick={() => handleSettingsOptionDelete(sec.key, idx)} style={{ padding: '0.2rem', color: '#EF4444', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}><Trash2 size={12} /></button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', marginTop: '1.5rem' }}>
+                            <button 
+                                type="button" 
+                                onClick={() => setIsSettingsModalOpen(false)} 
+                                style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={handleSaveChanges} 
+                                disabled={updateSettingsMutation.isPending}
+                                style={{ background: 'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', opacity: updateSettingsMutation.isPending ? 0.6 : 1 }}
+                            >
+                                {updateSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
+                            </button>
                         </div>
                     </div>
                 </div>
