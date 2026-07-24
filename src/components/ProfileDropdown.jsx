@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, X } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, X, CheckCircle2 } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
@@ -827,13 +827,29 @@ export function ProfileDropdown({
                                     <div style={{
                                         fontSize: '13px',
                                         color: '#5f6368',
-                                        marginBottom: '16px',
+                                        marginBottom: '8px',
                                         maxWidth: '100%',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap'
                                     }}>
                                         {displayEmail}
+                                    </div>
+
+                                    {/* Primary Account Label */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        justifyContent: 'center',
+                                        fontSize: '13px',
+                                        fontWeight: '700',
+                                        color: '#16A34A',
+                                        marginTop: '4px',
+                                        marginBottom: '14px'
+                                    }}>
+                                        <CheckCircle2 size={14} color="#16A34A" />
+                                        <span>Primary Account</span>
                                     </div>
 
                                     {/* Manage Account Button */}
