@@ -341,7 +341,7 @@ const BusinessBilling = () => {
         });
 
         const rawTotal = (parseFloat(subtotal) || 0) + (parseFloat(totalTax) || 0);
-        const redeemedAmt = (parseFloat(currentFormData.redeemed_points) || 0) / 100; // 100 pts = 1 Re
+        const redeemedAmt = parseFloat(currentFormData.redeemed_points) || 0;
         const adjustedTotal = rawTotal - redeemedAmt;
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
@@ -488,6 +488,11 @@ const BusinessBilling = () => {
             return res.data || [];
         }
     });
+
+    const activeSelectedCustomer = React.useMemo(() => {
+        if (!selectedCustomerObject) return null;
+        return customers.find(c => c.id === selectedCustomerObject.id) || selectedCustomerObject;
+    }, [customers, selectedCustomerObject]);
 
     // Mutations
     const adjustStockMutation = useMutation({
@@ -644,6 +649,12 @@ const BusinessBilling = () => {
             }
         }
         setEditingInvoice(invoice);
+        const selectedCustomer = customers?.find(c => c.name === invoice.client_name);
+        if (selectedCustomer) {
+            setSelectedCustomerObject(selectedCustomer);
+        } else {
+            setSelectedCustomerObject(null);
+        }
         const parsedItems = invoice.items ? (typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items) : [];
         setFormData({
             invoice_number: invoice.invoice_number,
@@ -665,6 +676,8 @@ const BusinessBilling = () => {
             payment_mode: invoice.payment_mode || 'Cash',
             invoice_type: invoice.invoice_type || 'GST',
             tax_type: invoice.tax_type || 'Exclusive',
+            redeemed_points: invoice.redeemed_points || 0,
+            earned_points: invoice.earned_points || 0,
             items: parsedItems.length > 0 ? parsedItems : [{ 
                 description: '', 
                 quantity: 1, 
@@ -749,6 +762,17 @@ const BusinessBilling = () => {
             payload.due_date = `${formData.due_date} (${timeStr})`;
         }
 
+        if (activeSelectedCustomer) {
+            const currentPts = activeSelectedCustomer.loyalty_points || 0;
+            const newPts = currentPts - (formData.redeemed_points || 0) + (formData.earned_points || 0);
+            
+            // Fire and forget update to CRM, success is handled seamlessly on invalidate query
+            crmService.updateCustomer(activeSelectedCustomer.id, {
+                ...activeSelectedCustomer,
+                loyalty_points: newPts
+            }).catch(e => console.error('Failed automatic loyalty update:', e));
+        }
+
         if (editingInvoice) {
             updateMutation.mutate({ id: editingInvoice.id, data: payload });
         } else {
@@ -763,17 +787,6 @@ const BusinessBilling = () => {
                     payment_method: formData.payment_mode.toLowerCase(),
                     notes: `Sales Payment received for Invoice ${formData.invoice_number}`
                 });
-            }
-            // Update Customer Loyalty Points
-            if (selectedCustomerObject) {
-                const currentPts = selectedCustomerObject.loyalty_points || 0;
-                const newPts = currentPts - (formData.redeemed_points || 0) + (formData.earned_points || 0);
-                
-                // Fire and forget update to CRM, success is handle seamlessly on invalidate query
-                crmService.updateCustomer(selectedCustomerObject.id, {
-                    ...selectedCustomerObject,
-                    loyalty_points: newPts
-                }).catch(e => console.error('Failed automatic loyalty increment:', e));
             }
 
             createMutation.mutate(payload);
@@ -1438,43 +1451,43 @@ const BusinessBilling = () => {
                                     {activeConfig.loyalty !== false && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
-                                                    <Tag size={12} /> Loyalty Points
-                                                </label>
-                                                {selectedCustomerObject && (
-                                                    <span style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '700' }}>Available: {selectedCustomerObject.loyalty_points || 0}</span>
-                                                )}
+                                                <span style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                    ⭐ Available Points : {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0}
+                                                </span>
                                             </div>
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                 <input 
                                                     type="number" 
-                                                    disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
-                                                    placeholder="Points to redeem"
+                                                    disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
+                                                    placeholder="Redeem Points"
                                                     value={formData.redeemed_points || ''}
                                                     onChange={(e) => {
-                                                        let val = parseInt(e.target.value) || 0;
-                                                        const maxAvail = selectedCustomerObject ? (selectedCustomerObject.loyalty_points || 0) : 0;
+                                                        const rawVal = e.target.value;
+                                                        let val = parseInt(rawVal, 10);
+                                                        if (isNaN(val) || rawVal === '') {
+                                                            val = 0;
+                                                        }
+                                                        const maxAvail = activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0;
                                                         if (val > maxAvail) val = maxAvail;
                                                         if (val < 0) val = 0;
                                                         
-                                                        // Create temporary updated state to calc totals accurately
                                                         const tmp = { ...formData, redeemed_points: val };
                                                         const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
                                                         setFormData({ ...tmp, ...newTotals });
                                                     }}
-                                                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem' }} 
+                                                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem', outline: 'none' }} 
                                                 />
                                                 <button 
                                                     type="button" 
                                                     onClick={() => {
-                                                        if (!selectedCustomerObject) return;
-                                                        const maxAvail = selectedCustomerObject.loyalty_points || 0;
+                                                        if (!activeSelectedCustomer) return;
+                                                        const maxAvail = activeSelectedCustomer.loyalty_points || 0;
                                                         const tmp = { ...formData, redeemed_points: maxAvail };
                                                         const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
                                                         setFormData({ ...tmp, ...newTotals });
                                                     }}
-                                                    disabled={!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0}
-                                                    style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!selectedCustomerObject || (selectedCustomerObject.loyalty_points || 0) === 0) ? 0.5 : 1 }}
+                                                    disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
+                                                    style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0) ? 0.5 : 1 }}
                                                 >Use Max</button>
                                             </div>
                                         </div>
@@ -1528,8 +1541,8 @@ const BusinessBilling = () => {
                                     </div>
                                     {formData.redeemed_points > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Points Redeemed:</span>
-                                            <span>- {formatCurrency(formData.redeemed_points / 100)}</span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Loyalty Discount:</span>
+                                            <span>- {formatCurrency(formData.redeemed_points)}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
