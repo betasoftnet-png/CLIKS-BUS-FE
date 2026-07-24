@@ -4,7 +4,8 @@ import {
     Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, 
     Minus, Check, ChevronRight, SlidersHorizontal, Palette, Bell, User, Lock, Info,
     LayoutDashboard, PercentCircle, Receipt, Package, Layers, TrendingUp, BarChart3,
-    UsersRound, LineChart, FileText
+    UsersRound, LineChart, FileText, ShoppingCart, MapPin, Truck, Monitor, Barcode,
+    HelpCircle, Gift, Target, Split, Wallet, CreditCard
 } from 'lucide-react';
 
 import '../App.css';
@@ -24,27 +25,68 @@ import ProductLauncher from './ProductLauncher';
 
 
 const staticPages = [
-    { name: 'Dashboard', path: '/dashboard', module: 'Dashboard', desc: 'Overview of business performance', icon: 'LayoutDashboard' },
-    { name: 'Books', path: '/inventory/stock', module: 'Books', desc: 'Stock ledger & inventory tracking', icon: 'BookOpen' },
-    { name: 'Payments', path: '/payments/transaction', module: 'Payments', desc: 'UPI and banking transactions', icon: 'CreditCard' },
-    { name: 'Social', path: '/social/betaclub', module: 'Social', desc: 'BETA Club social feed', icon: 'Users' },
-    { name: 'Accounting & GST', path: '/finance/accounting', module: 'Accounting', desc: 'Profit & Loss, balance sheet, & general ledger', icon: 'Calculator' },
-    { name: 'GST', path: '/finance/gst', module: 'GST', desc: 'GSTR-1, GSTR-3B, & ITC summaries', icon: 'PercentCircle' },
-    { name: 'Invoices', path: '/sales/invoice', module: 'Invoices', desc: 'Manage outward billing invoices', icon: 'Receipt' },
-    { name: 'Customers', path: '/sales/customers', module: 'Customers', desc: 'CRM and client relations', icon: 'Users' },
-    { name: 'Products', path: '/inventory/products', module: 'Products', desc: 'Product and service catalog', icon: 'Package' },
-    { name: 'Inventory', path: '/inventory/stock', module: 'Inventory', desc: 'Stock level tracking', icon: 'Layers' },
-    { name: 'Expenses', path: '/finance/expenses', module: 'Expenses', desc: 'Business expenses & spending logs', icon: 'TrendingUp' },
-    { name: 'Reports', path: '/reports', module: 'Reports', desc: 'Financial reports & dynamic stats', icon: 'BarChart3' },
-    { name: 'Beta Club', path: '/social/betaclub', module: 'Beta Club', desc: 'Beta Club startup community & pitches', icon: 'UsersRound' },
-    { name: 'Trading Docs', path: '/social/trading', module: 'Trading Docs', desc: 'Financial & trading documentation', icon: 'LineChart' },
-    { name: 'Settings', path: '/settings', module: 'Settings', desc: 'App customization & setup preferences', icon: 'Sliders' }
+    // Ranks: 1 = Module, 2 = Submodule, 3 = Page/Utility
+    { name: 'Books', path: '/dashboard', module: 'Books', desc: 'Books Main Workspace', icon: 'BookOpen', rank: 1, synonyms: ['books', 'erp', 'business'] },
+    { name: 'Payments', path: '/payments/transaction', module: 'Payments', desc: 'Payments Main Workspace', icon: 'CreditCard', rank: 1, synonyms: ['payments', 'finance', 'billing', 'upi'] },
+    { name: 'Social', path: '/social/betaclub', module: 'Social', desc: 'Social Workspace', icon: 'Users', rank: 1, synonyms: ['social', 'network', 'chat'] },
+    { name: 'Beta Products', path: '/beta-launcher', module: 'Beta Products', desc: 'Beta Products Workspace', icon: 'Sliders', rank: 1, synonyms: ['beta products', 'launcher', 'apps', 'utilities'] },
+
+    { name: 'Finance', path: '/finance/accounting', module: 'Books > Finance', desc: 'Financial Management', icon: 'Calculator', rank: 2, synonyms: ['finance', 'money', 'capital'] },
+    { name: 'Sales', path: '/sales/invoice', module: 'Books > Sales', desc: 'Sales & Customer Management', icon: 'Receipt', rank: 2, synonyms: ['sales', 'sell', 'orders'] },
+    { name: 'Purchases', path: '/purchases/purchases', module: 'Books > Purchases', desc: 'Vendor purchases & bills', icon: 'ShoppingCart', rank: 2, synonyms: ['purchases', 'buy', 'suppliers'] },
+    { name: 'Inventory', path: '/inventory/stock', module: 'Books > Inventory', desc: 'Manage Products & Stock', icon: 'Layers', rank: 2, synonyms: ['inventory', 'stock', 'warehouse', 'godown'] },
+    { name: 'HR', path: '/hr/staff', module: 'Books > HR', desc: 'Human Resource Management', icon: 'UsersRound', rank: 2, synonyms: ['hr', 'staff', 'payroll', 'salary', 'attendance'] },
+
+    { name: 'Dashboard', path: '/dashboard', module: 'Dashboard', desc: 'Business Overview', icon: 'LayoutDashboard', rank: 3, synonyms: ['dashboard', 'home', 'overview', 'matrix'] },
+    { name: 'Accounting', path: '/finance/accounting', module: 'Books > Finance', desc: 'P&L, Balance Sheet, Ledger', icon: 'Calculator', rank: 3, synonyms: ['accounting', 'acct', 'p&l', 'ledger', 'profit', 'loss', 'balance sheet'] },
+    { name: 'Expenses', path: '/finance/expenses', module: 'Books > Finance', desc: 'Business expenses logs', icon: 'TrendingUp', rank: 3, synonyms: ['expenses', 'expense', 'spend', 'bill'] },
+    { name: 'GST', path: '/finance/gst', module: 'Books > Finance', desc: 'GSTR-1, GSTR-3B & ITC', icon: 'PercentCircle', rank: 3, synonyms: ['gst', 'tax', 'gstr', 'compliance', 'filings'] },
+    { name: 'Sales Invoice', path: '/sales/invoice', module: 'Books > Sales', desc: 'Billing & Invoicing', icon: 'Receipt', rank: 3, synonyms: ['sales invoice', 'invoice', 'billing', 'bill'] },
+    { name: 'Orders', path: '/sales/orders', module: 'Books > Sales', desc: 'Customer Sales Orders', icon: 'ShoppingCart', rank: 3, synonyms: ['orders', 'order', 'booking'] },
+    { name: 'Customers', path: '/sales/customers', module: 'Books > Sales', desc: 'CRM and Client list', icon: 'Users', rank: 3, synonyms: ['customers', 'crm', 'client', 'buyers', 'loyalty'] },
+    { name: 'Returns', path: '/sales/returns', module: 'Books > Sales', desc: 'Sales returns & credit notes', icon: 'ArrowDownRight', rank: 3, synonyms: ['returns', 'refund', 'credit note'] },
+    { name: 'Delivery', path: '/sales/delivery', module: 'Books > Sales', desc: 'Logistics & shipping delivery challans', icon: 'Truck', rank: 3, synonyms: ['delivery', 'shipping', 'dispatch', 'challan'] },
+    { name: 'Purchase Invoice', path: '/purchases/purchases', module: 'Books > Purchases', desc: 'Supplier bill entries', icon: 'ShoppingCart', rank: 3, synonyms: ['purchase invoice', 'purchases', 'bill', 'inward'] },
+    { name: 'Suppliers', path: '/purchases/suppliers', module: 'Books > Purchases', desc: 'Vendor management', icon: 'UsersRound', rank: 3, synonyms: ['suppliers', 'vendor', 'seller', 'payee'] },
+    { name: 'Products', path: '/inventory/products', module: 'Books > Inventory', desc: 'Products & service catalog', icon: 'Package', rank: 3, synonyms: ['products', 'item', 'catalog', 'sku', 'price'] },
+    { name: 'Stock', path: '/inventory/stock', module: 'Books > Inventory', desc: 'Inventory stock levels tracking', icon: 'Layers', rank: 3, synonyms: ['stock', 'quantity', 'levels'] },
+    { name: 'Warehouse', path: '/inventory/warehouse', module: 'Books > Inventory', desc: 'Multiple godowns tracking', icon: 'MapPin', rank: 3, synonyms: ['warehouse', 'godown', 'store'] },
+    { name: 'Staff', path: '/hr/staff', module: 'Books > HR', desc: 'Employees list', icon: 'UsersRound', rank: 3, synonyms: ['staff', 'employee', 'team'] },
+    { name: 'Attendance', path: '/hr/attendance', module: 'Books > HR', desc: 'Daily attendance shifts', icon: 'Calendar', rank: 3, synonyms: ['attendance', 'shift', 'checkin', 'present'] },
+    { name: 'Payroll', path: '/hr/payroll', module: 'Books > HR', desc: 'Employee payroll & payslips', icon: 'FileCheck', rank: 3, synonyms: ['payroll', 'salary', 'payslip', 'wages'] },
+    { name: 'POS Billing', path: '/pos', module: 'Books', desc: 'Counter POS terminal', icon: 'Monitor', rank: 3, synonyms: ['pos billing', 'pos', 'counter', 'quick bill'] },
+    { name: 'Reports', path: '/reports', module: 'Books', desc: 'Financial reports', icon: 'BarChart3', rank: 3, synonyms: ['reports', 'reports', 'charts', 'graphs'] },
+    { name: 'Barcode Generator', path: '/barcode', module: 'Books', desc: 'Barcode labeling', icon: 'Barcode', rank: 3, synonyms: ['barcode generator', 'barcode', 'label', 'scan'] },
+    { name: 'FIN-PRO Audit Hub', path: '/ca', module: 'Books', desc: 'CA portal integration', icon: 'ShieldCheck', rank: 3, synonyms: ['fin-pro audit hub', 'ca', 'audit', 'chartered accountant'] },
+    { name: 'Settings', path: '/settings', module: 'Settings', desc: 'Application Settings', icon: 'Sliders', rank: 3, synonyms: ['settings', 'config', 'setup', 'preferences'] },
+    { name: 'Help & Support', path: '/faq', module: 'Help & Support', desc: 'FAQ & User Support desk', icon: 'HelpCircle', rank: 3, synonyms: ['help & support', 'support', 'faq', 'help', 'ticket'] },
+
+    { name: 'People', path: '/payments/people', module: 'Payments', desc: 'Send/receive payment contacts', icon: 'Users', rank: 3, synonyms: ['people', 'contacts', 'party'] },
+    { name: 'Wallet', path: '/payments/wallet', module: 'Payments', desc: 'Business bank wallets', icon: 'Wallet', rank: 3, synonyms: ['wallet', 'balance', 'bank account'] },
+    { name: 'Transaction', path: '/payments/transaction', module: 'Payments', desc: 'Bank transfer transactions', icon: 'CreditCard', rank: 3, synonyms: ['transaction', 'payment', 'upi', 'card'] },
+    { name: 'Segregation', path: '/payments/segregation', module: 'Payments', desc: 'Allocate funds to purpose wallets', icon: 'Target', rank: 3, synonyms: ['segregation', 'purpose wallet'] },
+    { name: 'Split & Collect', path: '/payments/split-collect', module: 'Payments', desc: 'Group expense bill splitting', icon: 'Split', rank: 3, synonyms: ['split & collect', 'bill split', 'group'] },
+    { name: 'Planner', path: '/payments/plan', module: 'Payments', desc: 'Schedule recurring payments', icon: 'Calendar', rank: 3, synonyms: ['planner', 'reminder', 'recurring'] },
+    { name: 'Rewards & Offers', path: '/payments/rewards', module: 'Payments', desc: 'Loyalty cashback offers', icon: 'Gift', rank: 3, synonyms: ['rewards & offers', 'cashback', 'coupon'] },
+
+    { name: 'Beta Club', path: '/social/betaclub', module: 'Social', desc: 'BETA Club social feed & startup pitches', icon: 'UsersRound', rank: 3, synonyms: ['beta club', 'social feed', 'pitches', 'startups'] },
+    { name: 'Trading Docs', path: '/social/trading', module: 'Social', desc: 'Shares & trading contract documentation', icon: 'LineChart', rank: 3, synonyms: ['trading docs', 'trading', 'shares', 'contract'] },
+
+    { name: 'Calculator', path: '/calculator', module: 'Beta Products', desc: 'Premium calculator utility', icon: 'Calculator', rank: 3, synonyms: ['calculator', 'calc', 'math'] },
+    { name: 'Calendar', path: '/calendar', module: 'Beta Products', desc: 'Business calendar schedules', icon: 'Calendar', rank: 3, synonyms: ['calendar', 'events', 'schedule'] },
+    { name: 'Contact', path: '/contact', module: 'Beta Products', desc: 'Generate contact cards', icon: 'Contact', rank: 3, synonyms: ['contact', 'id card', 'vcard'] },
+    { name: 'Beta Trust', path: '/beta-trust', module: 'Beta Products', desc: 'Secure vaults and credentials', icon: 'ShieldCheck', rank: 3, synonyms: ['beta trust', 'vault', 'security'] },
+    { name: 'Keyboard', path: '/keyboard', module: 'Beta Products', desc: 'Typing helper utilities', icon: 'Keyboard', rank: 3, synonyms: ['keyboard', 'typing', 'input'] },
+    { name: 'Translator', path: '/translator', module: 'Beta Products', desc: 'Translate languages instantly', icon: 'Languages', rank: 3, synonyms: ['translator', 'translation', 'language'] },
+    { name: 'Lens', path: '/lens', module: 'Beta Products', desc: 'Image recognition OCR lens', icon: 'Scan', rank: 3, synonyms: ['lens', 'ocr', 'camera'] },
+    { name: 'Weather', path: '/weather', module: 'Beta Products', desc: 'Live climate forecasts', icon: 'CloudSun', rank: 3, synonyms: ['weather', 'climate', 'forecast'] },
+    { name: 'News', path: '/news', module: 'Beta Products', desc: 'Daily business news updates', icon: 'Newspaper', rank: 3, synonyms: ['news', 'feed', 'headlines'] }
 ];
 
 const iconMap = {
     LayoutDashboard,
     BookOpen,
-    CreditCard: Calculator,
+    CreditCard,
     Users,
     Calculator,
     PercentCircle,
@@ -57,7 +99,17 @@ const iconMap = {
     UsersRound,
     LineChart,
     Sliders,
-    FileText
+    FileText,
+    ShoppingCart,
+    MapPin,
+    Truck,
+    Monitor,
+    Barcode,
+    HelpCircle,
+    Gift,
+    Target,
+    Split,
+    Wallet
 };
 
 const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel }) => {
@@ -103,20 +155,29 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                 const matchedPages = staticPages.filter(p => 
                     p.name.toLowerCase().includes(queryLower) ||
                     p.module.toLowerCase().includes(queryLower) ||
-                    p.desc.toLowerCase().includes(queryLower)
+                    p.desc.toLowerCase().includes(queryLower) ||
+                    (p.synonyms && p.synonyms.some(syn => syn.toLowerCase().includes(queryLower)))
                 ).map(p => ({
                     type: p.module,
                     name: p.name,
                     desc: p.desc,
                     icon: p.icon,
                     path: p.path,
+                    rank: p.rank,
                     isStatic: true
                 }));
 
                 const response = await apiClient.get(`/search/global?q=${encodeURIComponent(searchQuery)}`);
                 const dbResults = response.data?.data || response.data || [];
 
-                setSearchResults([...matchedPages, ...dbResults]);
+                const combined = [...matchedPages, ...dbResults];
+                combined.sort((a, b) => {
+                    const rankA = a.rank !== undefined ? a.rank : 99;
+                    const rankB = b.rank !== undefined ? b.rank : 99;
+                    return rankA - rankB;
+                });
+
+                setSearchResults(combined);
             } catch (err) {
                 console.error('Global search fetch error:', err);
             } finally {
