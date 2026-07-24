@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import FilterableTableHead from '../components/FilterableTableHead';
 import {
@@ -33,6 +34,7 @@ import { useCurrency } from '../context';
 
 const BusinessAccounting = () => {
     const { currency, formatCurrency } = useCurrency();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
@@ -500,7 +502,23 @@ const BusinessAccounting = () => {
                                         <button style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}><MoreHorizontal size={18} /></button>
                                     </div>
                                     <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.15rem', margin: 0 }}>{acc.account_name}</h4>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '1rem', margin: 0 }}>{acc.bank_name || 'HDFC Bank'}</p>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem', margin: 0 }}>{acc.bank_name || 'Financial Profile'}</p>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                                            <span>Total Income:</span>
+                                            <span style={{ color: '#16A34A', fontWeight: '700' }}>{formatCurrency(acc.total_income || 0)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                                            <span>Total Expenses:</span>
+                                            <span style={{ color: '#EF4444', fontWeight: '700' }}>{formatCurrency(acc.total_expenses || 0)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94A3B8' }}>
+                                            <span>Last Transaction:</span>
+                                            <span style={{ fontWeight: '600' }}>{acc.last_transaction_date || 'N/A'}</span>
+                                        </div>
+                                    </div>
+
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                                         <div>
                                             <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.2rem', margin: 0 }}>Balance</p>
@@ -686,7 +704,18 @@ const BusinessAccounting = () => {
                                 <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '1rem', margin: 0 }}>Period: {report.period}</p>
                                 <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#1D4ED8' }}>{report.tax}</span>
-                                    <button style={{ background: 'transparent', border: 'none', color: '#1D4ED8', fontWeight: '800', cursor: 'pointer', fontSize: '0.75rem' }}>VIEW DETAIL</button>
+                                    <button 
+                                        onClick={() => {
+                                            const tabMap = {
+                                                'GSTR-1 Summary': 'gstr1',
+                                                'GSTR-3B Summary': 'gstr3b',
+                                                'ITC Summary': 'gstr2'
+                                            };
+                                            const tabId = tabMap[report.name] || 'gstr1';
+                                            navigate(`/finance/gst?tab=${tabId}`);
+                                        }}
+                                        style={{ background: 'transparent', border: 'none', color: '#1D4ED8', fontWeight: '800', cursor: 'pointer', fontSize: '0.75rem' }}
+                                    >VIEW DETAIL</button>
                                 </div>
                             </div>
                         ))}

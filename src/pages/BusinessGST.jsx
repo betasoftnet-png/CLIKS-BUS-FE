@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gstService } from '../services';
@@ -30,7 +31,15 @@ import '../App.css';
 
 const BusinessGST = () => {
     const { currency, formatCurrency } = useCurrency();
-    const [activeTab, setActiveTab] = useState('gstr1');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get('tab') || 'gstr1';
+    const setActiveTab = (tabId) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.set('tab', tabId);
+            return next;
+        });
+    };
     const [colFilters, setColFilters] = React.useState({}); // 'gstr1', 'gstr2', 'gstr3b', 'gstr9', 'einvoice', 'eway'
     const [searchTerm, setSearchTerm] = useState('');
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
