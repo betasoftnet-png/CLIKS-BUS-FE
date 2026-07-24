@@ -228,6 +228,22 @@ const BusinessInventory = () => {
         }
     }, [searchParams, setSearchParams]);
 
+    React.useEffect(() => {
+        const q = searchParams.get('q');
+        if (q) {
+            setSearchTerm(q);
+            if (items && items.length > 0) {
+                const match = items.find(i => 
+                    String(i.name).toLowerCase() === q.toLowerCase() ||
+                    String(i.id) === q
+                );
+                if (match) {
+                    handleEdit(match);
+                }
+            }
+        }
+    }, [searchParams, items]);
+
     // Live catalog items database from productsService
     const { data: items = [] } = useQuery({
         queryKey: ['products'],

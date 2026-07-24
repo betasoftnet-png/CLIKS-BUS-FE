@@ -275,6 +275,23 @@ const BusinessCRM = () => {
         }
     }, [searchParams, setSearchParams]);
 
+    useEffect(() => {
+        const q = searchParams.get('q');
+        if (q) {
+            setSearchTerm(q);
+            if (customers && customers.length > 0) {
+                const match = customers.find(c => 
+                    String(c.name).toLowerCase() === q.toLowerCase() ||
+                    String(c.id) === q
+                );
+                if (match) {
+                    setSelectedProfileCustomer(match);
+                    setIsProfileModalOpen(true);
+                }
+            }
+        }
+    }, [searchParams, customers]);
+
     const [paymentData, setPaymentData] = useState({
         amount: 0,
         mode: 'Cash',

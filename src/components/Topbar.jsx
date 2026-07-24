@@ -1,9 +1,16 @@
 import React from 'react';
-import { BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, Minus, Check, ChevronRight, SlidersHorizontal, Palette, Bell, User, Lock, Info } from 'lucide-react';
+import { 
+    BookOpen, Calculator, Users, Coins, X, Search, Sliders, Calendar, Contact, 
+    Keyboard, Languages, Scan, ShieldCheck, CloudSun, Newspaper, Edit, Plus, 
+    Minus, Check, ChevronRight, SlidersHorizontal, Palette, Bell, User, Lock, Info,
+    LayoutDashboard, PercentCircle, Receipt, Package, Layers, TrendingUp, BarChart3,
+    UsersRound, LineChart, FileText
+} from 'lucide-react';
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
+import { apiClient } from '../api/client';
 import logoPng from '../assets/cliks6.png'; // Final branding
 import accessKitPng from '../assets/ACCESS_KIT.png';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +22,43 @@ import ProductLauncher from './ProductLauncher';
 
 
 
+
+const staticPages = [
+    { name: 'Dashboard', path: '/dashboard', module: 'Dashboard', desc: 'Overview of business performance', icon: 'LayoutDashboard' },
+    { name: 'Books', path: '/inventory/stock', module: 'Books', desc: 'Stock ledger & inventory tracking', icon: 'BookOpen' },
+    { name: 'Payments', path: '/payments/transaction', module: 'Payments', desc: 'UPI and banking transactions', icon: 'CreditCard' },
+    { name: 'Social', path: '/social/betaclub', module: 'Social', desc: 'BETA Club social feed', icon: 'Users' },
+    { name: 'Accounting & GST', path: '/finance/accounting', module: 'Accounting', desc: 'Profit & Loss, balance sheet, & general ledger', icon: 'Calculator' },
+    { name: 'GST', path: '/finance/gst', module: 'GST', desc: 'GSTR-1, GSTR-3B, & ITC summaries', icon: 'PercentCircle' },
+    { name: 'Invoices', path: '/sales/invoice', module: 'Invoices', desc: 'Manage outward billing invoices', icon: 'Receipt' },
+    { name: 'Customers', path: '/sales/customers', module: 'Customers', desc: 'CRM and client relations', icon: 'Users' },
+    { name: 'Products', path: '/inventory/products', module: 'Products', desc: 'Product and service catalog', icon: 'Package' },
+    { name: 'Inventory', path: '/inventory/stock', module: 'Inventory', desc: 'Stock level tracking', icon: 'Layers' },
+    { name: 'Expenses', path: '/finance/expenses', module: 'Expenses', desc: 'Business expenses & spending logs', icon: 'TrendingUp' },
+    { name: 'Reports', path: '/reports', module: 'Reports', desc: 'Financial reports & dynamic stats', icon: 'BarChart3' },
+    { name: 'Beta Club', path: '/social/betaclub', module: 'Beta Club', desc: 'Beta Club startup community & pitches', icon: 'UsersRound' },
+    { name: 'Trading Docs', path: '/social/trading', module: 'Trading Docs', desc: 'Financial & trading documentation', icon: 'LineChart' },
+    { name: 'Settings', path: '/settings', module: 'Settings', desc: 'App customization & setup preferences', icon: 'Sliders' }
+];
+
+const iconMap = {
+    LayoutDashboard,
+    BookOpen,
+    CreditCard: Calculator,
+    Users,
+    Calculator,
+    PercentCircle,
+    Receipt,
+    User,
+    Package,
+    Layers,
+    TrendingUp,
+    BarChart3,
+    UsersRound,
+    LineChart,
+    Sliders,
+    FileText
+};
 
 const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel }) => {
     const { logout, user, selectedPlan } = useAuth();
@@ -42,6 +86,47 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     }, []);
 
     const [isSearchExpanded, setIsSearchExpanded] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [searchResults, setSearchResults] = React.useState([]);
+    const [isSearching, setIsSearching] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const queryLower = searchQuery.toLowerCase();
+                const matchedPages = staticPages.filter(p => 
+                    p.name.toLowerCase().includes(queryLower) ||
+                    p.module.toLowerCase().includes(queryLower) ||
+                    p.desc.toLowerCase().includes(queryLower)
+                ).map(p => ({
+                    type: p.module,
+                    name: p.name,
+                    desc: p.desc,
+                    icon: p.icon,
+                    path: p.path,
+                    isStatic: true
+                }));
+
+                const response = await apiClient.get(`/search/global?q=${encodeURIComponent(searchQuery)}`);
+                const dbResults = response.data?.data || response.data || [];
+
+                setSearchResults([...matchedPages, ...dbResults]);
+            } catch (err) {
+                console.error('Global search fetch error:', err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 150);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
     const [isNotificationOpen, setIsNotificationOpen] = React.useState(false);
     const [notifications, setNotifications] = React.useState([
         { id: 1, text: "New sales invoice generated #INV-2026-004", time: "5 mins ago", read: false },
@@ -273,13 +358,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                     borderRadius: '999px',
                                     padding: '5px 12px',
                                     width: '180px',
-                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    position: 'relative'
                                 }}>
                                     <Search size={14} color="#FFFFFF" style={{ opacity: 0.8 }} />
                                     <input 
                                         ref={searchInputRef}
                                         type="text" 
                                         placeholder="Search..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
                                         style={{
                                             background: 'none',
                                             border: 'none',
@@ -290,8 +378,108 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                             fontWeight: '600',
                                             padding: 0
                                         }}
-                                        onBlur={() => setIsSearchExpanded(false)}
+                                        onBlur={() => {
+                                            setTimeout(() => {
+                                                setIsSearchExpanded(false);
+                                                setSearchQuery('');
+                                            }, 200);
+                                        }}
                                     />
+                                    {searchQuery && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '36px',
+                                            right: '0',
+                                            width: '280px',
+                                            backgroundColor: '#FFFFFF',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                            zIndex: 9999,
+                                            maxHeight: '300px',
+                                            overflowY: 'auto',
+                                            padding: '4px 0'
+                                        }}>
+                                            {isSearching ? (
+                                                <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '500' }}>
+                                                    Searching...
+                                                </div>
+                                            ) : searchResults.length > 0 ? (
+                                                searchResults.map((item, index) => {
+                                                    const IconComponent = iconMap[item.icon] || Info;
+                                                    return (
+                                                        <div 
+                                                            key={index}
+                                                            onClick={() => {
+                                                                let pathWithQuery = item.path;
+                                                                if (item.state?.invoiceNumber) {
+                                                                    pathWithQuery += `?q=${encodeURIComponent(item.state.invoiceNumber)}`;
+                                                                } else if (item.state?.customerName) {
+                                                                    pathWithQuery += `?q=${encodeURIComponent(item.state.customerName)}`;
+                                                                } else if (item.state?.productName) {
+                                                                    pathWithQuery += `?q=${encodeURIComponent(item.state.productName)}`;
+                                                                }
+                                                                
+                                                                if (item.path.startsWith('/social/')) {
+                                                                    sessionStorage.setItem('active_cliks_module', 'social');
+                                                                } else if (item.path.startsWith('/payments/')) {
+                                                                    sessionStorage.setItem('active_cliks_module', 'payments');
+                                                                } else {
+                                                                    sessionStorage.setItem('active_cliks_module', 'books');
+                                                                }
+                                                                navigate(pathWithQuery);
+                                                                setIsSearchExpanded(false);
+                                                                setSearchQuery('');
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'flex-start',
+                                                                gap: '10px',
+                                                                padding: '8px 12px',
+                                                                cursor: 'pointer',
+                                                                borderBottom: index < searchResults.length - 1 ? '1px solid #F1F5F9' : 'none',
+                                                                transition: 'background-color 0.15s'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                        >
+                                                            <div style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                width: '28px',
+                                                                height: '28px',
+                                                                borderRadius: '6px',
+                                                                backgroundColor: '#EFF6FF',
+                                                                color: '#1D4ED8',
+                                                                flexShrink: 0,
+                                                                marginTop: '2px'
+                                                            }}>
+                                                                <IconComponent size={14} />
+                                                            </div>
+                                                            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                                                <div style={{ fontSize: '10px', fontWeight: '800', color: '#1D4ED8', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                                                    {item.type}
+                                                                </div>
+                                                                <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                    {item.name}
+                                                                </div>
+                                                                {item.desc && (
+                                                                    <div style={{ fontSize: '11px', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
+                                                                        {item.desc}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '500' }}>
+                                                    No results found
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <button
