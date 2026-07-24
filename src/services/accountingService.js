@@ -11,6 +11,7 @@ export const accountingService = {
     getLedger: () => apiClient.get('/accounting/ledger').then(res => res.data.data || res.data),
     getTax: () => apiClient.get('/accounting/tax').then(res => res.data.data || res.data),
     recordEntry: (data) => apiClient.post('/accounting/journal-entries', data).then(res => res.data.data || res.data),
+    createBankAccount: (data) => apiClient.post('/accounting/bank-accounts', data).then(res => res.data.data || res.data),
 };
 
 export default accountingService;

@@ -46,6 +46,18 @@ const BusinessAccounting = () => {
 
     const [activeTab, setActiveTab] = useState('p&l');
     const [selectedAccId, setSelectedAccId] = useState(1);
+    const [isAddBankModalOpen, setIsAddBankModalOpen] = useState(false);
+    const [bankForm, setBankForm] = useState({
+        bank_name: '',
+        account_name: '',
+        account_number: '',
+        ifsc_code: '',
+        branch_name: '',
+        opening_balance: '',
+        account_type: 'Savings',
+        status: 'Active'
+    });
+    const [bankFormError, setBankFormError] = useState('');
 
     const mockBankAccounts = [
         { id: 1, account_name: 'Cash in Hand', bank_name: 'Cash Profile', balance: 25000, total_income: 35000, total_expenses: 10000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Cash' },
@@ -161,6 +173,29 @@ const BusinessAccounting = () => {
             setIsEntryModalOpen(false);
             resetForm();
             alert('Financial Entry registered and saved successfully!');
+        }
+    });
+
+    const createBankAccountMutation = useMutation({
+        mutationFn: (data) => accountingService.createBankAccount(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            setIsAddBankModalOpen(false);
+            setBankForm({
+                bank_name: '',
+                account_name: '',
+                account_number: '',
+                ifsc_code: '',
+                branch_name: '',
+                opening_balance: '',
+                account_type: 'Savings',
+                status: 'Active'
+            });
+            setBankFormError('');
+            alert('Bank Account added successfully!');
+        },
+        onError: (err) => {
+            setBankFormError(err.response?.data?.message || err.message || 'Failed to create bank account');
         }
     });
 
@@ -420,6 +455,28 @@ const BusinessAccounting = () => {
                     >
                         <Download size={15} /> Secure FIN-PRO Export
                     </button>
+                    {activeTab === 'cash-bank' && (
+                        <button
+                            onClick={() => {
+                                setBankForm({
+                                    bank_name: '',
+                                    account_name: '',
+                                    account_number: '',
+                                    ifsc_code: '',
+                                    branch_name: '',
+                                    opening_balance: '',
+                                    account_type: 'Savings',
+                                    status: 'Active'
+                                });
+                                setBankFormError('');
+                                setIsAddBankModalOpen(true);
+                            }}
+                            className="crm-btn"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(245, 158, 11, 0.2)' }}
+                        >
+                            <Plus size={15} /> Add New Bank
+                        </button>
+                    )}
                     <button
                         onClick={() => {
                             resetForm();
@@ -1118,6 +1175,105 @@ const BusinessAccounting = () => {
                                 <Download size={15} /> EXPORT LEDGER NOW
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Add New Bank Modal */}
+            {isAddBankModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Add New Bank Account</h2>
+                            <button onClick={() => setIsAddBankModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {bankFormError && (
+                            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                ⚠️ {bankFormError}
+                            </div>
+                        )}
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            setBankFormError('');
+                            
+                            // Validations
+                            if (!bankForm.bank_name || !bankForm.account_name || !bankForm.account_number || !bankForm.ifsc_code || bankForm.opening_balance === '') {
+                                setBankFormError('Bank Name, Account Name, Account Number, IFSC Code, and Opening Balance are mandatory.');
+                                return;
+                            }
+
+                            // Prevent duplicate account number in dbBankAccounts/mockBankAccounts
+                            const exists = dbBankAccounts.some(acc => acc.account_number === bankForm.account_number);
+                            if (exists) {
+                                setBankFormError('Account number already exists.');
+                                return;
+                            }
+
+                            createBankAccountMutation.mutate({
+                                bank_name: bankForm.bank_name,
+                                account_name: bankForm.account_name,
+                                account_number: bankForm.account_number,
+                                ifsc_code: bankForm.ifsc_code,
+                                branch_name: bankForm.branch_name,
+                                opening_balance: parseFloat(bankForm.opening_balance) || 0,
+                                account_type: bankForm.account_type,
+                                status: bankForm.status
+                            });
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bank Name *</label>
+                                    <input required placeholder="e.g. HDFC Bank" value={bankForm.bank_name} onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Name *</label>
+                                    <input required placeholder="e.g. Main Business Savings" value={bankForm.account_name} onChange={(e) => setBankForm({ ...bankForm, account_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Number *</label>
+                                    <input required placeholder="e.g. 501002938128" value={bankForm.account_number} onChange={(e) => setBankForm({ ...bankForm, account_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>IFSC Code *</label>
+                                    <input required placeholder="e.g. HDFC0000001" value={bankForm.ifsc_code} onChange={(e) => setBankForm({ ...bankForm, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Branch Name (Optional)</label>
+                                    <input placeholder="e.g. Bandra East" value={bankForm.branch_name} onChange={(e) => setBankForm({ ...bankForm, branch_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol}) *</label>
+                                    <input required type="number" placeholder="0.00" value={bankForm.opening_balance} onChange={(e) => setBankForm({ ...bankForm, opening_balance: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Type</label>
+                                    <select value={bankForm.account_type} onChange={(e) => setBankForm({ ...bankForm, account_type: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                        <option value="Savings">Savings</option>
+                                        <option value="Current">Current</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
+                                    <select value={bankForm.status} onChange={(e) => setBankForm({ ...bankForm, status: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={createBankAccountMutation.isPending} style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(245, 158, 11, 0.15)', marginTop: '0.5rem' }}>
+                                {createBankAccountMutation.isPending ? 'Saving Bank Account...' : 'Save Bank Account'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}
