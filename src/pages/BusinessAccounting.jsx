@@ -455,28 +455,6 @@ const BusinessAccounting = () => {
                     >
                         <Download size={15} /> Secure FIN-PRO Export
                     </button>
-                    {activeTab === 'cash-bank' && (
-                        <button
-                            onClick={() => {
-                                setBankForm({
-                                    bank_name: '',
-                                    account_name: '',
-                                    account_number: '',
-                                    ifsc_code: '',
-                                    branch_name: '',
-                                    opening_balance: '',
-                                    account_type: 'Savings',
-                                    status: 'Active'
-                                });
-                                setBankFormError('');
-                                setIsAddBankModalOpen(true);
-                            }}
-                            className="crm-btn"
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(245, 158, 11, 0.2)' }}
-                        >
-                            <Plus size={15} /> Add New Bank
-                        </button>
-                    )}
                     <button
                         onClick={() => {
                             resetForm();
@@ -655,7 +633,7 @@ const BusinessAccounting = () => {
                     return (
                         <div>
                             {/* Dashboard Summary Widgets */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div style={{ background: '#F0FDF4', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #DCFCE7', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                                     <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Cash</p>
                                     <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#14532D' }}>{formatCurrency(totalCashVal)}</h3>
@@ -667,6 +645,39 @@ const BusinessAccounting = () => {
                                 <div style={{ background: '#EEF2FF', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #E0E7FF', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                                     <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Available Funds</p>
                                     <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#312E81' }}>{formatCurrency(totalCashVal + totalBankVal)}</h3>
+                                </div>
+                                <div 
+                                    onClick={() => {
+                                        setBankForm({
+                                            bank_name: '',
+                                            account_name: '',
+                                            account_number: '',
+                                            ifsc_code: '',
+                                            branch_name: '',
+                                            opening_balance: '',
+                                            account_type: 'Savings',
+                                            status: 'Active'
+                                        });
+                                        setBankFormError('');
+                                        setIsAddBankModalOpen(true);
+                                    }}
+                                    style={{ 
+                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
+                                        padding: '1.25rem 1.5rem', 
+                                        borderRadius: '16px', 
+                                        border: '1px solid #D97706', 
+                                        boxShadow: '0 8px 16px rgba(245, 158, 11, 0.15)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease-in-out'
+                                    }}
+                                    className="stat-card"
+                                >
+                                    <Plus size={24} color="white" style={{ marginBottom: '0.25rem' }} />
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ Add New Bank</h3>
                                 </div>
                             </div>
 
