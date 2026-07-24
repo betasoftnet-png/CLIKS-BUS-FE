@@ -946,6 +946,20 @@ const BusinessBilling = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <button 
                                     type="button"
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '6px', 
+                                        padding: '0.5rem 0.9rem', borderRadius: '8px', 
+                                        background: '#F1F5F9', 
+                                        color: '#64748B', 
+                                        border: '1px solid transparent',
+                                        fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    <Settings size={15} /> Settings
+                                </button>
+                                <button 
+                                    type="button"
                                     onClick={() => setShowLivePreview(!showLivePreview)} 
                                     style={{ 
                                         display: 'flex', alignItems: 'center', gap: '6px', 
