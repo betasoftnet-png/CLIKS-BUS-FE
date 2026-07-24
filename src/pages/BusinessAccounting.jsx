@@ -45,6 +45,38 @@ const BusinessAccounting = () => {
     const activeConfig = userSettings?.data || userSettings || {};
 
     const [activeTab, setActiveTab] = useState('p&l');
+    const [selectedAccId, setSelectedAccId] = useState(1);
+
+    const mockBankAccounts = [
+        { id: 1, account_name: 'Cash in Hand', bank_name: 'Cash Profile', balance: 25000, total_income: 35000, total_expenses: 10000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Cash' },
+        { id: 2, account_name: 'HDFC Bank', bank_name: 'HDFC Bank Account', balance: 150000, total_income: 200000, total_expenses: 50000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Bank' },
+        { id: 3, account_name: 'SBI Current Account', bank_name: 'State Bank of India', balance: 80000, total_income: 120000, total_expenses: 40000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Bank' },
+        { id: 4, account_name: 'ICICI Bank', bank_name: 'ICICI Bank Account', balance: 45000, total_income: 75000, total_expenses: 30000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Bank' }
+    ];
+
+    const mockTransactions = {
+        1: [
+            { date: '24-07-2026', description: 'Cash Sales Receipt', type: 'Credit', amount: 5000, balance: 25000 },
+            { date: '23-07-2026', description: 'Office Stationary Expense', type: 'Debit', amount: 1500, balance: 20000 },
+            { date: '22-07-2026', description: 'Local Delivery fare', type: 'Debit', amount: 500, balance: 21500 }
+        ],
+        2: [
+            { date: '24-07-2026', description: 'Customer Payment', type: 'Credit', amount: 10000, balance: 150000 },
+            { date: '23-07-2026', description: 'Electricity Bill', type: 'Debit', amount: 5000, balance: 140000 },
+            { date: '22-07-2026', description: 'Supplier Payment', type: 'Debit', amount: 15000, balance: 145000 }
+        ],
+        3: [
+            { date: '24-07-2026', description: 'Customer Invoice Recipient', type: 'Credit', amount: 20000, balance: 80000 },
+            { date: '23-07-2026', description: 'Monthly Office Rental', type: 'Debit', amount: 15000, balance: 60000 },
+            { date: '22-07-2026', description: 'Tax Compliance payment', type: 'Debit', amount: 10000, balance: 75000 }
+        ],
+        4: [
+            { date: '24-07-2026', description: 'Consultancy Service Fees', type: 'Credit', amount: 8000, balance: 45000 },
+            { date: '23-07-2026', description: 'Internet Broadband Fee', type: 'Debit', amount: 2000, balance: 37000 },
+            { date: '22-07-2026', description: 'Office Water Supply', type: 'Debit', amount: 1000, balance: 39000 }
+        ]
+    };
+
     const [colFilters, setColFilters] = React.useState({}); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -490,51 +522,160 @@ const BusinessAccounting = () => {
                     </div>
                 )}
 
-                {activeTab === 'cash-bank' && (
-                    <div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                            {dbBankAccounts.length > 0 ? dbBankAccounts.map((acc, i) => (
-                                <div key={i} style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
-                                            <Building2 size={20} />
-                                        </div>
-                                        <button style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}><MoreHorizontal size={18} /></button>
-                                    </div>
-                                    <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.15rem', margin: 0 }}>{acc.account_name}</h4>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem', margin: 0 }}>{acc.bank_name || 'Financial Profile'}</p>
-                                    
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
-                                            <span>Total Income:</span>
-                                            <span style={{ color: '#16A34A', fontWeight: '700' }}>{formatCurrency(acc.total_income || 0)}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
-                                            <span>Total Expenses:</span>
-                                            <span style={{ color: '#EF4444', fontWeight: '700' }}>{formatCurrency(acc.total_expenses || 0)}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94A3B8' }}>
-                                            <span>Last Transaction:</span>
-                                            <span style={{ fontWeight: '600' }}>{acc.last_transaction_date || 'N/A'}</span>
-                                        </div>
-                                    </div>
+                {activeTab === 'cash-bank' && (() => {
+                    const accountsToDisplay = dbBankAccounts.length > 0 ? dbBankAccounts : mockBankAccounts;
+                    const activeIndex = accountsToDisplay.findIndex(a => a.id === selectedAccId);
+                    const selectedIndex = activeIndex !== -1 ? activeIndex : 0;
+                    const selectedAccount = accountsToDisplay[selectedIndex];
+                    const selectedTransactions = mockTransactions[selectedAccount?.id || (selectedIndex + 1)] || mockTransactions[1];
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                        <div>
-                                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.2rem', margin: 0 }}>Balance</p>
-                                            <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1D4ED8', margin: 0 }}>{formatCurrency(acc.balance || 0)}</h3>
-                                        </div>
-                                        <button style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', color: '#1D4ED8', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>History</button>
-                                    </div>
+                    const totalCashVal = dbBankAccounts.length > 0
+                        ? dbBankAccounts.filter(a => a.bank_type === 'Cash' || a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
+                        : 25000;
+                    const totalBankVal = dbBankAccounts.length > 0
+                        ? dbBankAccounts.filter(a => a.bank_type === 'Bank' || !a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
+                        : 275000;
+
+                    return (
+                        <div>
+                            {/* Dashboard Summary Widgets */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ background: '#F0FDF4', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #DCFCE7', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Cash</p>
+                                    <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#14532D' }}>{formatCurrency(totalCashVal)}</h3>
                                 </div>
-                            )) : (
-                                <div style={{ gridColumn: '1 / -1', background: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                                    <p style={{ color: '#64748B', fontWeight: '600', fontSize: '0.88rem', margin: 0 }}>No cash or bank accounts configured yet. Please configure your financial profiles.</p>
+                                <div style={{ background: '#EFF6FF', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #DBEAFE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Bank Balance</p>
+                                    <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#1E3A8A' }}>{formatCurrency(totalBankVal)}</h3>
+                                </div>
+                                <div style={{ background: '#EEF2FF', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #E0E7FF', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Available Funds</p>
+                                    <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#312E81' }}>{formatCurrency(totalCashVal + totalBankVal)}</h3>
+                                </div>
+                            </div>
+
+                            {/* Cards Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                {accountsToDisplay.map((acc, i) => {
+                                    const isSelected = selectedAccount && selectedAccount.id === acc.id;
+                                    return (
+                                        <div 
+                                            key={i} 
+                                            onClick={() => setSelectedAccId(acc.id)}
+                                            style={{ 
+                                                background: 'white', 
+                                                padding: '1.25rem 1.5rem', 
+                                                borderRadius: '16px', 
+                                                border: isSelected ? '2px solid #1D4ED8' : '1px solid #E2E8F0', 
+                                                boxShadow: isSelected ? '0 10px 15px -3px rgba(29, 78, 216, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.01)',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease-in-out'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                                                    <Building2 size={20} />
+                                                </div>
+                                                <button style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}><MoreHorizontal size={18} /></button>
+                                            </div>
+                                            <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.15rem', margin: 0 }}>{acc.account_name}</h4>
+                                            <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem', margin: 0 }}>{acc.bank_name || 'Financial Profile'}</p>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                                                    <span>Total Income:</span>
+                                                    <span style={{ color: '#16A34A', fontWeight: '700' }}>{formatCurrency(acc.total_income || 0)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                                                    <span>Total Expenses:</span>
+                                                    <span style={{ color: '#EF4444', fontWeight: '700' }}>{formatCurrency(acc.total_expenses || 0)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94A3B8' }}>
+                                                    <span>Last Transaction:</span>
+                                                    <span style={{ fontWeight: '600' }}>{acc.last_transaction_date || 'N/A'}</span>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                                <div>
+                                                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.2rem', margin: 0 }}>Balance</p>
+                                                    <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1D4ED8', margin: 0 }}>{formatCurrency(acc.balance || 0)}</h3>
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedAccId(acc.id);
+                                                    }}
+                                                    style={{ 
+                                                        padding: '0.35rem 0.75rem', 
+                                                        borderRadius: '6px', 
+                                                        border: '1px solid #DBEAFE', 
+                                                        background: isSelected ? '#1D4ED8' : 'white', 
+                                                        color: isSelected ? 'white' : '#1D4ED8', 
+                                                        fontWeight: '700', 
+                                                        fontSize: '0.75rem', 
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    History
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Transaction Ledger Table */}
+                            {selectedAccount && (
+                                <div style={{ marginTop: '1.5rem', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Layers size={18} color="#1D4ED8" /> Transaction Ledger: {selectedAccount.account_name}
+                                    </h3>
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                            <thead>
+                                                <tr style={{ borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left' }}>
+                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Date</th>
+                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Description</th>
+                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Type</th>
+                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Amount</th>
+                                                    <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {selectedTransactions.map((tx, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{tx.date}</td>
+                                                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#1E293B' }}>{tx.description}</td>
+                                                        <td style={{ padding: '0.75rem 0.5rem' }}>
+                                                            <span style={{
+                                                                padding: '0.2rem 0.5rem',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: '800',
+                                                                background: tx.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
+                                                                color: tx.type === 'Credit' ? '#15803D' : '#B91C1C'
+                                                            }}>
+                                                                {tx.type}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '750', color: tx.type === 'Credit' ? '#16A34A' : '#EF4444' }}>
+                                                            {tx.type === 'Credit' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                                        </td>
+                                                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '750', color: '#1E293B' }}>
+                                                            {formatCurrency(tx.balance)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {activeTab === 'p&l' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
