@@ -662,11 +662,11 @@ const BusinessAccounting = () => {
                                         setIsAddBankModalOpen(true);
                                     }}
                                     style={{ 
-                                        background: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)', 
+                                        background: '#FEF2F2', 
                                         padding: '1.25rem 1.5rem', 
                                         borderRadius: '16px', 
-                                        border: '1px solid #3B82F6', 
-                                        boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)',
+                                        border: '1px solid #FEE2E2', 
+                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'center',
@@ -676,8 +676,7 @@ const BusinessAccounting = () => {
                                     }}
                                     className="stat-card"
                                 >
-                                    <Plus size={24} color="white" style={{ marginBottom: '0.25rem' }} />
-                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ Add New Bank</h3>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '950', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ADD NEW BANK</h3>
                                 </div>
                             </div>
 
