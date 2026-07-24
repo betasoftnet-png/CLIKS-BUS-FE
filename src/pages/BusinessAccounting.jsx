@@ -662,11 +662,11 @@ const BusinessAccounting = () => {
                                         setIsAddBankModalOpen(true);
                                     }}
                                     style={{ 
-                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
+                                        background: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)', 
                                         padding: '1.25rem 1.5rem', 
                                         borderRadius: '16px', 
-                                        border: '1px solid #D97706', 
-                                        boxShadow: '0 8px 16px rgba(245, 158, 11, 0.15)',
+                                        border: '1px solid #3B82F6', 
+                                        boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'center',
