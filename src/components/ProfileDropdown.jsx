@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, X } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
@@ -11,6 +11,30 @@ export function ProfileDropdown({
     const [open, setOpen] = useState(false);
     const { user } = useAuth();
     const dropdownRef = useRef(null);
+    
+    // Profile Photo & Camera Menu States
+    const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem("profile_photo") || null);
+    const [isCameraMenuOpen, setIsCameraMenuOpen] = useState(false);
+    const [isViewPhotoModalOpen, setIsViewPhotoModalOpen] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert("Please select an image file smaller than 5MB.");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                localStorage.setItem("profile_photo", base64String);
+                setProfilePhoto(base64String);
+                alert("Profile photo updated successfully!");
+            };
+            reader.readAsDataURL(file);
+        }
+    };
     
     // Country Selector State
     const [isCountrySelectorOpen, setIsCountrySelectorOpen] = useState(false);
@@ -333,6 +357,7 @@ export function ProfileDropdown({
                 setIsCountrySelectorOpen(false);
                 setIsCurrencySelectorOpen(false);
                 setIsTrustOpen(false);
+                setIsCameraMenuOpen(false);
                 setCountrySearchQuery("");
                 setCountrySearchQueryCurrency("");
             }
@@ -499,9 +524,14 @@ export function ProfileDropdown({
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#135029',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    overflow: 'hidden'
                 }}>
-                    <UserIcon size={14} />
+                    {profilePhoto ? (
+                        <img src={profilePhoto} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        <UserIcon size={14} />
+                    )}
                 </div>
                 <span className="profile-name-text" style={{ 
                     textTransform: 'none', 
@@ -673,27 +703,114 @@ export function ProfileDropdown({
                                         fontSize: '32px',
                                         fontWeight: '700',
                                         marginBottom: '12px',
-                                        boxShadow: '0 4px 12px rgba(26, 115, 232, 0.15)'
+                                        boxShadow: '0 4px 12px rgba(26, 115, 232, 0.15)',
+                                        overflow: 'visible'
                                     }}>
-                                        {displayName.charAt(0).toUpperCase()}
+                                        {profilePhoto ? (
+                                            <img src={profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                        ) : (
+                                            displayName.charAt(0).toUpperCase()
+                                        )}
                                         
                                         {/* Camera Icon Overlap */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            bottom: '0',
-                                            right: '0',
-                                            width: '26px',
-                                            height: '26px',
-                                            borderRadius: '50%',
-                                            backgroundColor: '#ffffff',
-                                            border: '1px solid #d1d5db',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.08)'
-                                        }}>
+                                        <div 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsCameraMenuOpen(!isCameraMenuOpen);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '0',
+                                                right: '0',
+                                                width: '26px',
+                                                height: '26px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#ffffff',
+                                                border: '1px solid #d1d5db',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
                                             <Camera size={13} color="#5f6368" />
                                         </div>
+
+                                        {isCameraMenuOpen && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '90px',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                backgroundColor: '#ffffff',
+                                                borderRadius: '12px',
+                                                boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                                border: '1px solid #e5e7eb',
+                                                padding: '6px',
+                                                zIndex: 1100,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '2px',
+                                                minWidth: '160px',
+                                                textAlign: 'left'
+                                            }}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsCameraMenuOpen(false);
+                                                        fileInputRef.current?.click();
+                                                    }}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        padding: '8px 12px',
+                                                        fontSize: '13px',
+                                                        fontWeight: '600',
+                                                        color: '#3c4043',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        width: '100%',
+                                                        textAlign: 'left'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                >
+                                                    <Camera size={14} color="#5f6368" />
+                                                    Add profile photo
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsCameraMenuOpen(false);
+                                                        setIsViewPhotoModalOpen(true);
+                                                    }}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        padding: '8px 12px',
+                                                        fontSize: '13px',
+                                                        fontWeight: '600',
+                                                        color: '#3c4043',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        width: '100%',
+                                                        textAlign: 'left'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                >
+                                                    <UserIcon size={14} color="#5f6368" />
+                                                    View profile photo
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* User Name */}
@@ -791,6 +908,59 @@ export function ProfileDropdown({
                     </motion.div>
                 )}
             </AnimatePresence>
+            {/* Hidden Profile Photo Input Picker */}
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                accept="image/*" 
+                onChange={handleFileChange} 
+                style={{ display: 'none' }} 
+            />
+
+            {/* View Profile Photo Modal Overlay */}
+            {isViewPhotoModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: '#ffffff', borderRadius: '24px', padding: '1.5rem', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
+                            <span style={{ fontSize: '15px', fontWeight: '800', color: '#1f2937' }}>Profile photo</span>
+                            <button onClick={() => setIsViewPhotoModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
+                        </div>
+                        
+                        {profilePhoto ? (
+                            <img src={profilePhoto} alt="Profile Large" style={{ width: '260px', height: '260px', borderRadius: '50%', objectFit: 'cover', border: '4px solid #1A73E8', boxShadow: '0 8px 24px rgba(26,115,232,0.15)' }} />
+                        ) : (
+                            <div style={{ width: '260px', height: '260px', borderRadius: '50%', backgroundColor: '#1A73E8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '96px', fontWeight: '800', boxShadow: '0 8px 24px rgba(26,115,232,0.15)' }}>
+                                {displayName.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', width: '100%' }}>
+                            <button 
+                                onClick={() => {
+                                    setIsViewPhotoModalOpen(false);
+                                    fileInputRef.current?.click();
+                                }}
+                                style={{ flex: 1, padding: '10px', borderRadius: '12px', border: '1px solid #d1d5db', backgroundColor: '#ffffff', color: '#1A73E8', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                            >
+                                Change photo
+                            </button>
+                            {profilePhoto && (
+                                <button 
+                                    onClick={() => {
+                                        localStorage.removeItem("profile_photo");
+                                        setProfilePhoto(null);
+                                        setIsViewPhotoModalOpen(false);
+                                        alert("Profile photo removed successfully!");
+                                    }}
+                                    style={{ flex: 1, padding: '10px', borderRadius: '12px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                                >
+                                    Delete photo
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
