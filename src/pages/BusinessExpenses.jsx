@@ -793,10 +793,7 @@ const BusinessExpenses = () => {
                                                     fontWeight: '800', fontSize: '0.7rem'
                                                 }}>{isExceeded ? 'EXCEEDED' : (isOverWarning ? 'WARNING OVER LIMIT' : 'OPTIMAL')}</span>
                                             </td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>
-                                                {formatCurrency(bg.spent_amount)}
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                            <td style={{ padding: '0.6rem 1rem' }}>
                                                 <button 
                                                     onClick={() => {
                                                         setRecordSpendingForm({
@@ -812,6 +809,8 @@ const BusinessExpenses = () => {
                                                 >
                                                     <DollarSign size={11} /> Record Spending
                                                 </button>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                                                 <button 
                                                     onClick={() => {
                                                         setEditingBudget(bg);
