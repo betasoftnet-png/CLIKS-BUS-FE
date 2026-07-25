@@ -554,7 +554,7 @@ const BusinessAccounting = () => {
             }
         }
 
-        if (entryForm.entry_type === 'credit_sale') {
+        if (entryForm.entry_type === 'credit_sale' || (entryForm.entry_type === 'income' && entryForm.mode === 'Accounts Receivable (Credit Sale)')) {
             if (!entryForm.due_date) {
                 alert("Due Date is mandatory.");
                 return;
@@ -2328,13 +2328,39 @@ const BusinessAccounting = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
-                                                <select value={entryForm.mode} onChange={(e) => setEntryForm({ ...entryForm, mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
+                                                <select value={entryForm.mode} onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const updates = { mode: val };
+                                                    if (val === 'Accounts Receivable (Credit Sale)') {
+                                                        if (!entryForm.invoice_number) {
+                                                            updates.invoice_number = generateUniqueInvoiceNumber();
+                                                        }
+                                                        if (!entryForm.due_date) {
+                                                            updates.due_date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                                                        }
+                                                    }
+                                                    setEntryForm(prev => ({ ...prev, ...updates }));
+                                                }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
                                                     {activeBankAccounts.map(acc => (
                                                         <option key={acc.account_name} value={acc.account_name}>{acc.account_name}</option>
                                                     ))}
+                                                    <option disabled>──────────────────────────</option>
+                                                    <option value="Accounts Receivable (Credit Sale)">Accounts Receivable (Credit Sale)</option>
                                                 </select>
                                             </div>
                                         </div>
+                                        {entryForm.mode === 'Accounts Receivable (Credit Sale)' && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Number (Auto)</label>
+                                                    <input disabled type="text" value={entryForm.invoice_number} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B', fontWeight: '600' }} />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
+                                                    <input required type="date" value={entryForm.due_date} onChange={(e) => setEntryForm({ ...entryForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                                </div>
+                                            </div>
+                                        )}
                                     </>
                                 )}
 
