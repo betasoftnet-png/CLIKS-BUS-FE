@@ -58,6 +58,14 @@ const BusinessExpenses = () => {
         paymentMode: 'Cash in Hand',
         paymentDate: new Date().toISOString().split('T')[0]
     });
+    const [isRecordSpendingModalOpen, setIsRecordSpendingModalOpen] = useState(false);
+    const [recordSpendingForm, setRecordSpendingForm] = useState({
+        category_name: '',
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        payment_mode: 'UPI'
+    });
     
     // Auto-trigger expense modal via search instructions
     const [searchParams, setSearchParams] = useSearchParams();
@@ -295,6 +303,24 @@ const BusinessExpenses = () => {
     const handleCreateExpense = (e) => {
         e.preventDefault();
         createExpenseMutation.mutate(newExpense);
+    };
+
+    const handleSaveSpending = (e) => {
+        e.preventDefault();
+        createExpenseMutation.mutate({
+            category_name: recordSpendingForm.category_name,
+            subcategory: recordSpendingForm.description.trim() || 'Departmental Spend',
+            payee_name: 'Departmental Spend',
+            expense_amount: String(recordSpendingForm.amount),
+            gst_percentage: 0,
+            payment_mode: recordSpendingForm.payment_mode || 'UPI',
+            transaction_reference: `SPEND-${Date.now().toString().slice(-4)}`,
+            expense_date: recordSpendingForm.date
+        }, {
+            onSuccess: () => {
+                setIsRecordSpendingModalOpen(false);
+            }
+        });
     };
 
     const handleSaveBudget = (e) => {
@@ -761,6 +787,21 @@ const BusinessExpenses = () => {
                                             <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                                                 <button 
                                                     onClick={() => {
+                                                        setRecordSpendingForm({
+                                                            category_name: bg.category_name,
+                                                            amount: '',
+                                                            description: '',
+                                                            date: new Date().toISOString().split('T')[0],
+                                                            payment_mode: 'UPI'
+                                                        });
+                                                        setIsRecordSpendingModalOpen(true);
+                                                    }}
+                                                    style={{ border: 'none', background: '#E6F4EA', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#137333', display: 'flex', alignItems: 'center', gap: '2px' }}
+                                                >
+                                                    <DollarSign size={11} /> Record Spending
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
                                                         setEditingBudget(bg);
                                                         setNewBudget({
                                                             category_name: bg.category_name,
@@ -1120,6 +1161,82 @@ const BusinessExpenses = () => {
                                 style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}
                             >
                                 {payClaimMutation.isPending ? 'Processing...' : 'Confirm & Reduce Balance'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Record Department Spending Modal */}
+            {isRecordSpendingModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED', margin: 0 }}>Record Department Spending</h3>
+                            <button onClick={() => setIsRecordSpendingModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleSaveSpending} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category</label>
+                                <input 
+                                    readOnly 
+                                    type="text" 
+                                    value={recordSpendingForm.category_name} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontWeight: '600', color: '#64748B' }} 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount Spent (₹)</label>
+                                <input 
+                                    required 
+                                    type="number" 
+                                    placeholder="e.g. 10000" 
+                                    value={recordSpendingForm.amount} 
+                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, amount: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g. Fuel purchased for company vehicles" 
+                                    value={recordSpendingForm.description} 
+                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, description: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
+                                <input 
+                                    required 
+                                    type="date" 
+                                    value={recordSpendingForm.date} 
+                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, date: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Payment Account</label>
+                                <select 
+                                    value={recordSpendingForm.payment_mode} 
+                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, payment_mode: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    <option value="UPI">UPI / Net Banking</option>
+                                    <option value="Cash">Cash in Hand</option>
+                                    <option value="Bank Transfer">Bank Transfer / Card</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                disabled={createExpenseMutation.isPending} 
+                                style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.15)' }}
+                            >
+                                {createExpenseMutation.isPending ? 'Saving...' : 'Save Spending'}
                             </button>
                         </form>
                     </div>
