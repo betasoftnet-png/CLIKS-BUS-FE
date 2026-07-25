@@ -494,21 +494,7 @@ const BusinessBilling = () => {
         return customers.find(c => c.id === selectedCustomerObject.id) || selectedCustomerObject;
     }, [customers, selectedCustomerObject]);
 
-    React.useEffect(() => {
-        const q = searchParams.get('q');
-        if (q) {
-            setSearchTerm(q);
-            if (invoices && invoices.length > 0) {
-                const match = invoices.find(inv => 
-                    String(inv.invoice_number).toLowerCase() === q.toLowerCase() ||
-                    String(inv.id) === q
-                );
-                if (match) {
-                    handleEdit(match);
-                }
-            }
-        }
-    }, [searchParams, invoices]);
+
 
     // Mutations
     const adjustStockMutation = useMutation({
@@ -708,6 +694,22 @@ const BusinessBilling = () => {
         });
         setIsModalOpen(true);
     };
+
+    React.useEffect(() => {
+        const q = searchParams.get('q');
+        if (q) {
+            setSearchTerm(q);
+            if (invoices && invoices.length > 0) {
+                const match = invoices.find(inv => 
+                    String(inv.invoice_number).toLowerCase() === q.toLowerCase() ||
+                    String(inv.id) === q
+                );
+                if (match) {
+                    handleEdit(match);
+                }
+            }
+        }
+    }, [searchParams, invoices]);
 
     const handleSubmit = (e) => {
         e.preventDefault();

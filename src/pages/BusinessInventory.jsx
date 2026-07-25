@@ -228,21 +228,7 @@ const BusinessInventory = () => {
         }
     }, [searchParams, setSearchParams]);
 
-    React.useEffect(() => {
-        const q = searchParams.get('q');
-        if (q) {
-            setSearchTerm(q);
-            if (items && items.length > 0) {
-                const match = items.find(i => 
-                    String(i.name).toLowerCase() === q.toLowerCase() ||
-                    String(i.id) === q
-                );
-                if (match) {
-                    handleEdit(match);
-                }
-            }
-        }
-    }, [searchParams, items]);
+
 
     // Live catalog items database from productsService
     const { data: items = [] } = useQuery({
@@ -404,6 +390,22 @@ const BusinessInventory = () => {
         });
         setIsModalOpen(true);
     };
+
+    React.useEffect(() => {
+        const q = searchParams.get('q');
+        if (q) {
+            setSearchTerm(q);
+            if (items && items.length > 0) {
+                const match = items.find(i => 
+                    String(i.name).toLowerCase() === q.toLowerCase() ||
+                    String(i.id) === q
+                );
+                if (match) {
+                    handleEdit(match);
+                }
+            }
+        }
+    }, [searchParams, items]);
 
     const handleDelete = async (id) => {
         if (await customConfirm('Are you sure you want to delete this product? All historical logs and stock information will be removed.')) {
