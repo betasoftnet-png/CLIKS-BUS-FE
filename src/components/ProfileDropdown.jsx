@@ -849,7 +849,7 @@ export function ProfileDropdown({
                                         marginBottom: '14px'
                                     }}>
                                         <CheckCircle2 size={14} color="#16A34A" />
-                                        <span>Primary Account</span>
+                                        <span>Make it Primary</span>
                                     </div>
 
                                     {/* Manage Account Button */}
