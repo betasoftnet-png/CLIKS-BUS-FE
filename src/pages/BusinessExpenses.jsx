@@ -286,7 +286,9 @@ const BusinessExpenses = () => {
         employee_name: '',
         travel_expense: '',
         claim_amount: '',
-        receipt: ''
+        receipt: '',
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().slice(0, 5)
     });
 
     const [newRecurring, setNewRecurring] = useState({
@@ -392,7 +394,17 @@ const BusinessExpenses = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
-                        onClick={() => setIsClaimModalOpen(true)}
+                        onClick={() => {
+                            setNewClaim({
+                                employee_name: '',
+                                travel_expense: '',
+                                claim_amount: '',
+                                receipt: '',
+                                date: new Date().toISOString().split('T')[0],
+                                time: new Date().toTimeString().slice(0, 5)
+                            });
+                            setIsClaimModalOpen(true);
+                        }}
                         className="crm-btn-secondary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
@@ -1028,6 +1040,16 @@ const BusinessExpenses = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Travel / Out-of-pocket Description</label>
                                 <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
+                                    <input required type="date" value={newClaim.date} onChange={(e) => setNewClaim({ ...newClaim, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Time</label>
+                                    <input required type="time" value={newClaim.time} onChange={(e) => setNewClaim({ ...newClaim, time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
