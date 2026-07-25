@@ -49,6 +49,9 @@ const BusinessExpenses = () => {
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+    const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+    const [editingRecurring, setEditingRecurring] = useState(null);
+    const [editingBudget, setEditingBudget] = useState(null);
     
     // Auto-trigger expense modal via search instructions
     const [searchParams, setSearchParams] = useSearchParams();
@@ -81,6 +84,11 @@ const BusinessExpenses = () => {
         queryFn: () => expensesService.getClaims()
     });
 
+    const { data: dbRecurrings = [] } = useQuery({
+        queryKey: ['recurringsList'],
+        queryFn: () => expensesService.getRecurrings()
+    });
+
     // Mutations
     const createExpenseMutation = useMutation({
         mutationFn: (data) => expensesService.createExpense(data),
@@ -101,6 +109,24 @@ const BusinessExpenses = () => {
         }
     });
 
+    const updateBudgetMutation = useMutation({
+        mutationFn: ({ id, data }) => expensesService.updateBudget(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            setIsBudgetModalOpen(false);
+            setEditingBudget(null);
+            alert('Budget limit updated successfully!');
+        }
+    });
+
+    const deleteBudgetMutation = useMutation({
+        mutationFn: (id) => expensesService.deleteBudget(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            alert('Budget target deleted successfully!');
+        }
+    });
+
     const lodgeClaimMutation = useMutation({
         mutationFn: (data) => expensesService.lodgeClaim(data),
         onSuccess: () => {
@@ -114,7 +140,52 @@ const BusinessExpenses = () => {
         mutationFn: (id) => expensesService.approveClaim(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
             alert('Claim approved and reimbursed successfully!');
+        }
+    });
+
+    const rejectClaimMutation = useMutation({
+        mutationFn: (id) => expensesService.rejectClaim(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            alert('Claim rejected successfully!');
+        }
+    });
+
+    const payClaimMutation = useMutation({
+        mutationFn: (id) => expensesService.payClaim(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            alert('Claim marked as Paid and reimbursed successfully!');
+        }
+    });
+
+    const createRecurringMutation = useMutation({
+        mutationFn: (data) => expensesService.createRecurring(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+            setIsRecurringModalOpen(false);
+            alert('Recurring subscription automation successfully created!');
+        }
+    });
+
+    const updateRecurringMutation = useMutation({
+        mutationFn: ({ id, data }) => expensesService.updateRecurring(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+            setIsRecurringModalOpen(false);
+            setEditingRecurring(null);
+            alert('Recurring subscription automation successfully updated!');
+        }
+    });
+
+    const deleteRecurringMutation = useMutation({
+        mutationFn: (id) => expensesService.deleteRecurring(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['recurringsList'] });
+            alert('Recurring subscription automation successfully deleted!');
         }
     });
 
@@ -143,6 +214,7 @@ const BusinessExpenses = () => {
             .filter(e => (e.category_name || '').trim().toLowerCase() === (item.category_name || '').trim().toLowerCase())
             .reduce((sum, e) => sum + e.expense_amount, 0);
         return {
+            id: item.id,
             category_name: item.category_name || 'Uncategorized',
             budget_limit: parseFloat(item.budget_limit) || 0,
             spent_amount: spent,
@@ -151,7 +223,7 @@ const BusinessExpenses = () => {
     });
 
     // Merge default categories with custom categories created under budgets
-    const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General'];
+    const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General', 'Staff Welfare & Reimbursement'];
     const budgetCategories = budgets.map(b => b.category_name).filter(name => name !== 'Uncategorized');
     const categoryOptions = Array.from(new Set([...defaultCategories, ...budgetCategories]));
 
@@ -162,22 +234,20 @@ const BusinessExpenses = () => {
         claim_amount: parseFloat(item.claim_amount) || 0,
         reimbursement_status: item.reimbursement_status || 'Pending',
         approval_by: item.approval_by || '',
+        receipt: item.receipt || '',
         date: item.date || (item.created_at ? item.created_at.split('T')[0] : '-')
     }));
 
-    const { data: dbRecurrings = [] } = useQuery({
-        queryKey: ['recurringsList'],
-        queryFn: () => expensesService.getRecurrings()
-    });
-
     const recurrings = dbRecurrings.map(item => ({
-        id: item.id || `REC-${item.id}`,
+        id: item.id,
+        subscription_name: item.subscription_name || 'N/A',
+        payee_name: item.payee_name || '-',
         category_name: item.category_name || 'General',
-        recurring_type: item.recurring_type || 'monthly',
+        recurring_type: item.recurring_type || 'Monthly',
         next_due_date: item.next_due_date || '-',
-        auto_create: item.auto_create || 'Inactive',
-        recurring_status: item.recurring_status || 'active',
-        amount: parseFloat(item.amount) || parseFloat(item.expense_amount) || 0
+        auto_create: item.auto_create || 'Active',
+        recurring_status: item.recurring_status || 'Active',
+        amount: parseFloat(item.expense_amount) || parseFloat(item.amount) || 0
     }));
 
     // Form states
@@ -200,7 +270,19 @@ const BusinessExpenses = () => {
     const [newClaim, setNewClaim] = useState({
         employee_name: '',
         travel_expense: '',
-        claim_amount: ''
+        claim_amount: '',
+        receipt: ''
+    });
+
+    const [newRecurring, setNewRecurring] = useState({
+        subscription_name: '',
+        payee_name: '',
+        category_name: 'Rent',
+        expense_amount: '',
+        recurring_type: 'Monthly',
+        next_due_date: new Date().toISOString().split('T')[0],
+        auto_create: 'Active',
+        recurring_status: 'Active'
     });
 
     const handleCreateExpense = (e) => {
@@ -208,9 +290,13 @@ const BusinessExpenses = () => {
         createExpenseMutation.mutate(newExpense);
     };
 
-    const handleCreateBudget = (e) => {
+    const handleSaveBudget = (e) => {
         e.preventDefault();
-        createBudgetMutation.mutate(newBudget);
+        if (editingBudget) {
+            updateBudgetMutation.mutate({ id: editingBudget.id, data: newBudget });
+        } else {
+            createBudgetMutation.mutate(newBudget);
+        }
     };
 
     const handleCreateClaim = (e) => {
@@ -218,8 +304,13 @@ const BusinessExpenses = () => {
         lodgeClaimMutation.mutate(newClaim);
     };
 
-    const handleApproveClaim = (claimId) => {
-        approveClaimMutation.mutate(claimId);
+    const handleSaveRecurring = (e) => {
+        e.preventDefault();
+        if (editingRecurring) {
+            updateRecurringMutation.mutate({ id: editingRecurring.id, data: newRecurring });
+        } else {
+            createRecurringMutation.mutate(newRecurring);
+        }
     };
 
     const filteredExpenses = expenses.filter(e => {
@@ -495,30 +586,103 @@ const BusinessExpenses = () => {
             {/* Tab 2: Recurrings automatic entries */}
             {activeTab === 'recurring' && (
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', marginTop: 0 }}>Active Recurring bills & Subscriptions</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Active Recurring bills & Subscriptions</h3>
+                        <button onClick={() => {
+                            setEditingRecurring(null);
+                            setNewRecurring({
+                                subscription_name: '',
+                                payee_name: '',
+                                category_name: 'Rent',
+                                expense_amount: '',
+                                recurring_type: 'Monthly',
+                                next_due_date: new Date().toISOString().split('T')[0],
+                                auto_create: 'Active',
+                                recurring_status: 'Active'
+                            });
+                            setIsRecurringModalOpen(true);
+                        }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#3B82F6', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Subscription</button>
+                    </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Automation ID</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>ID / Name</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Vendor</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Name</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Frequency</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Next Due Date</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Auto-Post</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Recurring Cost</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {recurrings.map((rec) => (
                                     <tr key={rec.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem' }}>{rec.id}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{rec.category_name}</td>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <p style={{ fontWeight: '750', fontSize: '0.82rem', margin: 0 }}>REC-{rec.id}</p>
+                                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>{rec.subscription_name}</span>
+                                        </td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', fontSize: '0.8rem', color: '#475569' }}>{rec.payee_name}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.8rem', color: '#1E293B' }}>{rec.category_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', textTransform: 'capitalize', fontSize: '0.8rem', color: '#475569' }}>{rec.recurring_type}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#BE185D', fontWeight: '700', fontSize: '0.8rem' }}>{rec.next_due_date}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>{rec.auto_create.toUpperCase()}</span>
+                                            <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: rec.recurring_status === 'Active' ? '#E6F4EA' : '#FCE8E6', color: rec.recurring_status === 'Active' ? '#137333' : '#C5221F', fontWeight: '800', fontSize: '0.72rem' }}>
+                                                {rec.recurring_status.toUpperCase()}
+                                            </span>
                                         </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(rec.amount)}</td>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: rec.auto_create === 'Active' ? '#E8F0FE' : '#F1F5F9', color: rec.auto_create === 'Active' ? '#1A73E8' : '#475569', fontWeight: '800', fontSize: '0.72rem' }}>
+                                                {rec.auto_create.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.85rem' }}>{formatCurrency(rec.amount)}</td>
+                                        <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center', alignItems: 'center' }}>
+                                            <button 
+                                                onClick={() => {
+                                                    const newStatus = rec.recurring_status === 'Active' ? 'Paused' : 'Active';
+                                                    updateRecurringMutation.mutate({
+                                                        id: rec.id,
+                                                        data: { ...rec, expense_amount: rec.amount, recurring_status: newStatus }
+                                                    });
+                                                }}
+                                                style={{ border: 'none', background: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#475569' }}
+                                            >
+                                                {rec.recurring_status === 'Active' ? 'Pause' : 'Resume'}
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    setEditingRecurring(rec);
+                                                    setNewRecurring({
+                                                        subscription_name: rec.subscription_name,
+                                                        payee_name: rec.payee_name,
+                                                        category_name: rec.category_name,
+                                                        expense_amount: rec.amount,
+                                                        recurring_type: rec.recurring_type,
+                                                        next_due_date: rec.next_due_date,
+                                                        auto_create: rec.auto_create,
+                                                        recurring_status: rec.recurring_status
+                                                    });
+                                                    setIsRecurringModalOpen(true);
+                                                }}
+                                                style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    if (confirm("Are you sure you want to delete this subscription?")) {
+                                                        deleteRecurringMutation.mutate(rec.id);
+                                                    }
+                                                }}
+                                                style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -532,7 +696,11 @@ const BusinessExpenses = () => {
                 <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Departmental Budgets & Spending Limits</h3>
-                        <button onClick={() => setIsBudgetModalOpen(true)} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Set Budget Limit</button>
+                        <button onClick={() => {
+                            setEditingBudget(null);
+                            setNewBudget({ category_name: '', budget_limit: '', spent_amount: 0 });
+                            setIsBudgetModalOpen(true);
+                        }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Set Budget Limit</button>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -541,23 +709,32 @@ const BusinessExpenses = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Group</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Monthly Allocated Limit</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Actual Spent (MTD)</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Remaining Budget</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Utilization Index</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Budget Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {budgets.map((bg) => {
-                                    const percent = Math.min(100, Math.round((bg.spent_amount / bg.budget_limit) * 100));
-                                    const isOver = percent >= 80;
+                                    const percent = bg.budget_limit > 0 ? Math.round((bg.spent_amount / bg.budget_limit) * 100) : 0;
+                                    const displayPercent = Math.min(100, percent);
+                                    const isExceeded = bg.spent_amount > bg.budget_limit;
+                                    const isOverWarning = bg.spent_amount >= bg.budget_limit * 0.8 && bg.spent_amount <= bg.budget_limit;
+                                    const remaining = bg.budget_limit - bg.spent_amount;
+
                                     return (
-                                        <tr key={bg.category_name} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <tr key={bg.id || bg.category_name} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#1E293B' }}>{bg.category_name}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{formatCurrency(bg.budget_limit)}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: isOver ? '#EF4444' : '#7C3AED', fontSize: '0.85rem' }}>{formatCurrency(bg.spent_amount)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: isExceeded ? '#EF4444' : (isOverWarning ? '#F59E0B' : '#7C3AED'), fontSize: '0.85rem' }}>{formatCurrency(bg.spent_amount)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: remaining >= 0 ? '#10B981' : '#EF4444', fontSize: '0.85rem' }}>
+                                                {remaining >= 0 ? formatCurrency(remaining) : `-${formatCurrency(Math.abs(remaining))}`}
+                                            </td>
                                             <td style={{ padding: '0.6rem 1rem', width: '200px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                                     <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: '#F1F5F9', overflow: 'hidden' }}>
-                                                        <div style={{ width: `${percent}%`, height: '100%', background: isOver ? 'linear-gradient(90deg, #EF4444 0%, #B91C1C 100%)' : 'linear-gradient(90deg, #10B981 0%, #059669 100%)', borderRadius: '3px' }}></div>
+                                                        <div style={{ width: `${displayPercent}%`, height: '100%', background: isExceeded ? 'linear-gradient(90deg, #EF4444 0%, #B91C1C 100%)' : (isOverWarning ? 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)' : 'linear-gradient(90deg, #10B981 0%, #059669 100%)'), borderRadius: '3px' }}></div>
                                                     </div>
                                                     <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#475569' }}>{percent}%</span>
                                                 </div>
@@ -565,10 +742,36 @@ const BusinessExpenses = () => {
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <span style={{ 
                                                     padding: '0.2rem 0.5rem', borderRadius: '6px',
-                                                    background: isOver ? '#FCE8E6' : '#E6F4EA',
-                                                    color: isOver ? '#C5221F' : '#137333',
+                                                    background: isExceeded ? '#FCE8E6' : (isOverWarning ? '#FEF3C7' : '#E6F4EA'),
+                                                    color: isExceeded ? '#C5221F' : (isOverWarning ? '#B45309' : '#137333'),
                                                     fontWeight: '800', fontSize: '0.7rem'
-                                                }}>{isOver ? 'WARNING OVER LIMIT' : 'OPTIMAL'}</span>
+                                                }}>{isExceeded ? 'EXCEEDED' : (isOverWarning ? 'WARNING OVER LIMIT' : 'OPTIMAL')}</span>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        setEditingBudget(bg);
+                                                        setNewBudget({
+                                                            category_name: bg.category_name,
+                                                            budget_limit: String(bg.budget_limit),
+                                                            spent_amount: bg.spent_amount
+                                                        });
+                                                        setIsBudgetModalOpen(true);
+                                                    }}
+                                                    style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        if (confirm("Are you sure you want to delete this budget limit?")) {
+                                                            deleteBudgetMutation.mutate(bg.id);
+                                                        }
+                                                    }}
+                                                    style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
+                                                >
+                                                    Delete
+                                                </button>
                                             </td>
                                         </tr>
                                     );
@@ -591,17 +794,58 @@ const BusinessExpenses = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Purpose Description</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Lodge Date</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt Details</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Amount</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {claims.map((cl) => (
                                     <tr key={cl.claim_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem' }}>{cl.claim_id}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem' }}>CLM-{cl.claim_id}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{cl.employee_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>{cl.travel_expense}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
+                                        <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.receipt || 'No receipt attached'}</td>
+                                        <td style={{ padding: '0.6rem 1rem' }}>
+                                            <span style={{ 
+                                                padding: '0.2rem 0.5rem', borderRadius: '6px',
+                                                background: cl.reimbursement_status === 'Approved' ? '#E8F0FE' : (cl.reimbursement_status === 'Paid' ? '#E6F4EA' : (cl.reimbursement_status === 'Rejected' ? '#FCE8E6' : '#FEF3C7')),
+                                                color: cl.reimbursement_status === 'Approved' ? '#1A73E8' : (cl.reimbursement_status === 'Paid' ? '#137333' : (cl.reimbursement_status === 'Rejected' ? '#C5221F' : '#B45309')),
+                                                fontWeight: '800', fontSize: '0.72rem'
+                                            }}>{cl.reimbursement_status.toUpperCase()}</span>
+                                        </td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(cl.claim_amount)}</td>
+                                        <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                            {cl.reimbursement_status === 'Pending' && (
+                                                <>
+                                                    <button 
+                                                        onClick={() => approveClaimMutation.mutate(cl.claim_id)}
+                                                        style={{ border: 'none', background: '#E6F4EA', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#137333' }}
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => rejectClaimMutation.mutate(cl.claim_id)}
+                                                        style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </>
+                                            )}
+                                            {cl.reimbursement_status !== 'Paid' && cl.reimbursement_status !== 'Rejected' && (
+                                                <button 
+                                                    onClick={() => payClaimMutation.mutate(cl.claim_id)}
+                                                    style={{ border: 'none', background: '#E8F0FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#1A73E8' }}
+                                                >
+                                                    Mark as Paid
+                                                </button>
+                                            )}
+                                            {(cl.reimbursement_status === 'Paid' || cl.reimbursement_status === 'Rejected') && (
+                                                <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Settled</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -681,22 +925,22 @@ const BusinessExpenses = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Set Department Budget</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingBudget ? 'Edit Department Budget' : 'Set Department Budget'}</h3>
                             <button onClick={() => setIsBudgetModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
-                        <form onSubmit={handleCreateBudget} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <form onSubmit={handleSaveBudget} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category Group</label>
-                                <input required type="text" value={newBudget.category_name} onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Fuel & Logistics" />
+                                <input required type="text" value={newBudget.category_name} onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Fuel & Logistics" disabled={!!editingBudget} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Allocated Monthly Spending Limit ({currency.code})</label>
                                 <input required type="number" value={newBudget.budget_limit} onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
 
-                            <button type="submit" disabled={createBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createBudgetMutation.isPending ? 'not-allowed' : 'pointer', opacity: createBudgetMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                {createBudgetMutation.isPending ? 'Setting...' : 'Settle Budget Target'}
+                            <button type="submit" disabled={createBudgetMutation.isPending || updateBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
+                                {editingBudget ? 'Updating...' : 'Settle Budget Target'}
                             </button>
                         </form>
                     </div>
@@ -725,9 +969,84 @@ const BusinessExpenses = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
                                 <input required type="number" value={newClaim.claim_amount} onChange={(e) => setNewClaim({ ...newClaim, claim_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receipt File / URL / Reference</label>
+                                <input type="text" value={newClaim.receipt} onChange={(e) => setNewClaim({ ...newClaim, receipt: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. claim_receipt_77.pdf or scan link" />
+                            </div>
 
                             <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
                                 {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add / Edit Recurring Subscription Modal */}
+            {isRecurringModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingRecurring ? 'Edit Subscription' : 'Add Recurring Subscription'}</h3>
+                            <button onClick={() => setIsRecurringModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleSaveRecurring} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Subscription Name</label>
+                                <input required type="text" value={newRecurring.subscription_name} onChange={(e) => setNewRecurring({ ...newRecurring, subscription_name: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. AWS Cloud Server" />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Vendor Name</label>
+                                <input required type="text" value={newRecurring.payee_name} onChange={(e) => setNewRecurring({ ...newRecurring, payee_name: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Amazon Web Services" />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Category</label>
+                                    <select value={newRecurring.category_name} onChange={(e) => setNewRecurring({ ...newRecurring, category_name: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        {categoryOptions.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Amount ({currency.code})</label>
+                                    <input required type="number" value={newRecurring.expense_amount} onChange={(e) => setNewRecurring({ ...newRecurring, expense_amount: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Frequency</label>
+                                    <select value={newRecurring.recurring_type} onChange={(e) => setNewRecurring({ ...newRecurring, recurring_type: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Next Due Date</label>
+                                    <input required type="date" value={newRecurring.next_due_date} onChange={(e) => setNewRecurring({ ...newRecurring, next_due_date: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Auto-Post</label>
+                                    <select value={newRecurring.auto_create} onChange={(e) => setNewRecurring({ ...newRecurring, auto_create: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        <option value="Active">Active (Auto-Create)</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Status</label>
+                                    <select value={newRecurring.recurring_status} onChange={(e) => setNewRecurring({ ...newRecurring, recurring_status: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                        <option value="Active">Active</option>
+                                        <option value="Paused">Paused</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={createRecurringMutation.isPending || updateRecurringMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)' }}>
+                                {editingRecurring ? 'Updating...' : 'Create Subscription'}
                             </button>
                         </form>
                     </div>
