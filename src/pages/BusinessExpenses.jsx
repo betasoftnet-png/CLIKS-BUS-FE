@@ -52,6 +52,12 @@ const BusinessExpenses = () => {
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [editingRecurring, setEditingRecurring] = useState(null);
     const [editingBudget, setEditingBudget] = useState(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [payingClaimId, setPayingClaimId] = useState(null);
+    const [paymentDetails, setPaymentDetails] = useState({
+        paymentMode: 'Cash in Hand',
+        paymentDate: new Date().toISOString().split('T')[0]
+    });
     
     // Auto-trigger expense modal via search instructions
     const [searchParams, setSearchParams] = useSearchParams();
@@ -141,12 +147,12 @@ const BusinessExpenses = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['claimsList'] });
             queryClient.invalidateQueries({ queryKey: ['expensesList'] });
-            alert('Claim approved and reimbursed successfully!');
+            alert('Claim approved successfully!');
         }
     });
 
     const rejectClaimMutation = useMutation({
-        mutationFn: (id) => expensesService.rejectClaim(id),
+        mutationFn: ({ id, reason }) => expensesService.rejectClaim(id, { reason }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['claimsList'] });
             alert('Claim rejected successfully!');
@@ -154,10 +160,11 @@ const BusinessExpenses = () => {
     });
 
     const payClaimMutation = useMutation({
-        mutationFn: (id) => expensesService.payClaim(id),
+        mutationFn: ({ id, data }) => expensesService.payClaim(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['claimsList'] });
             queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            setIsPaymentModalOpen(false);
             alert('Claim marked as Paid and reimbursed successfully!');
         }
     });
@@ -827,16 +834,28 @@ const BusinessExpenses = () => {
                                                         Approve
                                                     </button>
                                                     <button 
-                                                        onClick={() => rejectClaimMutation.mutate(cl.claim_id)}
+                                                        onClick={() => {
+                                                            const reason = prompt("Enter optional rejection reason:");
+                                                            if (reason !== null) {
+                                                                rejectClaimMutation.mutate({ id: cl.claim_id, reason });
+                                                            }
+                                                        }}
                                                         style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
                                                     >
                                                         Reject
                                                     </button>
                                                 </>
                                             )}
-                                            {cl.reimbursement_status !== 'Paid' && cl.reimbursement_status !== 'Rejected' && (
+                                            {cl.reimbursement_status === 'Approved' && (
                                                 <button 
-                                                    onClick={() => payClaimMutation.mutate(cl.claim_id)}
+                                                    onClick={() => {
+                                                        setPayingClaimId(cl.claim_id);
+                                                        setPaymentDetails(prev => ({
+                                                            ...prev,
+                                                            paymentDate: new Date().toISOString().split('T')[0]
+                                                        }));
+                                                        setIsPaymentModalOpen(true);
+                                                    }}
                                                     style={{ border: 'none', background: '#E8F0FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#1A73E8' }}
                                                 >
                                                     Mark as Paid
@@ -1047,6 +1066,56 @@ const BusinessExpenses = () => {
 
                             <button type="submit" disabled={createRecurringMutation.isPending || updateRecurringMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)' }}>
                                 {editingRecurring ? 'Updating...' : 'Create Subscription'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Payment Modal */}
+            {isPaymentModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Process Reimbursement Payment</h3>
+                            <button onClick={() => setIsPaymentModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            payClaimMutation.mutate({ id: payingClaimId, data: paymentDetails });
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Cash/Bank Account</label>
+                                <select 
+                                    value={paymentDetails.paymentMode} 
+                                    onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentMode: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    <option value="Cash in Hand">Cash in Hand</option>
+                                    <option value="HDFC Bank Account">HDFC Bank Account</option>
+                                    <option value="SBI Current Account">SBI Current Account</option>
+                                    <option value="ICICI Bank Account">ICICI Bank Account</option>
+                                    <option value="UPI / Razorpay">UPI / Razorpay</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Date</label>
+                                <input 
+                                    required 
+                                    type="date" 
+                                    value={paymentDetails.paymentDate} 
+                                    onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentDate: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                />
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                disabled={payClaimMutation.isPending} 
+                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}
+                            >
+                                {payClaimMutation.isPending ? 'Processing...' : 'Confirm & Reduce Balance'}
                             </button>
                         </form>
                     </div>

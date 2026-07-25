@@ -14,7 +14,7 @@ export const expensesService = {
     lodgeClaim: (data) => apiClient.post('/expenses/reimburse', data).then(res => res.data.data || res.data),
     approveClaim: (id) => apiClient.post(`/expenses/${id}/approve`).then(res => res.data.data || res.data),
     rejectClaim: (id) => apiClient.post(`/expenses/${id}/reject`).then(res => res.data.data || res.data),
-    payClaim: (id) => apiClient.post(`/expenses/${id}/pay`).then(res => res.data.data || res.data),
+    payClaim: (id, data) => apiClient.post(`/expenses/${id}/pay`, data).then(res => res.data.data || res.data),
     getRecurrings: () => apiClient.get('/expenses/recurring').then(res => res.data.data || res.data),
     createRecurring: (data) => apiClient.post('/expenses/recurring', data).then(res => res.data.data || res.data),
     updateRecurring: (id, data) => apiClient.put(`/expenses/recurring/${id}`, data).then(res => res.data.data || res.data),
