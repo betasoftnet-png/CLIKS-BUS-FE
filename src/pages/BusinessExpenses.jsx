@@ -719,6 +719,7 @@ const BusinessExpenses = () => {
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Remaining Budget</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Utilization Index</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Budget Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Spend</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -753,6 +754,9 @@ const BusinessExpenses = () => {
                                                     color: isExceeded ? '#C5221F' : (isOverWarning ? '#B45309' : '#137333'),
                                                     fontWeight: '800', fontSize: '0.7rem'
                                                 }}>{isExceeded ? 'EXCEEDED' : (isOverWarning ? 'WARNING OVER LIMIT' : 'OPTIMAL')}</span>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>
+                                                {formatCurrency(bg.spent_amount)}
                                             </td>
                                             <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                                                 <button 
