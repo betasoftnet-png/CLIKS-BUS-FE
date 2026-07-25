@@ -253,6 +253,7 @@ const BusinessAccounting = () => {
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            refetchInvoices();
             setIsEntryModalOpen(false);
             resetForm();
 
