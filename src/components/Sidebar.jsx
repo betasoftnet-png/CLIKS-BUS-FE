@@ -621,7 +621,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 flexDirection: 'column',
                 gap: '0.6rem',
                 flexShrink: 0,
-                background: '#DCF2E4',
+                background: '#FFFFFF',
                 zIndex: 10
             }}>
                 {/* FIN-PRO CTA Button - Fixed, below marketing, above subscription */}
