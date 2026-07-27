@@ -835,7 +835,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                 </button>
 
                                 {/* Horizontal Separator */}
-                                <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0', opacity: 0.8, flexShrink: 0 }} />
+                                <div style={{ width: '38px', height: '1px', backgroundColor: '#E2E8F0', margin: '-4px 0', opacity: 0.8, flexShrink: 0 }} />
 
                                 {/* Dynamic tools mapping */}
                                 {(() => {
