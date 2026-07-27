@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gstService } from '../services';
+import { gstService, billingService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 import { 
@@ -47,8 +47,15 @@ const BusinessGST = () => {
     const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
     const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
+    const [validationErrors, setValidationErrors] = useState({});
 
     const queryClient = useQueryClient();
+
+    // Queries
+    const { data: dbSalesInvoices = [] } = useQuery({
+        queryKey: ['salesInvoices'],
+        queryFn: () => billingService.getInvoices()
+    });
 
     // Queries
     const { data: dbInvoices = [] } = useQuery({
@@ -87,12 +94,17 @@ const BusinessGST = () => {
             queryClient.invalidateQueries({ queryKey: ['gstEways'] });
             setIsEwayModalOpen(false);
             setEwayForm({
+                invoice_number: '',
+                invoice_date: new Date().toISOString().split('T')[0],
+                transport_mode: 'Road',
                 transporter_name: '',
+                transporter_gstin: '',
                 vehicle_number: '',
                 transport_distance: '',
                 dispatch_location: '',
                 delivery_location: ''
             });
+            setValidationErrors({});
             alert('e-Way Bill successfully authenticated');
         }
     });
@@ -215,7 +227,11 @@ const BusinessGST = () => {
     });
 
     const [ewayForm, setEwayForm] = useState({
+        invoice_number: '',
+        invoice_date: new Date().toISOString().split('T')[0],
+        transport_mode: 'Road',
         transporter_name: '',
+        transporter_gstin: '',
         vehicle_number: '',
         transport_distance: '',
         dispatch_location: '',
@@ -243,10 +259,62 @@ const BusinessGST = () => {
 
     const handleCreateEway = (e) => {
         e.preventDefault();
+        const errors = {};
+        
+        if (!ewayForm.invoice_number.trim()) {
+            errors.invoice_number = "Invoice number is required";
+        }
+        if (!ewayForm.invoice_date) {
+            errors.invoice_date = "Invoice date is required";
+        }
+        if (!ewayForm.transport_mode) {
+            errors.transport_mode = "Transport mode is required";
+        }
+        if (!ewayForm.transporter_name.trim()) {
+            errors.transporter_name = "Transporter company name is required";
+        }
+        if (ewayForm.transporter_gstin.trim()) {
+            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (!gstinRegex.test(ewayForm.transporter_gstin.toUpperCase())) {
+                errors.transporter_gstin = "Invalid Indian GSTIN format (e.g. 27AAAAA1111A1Z1)";
+            }
+        }
+        if (ewayForm.transport_mode === 'Road') {
+            if (!ewayForm.vehicle_number.trim()) {
+                errors.vehicle_number = "Vehicle number is required for Road transport";
+            } else {
+                const cleanedVehicle = ewayForm.vehicle_number.replace(/[\s-]/g, '').toUpperCase();
+                const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{0,3}[0-9]{4}$/;
+                if (!vehicleRegex.test(cleanedVehicle)) {
+                    errors.vehicle_number = "Invalid Indian vehicle format (e.g. MH-02-EH-9081)";
+                }
+            }
+        }
+        const dist = parseFloat(ewayForm.transport_distance);
+        if (isNaN(dist) || dist <= 0) {
+            errors.transport_distance = "Distance must be a positive number";
+        }
+        if (!ewayForm.dispatch_location.trim()) {
+            errors.dispatch_location = "Dispatch location is required";
+        }
+        if (!ewayForm.delivery_location.trim()) {
+            errors.delivery_location = "Delivery destination is required";
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+        
+        setValidationErrors({});
         createEwayMutation.mutate({
+            invoice_number: ewayForm.invoice_number,
+            invoice_date: ewayForm.invoice_date,
+            transport_mode: ewayForm.transport_mode,
             transporter_name: ewayForm.transporter_name,
-            vehicle_number: ewayForm.vehicle_number,
-            transport_distance: parseInt(ewayForm.transport_distance) || 100,
+            transporter_gstin: ewayForm.transporter_gstin,
+            vehicle_number: ewayForm.transport_mode === 'Road' ? ewayForm.vehicle_number : '',
+            transport_distance: parseInt(ewayForm.transport_distance),
             dispatch_location: ewayForm.dispatch_location,
             delivery_location: ewayForm.delivery_location
         });
@@ -837,40 +905,105 @@ const BusinessGST = () => {
             {/* Generate e-Way Bill Modal */}
             {isEwayModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '580px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Create Government e-Way Bill</h3>
-                            <button onClick={() => setIsEwayModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            <button onClick={() => { setIsEwayModalOpen(false); setValidationErrors({}); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleCreateEway} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transporter Company Name</label>
-                                <input required type="text" value={ewayForm.transporter_name} onChange={(e) => setEwayForm({ ...ewayForm, transporter_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Bluedart Cargo" />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>AUTO-FILL FROM SALES INVOICE (OPTIONAL)</label>
+                                <select 
+                                    value="" 
+                                    onChange={(e) => {
+                                        const selected = dbSalesInvoices.find(inv => String(inv.id) === e.target.value);
+                                        if (selected) {
+                                            setEwayForm(prev => ({
+                                                ...prev,
+                                                invoice_number: selected.invoice_number || '',
+                                                invoice_date: selected.created_at ? selected.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                                                delivery_location: selected.client_name || selected.billing_address || ''
+                                            }));
+                                        }
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    <option value="">-- Select Sales Invoice --</option>
+                                    {dbSalesInvoices.map(inv => (
+                                        <option key={inv.id} value={inv.id}>
+                                            {inv.invoice_number} - {inv.client_name || 'Walk-in'} (₹{parseFloat(inv.total_amount || inv.amount || 0).toLocaleString()})
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Vehicle Number</label>
-                                    <input required type="text" value={ewayForm.vehicle_number} onChange={(e) => setEwayForm({ ...ewayForm, vehicle_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="MH-02-EH-9081" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>INVOICE NUMBER *</label>
+                                    <input required type="text" value={ewayForm.invoice_number} onChange={(e) => setEwayForm({ ...ewayForm, invoice_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.invoice_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="INV-2026-001" />
+                                    {validationErrors.invoice_number && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.invoice_number}</span>}
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Distance (Kms)</label>
-                                    <input required type="number" value={ewayForm.transport_distance} onChange={(e) => setEwayForm({ ...ewayForm, transport_distance: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
-                                </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Dispatch Location</label>
-                                    <input required type="text" value={ewayForm.dispatch_location} onChange={(e) => setEwayForm({ ...ewayForm, dispatch_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Delivery Destination</label>
-                                    <input required type="text" value={ewayForm.delivery_location} onChange={(e) => setEwayForm({ ...ewayForm, delivery_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>INVOICE DATE *</label>
+                                    <input required type="date" value={ewayForm.invoice_date} onChange={(e) => setEwayForm({ ...ewayForm, invoice_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.invoice_date ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontFamily: 'inherit' }} />
+                                    {validationErrors.invoice_date && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.invoice_date}</span>}
                                 </div>
                             </div>
 
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORT MODE *</label>
+                                    <select value={ewayForm.transport_mode} onChange={(e) => setEwayForm({ ...ewayForm, transport_mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        <option value="Road">Road</option>
+                                        <option value="Rail">Rail</option>
+                                        <option value="Air">Air</option>
+                                        <option value="Ship">Ship</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORT COMPANY NAME *</label>
+                                    <input required type="text" value={ewayForm.transporter_name} onChange={(e) => setEwayForm({ ...ewayForm, transporter_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Bluedart Cargo" />
+                                    {validationErrors.transporter_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_name}</span>}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORTER GSTIN (OPTIONAL)</label>
+                                    <input type="text" value={ewayForm.transporter_gstin} onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="27AAAAA1111A1Z1" />
+                                    {validationErrors.transporter_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_gstin}</span>}
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        VEHICLE NUMBER {ewayForm.transport_mode === 'Road' ? '*' : '(OPTIONAL)'}
+                                    </label>
+                                    <input type="text" value={ewayForm.vehicle_number} onChange={(e) => setEwayForm({ ...ewayForm, vehicle_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.vehicle_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="MH-02-EH-9081" />
+                                    {validationErrors.vehicle_number && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.vehicle_number}</span>}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>DISTANCE (KMS) *</label>
+                                    <input required type="number" value={ewayForm.transport_distance} onChange={(e) => setEwayForm({ ...ewayForm, transport_distance: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transport_distance ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. 150" />
+                                    {validationErrors.transport_distance && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transport_distance}</span>}
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>DISPATCH LOCATION *</label>
+                                    <input required type="text" value={ewayForm.dispatch_location} onChange={(e) => setEwayForm({ ...ewayForm, dispatch_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.dispatch_location ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Mumbai warehouse" />
+                                    {validationErrors.dispatch_location && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.dispatch_location}</span>}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>DELIVERY DESTINATION *</label>
+                                <input required type="text" value={ewayForm.delivery_location} onChange={(e) => setEwayForm({ ...ewayForm, delivery_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.delivery_location ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Client site, Pune" />
+                                {validationErrors.delivery_location && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.delivery_location}</span>}
+                            </div>
+
                             <button type="submit" disabled={createEwayMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createEwayMutation.isPending ? 'not-allowed' : 'pointer', opacity: createEwayMutation.isPending ? 0.7 : 1, boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
-                                {createEwayMutation.isPending ? 'Settling e-Way Bill...' : 'Settle Government e-Way Bill'}
+                                {createEwayMutation.isPending ? 'Generating e-Way Bill...' : 'Generate Government e-Way Bill'}
                             </button>
                         </form>
                     </div>
