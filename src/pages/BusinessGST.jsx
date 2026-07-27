@@ -92,6 +92,7 @@ const BusinessGST = () => {
         mutationFn: (data) => gstService.createEway(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['gstEways'] });
+            queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             setIsEwayModalOpen(false);
             setEwayForm({
                 invoice_number: '',
@@ -102,10 +103,18 @@ const BusinessGST = () => {
                 vehicle_number: '',
                 transport_distance: '',
                 dispatch_location: '',
-                delivery_location: ''
+                delivery_location: '',
+                goods_product_name: '',
+                goods_hsn_code: '',
+                goods_quantity: '',
+                goods_unit: 'Pcs',
+                goods_taxable_value: '',
+                goods_gst_rate: '18',
+                is_invoice_selected: false,
+                goods_items: []
             });
             setValidationErrors({});
-            alert('e-Way Bill successfully authenticated');
+            alert('Government e-Way Bill generated successfully.');
         }
     });
 
@@ -214,7 +223,9 @@ const BusinessGST = () => {
         dispatch_location: item.dispatch_location || '',
         delivery_location: item.delivery_location || '',
         status: item.status || 'Active',
-        reference_invoice: item.reference_invoice || ''
+        reference_invoice: item.reference_invoice || '',
+        transport_mode: item.transport_mode || '',
+        transporter_gstin: item.transporter_gstin || ''
     }));
 
     // Form inputs states
@@ -235,7 +246,15 @@ const BusinessGST = () => {
         vehicle_number: '',
         transport_distance: '',
         dispatch_location: '',
-        delivery_location: ''
+        delivery_location: '',
+        goods_product_name: '',
+        goods_hsn_code: '',
+        goods_quantity: '',
+        goods_unit: 'Pcs',
+        goods_taxable_value: '',
+        goods_gst_rate: '18',
+        is_invoice_selected: false,
+        goods_items: []
     });
 
     const [reconcileForm, setReconcileForm] = useState({
@@ -301,13 +320,29 @@ const BusinessGST = () => {
             errors.delivery_location = "Delivery destination is required";
         }
 
+        // Validate goods details if no invoice is selected
+        if (!ewayForm.is_invoice_selected) {
+            if (!ewayForm.goods_product_name.trim()) {
+                errors.goods_product_name = "Product Name is required";
+            }
+            const qty = parseFloat(ewayForm.goods_quantity);
+            if (isNaN(qty) || qty <= 0) {
+                errors.goods_quantity = "Quantity must be a positive number";
+            }
+            const taxable = parseFloat(ewayForm.goods_taxable_value);
+            if (isNaN(taxable) || taxable < 0) {
+                errors.goods_taxable_value = "Taxable value must be a positive number";
+            }
+        }
+
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
             return;
         }
         
         setValidationErrors({});
-        createEwayMutation.mutate({
+        
+        let payload = {
             invoice_number: ewayForm.invoice_number,
             invoice_date: ewayForm.invoice_date,
             transport_mode: ewayForm.transport_mode,
@@ -317,7 +352,49 @@ const BusinessGST = () => {
             transport_distance: parseInt(ewayForm.transport_distance),
             dispatch_location: ewayForm.dispatch_location,
             delivery_location: ewayForm.delivery_location
-        });
+        };
+
+        if (ewayForm.is_invoice_selected) {
+            const taxVal = ewayForm.goods_items.reduce((sum, item) => sum + (parseFloat(item.price || item.rate || 0) * parseFloat(item.quantity || 0)), 0);
+            const gstRate = parseFloat(ewayForm.goods_items[0]?.tax_rate || 18);
+            const totalVal = ewayForm.goods_items.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
+            payload = {
+                ...payload,
+                goods_product_name: ewayForm.goods_items.map(i => i.description || i.product_name).join(', '),
+                goods_hsn_code: ewayForm.goods_items.map(i => i.hsn_code || i.hsn).filter(Boolean).join(', '),
+                goods_quantity: ewayForm.goods_items.reduce((sum, i) => sum + parseFloat(i.quantity || 0), 0),
+                goods_unit: ewayForm.goods_items[0]?.unit || 'Pcs',
+                goods_taxable_value: taxVal,
+                goods_gst_rate: gstRate,
+                goods_total_value: totalVal,
+                items: ewayForm.goods_items
+            };
+        } else {
+            const taxable = parseFloat(ewayForm.goods_taxable_value) || 0;
+            const rate = parseFloat(ewayForm.goods_gst_rate || 18);
+            const total = taxable * (1 + rate / 100);
+            payload = {
+                ...payload,
+                goods_product_name: ewayForm.goods_product_name,
+                goods_hsn_code: ewayForm.goods_hsn_code,
+                goods_quantity: parseFloat(ewayForm.goods_quantity),
+                goods_unit: ewayForm.goods_unit,
+                goods_taxable_value: taxable,
+                goods_gst_rate: rate,
+                goods_total_value: total,
+                items: [{
+                    description: ewayForm.goods_product_name,
+                    hsn_code: ewayForm.goods_hsn_code,
+                    quantity: parseFloat(ewayForm.goods_quantity),
+                    unit: ewayForm.goods_unit,
+                    price: parseFloat(ewayForm.goods_quantity) > 0 ? (taxable / parseFloat(ewayForm.goods_quantity)) : taxable,
+                    tax_rate: rate,
+                    total: total
+                }]
+            };
+        }
+
+        createEwayMutation.mutate(payload);
     };
 
     const handleAddReconcile = (e) => {
@@ -905,7 +982,7 @@ const BusinessGST = () => {
             {/* Generate e-Way Bill Modal */}
             {isEwayModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '580px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '580px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Create Government e-Way Bill</h3>
                             <button onClick={() => { setIsEwayModalOpen(false); setValidationErrors({}); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
@@ -915,15 +992,44 @@ const BusinessGST = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>AUTO-FILL FROM SALES INVOICE (OPTIONAL)</label>
                                 <select 
-                                    value="" 
+                                    value={ewayForm.is_invoice_selected ? dbSalesInvoices.find(inv => inv.invoice_number === ewayForm.invoice_number)?.id || '' : ''} 
                                     onChange={(e) => {
+                                        if (!e.target.value) {
+                                            setEwayForm(prev => ({
+                                                ...prev,
+                                                is_invoice_selected: false,
+                                                invoice_number: '',
+                                                goods_items: [],
+                                                goods_product_name: '',
+                                                goods_hsn_code: '',
+                                                goods_quantity: '',
+                                                goods_unit: 'Pcs',
+                                                goods_taxable_value: '',
+                                                goods_gst_rate: '18',
+                                                goods_total_value: ''
+                                            }));
+                                            return;
+                                        }
                                         const selected = dbSalesInvoices.find(inv => String(inv.id) === e.target.value);
                                         if (selected) {
+                                            const items = Array.isArray(selected.items) ? selected.items : [];
+                                            const taxVal = items.reduce((sum, item) => sum + (parseFloat(item.price || item.rate || 0) * parseFloat(item.quantity || 0)), 0);
+                                            const totalVal = selected.total_amount || selected.amount || 0;
+                                            
                                             setEwayForm(prev => ({
                                                 ...prev,
                                                 invoice_number: selected.invoice_number || '',
                                                 invoice_date: selected.created_at ? selected.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-                                                delivery_location: selected.client_name || selected.billing_address || ''
+                                                delivery_location: selected.client_name || selected.billing_address || '',
+                                                is_invoice_selected: true,
+                                                goods_items: items,
+                                                goods_product_name: items.map(i => i.description || i.product_name).join(', '),
+                                                goods_hsn_code: items.map(i => i.hsn_code || i.hsn).filter(Boolean).join(', '),
+                                                goods_quantity: items.reduce((sum, i) => sum + parseFloat(i.quantity || 0), 0),
+                                                goods_unit: items[0]?.unit || 'Pcs',
+                                                goods_taxable_value: taxVal,
+                                                goods_gst_rate: items[0]?.tax_rate || 18,
+                                                goods_total_value: totalVal
                                             }));
                                         }
                                     }} 
@@ -937,6 +1043,75 @@ const BusinessGST = () => {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Goods Details Section */}
+                            {ewayForm.is_invoice_selected ? (
+                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '900', color: '#475569', marginTop: 0, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Goods Details (Read-Only)</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        {ewayForm.goods_items.map((item, idx) => (
+                                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.5rem', fontSize: '0.75rem', color: '#334155', borderBottom: idx < ewayForm.goods_items.length - 1 ? '1px solid #F1F5F9' : 'none', paddingBottom: idx < ewayForm.goods_items.length - 1 ? '0.5rem' : 0 }}>
+                                                <div>
+                                                    <span style={{ fontWeight: '700', display: 'block' }}>{item.description || 'N/A'}</span>
+                                                    {item.hsn_code && <span style={{ color: '#64748B', fontSize: '0.65rem' }}>HSN: {item.hsn_code}</span>}
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>{item.quantity} {item.unit || 'Pcs'}</div>
+                                                <div style={{ textAlign: 'right' }}>₹{parseFloat(item.price || 0).toLocaleString()}</div>
+                                                <div style={{ textAlign: 'right', fontWeight: '700' }}>₹{parseFloat(item.total || 0).toLocaleString()} <span style={{ fontSize: '0.6rem', color: '#64748B' }}>({item.tax_rate}%)</span></div>
+                                            </div>
+                                        ))}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.6rem', marginTop: '0.2rem', fontWeight: '850', fontSize: '0.8rem', color: '#0F172A' }}>
+                                            <span>Total Invoice Value:</span>
+                                            <span>₹{parseFloat(ewayForm.goods_total_value || 0).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '900', color: '#475569', marginTop: 0, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Goods Details (Manual Entry)</h4>
+                                    
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>PRODUCT NAME *</label>
+                                        <input type="text" value={ewayForm.goods_product_name} onChange={(e) => setEwayForm({ ...ewayForm, goods_product_name: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: validationErrors.goods_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. Steel Rods" />
+                                        {validationErrors.goods_product_name && <span style={{ color: '#EF4444', fontSize: '0.65rem', fontWeight: '750', marginTop: '0.15rem', display: 'block' }}>{validationErrors.goods_product_name}</span>}
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>HSN/SAC CODE</label>
+                                            <input type="text" value={ewayForm.goods_hsn_code} onChange={(e) => setEwayForm({ ...ewayForm, goods_hsn_code: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. 7214" />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>UNIT</label>
+                                            <input type="text" value={ewayForm.goods_unit} onChange={(e) => setEwayForm({ ...ewayForm, goods_unit: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. MT, Pcs, Kgs" />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>QUANTITY *</label>
+                                            <input type="number" step="any" value={ewayForm.goods_quantity} onChange={(e) => setEwayForm({ ...ewayForm, goods_quantity: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: validationErrors.goods_quantity ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. 10" />
+                                            {validationErrors.goods_quantity && <span style={{ color: '#EF4444', fontSize: '0.65rem', fontWeight: '750', marginTop: '0.15rem', display: 'block' }}>{validationErrors.goods_quantity}</span>}
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>TAXABLE VALUE (₹) *</label>
+                                            <input type="number" step="any" value={ewayForm.goods_taxable_value} onChange={(e) => setEwayForm({ ...ewayForm, goods_taxable_value: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: validationErrors.goods_taxable_value ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. 50000" />
+                                            {validationErrors.goods_taxable_value && <span style={{ color: '#EF4444', fontSize: '0.65rem', fontWeight: '750', marginTop: '0.15rem', display: 'block' }}>{validationErrors.goods_taxable_value}</span>}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>GST RATE (%)</label>
+                                        <select value={ewayForm.goods_gst_rate} onChange={(e) => setEwayForm({ ...ewayForm, goods_gst_rate: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem', fontWeight: '600' }}>
+                                            <option value="0">0%</option>
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="18">18%</option>
+                                            <option value="28">28%</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -1001,6 +1176,12 @@ const BusinessGST = () => {
                                 <input required type="text" value={ewayForm.delivery_location} onChange={(e) => setEwayForm({ ...ewayForm, delivery_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.delivery_location ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Client site, Pune" />
                                 {validationErrors.delivery_location && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.delivery_location}</span>}
                             </div>
+
+                            {createEwayMutation.isError && (
+                                <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', border: '1px solid #FCA5A5' }}>
+                                    Failed to generate e-Way Bill: {createEwayMutation.error?.response?.data?.message || createEwayMutation.error?.message || 'Unknown error'}
+                                </div>
+                            )}
 
                             <button type="submit" disabled={createEwayMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createEwayMutation.isPending ? 'not-allowed' : 'pointer', opacity: createEwayMutation.isPending ? 0.7 : 1, boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
                                 {createEwayMutation.isPending ? 'Generating e-Way Bill...' : 'Generate Government e-Way Bill'}
