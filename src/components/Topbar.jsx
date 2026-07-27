@@ -741,7 +741,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                     minHeight: '28px',
                     maxHeight: '28px',
                     backgroundColor: 'rgba(255, 255, 255, 0.18)', 
-                    marginLeft: '14px',
+                    marginLeft: '-6px',
                     marginRight: '0px',
                     alignSelf: 'center',
                     flexShrink: 0
