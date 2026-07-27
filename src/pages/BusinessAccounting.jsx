@@ -1352,7 +1352,7 @@ const BusinessAccounting = () => {
                                                 {selectedTransactions.length === 0 ? (
                                                     <tr>
                                                         <td colSpan="5" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600', fontSize: '0.9rem' }}>
-                                                            No transaction records found for this account.
+                                                            No transactions found. Start by recording your first financial entry.
                                                         </td>
                                                     </tr>
                                                 ) : (
