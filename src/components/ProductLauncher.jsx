@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { profileService } from '../services';
 import {
     X,
@@ -17,37 +16,41 @@ const ALL_PRODUCTS = [
         name: 'Cliks',
         category: 'Public',
         icon: '/cliks_logo.png',
-        color: '#10B981' // Green
+        color: '#10B981', // Green
+        url: 'https://cliks.beta-softnet.com/'
     },
     {
         name: 'BNXmail',
         category: 'Public',
         icon: '/bnxmail_logo.png',
-        color: '#004aad' // Blue
+        color: '#004aad', // Blue
+        url: 'https://www.bnxmail.com/'
     },
     {
         name: 'Bit-Tool',
         category: 'Public',
         icon: '/bit_tool_logo.png',
-        color: '#2563eb' // Blue
+        color: '#2563eb', // Blue
+        url: 'https://bit-tool.beta-softnet.com/'
     },
     {
         name: 'B2Auth',
         category: 'Public',
         icon: '/b2auth_logo.png',
-        color: '#1e293b' // Slate
+        color: '#1e293b', // Slate
+        url: 'https://www.b2auth.com/'
     },
     // Business Apps
     {
         name: 'CliksBusiness',
         category: 'Business',
         icon: '/cliksbusiness_logo.png',
-        color: '#047857' // Dark Green
+        color: '#047857', // Dark Green
+        url: 'https://cliksbusiness.com/'
     }
 ];
 
 const ProductLauncher = ({ onClose }) => {
-    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isEditMode, setIsEditMode] = useState(false);
     const [activeTab, setActiveTab] = useState('BASE'); // 'BASE', 'PUBLIC' or 'BUSINESS'
@@ -130,17 +133,10 @@ const ProductLauncher = ({ onClose }) => {
             console.log(`Opening ${name}`);
             recordRecent(name);
             onClose(); // Close launcher automatically
-            // Navigate to selected application in main content area
-            if (name === 'Cliks') {
-                navigate('/cliks');
-            } else if (name === 'BNXmail') {
-                navigate('/bnxmail');
-            } else if (name === 'Bit-Tool') {
-                navigate('/bit-tool');
-            } else if (name === 'B2Auth') {
-                navigate('/b2auth');
-            } else if (name === 'CliksBusiness') {
-                navigate('/dashboard');
+            
+            const product = ALL_PRODUCTS.find(p => p.name === name);
+            if (product && product.url) {
+                window.open(product.url, '_blank', 'noopener,noreferrer');
             }
         }
     };
