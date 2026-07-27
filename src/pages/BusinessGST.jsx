@@ -164,11 +164,11 @@ const BusinessGST = () => {
 
     // Business GST registration metadata
     const gstProfile = {
-        gstin: dbSettings.gstin || 'GSTIN NOT CONFIGURED',
-        legal_name: dbSettings.legal_name || 'Business Registration Pending',
-        business_type: dbSettings.business_type || 'Pending',
-        place_of_business: dbSettings.place_of_business || 'Location Unspecified',
-        state_code: dbSettings.state_code || '--'
+        gstin: dbSettings.gstin || '',
+        legal_name: dbSettings.legal_name || '',
+        business_type: dbSettings.business_type || '',
+        place_of_business: dbSettings.place_of_business || '',
+        state_code: dbSettings.state_code || ''
     };
 
     // fallbacks mapping
@@ -1179,7 +1179,7 @@ const BusinessGST = () => {
 
                             {createEwayMutation.isError && (
                                 <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', border: '1px solid #FCA5A5' }}>
-                                    Failed to generate e-Way Bill: {createEwayMutation.error?.response?.data?.message || createEwayMutation.error?.message || 'Unknown error'}
+                                    Failed to generate e-Way Bill: {createEwayMutation.error?.response?.data?.error?.message || createEwayMutation.error?.response?.data?.message || createEwayMutation.error?.message || 'Unknown error'}
                                 </div>
                             )}
 

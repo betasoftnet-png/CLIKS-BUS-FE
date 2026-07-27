@@ -134,35 +134,9 @@ const BusinessAccounting = () => {
     });
     const [bankFormError, setBankFormError] = useState('');
 
-    const mockBankAccounts = [
-        { id: 1, account_name: 'Cash in Hand', bank_name: 'Cash Profile', balance: 25000, total_income: 35000, total_expenses: 10000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Cash' },
-        { id: 2, account_name: 'HDFC Bank', bank_name: 'HDFC Bank Account', balance: 150000, total_income: 200000, total_expenses: 50000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Bank' },
-        { id: 3, account_name: 'SBI Current Account', bank_name: 'State Bank of India', balance: 80000, total_income: 120000, total_expenses: 40000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Bank' },
-        { id: 4, account_name: 'ICICI Bank', bank_name: 'ICICI Bank Account', balance: 45000, total_income: 75000, total_expenses: 30000, last_transaction_date: '24-07-2026', status: 'Active', bank_type: 'Bank' }
-    ];
+    const mockBankAccounts = [];
 
-    const mockTransactions = {
-        1: [
-            { date: '24-07-2026', description: 'Cash Sales Receipt', type: 'Credit', amount: 5000, balance: 25000 },
-            { date: '23-07-2026', description: 'Office Stationary Expense', type: 'Debit', amount: 1500, balance: 20000 },
-            { date: '22-07-2026', description: 'Local Delivery fare', type: 'Debit', amount: 500, balance: 21500 }
-        ],
-        2: [
-            { date: '24-07-2026', description: 'Customer Payment', type: 'Credit', amount: 10000, balance: 150000 },
-            { date: '23-07-2026', description: 'Electricity Bill', type: 'Debit', amount: 5000, balance: 140000 },
-            { date: '22-07-2026', description: 'Supplier Payment', type: 'Debit', amount: 15000, balance: 145000 }
-        ],
-        3: [
-            { date: '24-07-2026', description: 'Customer Invoice Recipient', type: 'Credit', amount: 20000, balance: 80000 },
-            { date: '23-07-2026', description: 'Monthly Office Rental', type: 'Debit', amount: 15000, balance: 60000 },
-            { date: '22-07-2026', description: 'Tax Compliance payment', type: 'Debit', amount: 10000, balance: 75000 }
-        ],
-        4: [
-            { date: '24-07-2026', description: 'Consultancy Service Fees', type: 'Credit', amount: 8000, balance: 45000 },
-            { date: '23-07-2026', description: 'Internet Broadband Fee', type: 'Debit', amount: 2000, balance: 37000 },
-            { date: '22-07-2026', description: 'Office Water Supply', type: 'Debit', amount: 1000, balance: 39000 }
-        ]
-    };
+    const mockTransactions = {};
 
     const [colFilters, setColFilters] = React.useState({}); // 'p&l', 'gst', 'ledger', 'cash-bank', 'expenses'
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
@@ -750,7 +724,7 @@ const BusinessAccounting = () => {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             return sum + diffDays;
         }, 0) / paidInvoices.length)
-        : 32;
+        : 0;
 
     // Aging Report categories
     const agingCategories = [
@@ -1230,10 +1204,10 @@ const BusinessAccounting = () => {
 
                     const totalCashVal = dbBankAccounts.length > 0
                         ? dbBankAccounts.filter(a => a.bank_type === 'Cash' || a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
-                        : 25000;
+                        : 0;
                     const totalBankVal = dbBankAccounts.length > 0
                         ? dbBankAccounts.filter(a => a.bank_type === 'Bank' || !a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
-                        : 275000;
+                        : 0;
 
                     return (
                         <div>
@@ -1375,30 +1349,38 @@ const BusinessAccounting = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {selectedTransactions.map((tx, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{tx.date}</td>
-                                                        <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#1E293B' }}>{tx.description}</td>
-                                                        <td style={{ padding: '0.75rem 0.5rem' }}>
-                                                            <span style={{
-                                                                padding: '0.2rem 0.5rem',
-                                                                borderRadius: '6px',
-                                                                fontSize: '0.7rem',
-                                                                fontWeight: '800',
-                                                                background: tx.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
-                                                                color: tx.type === 'Credit' ? '#15803D' : '#B91C1C'
-                                                            }}>
-                                                                {tx.type}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '750', color: tx.type === 'Credit' ? '#16A34A' : '#EF4444' }}>
-                                                            {tx.type === 'Credit' ? '+' : '-'}{formatCurrency(tx.amount)}
-                                                        </td>
-                                                        <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '750', color: '#1E293B' }}>
-                                                            {formatCurrency(tx.balance)}
+                                                {selectedTransactions.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="5" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600', fontSize: '0.9rem' }}>
+                                                            No transaction records found for this account.
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                ) : (
+                                                    selectedTransactions.map((tx, idx) => (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{tx.date}</td>
+                                                            <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#1E293B' }}>{tx.description}</td>
+                                                            <td style={{ padding: '0.75rem 0.5rem' }}>
+                                                                <span style={{
+                                                                    padding: '0.2rem 0.5rem',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: '800',
+                                                                    background: tx.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
+                                                                    color: tx.type === 'Credit' ? '#15803D' : '#B91C1C'
+                                                                }}>
+                                                                    {tx.type}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '750', color: tx.type === 'Credit' ? '#16A34A' : '#EF4444' }}>
+                                                                {tx.type === 'Credit' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                                            </td>
+                                                            <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: '750', color: '#1E293B' }}>
+                                                                {formatCurrency(tx.balance)}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
