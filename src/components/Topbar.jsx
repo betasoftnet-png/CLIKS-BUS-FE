@@ -784,7 +784,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             paddingBottom: '20px',
-                            paddingTop: '20px'
+                            paddingTop: '8px'
                         }}>
                             {/* Scrollable Tool List */}
                             <div className="access-tools-scroll" style={{
