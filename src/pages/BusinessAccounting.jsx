@@ -1260,75 +1260,114 @@ const BusinessAccounting = () => {
                             </div>
 
                             {/* Cards Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                {accountsToDisplay.map((acc, i) => {
-                                    const isSelected = selectedAccount && selectedAccount.id === acc.id;
-                                    return (
-                                        <div 
-                                            key={i} 
-                                            onClick={() => setSelectedAccId(acc.id)}
+                            <div style={{ display: 'grid', gridTemplateColumns: accountsToDisplay.length > 0 ? 'repeat(3, 1fr)' : '1fr', gap: '1rem' }}>
+                                {accountsToDisplay.length === 0 ? (
+                                    <div style={{
+                                        padding: '4rem 2rem',
+                                        background: 'white',
+                                        borderRadius: '24px',
+                                        border: '2px dashed #E2E8F0',
+                                        textAlign: 'center',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '1rem'
+                                    }}>
+                                        <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                            <Building2 size={32} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#1E293B' }}>No bank accounts found</h3>
+                                            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Add your first cash or bank account to start tracking your finances.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsAddBankModalOpen(true)}
                                             style={{ 
-                                                background: 'white', 
-                                                padding: '1.25rem 1.5rem', 
-                                                borderRadius: '16px', 
-                                                border: isSelected ? '2px solid #1D4ED8' : '1px solid #E2E8F0', 
-                                                boxShadow: isSelected ? '0 10px 15px -3px rgba(29, 78, 216, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.01)',
+                                                marginTop: '0.5rem',
+                                                padding: '0.75rem 1.5rem',
+                                                borderRadius: '12px',
+                                                background: '#1D4ED8',
+                                                color: 'white',
+                                                border: 'none',
+                                                fontWeight: '800',
+                                                fontSize: '0.85rem',
                                                 cursor: 'pointer',
-                                                transition: 'all 0.2s ease-in-out'
+                                                boxShadow: '0 4px 12px rgba(29, 78, 216, 0.2)'
                                             }}
                                         >
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
-                                                    <Building2 size={20} />
+                                            + Add Bank Account
+                                        </button>
+                                    </div>
+                                ) : (
+                                    accountsToDisplay.map((acc, i) => {
+                                        const isSelected = selectedAccount && selectedAccount.id === acc.id;
+                                        return (
+                                            <div
+                                                key={i}
+                                                onClick={() => setSelectedAccId(acc.id)}
+                                                style={{
+                                                    background: 'white',
+                                                    padding: '1.25rem 1.5rem',
+                                                    borderRadius: '16px',
+                                                    border: isSelected ? '2px solid #1D4ED8' : '1px solid #E2E8F0',
+                                                    boxShadow: isSelected ? '0 10px 15px -3px rgba(29, 78, 216, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.01)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease-in-out'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                                                        <Building2 size={20} />
+                                                    </div>
+                                                    <button style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}><MoreHorizontal size={18} /></button>
                                                 </div>
-                                                <button style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}><MoreHorizontal size={18} /></button>
-                                            </div>
-                                            <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.15rem', margin: 0 }}>{acc.account_name}</h4>
-                                            <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem', margin: 0 }}>{acc.bank_name || 'Financial Profile'}</p>
-                                            
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
-                                                    <span>Total Income:</span>
-                                                    <span style={{ color: '#16A34A', fontWeight: '700' }}>{formatCurrency(acc.total_income || 0)}</span>
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
-                                                    <span>Total Expenses:</span>
-                                                    <span style={{ color: '#EF4444', fontWeight: '700' }}>{formatCurrency(acc.total_expenses || 0)}</span>
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94A3B8' }}>
-                                                    <span>Last Transaction:</span>
-                                                    <span style={{ fontWeight: '600' }}>{acc.last_transaction_date || 'N/A'}</span>
-                                                </div>
-                                            </div>
+                                                <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.15rem', margin: 0 }}>{acc.account_name}</h4>
+                                                <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem', margin: 0 }}>{acc.bank_name || 'Financial Profile'}</p>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                                <div>
-                                                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.2rem', margin: 0 }}>Balance</p>
-                                                    <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1D4ED8', margin: 0 }}>{formatCurrency(acc.balance || 0)}</h3>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.75rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                                                        <span>Total Income:</span>
+                                                        <span style={{ color: '#16A34A', fontWeight: '700' }}>{formatCurrency(acc.total_income || 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>
+                                                        <span>Total Expenses:</span>
+                                                        <span style={{ color: '#EF4444', fontWeight: '700' }}>{formatCurrency(acc.total_expenses || 0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94A3B8' }}>
+                                                        <span>Last Transaction:</span>
+                                                        <span style={{ fontWeight: '600' }}>{acc.last_transaction_date || 'N/A'}</span>
+                                                    </div>
                                                 </div>
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedAccId(acc.id);
-                                                    }}
-                                                    style={{ 
-                                                        padding: '0.35rem 0.75rem', 
-                                                        borderRadius: '6px', 
-                                                        border: '1px solid #DBEAFE', 
-                                                        background: isSelected ? '#1D4ED8' : 'white', 
-                                                        color: isSelected ? 'white' : '#1D4ED8', 
-                                                        fontWeight: '700', 
-                                                        fontSize: '0.75rem', 
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s ease'
-                                                    }}
-                                                >
-                                                    History
-                                                </button>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                                    <div>
+                                                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.2rem', margin: 0 }}>Balance</p>
+                                                        <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#1D4ED8', margin: 0 }}>{formatCurrency(acc.balance || 0)}</h3>
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedAccId(acc.id);
+                                                        }}
+                                                        style={{
+                                                            padding: '0.35rem 0.75rem',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #DBEAFE',
+                                                            background: isSelected ? '#1D4ED8' : 'white',
+                                                            color: isSelected ? 'white' : '#1D4ED8',
+                                                            fontWeight: '700',
+                                                            fontSize: '0.75rem',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                    >
+                                                        History
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })
+                                )}
                             </div>
 
                             {/* Transaction Ledger Table */}
