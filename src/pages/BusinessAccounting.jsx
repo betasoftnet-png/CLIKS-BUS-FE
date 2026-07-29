@@ -849,27 +849,126 @@ const BusinessAccounting = () => {
         rawAmt: parseFloat(item.amount) || 0
     }));
 
-    const pAndLIncomeGroups = dbLedger.filter(item => item.entry_type === 'income').reduce((acc, item) => {
-        const cat = item.category || 'General Income';
-        acc[cat] = (acc[cat] || 0) + (parseFloat(item.amount) || 0);
-        return acc;
-    }, {});
+    const getAccountType = (category, entryType) => {
+        if (!category) return null;
+        const cat = String(category).trim();
+        const ChartOfAccounts = {
+            'Sales Revenue': 'Revenue',
+            'Service Income': 'Revenue',
+            'Other Income': 'Revenue',
+            'Sales Income': 'Revenue',
+            'General Income': 'Revenue',
+            'Inventory Purchase (COGS)': 'Expense',
+            'Inventory Purchase': 'Expense',
+            'Travel & Meals': 'Expense',
+            'Marketing': 'Expense',
+            'Rent': 'Expense',
+            'Salary': 'Expense',
+            'Salary Expenses': 'Expense',
+            'Utilities': 'Expense',
+            'Rent & Utilities': 'Expense',
+            'Office Expenses': 'Expense',
+            'Bank Charges': 'Expense',
+            'Software Subscriptions': 'Expense',
+            'Vendor Purchase (GST)': 'Expense',
+            'General Expense': 'Expense',
+            'Operational Expense': 'Expense'
+        };
+        if (ChartOfAccounts[cat]) {
+            return ChartOfAccounts[cat];
+        }
+        const lower = cat.toLowerCase();
+        if (lower === 'contra' || lower === 'invoice payment' || lower === 'supplier payment' || lower === 'customer payment') {
+            return null;
+        }
+        if (lower.includes('sales') || lower.includes('income') || lower.includes('revenue') || lower.includes('billing')) {
+            return 'Revenue';
+        }
+        if (lower.includes('purchase') || lower.includes('expense') || lower.includes('travel') || lower.includes('meals') || lower.includes('marketing') || lower.includes('rent') || lower.includes('salary') || lower.includes('utilities') || lower.includes('charges') || lower.includes('subscriptions') || lower.includes('office') || lower.includes('cogs') || lower.includes('bill') || lower.includes('cloud') || lower.includes('saas') || lower.includes('transport') || lower.includes('coffee')) {
+            return 'Expense';
+        }
+        if (entryType === 'income') return 'Revenue';
+        if (entryType === 'expense') return 'Expense';
+        return null;
+    };
 
-    const pAndLExpenseGroups = dbLedger.filter(item => item.entry_type === 'expense').reduce((acc, item) => {
-        const cat = item.category || 'General Expense';
-        acc[cat] = (acc[cat] || 0) + (parseFloat(item.amount) || 0);
-        return acc;
-    }, {});
+    const normalizeAccountName = (category, type) => {
+        const cat = String(category || '').trim();
+        const lower = cat.toLowerCase();
+        if (type === 'Revenue') {
+            if (lower.includes('sales') || lower.includes('billing') || lower.includes('revenue') || lower === 'general income') {
+                return 'Sales Revenue';
+            }
+            if (lower.includes('service')) {
+                return 'Service Income';
+            }
+            return 'Other Income';
+        }
+        if (type === 'Expense') {
+            if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('reconciliation') || lower.includes('vendor')) {
+                return 'Inventory Purchase';
+            }
+            if (lower.includes('travel') || lower.includes('meals') || lower.includes('dinner') || lower.includes('catering') || lower.includes('transport') || lower.includes('coffee')) {
+                return 'Travel & Meals';
+            }
+            if (lower.includes('marketing')) {
+                return 'Marketing';
+            }
+            if (lower === 'rent') {
+                return 'Rent';
+            }
+            if (lower.includes('salary') || lower.includes('payroll')) {
+                return 'Salary';
+            }
+            if (lower.includes('utilities') || lower.includes('electricity') || lower.includes('water')) {
+                return 'Utilities';
+            }
+            if (lower.includes('office') || lower.includes('operational')) {
+                return 'Office Expenses';
+            }
+            if (lower.includes('bank') || lower.includes('charge')) {
+                return 'Bank Charges';
+            }
+            if (lower.includes('subscription') || lower.includes('saas') || lower.includes('cloud')) {
+                return 'Software Subscriptions';
+            }
+            return 'Office Expenses';
+        }
+        return cat;
+    };
+
+    const pAndLIncomeGroups = {};
+    const pAndLExpenseGroups = {};
+
+    dbLedger.forEach(item => {
+        const type = getAccountType(item.category, item.entry_type);
+        if (type === 'Revenue') {
+            const accName = normalizeAccountName(item.category, 'Revenue');
+            pAndLIncomeGroups[accName] = (pAndLIncomeGroups[accName] || 0) + (parseFloat(item.amount) || 0);
+        } else if (type === 'Expense') {
+            const accName = normalizeAccountName(item.category, 'Expense');
+            pAndLExpenseGroups[accName] = (pAndLExpenseGroups[accName] || 0) + (parseFloat(item.amount) || 0);
+        }
+    });
 
     dbExpenses.forEach(item => {
-        const cat = item.category || item.category_name || 'Operational Expense';
-        pAndLExpenseGroups[cat] = (pAndLExpenseGroups[cat] || 0) + (parseFloat(item.amount || item.expense_amount) || 0);
+        if (item.is_claim === 'true' || item.is_budget === 'true') return;
+        const catName = item.category || item.category_name || 'Office Expenses';
+        const type = getAccountType(catName, 'expense');
+        if (type === 'Expense') {
+            const accName = normalizeAccountName(catName, 'Expense');
+            pAndLExpenseGroups[accName] = (pAndLExpenseGroups[accName] || 0) + (parseFloat(item.amount || item.expense_amount) || 0);
+        }
     });
 
-    dbReconciliations.forEach(item => {
-        const cat = 'Vendor Purchase (GST)';
-        pAndLExpenseGroups[cat] = (pAndLExpenseGroups[cat] || 0) + (parseFloat(item.invoice_amount || 0) + parseFloat(item.eligible_itc || 0));
+    dbPurchases.forEach(item => {
+        const accName = 'Inventory Purchase';
+        pAndLExpenseGroups[accName] = (pAndLExpenseGroups[accName] || 0) + (parseFloat(item.grand_total) || 0);
     });
+
+    if (typeof pAndLIncomeGroups['Sales Revenue'] === 'undefined') pAndLIncomeGroups['Sales Revenue'] = 0;
+    if (typeof pAndLIncomeGroups['Service Income'] === 'undefined') pAndLIncomeGroups['Service Income'] = 0;
+    if (typeof pAndLIncomeGroups['Other Income'] === 'undefined') pAndLIncomeGroups['Other Income'] = 0;
 
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
