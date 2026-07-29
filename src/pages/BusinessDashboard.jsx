@@ -36,6 +36,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { reportsService, expensesService, purchasesService } from '../services';
+import { accountingService } from '../services/accountingService';
 import '../App.css';
 
 const MASTER_SHORTCUTS = [
@@ -124,6 +125,11 @@ const BusinessDashboard = () => {
         queryFn: reportsService.getSalesByProduct
     });
 
+    const { data: dbPL } = useQuery({
+        queryKey: ['profitLoss'],
+        queryFn: () => accountingService.getProfitLoss()
+    });
+
     // Fetch live expenses list for the pie chart
     const { data: expensesList } = useQuery({
         queryKey: ['dashboardExpenses'],
@@ -148,7 +154,7 @@ const BusinessDashboard = () => {
     })).sort((a, b) => b.value - a.value);
 
     const finalExpenseCategories = expenseCategories || [];
-    const finalTotalExpensesSum = totalExpensesSum || 0;
+    const finalTotalExpensesSum = dbPL?.total_expenses !== undefined ? parseFloat(dbPL.total_expenses) : 0;
 
     const stats = [
         { label: 'Total Sales Revenue', value: summary?.total_sales !== undefined ? formatCurrency(summary.total_sales) : formatCurrency(0), change: 'Live', icon: ShoppingBag, color: '#1B6B3A' },
