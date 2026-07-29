@@ -43,11 +43,36 @@ import { accountingService } from '../services/accountingService';
 import { billingService } from '../services/billingService';
 import { gstService, settingsService } from '../services';
 import * as XLSX from 'xlsx';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 
 const BusinessAccounting = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { user } = useAuth();
     const navigate = useNavigate();
+
+    const normalizePaymentMode = (mode) => {
+        if (!mode) return 'Cash in Hand';
+        const m = String(mode).trim().toLowerCase();
+        if (m === 'cash' || m.includes('cash in hand') || m.includes('hand')) {
+            return 'Cash in Hand';
+        }
+        if (m.includes('hdfc')) {
+            return 'HDFC Bank Account';
+        }
+        if (m.includes('icici')) {
+            return 'ICICI Bank Account';
+        }
+        if (m.includes('sbi') || m.includes('state bank')) {
+            return 'SBI Current Account';
+        }
+        if (m === 'upi' || m.includes('razorpay') || m.includes('gpay') || m.includes('phonepe') || m.includes('paytm')) {
+            return 'UPI / Razorpay';
+        }
+        if (m === 'bank' || m.includes('bank')) {
+            return 'HDFC Bank Account';
+        }
+        return mode;
+    };
     const queryClient = useQueryClient();
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
@@ -134,6 +159,51 @@ const BusinessAccounting = () => {
     });
     const [bankFormError, setBankFormError] = useState('');
 
+    // Dropdown and Modals State for Cash & Bank Card settings
+    const [activeDropdownAccId, setActiveDropdownAccId] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isOpeningBalModalOpen, setIsOpeningBalModalOpen] = useState(false);
+    const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+    const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
+    const [selectedAccountForAction, setSelectedAccountForAction] = useState(null);
+
+    // Form inputs states
+    const [editForm, setEditForm] = useState({
+        account_name: '',
+        bank_name: '',
+        account_holder: '',
+        account_number: '',
+        ifsc_code: '',
+        branch_name: '',
+        account_type: 'Savings',
+        status: 'Active'
+    });
+    const [openingBalForm, setOpeningBalForm] = useState({
+        balance: '',
+        effective_date: '',
+        notes: ''
+    });
+    const [txForm, setTxForm] = useState({
+        amount: '',
+        date: '',
+        reference_number: '',
+        description: ''
+    });
+    const [transferForm, setTransferForm] = useState({
+        to_account_id: '',
+        amount: '',
+        date: '',
+        reference_number: '',
+        description: ''
+    });
+    const [ledgerSearch, setLedgerSearch] = useState('');
+    const [ledgerTypeFilter, setLedgerTypeFilter] = useState('All');
+    const [ledgerStartDate, setLedgerStartDate] = useState('');
+    const [ledgerEndDate, setLedgerEndDate] = useState('');
+    const [modalFormError, setModalFormError] = useState('');
+
     const mockBankAccounts = [];
 
     const mockTransactions = {};
@@ -215,6 +285,150 @@ const BusinessAccounting = () => {
             }
         }
     }, [dbBankAccounts, selectedAccId]);
+
+    const handleDeleteAccountCheck = (acc) => {
+        if (!confirm(`Are you sure you want to delete the account "${acc.account_name}"?`)) {
+            return;
+        }
+        accountingService.deleteAccount(acc.id)
+            .then(() => {
+                alert('Account deleted successfully.');
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+                queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+                queryClient.invalidateQueries({ queryKey: ['ledger'] });
+                refetchInvoices();
+            })
+            .catch((err) => {
+                const errMsg = err.response?.data?.message || err.message || '';
+                if (errMsg.includes('contains transactions') || errMsg.includes('contains transactions')) {
+                    alert('This account contains transactions. You cannot delete this account. Please archive it instead.');
+                } else {
+                    alert(errMsg || 'Failed to delete account.');
+                }
+            });
+    };
+
+    const handleEditAccountSubmit = (e) => {
+        e.preventDefault();
+        if (!editForm.account_name) {
+            setModalFormError('Account name is required.');
+            return;
+        }
+        accountingService.updateAccount(selectedAccountForAction.id, editForm)
+            .then(() => {
+                alert('Account updated successfully.');
+                setIsEditModalOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+            })
+            .catch((err) => {
+                setModalFormError(err.response?.data?.message || err.message || 'Failed to update account.');
+            });
+    };
+
+    const handleOpeningBalanceSubmit = (e) => {
+        e.preventDefault();
+        if (openingBalForm.balance === '') {
+            setModalFormError('Opening balance is required.');
+            return;
+        }
+        accountingService.updateAccount(selectedAccountForAction.id, {
+            balance: String(openingBalForm.balance),
+            date: openingBalForm.effective_date,
+            notes: openingBalForm.notes
+        })
+            .then(() => {
+                alert('Opening balance updated successfully.');
+                setIsOpeningBalModalOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+                queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+                queryClient.invalidateQueries({ queryKey: ['ledger'] });
+                refetchInvoices();
+            })
+            .catch((err) => {
+                setModalFormError(err.response?.data?.message || err.message || 'Failed to update opening balance.');
+            });
+    };
+
+    const handleDepositSubmit = (e) => {
+        e.preventDefault();
+        if (!txForm.amount || parseFloat(txForm.amount) <= 0) {
+            setModalFormError('Valid deposit amount is required.');
+            return;
+        }
+        accountingService.recordDeposit(selectedAccountForAction.id, txForm)
+            .then(() => {
+                alert('Deposit recorded successfully.');
+                setIsDepositModalOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+                queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+                queryClient.invalidateQueries({ queryKey: ['ledger'] });
+                refetchInvoices();
+            })
+            .catch((err) => {
+                setModalFormError(err.response?.data?.message || err.message || 'Failed to record deposit.');
+            });
+    };
+
+    const handleWithdrawalSubmit = (e) => {
+        e.preventDefault();
+        if (!txForm.amount || parseFloat(txForm.amount) <= 0) {
+            setModalFormError('Valid withdrawal amount is required.');
+            return;
+        }
+        accountingService.recordWithdrawal(selectedAccountForAction.id, txForm)
+            .then(() => {
+                alert('Withdrawal recorded successfully.');
+                setIsWithdrawModalOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+                queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+                queryClient.invalidateQueries({ queryKey: ['ledger'] });
+                refetchInvoices();
+            })
+            .catch((err) => {
+                setModalFormError(err.response?.data?.message || err.message || 'Failed to record withdrawal.');
+            });
+    };
+
+    const handleTransferSubmit = (e) => {
+        e.preventDefault();
+        if (!transferForm.to_account_id) {
+            setModalFormError('Destination account is required.');
+            return;
+        }
+        if (String(transferForm.to_account_id) === String(selectedAccountForAction.id)) {
+            setModalFormError('Source and destination accounts must be different.');
+            return;
+        }
+        if (!transferForm.amount || parseFloat(transferForm.amount) <= 0) {
+            setModalFormError('Valid transfer amount is required.');
+            return;
+        }
+        accountingService.recordTransfer({
+            from_account_id: selectedAccountForAction.id,
+            to_account_id: transferForm.to_account_id,
+            amount: transferForm.amount,
+            date: transferForm.date,
+            reference_number: transferForm.reference_number,
+            description: transferForm.description
+        })
+            .then(() => {
+                alert('Money transferred successfully.');
+                setIsTransferModalOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+                queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+                queryClient.invalidateQueries({ queryKey: ['ledger'] });
+                refetchInvoices();
+            })
+            .catch((err) => {
+                setModalFormError(err.response?.data?.message || err.message || 'Failed to complete transfer.');
+            });
+    };
 
     // Mutations
     const recordEntryMutation = useMutation({
@@ -1171,7 +1385,7 @@ const BusinessAccounting = () => {
                     const selectedAccount = accountsToDisplay[selectedIndex];
 
                     const accountTransactions = dbLedger
-                        .filter(tx => selectedAccount && String(tx.mode).toLowerCase() === String(selectedAccount.account_name).toLowerCase())
+                        .filter(tx => selectedAccount && normalizePaymentMode(tx.mode) === normalizePaymentMode(selectedAccount.account_name))
                         .sort((a, b) => a.id - b.id);
 
                     const initialBalance = selectedAccount 
@@ -1306,6 +1520,7 @@ const BusinessAccounting = () => {
                                                 key={i}
                                                 onClick={() => setSelectedAccId(acc.id)}
                                                 style={{
+                                                    position: 'relative',
                                                     background: 'white',
                                                     padding: '1.25rem 1.5rem',
                                                     borderRadius: '16px',
@@ -1319,7 +1534,144 @@ const BusinessAccounting = () => {
                                                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
                                                         <Building2 size={20} />
                                                     </div>
-                                                    <button style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}><MoreHorizontal size={18} /></button>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveDropdownAccId(activeDropdownAccId === acc.id ? null : acc.id);
+                                                        }}
+                                                        style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}
+                                                    >
+                                                        <MoreHorizontal size={18} />
+                                                    </button>
+                                                    
+                                                    {activeDropdownAccId === acc.id && (
+                                                        <div 
+                                                            onClick={(e) => e.stopPropagation()} 
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '2.75rem',
+                                                                right: '1rem',
+                                                                background: 'white',
+                                                                border: '1px solid #E2E8F0',
+                                                                borderRadius: '12px',
+                                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                                zIndex: 100,
+                                                                width: '160px',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                overflow: 'hidden',
+                                                                padding: '4px 0'
+                                                            }}
+                                                        >
+                                                            {[
+                                                                { label: 'Edit Account', action: 'edit' },
+                                                                { label: 'Opening Balance', action: 'opening_balance' },
+                                                                { label: 'Record Deposit', action: 'deposit' },
+                                                                { label: 'Record Withdrawal', action: 'withdraw' },
+                                                                { label: 'Transfer Money', action: 'transfer' },
+                                                                { label: 'View Ledger', action: 'view_ledger' },
+                                                                { label: 'Delete Account', action: 'delete' }
+                                                            ].map((item, idx) => {
+                                                                const isWriteAction = ['edit', 'opening_balance', 'deposit', 'withdraw', 'transfer', 'delete'].includes(item.action);
+                                                                const hasWritePermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                                                                
+                                                                return (
+                                                                    <button
+                                                                        key={idx}
+                                                                        onClick={() => {
+                                                                            setActiveDropdownAccId(null);
+                                                                            if (isWriteAction && !hasWritePermission) {
+                                                                                alert("Access Denied: Only Admins and Finance Managers are authorized to perform this operation.");
+                                                                                return;
+                                                                            }
+                                                                            
+                                                                            setSelectedAccountForAction(acc);
+                                                                            if (item.action === 'edit') {
+                                                                                setEditForm({
+                                                                                    account_name: acc.account_name || '',
+                                                                                    bank_name: acc.bank_name || '',
+                                                                                    account_holder: acc.account_holder || '',
+                                                                                    account_number: acc.account_number || '',
+                                                                                    ifsc_code: acc.ifsc_code || '',
+                                                                                    branch_name: acc.branch_name || '',
+                                                                                    account_type: acc.account_type || 'Savings',
+                                                                                    status: acc.status || 'Active'
+                                                                                });
+                                                                                setModalFormError('');
+                                                                                setIsEditModalOpen(true);
+                                                                            } else if (item.action === 'opening_balance') {
+                                                                                setOpeningBalForm({
+                                                                                    balance: acc.balance || '0',
+                                                                                    effective_date: acc.date || new Date().toISOString().split('T')[0],
+                                                                                    notes: acc.notes || ''
+                                                                                });
+                                                                                setModalFormError('');
+                                                                                setIsOpeningBalModalOpen(true);
+                                                                            } else if (item.action === 'deposit') {
+                                                                                setTxForm({
+                                                                                    amount: '',
+                                                                                    date: new Date().toISOString().split('T')[0],
+                                                                                    reference_number: '',
+                                                                                    description: ''
+                                                                                });
+                                                                                setModalFormError('');
+                                                                                setIsDepositModalOpen(true);
+                                                                            } else if (item.action === 'withdraw') {
+                                                                                setTxForm({
+                                                                                    amount: '',
+                                                                                    date: new Date().toISOString().split('T')[0],
+                                                                                    reference_number: '',
+                                                                                    description: ''
+                                                                                });
+                                                                                setModalFormError('');
+                                                                                setIsWithdrawModalOpen(true);
+                                                                            } else if (item.action === 'transfer') {
+                                                                                setTransferForm({
+                                                                                    to_account_id: '',
+                                                                                    amount: '',
+                                                                                    date: new Date().toISOString().split('T')[0],
+                                                                                    reference_number: '',
+                                                                                    description: ''
+                                                                                });
+                                                                                setModalFormError('');
+                                                                                setIsTransferModalOpen(true);
+                                                                            } else if (item.action === 'view_ledger') {
+                                                                                setLedgerSearch('');
+                                                                                setLedgerTypeFilter('All');
+                                                                                setLedgerStartDate('');
+                                                                                setLedgerEndDate('');
+                                                                                setIsLedgerModalOpen(true);
+                                                                            } else if (item.action === 'delete') {
+                                                                                handleDeleteAccountCheck(acc);
+                                                                            }
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '0.55rem 1rem',
+                                                                            background: 'none',
+                                                                            border: 'none',
+                                                                            textAlign: 'left',
+                                                                            fontSize: '0.78rem',
+                                                                            fontWeight: '600',
+                                                                            color: '#475569',
+                                                                            cursor: 'pointer',
+                                                                            width: '100%',
+                                                                            transition: 'background 0.15s ease'
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.target.style.background = '#F8FAFC';
+                                                                            e.target.style.color = '#1E293B';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.target.style.background = 'none';
+                                                                            e.target.style.color = '#475569';
+                                                                        }}
+                                                                    >
+                                                                        {item.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.15rem', margin: 0 }}>{acc.account_name}</h4>
                                                 <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.75rem', margin: 0 }}>{acc.bank_name || 'Financial Profile'}</p>
@@ -2834,6 +3186,442 @@ const BusinessAccounting = () => {
                     </div>
                 </div>
             )}
+
+            {/* Edit Account Modal */}
+            {isEditModalOpen && selectedAccountForAction && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Edit Account</h2>
+                            <button onClick={() => setIsEditModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {modalFormError && (
+                            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                ⚠️ {modalFormError}
+                            </div>
+                        )}
+                        <form onSubmit={handleEditAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Name *</label>
+                                <input required value={editForm.account_name} onChange={(e) => setEditForm({ ...editForm, account_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+
+                            {selectedAccountForAction.account_name !== 'Cash in Hand' && (
+                                <>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bank Name</label>
+                                            <input value={editForm.bank_name || ''} onChange={(e) => setEditForm({ ...editForm, bank_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Holder</label>
+                                            <input value={editForm.account_holder || ''} onChange={(e) => setEditForm({ ...editForm, account_holder: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Number</label>
+                                            <input value={editForm.account_number || ''} onChange={(e) => setEditForm({ ...editForm, account_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>IFSC Code</label>
+                                            <input value={editForm.ifsc_code || ''} onChange={(e) => setEditForm({ ...editForm, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Branch</label>
+                                            <input value={editForm.branch_name || ''} onChange={(e) => setEditForm({ ...editForm, branch_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Type</label>
+                                            <select value={editForm.account_type} onChange={(e) => setEditForm({ ...editForm, account_type: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                                <option value="Savings">Savings</option>
+                                                <option value="Current">Current</option>
+                                                <option value="UPI">UPI</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
+                                <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(29, 78, 216, 0.15)', marginTop: '0.5rem' }}>
+                                Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Opening Balance Modal */}
+            {isOpeningBalModalOpen && selectedAccountForAction && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Opening Balance</h2>
+                            <button onClick={() => setIsOpeningBalModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {modalFormError && (
+                            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                ⚠️ {modalFormError}
+                            </div>
+                        )}
+                        <form onSubmit={handleOpeningBalanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account</label>
+                                <input disabled value={selectedAccountForAction.account_name} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', background: '#F8FAFC', fontWeight: '700' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol}) *</label>
+                                <input required type="number" step="any" value={openingBalForm.balance} onChange={(e) => setOpeningBalForm({ ...openingBalForm, balance: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Effective Date *</label>
+                                <input required type="date" value={openingBalForm.effective_date} onChange={(e) => setOpeningBalForm({ ...openingBalForm, effective_date: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description</label>
+                                <textarea value={openingBalForm.notes || ''} onChange={(e) => setOpeningBalForm({ ...openingBalForm, notes: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', minHeight: '60px' }} />
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(29, 78, 216, 0.15)', marginTop: '0.5rem' }}>
+                                Save Balance
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Record Deposit Modal */}
+            {isDepositModalOpen && selectedAccountForAction && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Record Deposit: {selectedAccountForAction.account_name}</h2>
+                            <button onClick={() => setIsDepositModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {modalFormError && (
+                            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                ⚠️ {modalFormError}
+                            </div>
+                        )}
+                        <form onSubmit={handleDepositSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol}) *</label>
+                                <input required type="number" step="any" placeholder="0.00" value={txForm.amount} onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Deposit Date *</label>
+                                <input required type="date" value={txForm.date} onChange={(e) => setTxForm({ ...txForm, date: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reference Number</label>
+                                <input placeholder="e.g. DEP-928198" value={txForm.reference_number || ''} onChange={(e) => setTxForm({ ...txForm, reference_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description</label>
+                                <textarea placeholder="Add details..." value={txForm.description || ''} onChange={(e) => setTxForm({ ...txForm, description: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', minHeight: '60px' }} />
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(22, 163, 74, 0.15)', marginTop: '0.5rem' }}>
+                                Record Deposit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Record Withdrawal Modal */}
+            {isWithdrawModalOpen && selectedAccountForAction && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Record Withdrawal: {selectedAccountForAction.account_name}</h2>
+                            <button onClick={() => setIsWithdrawModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {modalFormError && (
+                            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                ⚠️ {modalFormError}
+                            </div>
+                        )}
+                        <form onSubmit={handleWithdrawalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol}) *</label>
+                                <input required type="number" step="any" placeholder="0.00" value={txForm.amount} onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Withdrawal Date *</label>
+                                <input required type="date" value={txForm.date} onChange={(e) => setTxForm({ ...txForm, date: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reference Number</label>
+                                <input placeholder="e.g. WTH-928198" value={txForm.reference_number || ''} onChange={(e) => setTxForm({ ...txForm, reference_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description</label>
+                                <textarea placeholder="Add details..." value={txForm.description || ''} onChange={(e) => setTxForm({ ...txForm, description: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', minHeight: '60px' }} />
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(239, 68, 68, 0.15)', marginTop: '0.5rem' }}>
+                                Record Withdrawal
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Transfer Money Modal */}
+            {isTransferModalOpen && selectedAccountForAction && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Transfer Money</h2>
+                            <button onClick={() => setIsTransferModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {modalFormError && (
+                            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '600', marginBottom: '1rem' }}>
+                                ⚠️ {modalFormError}
+                            </div>
+                        )}
+                        <form onSubmit={handleTransferSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Account (Source)</label>
+                                <input disabled value={selectedAccountForAction.account_name} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', background: '#F8FAFC', fontWeight: '700' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Account (Destination) *</label>
+                                <select required value={transferForm.to_account_id} onChange={(e) => setTransferForm({ ...transferForm, to_account_id: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                    <option value="">Select destination...</option>
+                                    {dbBankAccounts.filter(a => a.id !== selectedAccountForAction.id).map(a => (
+                                        <option key={a.id} value={a.id}>{a.account_name} (Bal: {formatCurrency(a.balance || 0)})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol}) *</label>
+                                <input required type="number" step="any" placeholder="0.00" value={transferForm.amount} onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Date *</label>
+                                <input required type="date" value={transferForm.date} onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reference</label>
+                                <input placeholder="e.g. TRF-928198" value={transferForm.reference_number || ''} onChange={(e) => setTransferForm({ ...transferForm, reference_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description</label>
+                                <textarea placeholder="Reason for transfer..." value={transferForm.description || ''} onChange={(e) => setTransferForm({ ...transferForm, description: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', minHeight: '60px' }} />
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(79, 70, 229, 0.15)', marginTop: '0.5rem' }}>
+                                Transfer Money
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Ledger Modal */}
+            {isLedgerModalOpen && selectedAccountForAction && (() => {
+                const ledgerTxs = dbLedger.filter(tx => normalizePaymentMode(tx.mode) === normalizePaymentMode(selectedAccountForAction.account_name));
+                const sortedTxs = [...ledgerTxs].sort((a, b) => a.id - b.id);
+                
+                const initialBalance = (parseFloat(selectedAccountForAction.balance) || 0) 
+                    - (parseFloat(selectedAccountForAction.total_income) || 0) 
+                    + (parseFloat(selectedAccountForAction.total_expenses) || 0);
+
+                let running = initialBalance;
+                const processedTxs = sortedTxs.map(tx => {
+                    const isCredit = tx.entry_type === 'income';
+                    if (isCredit) {
+                        running += tx.amount;
+                    } else {
+                        running -= tx.amount;
+                    }
+                    return {
+                        ...tx,
+                        debit: isCredit ? '' : tx.amount,
+                        credit: isCredit ? tx.amount : '',
+                        runningBalance: running
+                    };
+                });
+
+                // Apply Search & Date Range & Type Filters
+                const filteredTxs = processedTxs.filter(tx => {
+                    const matchesSearch = !ledgerSearch || 
+                        String(tx.notes || '').toLowerCase().includes(ledgerSearch.toLowerCase()) || 
+                        String(tx.category || '').toLowerCase().includes(ledgerSearch.toLowerCase());
+                    
+                    const matchesType = ledgerTypeFilter === 'All' || 
+                        (ledgerTypeFilter === 'Debit' && tx.debit !== '') || 
+                        (ledgerTypeFilter === 'Credit' && tx.credit !== '');
+                    
+                    const matchesStartDate = !ledgerStartDate || tx.date >= ledgerStartDate;
+                    const matchesEndDate = !ledgerEndDate || tx.date <= ledgerEndDate;
+
+                    return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
+                });
+
+                const handlePrintLedger = () => {
+                    const printWindow = window.open('', '_blank');
+                    const tableRows = filteredTxs.map(tx => `
+                        <tr>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${tx.date}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">VCH-${String(tx.id).padStart(5, '0')}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${tx.notes || ''}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${tx.debit ? formatCurrency(tx.debit) : ''}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${tx.credit ? formatCurrency(tx.credit) : ''}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency(tx.runningBalance)}</td>
+                        </tr>
+                    `).join('');
+
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Account Ledger - ${selectedAccountForAction.account_name}</title>
+                                <style>
+                                    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding: 2rem; color: #1E293B; }
+                                    h1 { margin-bottom: 0.5rem; fontSize: 1.5rem; fontWeight: 900; }
+                                    p { margin: 0.3rem 0; font-size: 0.9rem; color: #475569; }
+                                    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                                    th { background: #F8FAFC; text-align: left; font-weight: bold; }
+                                    td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Account Ledger</h1>
+                                <p><strong>Account Name:</strong> ${selectedAccountForAction.account_name}</p>
+                                <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Voucher No</th>
+                                            <th>Description</th>
+                                            <th style="text-align: right;">Debit (DR)</th>
+                                            <th style="text-align: right;">Credit (CR)</th>
+                                            <th style="text-align: right;">Running Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                                <script>
+                                    window.onload = function() {
+                                        window.print();
+                                        window.close();
+                                    }
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+
+                const handleExcelExportLedger = () => {
+                    const exportPayload = filteredTxs.map(tx => ({
+                        'Date': tx.date,
+                        'Voucher No': `VCH-${String(tx.id).padStart(5, '0')}`,
+                        'Description': tx.notes || '',
+                        'Debit': tx.debit || 0,
+                        'Credit': tx.credit || 0,
+                        'Running Balance': tx.runningBalance
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(exportPayload);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Ledger_Report');
+                    XLSX.writeFile(wb, `${selectedAccountForAction.account_name}_Ledger.xlsx`);
+                };
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Account Ledger: {selectedAccountForAction.account_name}</h2>
+                                <button onClick={() => setIsLedgerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Search, Filter, Export Controls */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Search Notes</label>
+                                    <input placeholder="Search..." value={ledgerSearch} onChange={(e) => setLedgerSearch(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Type</label>
+                                    <select value={ledgerTypeFilter} onChange={(e) => setLedgerTypeFilter(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', background: 'white' }}>
+                                        <option value="All">All Transactions</option>
+                                        <option value="Debit">Debit (DR)</option>
+                                        <option value="Credit">Credit (CR)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
+                                    <input type="date" value={ledgerStartDate} onChange={(e) => setLedgerStartDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
+                                    <input type="date" value={ledgerEndDate} onChange={(e) => setLedgerEndDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
+                                    <button onClick={handlePrintLedger} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
+                                    <button onClick={handleExcelExportLedger} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
+                                </div>
+                            </div>
+
+                            {/* Ledger Table Container */}
+                            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left', position: 'sticky', top: 0, zIndex: 10 }}>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Date</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Voucher No</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Description</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Debit (DR)</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Credit (CR)</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Running Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredTxs.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="6" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                                    No transactions found matching the filter criteria.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            filteredTxs.map((tx, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{tx.date}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#475569' }}>VCH-{String(tx.id).padStart(5, '0')}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#1E293B' }}>
+                                                        <div style={{ fontWeight: '600' }}>{tx.category}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>{tx.notes}</div>
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#EF4444', fontWeight: '700' }}>{tx.debit ? formatCurrency(tx.debit) : ''}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#16A34A', fontWeight: '700' }}>{tx.credit ? formatCurrency(tx.credit) : ''}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#1D4ED8', fontWeight: '800' }}>{formatCurrency(tx.runningBalance)}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
