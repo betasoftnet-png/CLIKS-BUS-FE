@@ -219,6 +219,13 @@ const BusinessAccounting = () => {
     const [exportToDate, setExportToDate] = useState(new Date().toISOString().split('T')[0]);
     const [exportFormat, setExportFormat] = useState('xlsx');
 
+    // States for summary card history popups
+    const [activeHistoryCard, setActiveHistoryCard] = useState(null);
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyStartDate, setHistoryStartDate] = useState('');
+    const [historyEndDate, setHistoryEndDate] = useState('');
+    const [historyPage, setHistoryPage] = useState(1);
+
 
 
     // Queries
@@ -285,6 +292,14 @@ const BusinessAccounting = () => {
             }
         }
     }, [dbBankAccounts, selectedAccId]);
+
+    const handleSummaryCardIconClick = (label) => {
+        setHistorySearch('');
+        setHistoryStartDate('');
+        setHistoryEndDate('');
+        setHistoryPage(1);
+        setActiveHistoryCard(label);
+    };
 
     const handleDeleteAccountCheck = (acc) => {
         if (!confirm(`Are you sure you want to delete the account "${acc.account_name}"?`)) {
@@ -1287,7 +1302,10 @@ const BusinessAccounting = () => {
                             <div>
                                 <p style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</p>
                             </div>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0, boxShadow: `0 4px 12px ${stat.color}15` }}>
+                            <div 
+                                onClick={() => handleSummaryCardIconClick(stat.label)}
+                                style={{ width: '42px', height: '42px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0, boxShadow: `0 4px 12px ${stat.color}15`, cursor: 'pointer' }}
+                            >
                                 <stat.icon size={18} />
                             </div>
                         </div>
@@ -3618,6 +3636,984 @@ const BusinessAccounting = () => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Gross Revenue History Modal */}
+            {activeHistoryCard === 'Gross Revenue' && (() => {
+                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                
+                const rawRows = dbInvoices.map(inv => {
+                    const taxable = parseFloat(inv.amount) || 0;
+                    const gst = parseFloat(inv.tax_amount) || 0;
+                    const total = parseFloat(inv.total_amount) || 0;
+                    return {
+                        date: inv.created_at ? inv.created_at.split('T')[0] : 'N/A',
+                        invoiceNo: inv.invoice_number,
+                        customer: inv.client_name || 'Walk-in Customer',
+                        paymentMode: inv.payment_mode || 'Cash',
+                        taxableAmount: taxable,
+                        gst: gst,
+                        total: total
+                    };
+                });
+
+                // Apply Filters
+                const filteredRows = rawRows.filter(row => {
+                    const matchesSearch = !historySearch || 
+                        row.invoiceNo.toLowerCase().includes(historySearch.toLowerCase()) || 
+                        row.customer.toLowerCase().includes(historySearch.toLowerCase());
+                    const matchesStart = !historyStartDate || row.date >= historyStartDate;
+                    const matchesEnd = !historyEndDate || row.date <= historyEndDate;
+                    return matchesSearch && matchesStart && matchesEnd;
+                });
+
+                // Sort by date descending
+                const sortedRows = [...filteredRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                // Stats
+                const totalRevenue = sortedRows.reduce((sum, r) => sum + r.total, 0);
+                const numInvoices = sortedRows.length;
+
+                // Pagination
+                const totalItems = sortedRows.length;
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                const currentPage = Math.min(historyPage, totalPages);
+                const offset = (currentPage - 1) * itemsPerPage;
+                const paginatedRows = sortedRows.slice(offset, offset + itemsPerPage);
+
+                const handlePrint = () => {
+                    const printWindow = window.open('', '_blank');
+                    const tableRows = sortedRows.map(row => `
+                        <tr>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.date}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.invoiceNo}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.customer}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.paymentMode}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency(row.taxableAmount)}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency(row.gst)}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right; font-weight: bold;">${formatCurrency(row.total)}</td>
+                        </tr>
+                    `).join('');
+
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Gross Revenue History</title>
+                                <style>
+                                    body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                    h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
+                                    p { margin: 0.3rem 0; font-size: 0.9rem; color: #475569; }
+                                    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                                    td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
+                                    th { background: #F8FAFC; text-align: left; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Gross Revenue History</h1>
+                                <p><strong>Total Revenue:</strong> ${formatCurrency(totalRevenue)}</p>
+                                <p><strong>Total Invoices:</strong> ${numInvoices}</p>
+                                <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Invoice No</th>
+                                            <th>Customer</th>
+                                            <th>Payment Mode</th>
+                                            <th style="text-align: right;">Taxable Amount</th>
+                                            <th style="text-align: right;">GST</th>
+                                            <th style="text-align: right;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                                <script>
+                                    window.onload = function() {
+                                        window.print();
+                                        window.close();
+                                    }
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+
+                const handleExcel = () => {
+                    const exportPayload = sortedRows.map(row => ({
+                        'Date': row.date,
+                        'Invoice No': row.invoiceNo,
+                        'Customer': row.customer,
+                        'Payment Mode': row.paymentMode,
+                        'Taxable Amount': row.taxableAmount,
+                        'GST': row.gst,
+                        'Total': row.total
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(exportPayload);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Gross_Revenue');
+                    XLSX.writeFile(wb, 'Gross_Revenue_History.xlsx');
+                };
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Gross Revenue History</h2>
+                                <button onClick={() => setActiveHistoryCard(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Filters */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Search Invoice/Customer</label>
+                                    <input placeholder="Search..." value={historySearch} onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
+                                    <input type="date" value={historyStartDate} onChange={(e) => { setHistoryStartDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
+                                    <input type="date" value={historyEndDate} onChange={(e) => { setHistoryEndDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>Total: <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalRevenue)}</span></div>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Count: <span style={{ color: '#0F172A', fontWeight: '900' }}>{numInvoices} Invoices</span></div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
+                                    {hasExportPermission ? (
+                                        <>
+                                            <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
+                                            <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
+                                        </>
+                                    ) : (
+                                        <div style={{ flex: 1, fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', alignSelf: 'center' }}>View Only</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Table */}
+                            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left', position: 'sticky', top: 0, zIndex: 10 }}>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Date</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Invoice No</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Customer</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Payment Mode</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Taxable Amount</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>GST</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paginatedRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="7" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                                    No invoices found.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            paginatedRows.map((row, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{row.date}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#475569' }}>{row.invoiceNo}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#1E293B', fontWeight: '600' }}>{row.customer}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#475569' }}>{row.paymentMode}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#475569' }}>{formatCurrency(row.taxableAmount)}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#475569' }}>{formatCurrency(row.gst)}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#1D4ED8', fontWeight: '800' }}>{formatCurrency(row.total)}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Showing {offset + 1} - {Math.min(offset + itemsPerPage, totalItems)} of {totalItems}</span>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button disabled={currentPage === 1} onClick={() => setHistoryPage(currentPage - 1)} style={{ padding: '0.4rem 0.8rem', background: '#F1F5F9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}>Previous</button>
+                                        <button disabled={currentPage === totalPages} onClick={() => setHistoryPage(currentPage + 1)} style={{ padding: '0.4rem 0.8rem', background: '#F1F5F9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}>Next</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Expense History Modal */}
+            {activeHistoryCard === 'Total Expenses' && (() => {
+                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+
+                const combinedExpenses = [];
+                dbExpenses.forEach(exp => {
+                    combinedExpenses.push({
+                        date: exp.date ? exp.date.split('T')[0] : 'N/A',
+                        voucherNo: `EXP-${exp.id}`,
+                        category: exp.category_name || exp.category || 'Operational Expense',
+                        mode: exp.payment_mode || exp.mode || 'Cash',
+                        amount: parseFloat(exp.amount) || 0,
+                        status: exp.status || 'Paid'
+                    });
+                });
+                dbPurchases.forEach(p => {
+                    combinedExpenses.push({
+                        date: p.purchase_date ? p.purchase_date.split('T')[0] : 'N/A',
+                        voucherNo: p.purchase_number || `PUR-${p.id}`,
+                        category: 'Inventory Purchase',
+                        mode: p.payment_mode || 'Cash',
+                        amount: parseFloat(p.grand_total) || 0,
+                        status: p.payment_status || 'Pending'
+                    });
+                });
+
+                // Filter
+                const filteredRows = combinedExpenses.filter(row => {
+                    const matchesSearch = !historySearch || 
+                        row.voucherNo.toLowerCase().includes(historySearch.toLowerCase()) || 
+                        row.category.toLowerCase().includes(historySearch.toLowerCase()) ||
+                        row.mode.toLowerCase().includes(historySearch.toLowerCase());
+                    const matchesStart = !historyStartDate || row.date >= historyStartDate;
+                    const matchesEnd = !historyEndDate || row.date <= historyEndDate;
+                    return matchesSearch && matchesStart && matchesEnd;
+                });
+
+                // Sort descending
+                const sortedRows = [...filteredRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                // Stats
+                const totalExpensesSum = sortedRows.reduce((sum, r) => sum + r.amount, 0);
+
+                // Pagination
+                const totalItems = sortedRows.length;
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                const currentPage = Math.min(historyPage, totalPages);
+                const offset = (currentPage - 1) * itemsPerPage;
+                const paginatedRows = sortedRows.slice(offset, offset + itemsPerPage);
+
+                const handlePrint = () => {
+                    const printWindow = window.open('', '_blank');
+                    const tableRows = sortedRows.map(row => `
+                        <tr>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.date}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.voucherNo}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.category}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.mode}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right; font-weight: bold;">${formatCurrency(row.amount)}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.status}</td>
+                        </tr>
+                    `).join('');
+
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Expense History</title>
+                                <style>
+                                    body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                    h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
+                                    p { margin: 0.3rem 0; font-size: 0.9rem; color: #475569; }
+                                    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                                    td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
+                                    th { background: #F8FAFC; text-align: left; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Expense History</h1>
+                                <p><strong>Total Expenses:</strong> ${formatCurrency(totalExpensesSum)}</p>
+                                <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()}</p>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Voucher No</th>
+                                            <th>Expense Category</th>
+                                            <th>Payment Mode</th>
+                                            <th style="text-align: right;">Amount</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                                <script>
+                                    window.onload = function() {
+                                        window.print();
+                                        window.close();
+                                    }
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+
+                const handleExcel = () => {
+                    const exportPayload = sortedRows.map(row => ({
+                        'Date': row.date,
+                        'Voucher No': row.voucherNo,
+                        'Expense Category': row.category,
+                        'Payment Mode': row.mode,
+                        'Amount': row.amount,
+                        'Status': row.status
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(exportPayload);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+                    XLSX.writeFile(wb, 'Expense_History.xlsx');
+                };
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense History</h2>
+                                <button onClick={() => setActiveHistoryCard(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Filters */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Search Category/Voucher/Mode</label>
+                                    <input placeholder="Search..." value={historySearch} onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
+                                    <input type="date" value={historyStartDate} onChange={(e) => { setHistoryStartDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
+                                    <input type="date" value={historyEndDate} onChange={(e) => { setHistoryEndDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>Total: <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalExpensesSum)}</span></div>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Count: <span style={{ color: '#0F172A', fontWeight: '900' }}>{totalItems} Entries</span></div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
+                                    {hasExportPermission ? (
+                                        <>
+                                            <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
+                                            <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
+                                        </>
+                                    ) : (
+                                        <div style={{ flex: 1, fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', alignSelf: 'center' }}>View Only</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Table */}
+                            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left', position: 'sticky', top: 0, zIndex: 10 }}>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Date</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Voucher No</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Expense Category</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Payment Mode</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Amount</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paginatedRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="6" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                                    No expenses found.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            paginatedRows.map((row, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{row.date}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#475569' }}>{row.voucherNo}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#1E293B', fontWeight: '600' }}>{row.category}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#475569' }}>{row.mode}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: '#EF4444', fontWeight: '700' }}>{formatCurrency(row.amount)}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: row.status.toLowerCase() === 'paid' ? '#16A34A' : '#F59E0B', fontWeight: '700' }}>{row.status}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Showing {offset + 1} - {Math.min(offset + itemsPerPage, totalItems)} of {totalItems}</span>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button disabled={currentPage === 1} onClick={() => setHistoryPage(currentPage - 1)} style={{ padding: '0.4rem 0.8rem', background: '#F1F5F9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}>Previous</button>
+                                        <button disabled={currentPage === totalPages} onClick={() => setHistoryPage(currentPage + 1)} style={{ padding: '0.4rem 0.8rem', background: '#F1F5F9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}>Next</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Profit Analysis Modal */}
+            {activeHistoryCard === 'Net Profit' && (() => {
+                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+
+                // Fetch raw invoices
+                const rawRevenue = dbInvoices.map(inv => ({
+                    date: inv.created_at ? inv.created_at.split('T')[0] : 'N/A',
+                    amount: parseFloat(inv.total_amount) || 0,
+                    mode: inv.payment_mode || 'Cash'
+                }));
+
+                // Fetch raw expenses/purchases
+                const rawExpenses = [];
+                dbExpenses.forEach(exp => {
+                    rawExpenses.push({
+                        date: exp.date ? exp.date.split('T')[0] : 'N/A',
+                        amount: parseFloat(exp.amount) || 0,
+                        category: exp.category_name || exp.category || 'Operational Expense'
+                    });
+                });
+                dbPurchases.forEach(p => {
+                    rawExpenses.push({
+                        date: p.purchase_date ? p.purchase_date.split('T')[0] : 'N/A',
+                        amount: parseFloat(p.grand_total) || 0,
+                        category: 'Inventory Purchase'
+                    });
+                });
+
+                // Apply date filters
+                const filteredRev = rawRevenue.filter(r => (!historyStartDate || r.date >= historyStartDate) && (!historyEndDate || r.date <= historyEndDate));
+                const filteredExp = rawExpenses.filter(e => (!historyStartDate || e.date >= historyStartDate) && (!historyEndDate || e.date <= historyEndDate));
+
+                const totalRev = filteredRev.reduce((sum, r) => sum + r.amount, 0);
+                const totalExp = filteredExp.reduce((sum, e) => sum + e.amount, 0);
+                const netProfitVal = totalRev - totalExp;
+
+                // Group Monthly
+                const monthlyRevMap = {};
+                filteredRev.forEach(r => {
+                    const month = r.date.substring(0, 7); // YYYY-MM
+                    if (month !== 'N/A') monthlyRevMap[month] = (monthlyRevMap[month] || 0) + r.amount;
+                });
+                const monthlyExpMap = {};
+                filteredExp.forEach(e => {
+                    const month = e.date.substring(0, 7);
+                    if (month !== 'N/A') monthlyExpMap[month] = (monthlyExpMap[month] || 0) + e.amount;
+                });
+                const allMonths = Array.from(new Set([...Object.keys(monthlyRevMap), ...Object.keys(monthlyExpMap)])).sort().reverse();
+                const monthlyTrends = allMonths.map(m => {
+                    const rev = monthlyRevMap[m] || 0;
+                    const exp = monthlyExpMap[m] || 0;
+                    return { month: m, rev, exp, net: rev - exp };
+                });
+
+                // Group Daily (Last 10 days)
+                const dailyRevMap = {};
+                filteredRev.forEach(r => {
+                    if (r.date !== 'N/A') dailyRevMap[r.date] = (dailyRevMap[r.date] || 0) + r.amount;
+                });
+                const dailyExpMap = {};
+                filteredExp.forEach(e => {
+                    if (e.date !== 'N/A') dailyExpMap[e.date] = (dailyExpMap[e.date] || 0) + e.amount;
+                });
+                const allDays = Array.from(new Set([...Object.keys(dailyRevMap), ...Object.keys(dailyExpMap)])).sort().reverse().slice(0, 10);
+                const dailyProfits = allDays.map(d => {
+                    const rev = dailyRevMap[d] || 0;
+                    const exp = dailyExpMap[d] || 0;
+                    return { date: d, net: rev - exp };
+                });
+
+                // Top Revenue Sources
+                const revSourcesMap = {};
+                filteredRev.forEach(r => {
+                    revSourcesMap[r.mode] = (revSourcesMap[r.mode] || 0) + r.amount;
+                });
+                const topRevSources = Object.keys(revSourcesMap).map(src => ({
+                    source: src,
+                    amount: revSourcesMap[src],
+                    pct: totalRev > 0 ? ((revSourcesMap[src] / totalRev) * 100).toFixed(1) : '0.0'
+                })).sort((a, b) => b.amount - a.amount);
+
+                // Top Expense Categories
+                const expCatsMap = {};
+                filteredExp.forEach(e => {
+                    expCatsMap[e.category] = (expCatsMap[e.category] || 0) + e.amount;
+                });
+                const topExpCats = Object.keys(expCatsMap).map(cat => ({
+                    category: cat,
+                    amount: expCatsMap[cat],
+                    pct: totalExp > 0 ? ((expCatsMap[cat] / totalExp) * 100).toFixed(1) : '0.0'
+                })).sort((a, b) => b.amount - a.amount);
+
+                const handlePrint = () => {
+                    const printWindow = window.open('', '_blank');
+                    const monthlyRows = monthlyTrends.map(t => `
+                        <tr>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${t.month}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency(t.rev)}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency(t.exp)}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right; font-weight: bold; color: ${t.net >= 0 ? '#16A34A' : '#EF4444'}">${formatCurrency(t.net)}</td>
+                        </tr>
+                    `).join('');
+
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>Profit Analysis Report</title>
+                                <style>
+                                    body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                    h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
+                                    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                                    td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
+                                    th { background: #F8FAFC; text-align: left; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Profit Analysis Report</h1>
+                                <p><strong>Gross Revenue:</strong> ${formatCurrency(totalRev)}</p>
+                                <p><strong>Less Expenses:</strong> ${formatCurrency(totalExp)}</p>
+                                <p><strong>Net Profit:</strong> ${formatCurrency(netProfitVal)}</p>
+                                <h2>Monthly Profit Trend</h2>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th style="text-align: right;">Revenue</th>
+                                            <th style="text-align: right;">Expenses</th>
+                                            <th style="text-align: right;">Net Profit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${monthlyRows}
+                                    </tbody>
+                                </table>
+                                <script>
+                                    window.onload = function() {
+                                        window.print();
+                                        window.close();
+                                    }
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+
+                const handleExcel = () => {
+                    const wsData = [
+                        ['Gross Revenue', totalRev],
+                        ['Less Expenses', totalExp],
+                        ['Net Profit', netProfitVal],
+                        [],
+                        ['Monthly Profit Trend'],
+                        ['Month', 'Revenue', 'Expenses', 'Net Profit']
+                    ];
+                    monthlyTrends.forEach(t => {
+                        wsData.push([t.month, t.rev, t.exp, t.net]);
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Profit_Analysis');
+                    XLSX.writeFile(wb, 'Profit_Analysis.xlsx');
+                };
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Profit Analysis</h2>
+                                <button onClick={() => setActiveHistoryCard(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Filters */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
+                                    <input type="date" value={historyStartDate} onChange={(e) => setHistoryStartDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
+                                    <input type="date" value={historyEndDate} onChange={(e) => setHistoryEndDate(e.target.value)} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end', gridColumn: 'span 2' }}>
+                                    {hasExportPermission ? (
+                                        <>
+                                            <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
+                                            <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
+                                        </>
+                                    ) : (
+                                        <div style={{ flex: 1, fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center' }}>View Only</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Stats */}
+                            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Gross Revenue</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#10B981', marginTop: '0.25rem' }}>{formatCurrency(totalRev)}</div>
+                                    </div>
+                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Less Expenses</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#EF4444', marginTop: '0.25rem' }}>{formatCurrency(totalExp)}</div>
+                                    </div>
+                                    <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Net Profit</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#3B82F6', marginTop: '0.25rem' }}>{formatCurrency(netProfitVal)}</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                    {/* Monthly Profit Trend */}
+                                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem' }}>
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.75rem 0' }}>Monthly Profit Trend</h3>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left' }}>
+                                                    <th style={{ padding: '0.5rem' }}>Month</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Revenue</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Expenses</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Profit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {monthlyTrends.map((t, i) => (
+                                                    <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.5rem', fontWeight: '700' }}>{t.month}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>{formatCurrency(t.rev)}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>{formatCurrency(t.exp)}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '800', color: t.net >= 0 ? '#16A34A' : '#EF4444' }}>{formatCurrency(t.net)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Daily Profit log */}
+                                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem' }}>
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.75rem 0' }}>Daily Profit (Last 10 Days)</h3>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left' }}>
+                                                    <th style={{ padding: '0.5rem' }}>Date</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Net Profit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {dailyProfits.length === 0 ? (
+                                                    <tr><td colSpan="2" style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8' }}>No daily records</td></tr>
+                                                ) : (
+                                                    dailyProfits.map((d, i) => (
+                                                        <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '0.5rem', fontWeight: '700' }}>{d.date}</td>
+                                                            <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: '800', color: d.net >= 0 ? '#16A34A' : '#EF4444' }}>{formatCurrency(d.net)}</td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                    {/* Top Revenue Sources */}
+                                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem' }}>
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.75rem 0' }}>Top Revenue Sources</h3>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left' }}>
+                                                    <th style={{ padding: '0.5rem' }}>Source</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Amount</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Share</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {topRevSources.map((r, i) => (
+                                                    <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.5rem', fontWeight: '700' }}>{r.source}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>{formatCurrency(r.amount)}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right', color: '#3B82F6', fontWeight: '700' }}>{r.pct}%</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Top Expense Categories */}
+                                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem' }}>
+                                        <h3 style={{ fontSize: '0.85rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.75rem 0' }}>Top Expense Categories</h3>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left' }}>
+                                                    <th style={{ padding: '0.5rem' }}>Category</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Amount</th>
+                                                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>Share</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {topExpCats.map((e, i) => (
+                                                    <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.5rem', fontWeight: '700' }}>{e.category}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>{formatCurrency(e.amount)}</td>
+                                                        <td style={{ padding: '0.5rem', textAlign: 'right', color: '#EF4444', fontWeight: '700' }}>{e.pct}%</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* GST Payable Details Modal */}
+            {activeHistoryCard === 'GST Payable' && (() => {
+                const hasExportPermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+
+                const gstRows = [];
+                dbInvoices.filter(inv => (parseFloat(inv.tax_amount) || 0) > 0).forEach(inv => {
+                    gstRows.push({
+                        invoice: inv.invoice_number,
+                        customer: inv.client_name || 'Walk-in Customer',
+                        outputGst: parseFloat(inv.tax_amount) || 0,
+                        inputGst: 0,
+                        netGst: parseFloat(inv.tax_amount) || 0,
+                        date: inv.created_at ? inv.created_at.split('T')[0] : 'N/A'
+                    });
+                });
+                dbPurchases.filter(p => (parseFloat(p.total_tax) || 0) > 0).forEach(p => {
+                    gstRows.push({
+                        invoice: p.purchase_number || `PUR-${p.id}`,
+                        customer: p.supplier_name,
+                        outputGst: 0,
+                        inputGst: parseFloat(p.total_tax) || 0,
+                        netGst: -(parseFloat(p.total_tax) || 0),
+                        date: p.purchase_date ? p.purchase_date.split('T')[0] : 'N/A'
+                    });
+                });
+
+                // Apply Filters
+                const filteredRows = gstRows.filter(row => {
+                    const matchesSearch = !historySearch || 
+                        row.invoice.toLowerCase().includes(historySearch.toLowerCase()) || 
+                        row.customer.toLowerCase().includes(historySearch.toLowerCase());
+                    const matchesStart = !historyStartDate || row.date >= historyStartDate;
+                    const matchesEnd = !historyEndDate || row.date <= historyEndDate;
+                    return matchesSearch && matchesStart && matchesEnd;
+                });
+
+                // Sort descending
+                const sortedRows = [...filteredRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                // Stats
+                const totalOutput = sortedRows.reduce((sum, r) => sum + r.outputGst, 0);
+                const totalInput = sortedRows.reduce((sum, r) => sum + r.inputGst, 0);
+                const netGstPayable = totalOutput - totalInput;
+
+                // Pagination
+                const totalItems = sortedRows.length;
+                const itemsPerPage = 10;
+                const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                const currentPage = Math.min(historyPage, totalPages);
+                const offset = (currentPage - 1) * itemsPerPage;
+                const paginatedRows = sortedRows.slice(offset, offset + itemsPerPage);
+
+                const handlePrint = () => {
+                    const printWindow = window.open('', '_blank');
+                    const tableRows = sortedRows.map(row => `
+                        <tr>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.date}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.invoice}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${row.customer}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${row.outputGst ? formatCurrency(row.outputGst) : ''}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${row.inputGst ? formatCurrency(row.inputGst) : ''}</td>
+                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right; font-weight: bold; color: ${row.netGst >= 0 ? '#16A34A' : '#EF4444'}">${formatCurrency(row.netGst)}</td>
+                        </tr>
+                    `).join('');
+
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>GST Payable Details</title>
+                                <style>
+                                    body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                    h1 { margin-bottom: 0.5rem; font-size: 1.5rem; }
+                                    p { margin: 0.3rem 0; font-size: 0.9rem; color: #475569; }
+                                    table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                                    td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
+                                    th { background: #F8FAFC; text-align: left; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>GST Payable Details</h1>
+                                <p><strong>GSTR-1 Summary (GST Collected):</strong> ${formatCurrency(totalOutput)}</p>
+                                <p><strong>ITC Summary (GST Paid):</strong> ${formatCurrency(totalInput)}</p>
+                                <p><strong>Net GST Payable:</strong> ${formatCurrency(netGstPayable)}</p>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Invoice / Reference</th>
+                                            <th>Customer / Supplier</th>
+                                            <th style="text-align: right;">Output GST</th>
+                                            <th style="text-align: right;">Input GST</th>
+                                            <th style="text-align: right;">Net GST</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                                <script>
+                                    window.onload = function() {
+                                        window.print();
+                                        window.close();
+                                    }
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                };
+
+                const handleExcel = () => {
+                    const exportPayload = sortedRows.map(row => ({
+                        'Date': row.date,
+                        'Invoice / Ref': row.invoice,
+                        'Customer / Supplier': row.customer,
+                        'Output GST': row.outputGst,
+                        'Input GST': row.inputGst,
+                        'Net GST': row.netGst
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(exportPayload);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'GST_Details');
+                    XLSX.writeFile(wb, 'GST_Payable_Details.xlsx');
+                };
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>GST Payable Details</h2>
+                                <button onClick={() => setActiveHistoryCard(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            {/* Filters */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Search Ref/Customer</label>
+                                    <input placeholder="Search..." value={historySearch} onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Date</label>
+                                    <input type="date" value={historyStartDate} onChange={(e) => { setHistoryStartDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Date</label>
+                                    <input type="date" value={historyEndDate} onChange={(e) => { setHistoryEndDate(e.target.value); setHistoryPage(1); }} style={{ width: '100%', padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>GST Collected: <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalOutput)}</span></div>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.15rem' }}>GST Paid (ITC): <span style={{ color: '#0F172A', fontWeight: '900' }}>{formatCurrency(totalInput)}</span></div>
+                                    <div style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Net GST: <span style={{ color: '#1D4ED8', fontWeight: '900' }}>{formatCurrency(netGstPayable)}</span></div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
+                                    {hasExportPermission ? (
+                                        <>
+                                            <button onClick={handlePrint} style={{ flex: 1, padding: '0.5rem', background: '#1E293B', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Print/PDF</button>
+                                            <button onClick={handleExcel} style={{ flex: 1, padding: '0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Excel</button>
+                                        </>
+                                    ) : (
+                                        <div style={{ flex: 1, fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', alignSelf: 'center' }}>View Only</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Summary Cards inside GST Popup */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>GSTR-1 Summary</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A', marginTop: '0.15rem' }}>{formatCurrency(totalOutput)}</div>
+                                </div>
+                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>ITC Summary</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A', marginTop: '0.15rem' }}>{formatCurrency(totalInput)}</div>
+                                </div>
+                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>GST Collected</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#16A34A', marginTop: '0.15rem' }}>{formatCurrency(totalOutput)}</div>
+                                </div>
+                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>GST Paid</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#EF4444', marginTop: '0.15rem' }}>{formatCurrency(totalInput)}</div>
+                                </div>
+                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>Net GST Payable</div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1D4ED8', marginTop: '0.15rem' }}>{formatCurrency(netGstPayable)}</div>
+                                </div>
+                            </div>
+
+                            {/* Table */}
+                            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', textAlign: 'left', position: 'sticky', top: 0, zIndex: 10 }}>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Date</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Invoice / Reference</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800' }}>Customer / Supplier</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Output GST</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Input GST</th>
+                                            <th style={{ padding: '0.75rem 0.5rem', fontWeight: '800', textAlign: 'right' }}>Net GST</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paginatedRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="6" style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                                    No GST records found.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            paginatedRows.map((row, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#64748B' }}>{row.date}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: '700', color: '#475569' }}>{row.invoice}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', color: '#1E293B', fontWeight: '600' }}>{row.customer}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: row.outputGst > 0 ? '#16A34A' : '#64748B' }}>{row.outputGst ? formatCurrency(row.outputGst) : ''}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: row.inputGst > 0 ? '#EF4444' : '#64748B' }}>{row.inputGst ? formatCurrency(row.inputGst) : ''}</td>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', color: row.netGst >= 0 ? '#16A34A' : '#EF4444', fontWeight: '800' }}>{formatCurrency(row.netGst)}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Showing {offset + 1} - {Math.min(offset + itemsPerPage, totalItems)} of {totalItems}</span>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button disabled={currentPage === 1} onClick={() => setHistoryPage(currentPage - 1)} style={{ padding: '0.4rem 0.8rem', background: '#F1F5F9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}>Previous</button>
+                                        <button disabled={currentPage === totalPages} onClick={() => setHistoryPage(currentPage + 1)} style={{ padding: '0.4rem 0.8rem', background: '#F1F5F9', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '700' }}>Next</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
