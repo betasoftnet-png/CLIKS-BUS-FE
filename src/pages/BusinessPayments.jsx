@@ -51,6 +51,12 @@ const BusinessPayments = () => {
         mutationFn: (data) => paymentService.receivePayment(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+            queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+            queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
             setIsPaymentModalOpen(false);
             alert('Customer payment recorded and committed successfully.');
         }
@@ -60,6 +66,12 @@ const BusinessPayments = () => {
         mutationFn: (data) => paymentService.paySupplier(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+            queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+            queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
             setIsSupplierModalOpen(false);
             alert('Supplier payment authorized and processed.');
         }
