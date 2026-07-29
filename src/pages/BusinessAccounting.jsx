@@ -837,13 +837,35 @@ const BusinessAccounting = () => {
         date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0]
     }));
 
-    const expensesList = dbExpenses.map(item => ({
-        cat: item.category || 'Uncategorized',
-        desc: item.notes || 'Recorded Expense',
-        date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
-        amt: formatCurrency(item.amount || 0),
-        rawAmt: parseFloat(item.amount) || 0
-    }));
+    const expensesList = dbExpenses.map(item => {
+        const cat = item.category || 'Uncategorized';
+        const lower = cat.toLowerCase();
+        
+        let statusVal = 'Posted';
+        if (lower === 'supplier payment') {
+            statusVal = 'Paid';
+        } else if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
+            const dbStatus = String(item.status || '').toLowerCase();
+            if (dbStatus === 'pending') {
+                statusVal = 'Pending';
+            } else if (dbStatus === 'partially paid' || dbStatus === 'partial') {
+                statusVal = 'Partially Paid';
+            } else {
+                statusVal = 'Paid';
+            }
+        } else {
+            statusVal = 'Posted';
+        }
+
+        return {
+            cat,
+            desc: item.notes || 'Recorded Expense',
+            date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
+            amt: formatCurrency(item.amount || 0),
+            rawAmt: parseFloat(item.amount) || 0,
+            status: statusVal
+        };
+    });
 
     const getAccountType = (category, status, mode, entryType) => {
         if (!category) return null;
@@ -1488,6 +1510,7 @@ const BusinessAccounting = () => {
                                         <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Expense Category</th>
                                         <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Description</th>
                                         <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                        <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                         <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
                                     </tr>
                                 </thead>
@@ -1497,6 +1520,7 @@ const BusinessAccounting = () => {
                                             <td style={{ padding: '0.6rem 1rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#E0E7FF', color: '#4338CA', fontSize: '0.75rem', fontWeight: '800' }}>{exp.cat}</span></td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{exp.desc}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>{exp.date}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', fontWeight: '700', color: exp.status.toLowerCase() === 'paid' ? '#16A34A' : (exp.status.toLowerCase() === 'pending' ? '#F59E0B' : (exp.status.toLowerCase() === 'partially paid' ? '#3B82F6' : '#64748B')) }}>{exp.status}</td>
                                             <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '850', color: '#B91C1C', fontSize: '0.85rem' }}>{exp.amt}</td>
                                         </tr>
                                     ))}
