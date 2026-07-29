@@ -20,6 +20,7 @@ import {
     Wallet,
     CreditCard,
     Receipt,
+    Settings,
     Layers,
     X,
     MoreHorizontal,
@@ -81,6 +82,82 @@ const BusinessAccounting = () => {
         refetchOnWindowFocus: false
     });
     const activeConfig = userSettings?.data || userSettings || {};
+
+    const [balanceSheetConfig, setBalanceSheetConfig] = useState(() => {
+        const stored = localStorage.getItem(`balanceSheetConfig_${user?.id || 'default'}`);
+        if (stored) {
+            try {
+                return JSON.parse(stored);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        return {
+            assets: [
+                { label: 'Cash in Hand', visible: true },
+                { label: 'Bank Balance', visible: true },
+                { label: 'Inventory Value', visible: true },
+                { label: 'Accounts Receivable', visible: true },
+                { label: 'Fixed Assets', visible: true },
+                { label: 'Other Current Assets', visible: false }
+            ],
+            liabilities: [
+                { label: 'Accounts Payable', visible: true },
+                { label: 'GST Payable', visible: true },
+                { label: 'Loans / Credit', visible: true },
+                { label: "Owner's Equity", visible: true },
+                { label: 'Retained Earnings', visible: false },
+                { label: 'Other Liabilities', visible: false }
+            ]
+        };
+    });
+
+    useEffect(() => {
+        const stored = localStorage.getItem(`balanceSheetConfig_${user?.id || 'default'}`);
+        if (stored) {
+            try {
+                setBalanceSheetConfig(JSON.parse(stored));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }, [user?.id]);
+
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+    const [tempConfig, setTempConfig] = useState(null);
+
+    const handleOpenConfig = () => {
+        setTempConfig(JSON.parse(JSON.stringify(balanceSheetConfig)));
+        setIsConfigModalOpen(true);
+    };
+
+    const handleSaveConfig = () => {
+        setBalanceSheetConfig(tempConfig);
+        localStorage.setItem(`balanceSheetConfig_${user?.id || 'default'}`, JSON.stringify(tempConfig));
+        setIsConfigModalOpen(false);
+    };
+
+    const handleResetConfig = () => {
+        const defaultConfig = {
+            assets: [
+                { label: 'Cash in Hand', visible: true },
+                { label: 'Bank Balance', visible: true },
+                { label: 'Inventory Value', visible: true },
+                { label: 'Accounts Receivable', visible: true },
+                { label: 'Fixed Assets', visible: true },
+                { label: 'Other Current Assets', visible: false }
+            ],
+            liabilities: [
+                { label: 'Accounts Payable', visible: true },
+                { label: 'GST Payable', visible: true },
+                { label: 'Loans / Credit', visible: true },
+                { label: "Owner's Equity", visible: true },
+                { label: 'Retained Earnings', visible: false },
+                { label: 'Other Liabilities', visible: false }
+            ]
+        };
+        setTempConfig(defaultConfig);
+    };
 
     const [activeTab, setActiveTab] = useState('p&l');
 
@@ -1387,14 +1464,7 @@ const BusinessAccounting = () => {
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Compliance-ready financial management and GST reporting.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button
-                        onClick={() => setIsExportModalOpen(true)}
-                        className="crm-btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: '#FFF1F2', color: '#BE185D', border: '1px solid #FECDD3', fontWeight: '850', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(190,24,93,0.03)' }}
-                    >
-                        <Download size={15} /> Secure FIN-PRO Export
-                    </button>
+                <div style={{ display: 'flex' }}>
                     <button
                         onClick={() => {
                             resetForm();
@@ -2682,22 +2752,37 @@ const BusinessAccounting = () => {
                 {activeTab === 'balance-sheet' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', marginBottom: '1rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <Briefcase size={18} color="#1D4ED8" /> Assets
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', marginBottom: '1rem', marginTop: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Briefcase size={18} color="#1D4ED8" /> Assets
+                                </span>
+                                <Settings 
+                                    size={16} 
+                                    color="#64748B" 
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={handleOpenConfig}
+                                />
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                {[
-                                    { label: 'Cash in Hand', amount: formatCurrency(dbBalanceSheet?.assets?.cash || 0) },
-                                    { label: 'Bank Balance', amount: formatCurrency(dbBalanceSheet?.assets?.bank || 0) },
-                                    { label: 'Inventory Value', amount: formatCurrency(dbBalanceSheet?.assets?.inventory || 0) },
-                                    { label: 'Accounts Receivable', amount: formatCurrency(dbBalanceSheet?.assets?.receivables || 0) },
-                                    { label: 'Fixed Assets', amount: formatCurrency(dbBalanceSheet?.assets?.fixed_assets || 0) }
-                                ].map((item, i) => (
-                                    <div key={i} style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{item.label}</span>
-                                        <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{item.amount}</span>
-                                    </div>
-                                ))}
+                                {balanceSheetConfig.assets
+                                    .filter(cfg => cfg.visible)
+                                    .map(cfg => {
+                                        let amount = 0;
+                                        if (cfg.label === 'Cash in Hand') amount = dbBalanceSheet?.assets?.cash || 0;
+                                        else if (cfg.label === 'Bank Balance') amount = dbBalanceSheet?.assets?.bank || 0;
+                                        else if (cfg.label === 'Inventory Value') amount = dbBalanceSheet?.assets?.inventory || 0;
+                                        else if (cfg.label === 'Accounts Receivable') amount = dbBalanceSheet?.assets?.receivables || 0;
+                                        else if (cfg.label === 'Fixed Assets') amount = dbBalanceSheet?.assets?.fixed_assets || 0;
+                                        else if (cfg.label === 'Other Current Assets') amount = dbBalanceSheet?.assets?.other_current_assets || 0;
+
+                                        return { label: cfg.label, amount: formatCurrency(amount) };
+                                    })
+                                    .map((item, i) => (
+                                        <div key={i} style={{ background: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{item.label}</span>
+                                            <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{item.amount}</span>
+                                        </div>
+                                    ))}
                                 <div style={{ background: '#E6F4EA', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', border: '1px solid #A7F3D0', alignItems: 'center' }}>
                                     <span style={{ fontWeight: '800', color: '#137333', fontSize: '0.85rem' }}>Total Assets</span>
                                     <span style={{ fontWeight: '900', color: '#137333', fontSize: '0.95rem' }}>{formatCurrency(totalAssets)}</span>
@@ -2705,21 +2790,37 @@ const BusinessAccounting = () => {
                             </div>
                         </div>
                         <div>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', marginBottom: '1rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <TrendingDown size={18} color="#EF4444" /> Liabilities & Equity
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A', marginBottom: '1rem', marginTop: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <TrendingDown size={18} color="#EF4444" /> Liabilities & Equity
+                                </span>
+                                <Settings 
+                                    size={16} 
+                                    color="#64748B" 
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={handleOpenConfig}
+                                />
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                {[
-                                    { label: 'Accounts Payable', amount: formatCurrency(dbBalanceSheet?.liabilities?.payables || 0) },
-                                    { label: 'GST Payable', amount: formatCurrency(dbBalanceSheet?.liabilities?.gst_payable || 0) },
-                                    { label: 'Loans / Credit', amount: formatCurrency(dbBalanceSheet?.liabilities?.loans || 0) },
-                                    { label: "Owner's Equity", amount: formatCurrency(dbBalanceSheet?.liabilities?.equity || 0) }
-                                ].map((item, i) => (
-                                    <div key={i} style={{ background: '#FFF1F2', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: '600', color: '#991B1B', fontSize: '0.85rem' }}>{item.label}</span>
-                                        <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{item.amount}</span>
-                                    </div>
-                                ))}
+                                {balanceSheetConfig.liabilities
+                                    .filter(cfg => cfg.visible)
+                                    .map(cfg => {
+                                        let amount = 0;
+                                        if (cfg.label === 'Accounts Payable') amount = dbBalanceSheet?.liabilities?.payables || 0;
+                                        else if (cfg.label === 'GST Payable') amount = dbBalanceSheet?.liabilities?.gst_payable || 0;
+                                        else if (cfg.label === 'Loans / Credit') amount = dbBalanceSheet?.liabilities?.loans || 0;
+                                        else if (cfg.label === "Owner's Equity") amount = dbBalanceSheet?.liabilities?.equity || 0;
+                                        else if (cfg.label === 'Retained Earnings') amount = dbBalanceSheet?.liabilities?.retained_earnings || 0;
+                                        else if (cfg.label === 'Other Liabilities') amount = dbBalanceSheet?.liabilities?.other_liabilities || 0;
+
+                                        return { label: cfg.label, amount: formatCurrency(amount) };
+                                    })
+                                    .map((item, i) => (
+                                        <div key={i} style={{ background: '#FFF1F2', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: '600', color: '#991B1B', fontSize: '0.85rem' }}>{item.label}</span>
+                                            <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{item.amount}</span>
+                                        </div>
+                                    ))}
                                 <div style={{ background: '#FEE2E2', padding: '0.85rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', border: '1px solid #FCA5A5', alignItems: 'center' }}>
                                     <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.85rem' }}>Total Liab. & Equity</span>
                                     <span style={{ fontWeight: '900', color: '#991B1B', fontSize: '0.95rem' }}>{formatCurrency(totalLiabilities)}</span>
@@ -3238,6 +3339,85 @@ const BusinessAccounting = () => {
                             >
                                 <Download size={15} /> EXPORT LEDGER NOW
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Balance Sheet Configuration Modal */}
+            {isConfigModalOpen && tempConfig && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '20px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Balance Sheet Configuration</h2>
+                            <button onClick={() => setIsConfigModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1D4ED8', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assets</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    {tempConfig.assets.map((item, idx) => (
+                                        <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={item.visible} 
+                                                onChange={(e) => {
+                                                    const updated = [...tempConfig.assets];
+                                                    updated[idx].visible = e.target.checked;
+                                                    setTempConfig({ ...tempConfig, assets: updated });
+                                                }}
+                                                style={{ cursor: 'pointer', width: '16px', height: '16px', borderRadius: '4px', accentColor: '#1D4ED8' }}
+                                            />
+                                            {item.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#EF4444', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Liabilities & Equity</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    {tempConfig.liabilities.map((item, idx) => (
+                                        <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#FFF1F2', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #FECDD3', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', color: '#991B1B' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={item.visible} 
+                                                onChange={(e) => {
+                                                    const updated = [...tempConfig.liabilities];
+                                                    updated[idx].visible = e.target.checked;
+                                                    setTempConfig({ ...tempConfig, liabilities: updated });
+                                                }}
+                                                style={{ cursor: 'pointer', width: '16px', height: '16px', borderRadius: '4px', accentColor: '#EF4444' }}
+                                            />
+                                            {item.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #E2E8F0', paddingTop: '1.25rem' }}>
+                                <button 
+                                    type="button" 
+                                    onClick={handleResetConfig} 
+                                    style={{ border: '1px solid #CBD5E1', background: '#F8FAFC', padding: '0.65rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', color: '#64748B', cursor: 'pointer' }}
+                                >
+                                    Reset to Default
+                                </button>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsConfigModalOpen(false)} 
+                                        style={{ border: '1px solid #CBD5E1', background: 'white', padding: '0.65rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleSaveConfig} 
+                                        style={{ border: 'none', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', padding: '0.65rem 1.25rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '800', color: 'white', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)' }}
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
