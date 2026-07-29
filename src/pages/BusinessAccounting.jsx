@@ -849,7 +849,8 @@ const BusinessAccounting = () => {
         if (!category) return null;
         const cat = String(category).trim();
         const lower = cat.toLowerCase();
-        if (lower === 'contra' || lower === 'invoice payment' || lower === 'supplier payment' || lower === 'customer payment') {
+        if (lower === 'contra' || lower === 'invoice payment' || lower === 'supplier payment' || lower === 'customer payment' ||
+            lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
             return null;
         }
 
@@ -859,8 +860,6 @@ const BusinessAccounting = () => {
             'Other Income': 'Revenue',
             'Sales Income': 'Revenue',
             'General Income': 'Revenue',
-            'Inventory Purchase (COGS)': 'Expense',
-            'Inventory Purchase': 'Expense',
             'Travel & Meals': 'Expense',
             'Marketing': 'Expense',
             'Rent': 'Expense',
@@ -871,7 +870,6 @@ const BusinessAccounting = () => {
             'Office Expenses': 'Expense',
             'Bank Charges': 'Expense',
             'Software Subscriptions': 'Expense',
-            'Vendor Purchase (GST)': 'Expense',
             'General Expense': 'Expense',
             'Operational Expense': 'Expense'
         };
@@ -882,7 +880,7 @@ const BusinessAccounting = () => {
         if (lower.includes('sales') || lower.includes('income') || lower.includes('revenue') || lower.includes('billing')) {
             return 'Revenue';
         }
-        if (lower.includes('purchase') || lower.includes('expense') || lower.includes('travel') || lower.includes('meals') || lower.includes('marketing') || lower.includes('rent') || lower.includes('salary') || lower.includes('utilities') || lower.includes('charges') || lower.includes('subscriptions') || lower.includes('office') || lower.includes('cogs') || lower.includes('bill') || lower.includes('cloud') || lower.includes('saas') || lower.includes('transport') || lower.includes('coffee')) {
+        if (lower.includes('expense') || lower.includes('travel') || lower.includes('meals') || lower.includes('marketing') || lower.includes('rent') || lower.includes('salary') || lower.includes('utilities') || lower.includes('charges') || lower.includes('subscriptions') || lower.includes('office') || lower.includes('transport') || lower.includes('coffee')) {
             return 'Expense';
         }
         if (entryType === 'income') return 'Revenue';
@@ -926,9 +924,6 @@ const BusinessAccounting = () => {
         }
         if (lower === 'insurance') {
             return 'Insurance';
-        }
-        if (lower === 'inventory purchase' || lower.includes('purchase') || lower.includes('cogs') || lower.includes('reconciliation') || lower.includes('vendor')) {
-            return 'Inventory Purchase';
         }
         return 'Miscellaneous';
     };
@@ -3963,23 +3958,28 @@ const BusinessAccounting = () => {
 
                 const combinedExpenses = [];
                 dbExpenses.forEach(exp => {
+                    const cat = exp.category_name || exp.category || 'Operational Expense';
+                    const lower = cat.toLowerCase();
+                    if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
+                        return; // Exclude inventory purchases / raw materials
+                    }
+                    let displayStatus = exp.status || 'Posted';
+                    if (lower === 'supplier payment') {
+                        displayStatus = 'Paid';
+                    } else {
+                        if (String(displayStatus).toLowerCase() === 'posted') {
+                            displayStatus = 'Posted';
+                        } else if (String(displayStatus).toLowerCase() === 'paid') {
+                            displayStatus = 'Paid';
+                        }
+                    }
                     combinedExpenses.push({
                         date: exp.date ? exp.date.split('T')[0] : 'N/A',
                         voucherNo: `EXP-${exp.id}`,
-                        category: exp.category_name || exp.category || 'Operational Expense',
+                        category: cat,
                         mode: exp.payment_mode || exp.mode || 'Cash',
                         amount: parseFloat(exp.amount) || 0,
-                        status: exp.status || 'Paid'
-                    });
-                });
-                dbPurchases.forEach(p => {
-                    combinedExpenses.push({
-                        date: p.purchase_date ? p.purchase_date.split('T')[0] : 'N/A',
-                        voucherNo: p.purchase_number || `PUR-${p.id}`,
-                        category: 'Inventory Purchase',
-                        mode: p.payment_mode || 'Cash',
-                        amount: parseFloat(p.grand_total) || 0,
-                        status: p.payment_status || 'Pending'
+                        status: displayStatus
                     });
                 });
 
@@ -4183,17 +4183,15 @@ const BusinessAccounting = () => {
                 // Fetch raw expenses/purchases
                 const rawExpenses = [];
                 dbExpenses.forEach(exp => {
+                    const cat = exp.category_name || exp.category || 'Operational Expense';
+                    const lower = cat.toLowerCase();
+                    if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
+                        return; // Exclude
+                    }
                     rawExpenses.push({
                         date: exp.date ? exp.date.split('T')[0] : 'N/A',
                         amount: parseFloat(exp.amount) || 0,
-                        category: exp.category_name || exp.category || 'Operational Expense'
-                    });
-                });
-                dbPurchases.forEach(p => {
-                    rawExpenses.push({
-                        date: p.purchase_date ? p.purchase_date.split('T')[0] : 'N/A',
-                        amount: parseFloat(p.grand_total) || 0,
-                        category: 'Inventory Purchase'
+                        category: cat
                     });
                 });
 
