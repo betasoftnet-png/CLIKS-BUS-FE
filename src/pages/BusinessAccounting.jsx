@@ -316,11 +316,7 @@ const BusinessAccounting = () => {
             })
             .catch((err) => {
                 const errMsg = err.response?.data?.message || err.message || '';
-                if (errMsg.includes('contains transactions') || errMsg.includes('contains transactions')) {
-                    alert('This account contains transactions. You cannot delete this account. Please archive it instead.');
-                } else {
-                    alert(errMsg || 'Failed to delete account.');
-                }
+                alert(errMsg || 'This account contains transactions and cannot be deleted. Please deactivate or archive the account instead.');
             });
     };
 
@@ -1697,7 +1693,10 @@ const BusinessAccounting = () => {
                                                                 { label: 'Delete Account', action: 'delete' }
                                                             ].map((item, idx) => {
                                                                 const isWriteAction = ['edit', 'opening_balance', 'deposit', 'withdraw', 'transfer', 'delete'].includes(item.action);
-                                                                const hasWritePermission = ['admin', 'finance manager', 'finance_manager', 'financemanager'].includes(String(user?.role || '').toLowerCase());
+                                                                const hasWritePermission = ['admin', 'finance manager', 'finance_manager', 'financemanager', 'accountant'].includes(String(user?.role || '').toLowerCase()) ||
+                                                                    String(user?.permissions || '').toLowerCase().includes('finance') ||
+                                                                    String(user?.permissions || '').toLowerCase().includes('manage_finances') ||
+                                                                    String(user?.permissions || '').toLowerCase().includes('accounting');
                                                                 
                                                                 return (
                                                                     <button
@@ -1705,7 +1704,7 @@ const BusinessAccounting = () => {
                                                                         onClick={() => {
                                                                             setActiveDropdownAccId(null);
                                                                             if (isWriteAction && !hasWritePermission) {
-                                                                                alert("Access Denied: Only Admins and Finance Managers are authorized to perform this operation.");
+                                                                                alert("Access Denied: You are not authorized to perform this operation.");
                                                                                 return;
                                                                             }
                                                                             
