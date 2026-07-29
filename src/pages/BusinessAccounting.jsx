@@ -845,13 +845,26 @@ const BusinessAccounting = () => {
         rawAmt: parseFloat(item.amount) || 0
     }));
 
-    const getAccountType = (category, entryType) => {
+    const getAccountType = (category, status, mode, entryType) => {
         if (!category) return null;
         const cat = String(category).trim();
         const lower = cat.toLowerCase();
-        if (lower === 'contra' || lower === 'invoice payment' || lower === 'supplier payment' || lower === 'customer payment' ||
-            lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
+        if (lower === 'contra' || lower === 'invoice payment' || lower === 'customer payment') {
             return null;
+        }
+
+        if (lower.includes('supplier payment')) {
+            return 'Expense';
+        }
+
+        if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
+            if (mode && String(mode).toLowerCase() === 'payables') {
+                return null;
+            }
+            if (status && String(status).toLowerCase() === 'pending') {
+                return null;
+            }
+            return 'Expense';
         }
 
         const ChartOfAccounts = {
@@ -951,7 +964,7 @@ const BusinessAccounting = () => {
     };
 
     dbLedger.forEach(item => {
-        const type = getAccountType(item.category, item.entry_type);
+        const type = getAccountType(item.category, item.status, item.mode, item.entry_type);
         if (type === 'Revenue') {
             const cat = String(item.category || '').trim();
             const lower = cat.toLowerCase();
@@ -4183,16 +4196,14 @@ const BusinessAccounting = () => {
                 // Fetch raw expenses/purchases
                 const rawExpenses = [];
                 dbExpenses.forEach(exp => {
-                    const cat = exp.category_name || exp.category || 'Operational Expense';
-                    const lower = cat.toLowerCase();
-                    if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('raw material') || lower.includes('raw materials') || lower.includes('inventory')) {
-                        return; // Exclude
+                    const type = getAccountType(exp.category, exp.status, exp.mode, exp.entry_type);
+                    if (type === 'Expense') {
+                        rawExpenses.push({
+                            date: exp.date ? exp.date.split('T')[0] : 'N/A',
+                            amount: parseFloat(exp.amount) || 0,
+                            category: exp.category_name || exp.category || 'Operational Expense'
+                        });
                     }
-                    rawExpenses.push({
-                        date: exp.date ? exp.date.split('T')[0] : 'N/A',
-                        amount: parseFloat(exp.amount) || 0,
-                        category: cat
-                    });
                 });
 
                 // Apply date filters
