@@ -852,6 +852,11 @@ const BusinessAccounting = () => {
     const getAccountType = (category, entryType) => {
         if (!category) return null;
         const cat = String(category).trim();
+        const lower = cat.toLowerCase();
+        if (lower === 'contra' || lower === 'invoice payment' || lower === 'supplier payment' || lower === 'customer payment') {
+            return null;
+        }
+
         const ChartOfAccounts = {
             'Sales Revenue': 'Revenue',
             'Service Income': 'Revenue',
@@ -877,10 +882,7 @@ const BusinessAccounting = () => {
         if (ChartOfAccounts[cat]) {
             return ChartOfAccounts[cat];
         }
-        const lower = cat.toLowerCase();
-        if (lower === 'contra' || lower === 'invoice payment' || lower === 'supplier payment' || lower === 'customer payment') {
-            return null;
-        }
+
         if (lower.includes('sales') || lower.includes('income') || lower.includes('revenue') || lower.includes('billing')) {
             return 'Revenue';
         }
@@ -892,83 +894,88 @@ const BusinessAccounting = () => {
         return null;
     };
 
-    const normalizeAccountName = (category, type) => {
+    const normalizeExpenseCategory = (category) => {
         const cat = String(category || '').trim();
         const lower = cat.toLowerCase();
-        if (type === 'Revenue') {
-            if (lower.includes('sales') || lower.includes('billing') || lower.includes('revenue') || lower === 'general income') {
-                return 'Sales Revenue';
-            }
-            if (lower.includes('service')) {
-                return 'Service Income';
-            }
-            return 'Other Income';
-        }
-        if (type === 'Expense') {
-            if (lower.includes('purchase') || lower.includes('cogs') || lower.includes('reconciliation') || lower.includes('vendor')) {
-                return 'Inventory Purchase';
-            }
-            if (lower.includes('travel') || lower.includes('meals') || lower.includes('dinner') || lower.includes('catering') || lower.includes('transport') || lower.includes('coffee')) {
-                return 'Travel & Meals';
-            }
-            if (lower.includes('marketing')) {
-                return 'Marketing';
-            }
-            if (lower === 'rent') {
-                return 'Rent';
-            }
-            if (lower.includes('salary') || lower.includes('payroll')) {
-                return 'Salary';
-            }
-            if (lower.includes('utilities') || lower.includes('electricity') || lower.includes('water')) {
-                return 'Utilities';
-            }
-            if (lower.includes('office') || lower.includes('operational')) {
-                return 'Office Expenses';
-            }
-            if (lower.includes('bank') || lower.includes('charge')) {
-                return 'Bank Charges';
-            }
-            if (lower.includes('subscription') || lower.includes('saas') || lower.includes('cloud')) {
-                return 'Software Subscriptions';
-            }
+        
+        if (lower === 'office expenses' || lower.includes('office') || lower.includes('operational')) {
             return 'Office Expenses';
         }
-        return cat;
+        if (lower === 'rent & utilities' || lower === 'rent' || lower.includes('utility') || lower.includes('utilities') || lower.includes('electricity') || lower.includes('water') || lower.includes('internet')) {
+            return 'Rent & Utilities';
+        }
+        if (lower === 'salary & wages' || lower.includes('salary') || lower.includes('payroll') || lower.includes('wages') || lower.includes('employee')) {
+            return 'Salary & Wages';
+        }
+        if (lower === 'marketing & advertising' || lower.includes('marketing') || lower.includes('advertise') || lower.includes('advertising')) {
+            return 'Marketing & Advertising';
+        }
+        if (lower === 'travel & meals' || lower.includes('travel') || lower.includes('meals') || lower.includes('dinner') || lower.includes('catering') || lower.includes('transport') || lower.includes('coffee')) {
+            return 'Travel & Meals';
+        }
+        if (lower === 'vehicle expenses' || lower.includes('vehicle') || lower.includes('fuel') || lower.includes('logistics')) {
+            return 'Vehicle Expenses';
+        }
+        if (lower === 'software & subscription' || lower.includes('subscription') || lower.includes('saas') || lower.includes('cloud') || lower.includes('software')) {
+            return 'Software & Subscription';
+        }
+        if (lower === 'repairs & maintenance' || lower.includes('repair') || lower.includes('repairs') || lower.includes('maintenance')) {
+            return 'Repairs & Maintenance';
+        }
+        if (lower === 'bank charges' || lower.includes('bank charge') || lower.includes('bank charges')) {
+            return 'Bank Charges';
+        }
+        if (lower === 'taxes & government fees' || lower.includes('tax') || lower.includes('taxes') || lower.includes('government') || lower.includes('gst')) {
+            return 'Taxes & Government Fees';
+        }
+        if (lower === 'insurance') {
+            return 'Insurance';
+        }
+        if (lower === 'inventory purchase' || lower.includes('purchase') || lower.includes('cogs') || lower.includes('reconciliation') || lower.includes('vendor')) {
+            return 'Inventory Purchase';
+        }
+        return 'Miscellaneous';
     };
 
-    const pAndLIncomeGroups = {};
-    const pAndLExpenseGroups = {};
+    const pAndLIncomeGroups = {
+        'Sales Revenue': 0,
+        'Service Income': 0,
+        'Other Income': 0
+    };
+
+    const pAndLExpenseGroups = {
+        'Office Expenses': 0,
+        'Rent & Utilities': 0,
+        'Salary & Wages': 0,
+        'Marketing & Advertising': 0,
+        'Travel & Meals': 0,
+        'Vehicle Expenses': 0,
+        'Software & Subscription': 0,
+        'Repairs & Maintenance': 0,
+        'Bank Charges': 0,
+        'Taxes & Government Fees': 0,
+        'Insurance': 0,
+        'Inventory Purchase': 0,
+        'Miscellaneous': 0
+    };
 
     dbLedger.forEach(item => {
         const type = getAccountType(item.category, item.entry_type);
         if (type === 'Revenue') {
-            const accName = normalizeAccountName(item.category, 'Revenue');
-            pAndLIncomeGroups[accName] = (pAndLIncomeGroups[accName] || 0) + (parseFloat(item.amount) || 0);
+            const cat = String(item.category || '').trim();
+            const lower = cat.toLowerCase();
+            let groupName = 'Other Income';
+            if (lower.includes('sales') || lower.includes('billing') || lower.includes('revenue') || lower === 'general income') {
+                groupName = 'Sales Revenue';
+            } else if (lower.includes('service')) {
+                groupName = 'Service Income';
+            }
+            pAndLIncomeGroups[groupName] = (pAndLIncomeGroups[groupName] || 0) + (parseFloat(item.amount) || 0);
         } else if (type === 'Expense') {
-            const accName = normalizeAccountName(item.category, 'Expense');
-            pAndLExpenseGroups[accName] = (pAndLExpenseGroups[accName] || 0) + (parseFloat(item.amount) || 0);
+            const groupName = normalizeExpenseCategory(item.category);
+            pAndLExpenseGroups[groupName] = (pAndLExpenseGroups[groupName] || 0) + (parseFloat(item.amount) || 0);
         }
     });
-
-    dbExpenses.forEach(item => {
-        if (item.is_claim === 'true' || item.is_budget === 'true') return;
-        const catName = item.category || item.category_name || 'Office Expenses';
-        const type = getAccountType(catName, 'expense');
-        if (type === 'Expense') {
-            const accName = normalizeAccountName(catName, 'Expense');
-            pAndLExpenseGroups[accName] = (pAndLExpenseGroups[accName] || 0) + (parseFloat(item.amount || item.expense_amount) || 0);
-        }
-    });
-
-    dbPurchases.forEach(item => {
-        const accName = 'Inventory Purchase';
-        pAndLExpenseGroups[accName] = (pAndLExpenseGroups[accName] || 0) + (parseFloat(item.grand_total) || 0);
-    });
-
-    if (typeof pAndLIncomeGroups['Sales Revenue'] === 'undefined') pAndLIncomeGroups['Sales Revenue'] = 0;
-    if (typeof pAndLIncomeGroups['Service Income'] === 'undefined') pAndLIncomeGroups['Service Income'] = 0;
-    if (typeof pAndLIncomeGroups['Other Income'] === 'undefined') pAndLIncomeGroups['Other Income'] = 0;
 
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
