@@ -49,6 +49,7 @@ const BusinessGST = () => {
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
     const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
     const [validationErrors, setValidationErrors] = useState({});
+    const [selectedQrInvoice, setSelectedQrInvoice] = useState(null);
 
     const queryClient = useQueryClient();
 
@@ -90,6 +91,9 @@ const BusinessGST = () => {
         mutationFn: (data) => gstService.generateInvoice(data),
         onSuccess: (resData) => {
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
+            queryClient.invalidateQueries({ queryKey: ['gstr3bReport'] });
+            queryClient.invalidateQueries({ queryKey: ['gstr9Report'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
             setIsInvoiceModalOpen(false);
             setCustomerMode('existing');
             setSaveCustomerForFuture(false);
@@ -182,6 +186,9 @@ const BusinessGST = () => {
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             queryClient.invalidateQueries({ queryKey: ['gstEways'] });
             queryClient.invalidateQueries({ queryKey: ['gstReconciliations'] });
+            queryClient.invalidateQueries({ queryKey: ['gstr3bReport'] });
+            queryClient.invalidateQueries({ queryKey: ['gstr9Report'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
         },
         onError: (err) => {
             console.error('[GST Deletion] Network error:', err);
@@ -226,7 +233,13 @@ const BusinessGST = () => {
         lut_document_path: item.lut_document_path || '',
         lut_file_name: item.lut_file_name || '',
         lut_uploaded_at: item.lut_uploaded_at || '',
-        lut_uploaded_by: item.lut_uploaded_by || ''
+        lut_uploaded_by: item.lut_uploaded_by || '',
+        customer_name: item.customer_name || item.client_name || 'N/A',
+        customer_gstin: item.customer_gstin || 'N/A',
+        customer_state: item.customer_state || item.place_of_supply || 'N/A',
+        sender_name: item.sender_name || 'N/A',
+        sender_gstin: item.sender_gstin || 'N/A',
+        sender_state: item.sender_state || 'N/A'
     }));
 
     const reconciliations = dbReconciliations
@@ -925,7 +938,11 @@ const BusinessGST = () => {
                                     </div>
                                     <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', marginTop: '0.4rem', margin: 0 }}>Invoice Ref: {inv.gst_invoice_number}</h3>
                                 </div>
-                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                                <div 
+                                    onClick={() => setSelectedQrInvoice(inv)}
+                                    style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8', cursor: 'pointer' }}
+                                    title="View QR Code & Invoice Details"
+                                >
                                     <QrCode size={18} />
                                 </div>
                             </div>
@@ -1816,6 +1833,138 @@ const BusinessGST = () => {
                                 </button>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Government e-Invoice QR Code & Details Modal */}
+            {selectedQrInvoice && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1200, padding: '1rem' }}>
+                    <div style={{ background: 'white', borderRadius: '32px', width: '100%', maxWidth: '650px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #E2E8F0', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#4338CA', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <span>🛡️</span> Government e-Invoice Portal
+                                </h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>IRN Authenticated & Registered Successfully</p>
+                            </div>
+                            <button 
+                                onClick={() => setSelectedQrInvoice(null)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* QR Code and Primary Metadata */}
+                            <div style={{ display: 'flex', gap: '1.5rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0', alignItems: 'center' }}>
+                                <img 
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '/public/invoice/' + selectedQrInvoice.id)}`}
+                                    alt="Authenticated QR Code"
+                                    style={{ background: 'white', padding: '0.4rem', border: '1px solid #E2E8F0', borderRadius: '12px', width: '130px', height: '130px' }}
+                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+                                    <div>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Invoice Number</span>
+                                        <strong style={{ display: 'block', fontSize: '1rem', color: '#0F172A' }}>{selectedQrInvoice.gst_invoice_number}</strong>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date Generated</span>
+                                        <span style={{ display: 'block', fontSize: '0.85rem', color: '#334155', fontWeight: '700' }}>{selectedQrInvoice.date}</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Invoice Type</span>
+                                        <span style={{ display: 'inline-flex', padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#EEF2FF', color: '#4338CA', fontWeight: '800', fontSize: '0.75rem', marginTop: '0.15rem' }}>{selectedQrInvoice.invoice_type}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* IRN Reference Code */}
+                            <div style={{ background: '#EEF2FF', border: '1px solid #E0E7FF', padding: '0.85rem 1.25rem', borderRadius: '16px' }}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#4338CA', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Government Invoice Reference Number (IRN)</span>
+                                <strong style={{ fontSize: '0.78rem', color: '#3730A3', fontFamily: 'monospace', wordBreak: 'break-all' }}>{selectedQrInvoice.irn_number || 'N/A'}</strong>
+                            </div>
+
+                            {/* Buyer & Seller Summary */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', background: 'white', border: '1px solid #E2E8F0', padding: '1.25rem', borderRadius: '20px' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>Seller details</span>
+                                    <strong style={{ fontSize: '0.85rem', color: '#1E293B', display: 'block' }}>{selectedQrInvoice.sender_name}</strong>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '0.1rem' }}>GSTIN: {selectedQrInvoice.sender_gstin}</span>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>State: {selectedQrInvoice.sender_state}</span>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>Buyer details</span>
+                                    <strong style={{ fontSize: '0.85rem', color: '#1E293B', display: 'block' }}>{selectedQrInvoice.customer_name}</strong>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '0.1rem' }}>GSTIN: {selectedQrInvoice.customer_gstin}</span>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Supply Place: {selectedQrInvoice.customer_state}</span>
+                                </div>
+                            </div>
+
+                            {/* GST breakdown */}
+                            <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                                <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#475569', margin: '0 0 0.85rem 0', textTransform: 'uppercase' }}>Tax Breakdown ({selectedQrInvoice.gst_percentage}% GST)</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                                        <span>Taxable Sales Value (Exclusive):</span>
+                                        <strong style={{ color: '#1F2937' }}>{formatCurrency(selectedQrInvoice.taxable_value)}</strong>
+                                    </div>
+                                    {selectedQrInvoice.cgst_amount > 0 && (
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                                                <span>Central Tax (CGST):</span>
+                                                <strong style={{ color: '#1F2937' }}>{formatCurrency(selectedQrInvoice.cgst_amount)}</strong>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                                                <span>State Tax (SGST):</span>
+                                                <strong style={{ color: '#1F2937' }}>{formatCurrency(selectedQrInvoice.sgst_amount)}</strong>
+                                            </div>
+                                        </>
+                                    )}
+                                    {selectedQrInvoice.igst_amount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                                            <span>Integrated Tax (IGST):</span>
+                                            <strong style={{ color: '#1F2937' }}>{formatCurrency(selectedQrInvoice.igst_amount)}</strong>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                                        <span>Total GST Amount Collected:</span>
+                                        <strong style={{ color: '#4338CA' }}>{formatCurrency(selectedQrInvoice.total_tax)}</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                        <strong style={{ color: '#111827' }}>Total Invoice Bill Amount:</strong>
+                                        <strong style={{ color: '#047857', fontSize: '1.25rem' }}>{formatCurrency(selectedQrInvoice.taxable_value + selectedQrInvoice.total_tax)}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal actions */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button 
+                                    onClick={() => setSelectedQrInvoice(null)}
+                                    style={{ padding: '0.85rem', borderRadius: '14px', background: '#F1F5F9', color: '#475569', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                    Close Preview
+                                </button>
+                                <a 
+                                    href={`${window.location.origin}/public/invoice/${selectedQrInvoice.id}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.85rem', borderRadius: '14px', border: '1px solid #CBD5E1', background: 'white', color: '#475569', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                >
+                                    Print Invoice
+                                </a>
+                                <a 
+                                    href={`${window.location.origin}/public/invoice/${selectedQrInvoice.id}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.85rem', borderRadius: '14px', border: 'none', background: '#4338CA', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(67, 56, 202, 0.2)' }}
+                                >
+                                    Download PDF
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

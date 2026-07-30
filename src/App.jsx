@@ -77,6 +77,7 @@ import BusinessPaymentPlan from './pages/BusinessPaymentPlan';
 import BusinessMeetup from './pages/BusinessMeetup';
 import BusinessPitches from './pages/BusinessPitches';
 import VerifyPass from './pages/VerifyPass';
+import PublicInvoiceDetails from './pages/PublicInvoiceDetails';
 import BusinessCalculator from './pages/BusinessCalculator';
 import BusinessLauncher from './pages/BusinessLauncher';
 
@@ -241,6 +242,7 @@ function AppContent() {
 
         {/* Public Pass Verification Gate */}
         <Route path="/verify-pass" element={<VerifyPass />} />
+        <Route path="/public/invoice/:id" element={<PublicInvoiceDetails />} />
         
         {/* Protected Routes - All routes within MainLayout require authentication */}
         <Route path="*" element={
