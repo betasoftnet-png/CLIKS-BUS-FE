@@ -87,12 +87,36 @@ const BusinessGST = () => {
     // Mutations
     const generateInvoiceMutation = useMutation({
         mutationFn: (data) => gstService.generateInvoice(data),
-        onSuccess: () => {
+        onSuccess: (resData) => {
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             setIsInvoiceModalOpen(false);
             setCustomerMode('existing');
             setSaveCustomerForFuture(false);
-            alert('Tax Invoice successfully validated! Government e-Invoice IRN & QR generated dynamically.');
+            
+            const invoiceNo = resData.invoice_number || 'N/A';
+            const status = resData.status || 'Generated';
+            const irnVal = resData.irn || 'N/A';
+            
+            alert(
+                `e-Invoice Generated Successfully\n\n` +
+                `Invoice No : ${invoiceNo}\n` +
+                `Status : ${status}\n` +
+                `IRN : ${irnVal}\n` +
+                `QR Code Generated`
+            );
+        },
+        onError: (err, variables) => {
+            const responseData = err?.response?.data || {};
+            const message = responseData.message || responseData.error || err.message || 'Server error';
+            
+            console.error('========== E-INVOICE GENERATION FAILURE ==========');
+            console.error('API URL: /api/v1/gst/einvoice');
+            console.error('Request Payload:', variables);
+            console.error('Exact Backend Response:', responseData);
+            console.error('Network Status:', err?.response?.status || 'N/A');
+            console.error('Error Object:', err);
+            
+            alert(`Failed to generate e-Invoice: ${message}`);
         }
     });
 
@@ -280,6 +304,27 @@ const BusinessGST = () => {
 
     const handleGenerateInvoice = async (e) => {
         e.preventDefault();
+        
+        // Validation check
+        const errors = {};
+        if (!invoiceForm.client_name || !invoiceForm.client_name.trim()) {
+            errors.client_name = 'Customer Name is required.';
+        }
+        if (invoiceForm.invoice_type === 'B2B' && (!invoiceForm.customer_gstin || !invoiceForm.customer_gstin.trim())) {
+            errors.customer_gstin = 'Customer GSTIN is required for B2B invoices.';
+        }
+        const val = parseFloat(invoiceForm.taxable_value) || 0;
+        if (val <= 0) {
+            errors.taxable_value = 'Taxable value must be greater than 0.';
+        }
+        
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            console.warn('[e-Invoice Validation Failed] Validation errors:', errors);
+            return;
+        }
+        
+        setValidationErrors({});
         
         if (customerMode === 'manual' && saveCustomerForFuture) {
             try {
@@ -1022,7 +1067,7 @@ const BusinessGST = () => {
                                                         place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
                                                     }));
                                                 }}
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.client_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
                                             >
                                                 <option value="">Select Customer</option>
                                                 {dbCustomers.map(cust => (
@@ -1036,9 +1081,10 @@ const BusinessGST = () => {
                                                 value={invoiceForm.client_name} 
                                                 onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })} 
                                                 placeholder="Enter Customer Name"
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.client_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
                                             />
                                         )}
+                                        {validationErrors.client_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.client_name}</span>}
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
                                         <div>
@@ -1048,8 +1094,9 @@ const BusinessGST = () => {
                                                 value={invoiceForm.customer_gstin} 
                                                 onChange={(e) => setInvoiceForm({ ...invoiceForm, customer_gstin: e.target.value })} 
                                                 placeholder="Enter GSTIN"
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.customer_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
                                             />
+                                            {validationErrors.customer_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.customer_gstin}</span>}
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State / Place of Supply</label>
@@ -1094,7 +1141,8 @@ const BusinessGST = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Taxable Value (Before GST)</label>
-                                        <input required type="number" value={invoiceForm.taxable_value} onChange={(e) => setInvoiceForm({ ...invoiceForm, taxable_value: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+                                        <input required type="number" value={invoiceForm.taxable_value} onChange={(e) => setInvoiceForm({ ...invoiceForm, taxable_value: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.taxable_value ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+                                        {validationErrors.taxable_value && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.taxable_value}</span>}
                                     </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1157,8 +1205,12 @@ const BusinessGST = () => {
                                 })()}
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
-                                Generate / Authenticate e-Invoice
+                            <button 
+                                type="submit" 
+                                disabled={generateInvoiceMutation.isPending}
+                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: generateInvoiceMutation.isPending ? 'not-allowed' : 'pointer', opacity: generateInvoiceMutation.isPending ? 0.7 : 1, boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}
+                            >
+                                {generateInvoiceMutation.isPending ? 'Generating...' : 'Generate / Authenticate e-Invoice'}
                             </button>
                         </form>
                     </div>
