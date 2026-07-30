@@ -25,7 +25,8 @@ import {
     RefreshCw, 
     Sliders,
     Award,
-    Trash2
+    Trash2,
+    Download
 } from 'lucide-react';
 import '../App.css';
 
