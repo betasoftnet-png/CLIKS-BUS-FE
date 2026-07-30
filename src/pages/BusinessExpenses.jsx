@@ -409,7 +409,7 @@ const BusinessExpenses = () => {
                 employee_id: empId,
                 name: empName,
                 salary: empSalary ? parseFloat(empSalary) : '',
-                spent: 0
+                spent: empSalary ? parseFloat(empSalary) : 0
             }
         ]);
 
@@ -1202,7 +1202,7 @@ const BusinessExpenses = () => {
                                         )}
 
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Salary (Optional)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Spent (Optional)</label>
                                             <input 
                                                 type="number" 
                                                 placeholder="e.g. 25000" 
@@ -1230,7 +1230,7 @@ const BusinessExpenses = () => {
                                                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                                                     <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Employee ID</th>
                                                     <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Name</th>
-                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Salary</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Spent</th>
                                                     <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B', textAlign: 'center' }}>Remove</th>
                                                 </tr>
                                             </thead>
@@ -1239,7 +1239,7 @@ const BusinessExpenses = () => {
                                                     <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
                                                         <td style={{ padding: '0.4rem 0.6rem' }}>{m.name}</td>
-                                                        <td style={{ padding: '0.4rem 0.6rem', color: '#64748B' }}>{m.salary ? formatCurrency(m.salary) : '-'}</td>
+                                                        <td style={{ padding: '0.4rem 0.6rem', color: '#64748B' }}>{m.spent ? formatCurrency(m.spent) : '-'}</td>
                                                         <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
                                                             <button 
                                                                 type="button" 
