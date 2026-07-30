@@ -339,8 +339,15 @@ const BusinessGST = () => {
         if (!invoiceForm.client_name || !invoiceForm.client_name.trim()) {
             errors.client_name = 'Customer Name is required.';
         }
-        if (invoiceForm.invoice_type === 'B2B' && (!invoiceForm.customer_gstin || !invoiceForm.customer_gstin.trim())) {
-            errors.customer_gstin = 'Customer GSTIN is required for B2B invoices.';
+        if (invoiceForm.invoice_type === 'B2B') {
+            if (!invoiceForm.customer_gstin || !invoiceForm.customer_gstin.trim()) {
+                errors.customer_gstin = 'Customer GSTIN is required for B2B invoices.';
+            } else {
+                const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
+                if (!gstinRegex.test(invoiceForm.customer_gstin.trim())) {
+                    errors.customer_gstin = 'Invalid GSTIN format (15-characters, e.g. 33ABCDE1234F1Z5).';
+                }
+            }
         }
         const val = parseFloat(invoiceForm.taxable_value) || 0;
         if (val <= 0) {
