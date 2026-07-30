@@ -216,7 +216,8 @@ const BusinessGST = () => {
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
         .map(item => ({
         id: item.id,
-        gst_invoice_number: item.invoice_number,
+        invoice_number: item.invoice_number || 'N/A',
+        type: item.invoice_type || 'B2B',
         invoice_type: item.invoice_type || 'B2B',
         date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
         place_of_supply: item.place_of_supply || 'N/A',
@@ -224,11 +225,15 @@ const BusinessGST = () => {
         gst_percentage: parseFloat(item.gst_percentage) || 18,
         cgst_amount: parseFloat(item.cgst_amount) || 0,
         sgst_amount: parseFloat(item.sgst_amount) || 0,
+        cgst_sgst: `${parseFloat(item.cgst_amount) || 0} + ${parseFloat(item.sgst_amount) || 0}`,
         igst_amount: parseFloat(item.igst_amount) || 0,
+        igst: parseFloat(item.igst_amount) || 0,
         total_tax: parseFloat(item.total_tax) || 0,
+        total_gst: parseFloat(item.total_tax) || 0,
         reverse_charge: item.reverse_charge || 'No',
         irn_number: item.irn_number || '',
         qr_status: item.qr_status || 'Pending',
+        status: 'READY',
         export_under_lut: item.export_under_lut || 'false',
         lut_document_path: item.lut_document_path || '',
         lut_file_name: item.lut_file_name || '',
@@ -538,8 +543,8 @@ const BusinessGST = () => {
     const netTaxPayable = Math.max(0, totalOutputGSTCollected - totalITCClaimable);
 
     const filteredInvoices = invoices.filter(inv => 
-        inv.gst_invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.place_of_supply.toLowerCase().includes(searchTerm.toLowerCase())
+        (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inv.place_of_supply || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -673,7 +678,7 @@ const BusinessGST = () => {
                                 {filteredInvoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>{inv.gst_invoice_number}</p>
+                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>{inv.invoice_number}</p>
                                             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Date: {inv.date}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
@@ -934,7 +939,7 @@ const BusinessGST = () => {
             {activeTab === 'einvoice' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                     {invoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
-                        <div key={inv.gst_invoice_number} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                        <div key={inv.id} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                 <div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
@@ -943,7 +948,7 @@ const BusinessGST = () => {
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontWeight: '800', fontSize: '0.75rem' }}>Export Under LUT: YES (GST 0%)</span>
                                         )}
                                     </div>
-                                    <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', marginTop: '0.4rem', margin: 0 }}>Invoice Ref: {inv.gst_invoice_number}</h3>
+                                    <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', marginTop: '0.4rem', margin: 0 }}>Invoice Ref: {inv.invoice_number}</h3>
                                 </div>
                                 <div 
                                     onClick={() => setSelectedQrInvoice(inv)}
@@ -1874,7 +1879,7 @@ const BusinessGST = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
                                     <div>
                                         <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Invoice Number</span>
-                                        <strong style={{ display: 'block', fontSize: '1rem', color: '#0F172A' }}>{selectedQrInvoice.gst_invoice_number}</strong>
+                                        <strong style={{ display: 'block', fontSize: '1rem', color: '#0F172A' }}>{selectedQrInvoice.invoice_number}</strong>
                                     </div>
                                     <div>
                                         <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Date Generated</span>
