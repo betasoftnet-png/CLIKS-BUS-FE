@@ -90,6 +90,8 @@ const BusinessGST = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             setIsInvoiceModalOpen(false);
+            setCustomerMode('existing');
+            setSaveCustomerForFuture(false);
             alert('Tax Invoice successfully validated! Government e-Invoice IRN & QR generated dynamically.');
         }
     });
@@ -245,6 +247,9 @@ const BusinessGST = () => {
         customer_gstin: ''
     });
 
+    const [customerMode, setCustomerMode] = useState('existing'); // 'existing' or 'manual'
+    const [saveCustomerForFuture, setSaveCustomerForFuture] = useState(false);
+
     const [ewayForm, setEwayForm] = useState({
         invoice_number: '',
         invoice_date: new Date().toISOString().split('T')[0],
@@ -273,8 +278,25 @@ const BusinessGST = () => {
         match_status: 'matched'
     });
 
-    const handleGenerateInvoice = (e) => {
+    const handleGenerateInvoice = async (e) => {
         e.preventDefault();
+        
+        if (customerMode === 'manual' && saveCustomerForFuture) {
+            try {
+                await crmService.createCustomer({
+                    name: invoiceForm.client_name,
+                    outstanding_balance: 0,
+                    total_spent: parseFloat(invoiceForm.taxable_value) || 0,
+                    gstin: invoiceForm.customer_gstin,
+                    state: invoiceForm.place_of_supply,
+                    place_of_supply: invoiceForm.place_of_supply
+                });
+                queryClient.invalidateQueries({ queryKey: ['customers'] });
+            } catch (err) {
+                console.error('[Generate Invoice] Failed to save customer:', err);
+            }
+        }
+
         generateInvoiceMutation.mutate({
             invoice_type: invoiceForm.invoice_type,
             place_of_supply: invoiceForm.place_of_supply,
@@ -954,27 +976,69 @@ const BusinessGST = () => {
                             <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
                                 <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Receiver (To)</h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {/* Customer Mode Selection */}
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.2rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>Customer Source:</span>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
+                                            <input 
+                                                type="radio" 
+                                                name="customerMode" 
+                                                value="existing" 
+                                                checked={customerMode === 'existing'} 
+                                                onChange={() => {
+                                                    setCustomerMode('existing');
+                                                    setInvoiceForm(prev => ({ ...prev, client_name: '', customer_gstin: '', place_of_supply: '33-Tamil Nadu' }));
+                                                }}
+                                            />
+                                            Existing Customer
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
+                                            <input 
+                                                type="radio" 
+                                                name="customerMode" 
+                                                value="manual" 
+                                                checked={customerMode === 'manual'} 
+                                                onChange={() => {
+                                                    setCustomerMode('manual');
+                                                    setInvoiceForm(prev => ({ ...prev, client_name: '', customer_gstin: '', place_of_supply: '33-Tamil Nadu' }));
+                                                }}
+                                            />
+                                            Manual Entry
+                                        </label>
+                                    </div>
+
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name *</label>
-                                        <select 
-                                            value={invoiceForm.client_name} 
-                                            onChange={(e) => {
-                                                const selectedName = e.target.value;
-                                                const customer = dbCustomers.find(c => c.name === selectedName);
-                                                setInvoiceForm(prev => ({
-                                                    ...prev,
-                                                    client_name: selectedName,
-                                                    customer_gstin: customer?.gstin || prev.customer_gstin,
-                                                    place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
-                                                }));
-                                            }}
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                        >
-                                            <option value="">Select Customer</option>
-                                            {dbCustomers.map(cust => (
-                                                <option key={cust.id} value={cust.name}>{cust.name}</option>
-                                            ))}
-                                        </select>
+                                        {customerMode === 'existing' ? (
+                                            <select 
+                                                value={invoiceForm.client_name} 
+                                                onChange={(e) => {
+                                                    const selectedName = e.target.value;
+                                                    const customer = dbCustomers.find(c => c.name === selectedName);
+                                                    setInvoiceForm(prev => ({
+                                                        ...prev,
+                                                        client_name: selectedName,
+                                                        customer_gstin: customer?.gstin || prev.customer_gstin,
+                                                        place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
+                                                    }));
+                                                }}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                            >
+                                                <option value="">Select Customer</option>
+                                                {dbCustomers.map(cust => (
+                                                    <option key={cust.id} value={cust.name}>{cust.name}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input 
+                                                required 
+                                                type="text" 
+                                                value={invoiceForm.client_name} 
+                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })} 
+                                                placeholder="Enter Customer Name"
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                            />
+                                        )}
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
                                         <div>
@@ -1000,6 +1064,20 @@ const BusinessGST = () => {
                                             </select>
                                         </div>
                                     </div>
+                                    {customerMode === 'manual' && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                id="saveCustomerForFuture" 
+                                                checked={saveCustomerForFuture} 
+                                                onChange={(e) => setSaveCustomerForFuture(e.target.checked)} 
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                            <label htmlFor="saveCustomerForFuture" style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}>
+                                                Save this customer for future use
+                                            </label>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1037,6 +1115,46 @@ const BusinessGST = () => {
                                         </select>
                                     </div>
                                 </div>
+                                {/* Auto GST Detection Panel */}
+                                {(() => {
+                                    const senderStateCode = (gstProfile.state_code || '33').substring(0, 2);
+                                    const receiverStateCode = (invoiceForm.place_of_supply || '33').substring(0, 2);
+                                    const isSameState = senderStateCode === receiverStateCode;
+                                    const gstPct = parseFloat(invoiceForm.gst_percentage) || 12;
+                                    const taxable = parseFloat(invoiceForm.taxable_value) || 0;
+                                    const taxTotal = taxable * (gstPct / 100);
+                                    return (
+                                        <div style={{ background: '#F5F3FF', padding: '0.8rem', borderRadius: '10px', border: '1px solid #DDD6FE', fontSize: '0.78rem', color: '#4C1D95' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '0.25rem' }}>
+                                                <span>TAX TYPE DETERMINED:</span>
+                                                <span style={{ color: '#7C3AED' }}>{isSameState ? 'INTRA-STATE (CGST + SGST)' : 'INTER-STATE (IGST)'}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', color: '#5B21B6', fontSize: '0.74rem' }}>
+                                                {isSameState ? (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>CGST ({gstPct / 2}%)</span>
+                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(taxTotal / 2)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>SGST ({gstPct / 2}%)</span>
+                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(taxTotal / 2)}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span>IGST ({gstPct}%)</span>
+                                                        <span style={{ fontWeight: '700' }}>{formatCurrency(taxTotal)}</span>
+                                                    </div>
+                                                )}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dotted #DDD6FE', paddingTop: '0.2rem', marginTop: '0.2rem', fontWeight: '800', fontSize: '0.78rem' }}>
+                                                    <span>Total Invoice Amount</span>
+                                                    <span>{formatCurrency(taxable + taxTotal)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
