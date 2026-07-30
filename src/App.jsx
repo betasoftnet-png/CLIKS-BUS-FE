@@ -40,6 +40,7 @@ import BusinessInventory from './pages/BusinessInventory';
 import BusinessBilling from './pages/BusinessBilling';
 import BusinessSalesOrders from './pages/BusinessSalesOrders';
 import BusinessPurchases from './pages/BusinessPurchases';
+import BusinessFinancePurchases from './pages/BusinessFinancePurchases';
 import BusinessCRM from './pages/BusinessCRM';
 import BusinessStaffing from './pages/BusinessStaffing';
 import BusinessFinancialPlan from './pages/BusinessFinancialPlan';
@@ -302,6 +303,11 @@ function AppContent() {
                     <Route path="/sales/invoice" element={<BusinessBilling />} />
                     <Route path="/sales/orders" element={<BusinessSalesOrders />} />
                     <Route path="/purchases/purchases" element={<BusinessPurchases />} />
+                    <Route path="/finance/purchases/new" element={<BusinessFinancePurchases />} />
+                    <Route path="/finance/purchases/register" element={<BusinessFinancePurchases />} />
+                    <Route path="/finance/purchases/vendors" element={<BusinessFinancePurchases />} />
+                    <Route path="/finance/purchases/bills" element={<BusinessFinancePurchases />} />
+                    <Route path="/finance/purchases/reports" element={<BusinessFinancePurchases />} />
                     <Route path="/finance/plan" element={<BusinessFinancialPlan />} />
                     <Route path="/finance/compare" element={<BusinessCompare />} />
                     <Route path="/hr/staff" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessStaffing /></FeatureGate>} />

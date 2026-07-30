@@ -213,6 +213,11 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/purchases/purchases')) return 'Purchase Invoice';
         if (path.includes('/purchases/suppliers')) return 'Suppliers';
         if (path.includes('/inventory/warehouse')) return 'Warehouse';
+        if (path.includes('/finance/purchases/new')) return 'New Purchase';
+        if (path.includes('/finance/purchases/register')) return 'Purchase Register';
+        if (path.includes('/finance/purchases/vendors')) return 'Vendors';
+        if (path.includes('/finance/purchases/bills')) return 'Vendor Bills';
+        if (path.includes('/finance/purchases/reports')) return 'Purchase Reports';
         if (path.includes('/finance/accounting')) return 'Accounting';
         if (path.includes('/payments/transaction')) return 'Transaction';
         if (path.includes('/payments/wallet')) return 'Wallet';
@@ -307,6 +312,17 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 children: [
                     { label: 'Accounting', icon: Calculator, path: '/finance/accounting' },
                     { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses' },
+                    {
+                        label: 'Purchases',
+                        icon: ShoppingCart,
+                        children: [
+                            { label: 'New Purchase', icon: Plus, path: '/finance/purchases/new' },
+                            { label: 'Purchase Register', icon: Layers, path: '/finance/purchases/register' },
+                            { label: 'Vendors', icon: UsersRound, path: '/finance/purchases/vendors' },
+                            { label: 'Vendor Bills', icon: Receipt, path: '/finance/purchases/bills' },
+                            { label: 'Purchase Reports', icon: BarChart3, path: '/finance/purchases/reports' }
+                        ]
+                    },
                     { label: 'GST', icon: PercentCircle, path: '/finance/gst' }
                 ]
             },
