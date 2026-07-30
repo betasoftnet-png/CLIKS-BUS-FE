@@ -884,6 +884,7 @@ const BusinessAccounting = () => {
             invoice_number: entryForm.invoice_number,
             due_date: entryForm.due_date,
             supplier_name: entryForm.supplier_name,
+            supplier_gstin: entryForm.supplier_gstin || null,
             bill_number: entryForm.bill_number,
             reference_number: entryForm.reference_number,
             payment_mode_from: entryForm.payment_mode_from,
@@ -3104,15 +3105,19 @@ const BusinessAccounting = () => {
                                     <>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier</label>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier Name</label>
                                                 <input required type="text" placeholder="Supplier Name" value={entryForm.supplier_name} onChange={(e) => setEntryForm({ ...entryForm, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
                                             </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier GSTIN (Optional)</label>
+                                                <input type="text" placeholder="e.g. 29ABCDE1234F1ZP" value={entryForm.supplier_gstin || ''} onChange={(e) => setEntryForm({ ...entryForm, supplier_gstin: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bill Number (Auto)</label>
                                                 <input disabled type="text" value={entryForm.bill_number} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#64748B', fontWeight: '600' }} />
                                             </div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Purchase Category</label>
                                                 <select value={entryForm.category} onChange={(e) => setEntryForm({ ...entryForm, category: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
@@ -3121,10 +3126,17 @@ const BusinessAccounting = () => {
                                                     <option value="Raw Materials">Raw Materials</option>
                                                 </select>
                                             </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
-                                                <input required type="date" value={entryForm.due_date} onChange={(e) => setEntryForm({ ...entryForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
-                                            </div>
+                                        </div>
+                                        <div style={{ maxWidth: '50%' }}>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
+                                            <input required type="date" value={entryForm.due_date} onChange={(e) => setEntryForm({ ...entryForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                        </div>
+                                        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                                            <span style={{ fontSize: '1rem' }}>ℹ️</span>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#92400E', fontWeight: '600' }}>
+                                                This creates a <strong>Purchase Bill (Pending Goods)</strong> in Purchases → Purchase Bills.
+                                                When the warehouse clicks <strong>Receive Goods</strong>, the Vendor Ledger, Accounts Payable, Accounting Journal, and GSTR-2B will all update automatically.
+                                            </p>
                                         </div>
                                     </>
                                 )}

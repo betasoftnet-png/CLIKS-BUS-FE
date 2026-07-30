@@ -154,6 +154,23 @@ const BusinessPurchases = () => {
         }
     });
 
+    // 🚀 Receive Goods: triggers full ERP cascade (Inventory + Vendor Ledger + AP + Accounting + GSTR-2B)
+    const receiveGoodsMutation = useMutation({
+        mutationFn: (id) => purchasesService.receiveGoods(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+            queryClient.invalidateQueries({ queryKey: ['accounting'] });
+            queryClient.invalidateQueries({ queryKey: ['gst-2b'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+            alert('✅ Goods received successfully!\n\nThe following were updated automatically:\n• Purchase Bill → Completed\n• Vendor Ledger\n• Accounts Payable\n• Accounting Journal\n• GSTR-2B (Input Tax Credit)');
+        },
+        onError: (err) => {
+            alert('Error: ' + (err.response?.data?.message || err.message || 'Failed to receive goods'));
+        }
+    });
+
     // Receive Goods Partial Modal Form state
     const [receiveQuantities, setReceiveQuantities] = useState({});
 
@@ -608,89 +625,79 @@ const BusinessPurchases = () => {
             {activeTab === 'purchase-bills' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '300px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#1E293B' }}>Purchase Bills</h3>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>Bills with <strong style={{ color: '#B45309' }}>Pending Goods</strong> status need warehouse confirmation before GSTR-2B ITC is activated.</p>
+                        </div>
+                        <div style={{ position: 'relative', width: '260px' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
                                 placeholder="Search suppliers or bill numbers..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                style={{ width: '100%', padding: '0.7rem 1rem 0.7rem 2.75rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }}
                             />
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                            <input 
-                                type="date" 
-                                value={dateFilter}
-                                onChange={(e) => setDateFilter(e.target.value)}
-                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#475569' }}
-                            />
-                            <select 
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
-                            >
-                                <option value="All">All Status</option>
-                                <option value="Unpaid">Unpaid</option>
-                                <option value="Paid">Paid</option>
-                                <option value="Partial">Partial</option>
-                                <option value="Overdue">Overdue</option>
-                            </select>
-                            <button style={{ width: '42px', height: '42px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <Filter size={20} />
-                            </button>
                         </div>
                     </div>
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'po_number', label: 'PO Details', placeholder: 'PO No' },
-        { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
-        { key: 'items', label: 'Items', placeholder: 'Item' },
-        { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
-        { key: '_actions', label: 'Actions', noFilter: true }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'purchase_number', label: 'Bill No', placeholder: 'Bill No' },
+                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
+                                { key: 'purchase_date', label: 'Date', placeholder: 'Date' },
+                                { key: 'grand_total', label: 'Amount', placeholder: 'e.g. 5000' },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
+                                { key: '_actions', label: 'Actions', noFilter: true }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredBills.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bill) => (
-                                    <tr key={bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{bill.purchase_number}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {bill.purchase_date}</span>
+                                    <tr key={bill.id || bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.9rem', margin: 0 }}>{bill.purchase_number}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Due: {bill.due_date || '—'}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{bill.supplier_name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{bill.billing_address}</span>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem', margin: 0 }}>{bill.supplier_name}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>GSTIN: {bill.supplier_gstin || 'Unregistered'}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            {bill.items.map((item, idx) => (
-                                                <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                    <p style={{ fontWeight: '700', color: '#475569' }}>{item.product_name}</p>
-                                                    <span style={{ color: '#94A3B8' }}>Qty: {item.quantity} @ {formatCurrency(item.purchase_price)}</span>
-                                                </div>
-                                            ))}
+                                        <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.85rem', color: '#64748B' }}>{bill.purchase_date}</td>
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <p style={{ fontWeight: '900', color: '#1E293B', margin: 0 }}>{formatCurrency(bill.grand_total)}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Paid: {formatCurrency(bill.paid_amount || 0)}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            {(() => {
-                                                const totals = computeDocTotals(bill.items, bill.shipping_charge);
-                                                const singleTax = totals.total_tax / 2;
-                                                return (
-                                                    <div style={{ fontSize: '0.85rem' }}>
-                                                        <p style={{ fontWeight: '700', color: '#1E293B' }}>CGST (9%): {formatCurrency(singleTax)}</p>
-                                                        <p style={{ fontWeight: '700', color: '#1E293B' }}>SGST (9%): {formatCurrency(singleTax)}</p>
-                                                    </div>
-                                                );
-                                            })()}
+                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                            <span style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
+                                                background: bill.status === 'Completed' ? '#F0FDF4' : (bill.status === 'Pending Goods' ? '#FFFBEB' : '#F1F5F9'),
+                                                color: bill.status === 'Completed' ? '#15803D' : (bill.status === 'Pending Goods' ? '#B45309' : '#475569')
+                                            }}>
+                                                {bill.status === 'Completed' ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                                                {bill.status || 'Pending'}
+                                            </span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            {(() => {
-                                                const totals = computeDocTotals(bill.items, bill.shipping_charge);
-                                                return <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#15803D' }}>{formatCurrency(totals.grand_total)}</span>;
-                                            })()}
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F1F5F9', color: '#475569', fontSize: '0.8rem', fontWeight: '800' }}>{bill.payment_mode.toUpperCase()}</span>
+                                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                            {bill.status === 'Pending Goods' && (
+                                                <button
+                                                    disabled={receiveGoodsMutation.isPending}
+                                                    onClick={() => {
+                                                        if (window.confirm(`Confirm goods received for ${bill.purchase_number}?\n\nThis will automatically update:\n• Vendor Ledger\n• Accounts Payable\n• Accounting Journal\n• GSTR-2B (Input Tax Credit)`)) {
+                                                            receiveGoodsMutation.mutate(bill.id);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        padding: '0.5rem 1rem', borderRadius: '10px', border: 'none',
+                                                        background: receiveGoodsMutation.isPending ? '#E2E8F0' : '#064E3B',
+                                                        color: receiveGoodsMutation.isPending ? '#94A3B8' : 'white',
+                                                        fontWeight: '700', fontSize: '0.8rem', cursor: receiveGoodsMutation.isPending ? 'not-allowed' : 'pointer',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem'
+                                                    }}
+                                                >
+                                                    <PackageOpen size={14} /> {receiveGoodsMutation.isPending ? 'Processing...' : 'Receive Goods'}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
