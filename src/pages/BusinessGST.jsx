@@ -541,6 +541,12 @@ const BusinessGST = () => {
     const totalTaxableSales = invoices.reduce((sum, inv) => sum + inv.taxable_value, 0);
     const totalITCClaimable = reconciliations.filter(r => ['matched', 'verified'].includes(String(r.invoice_match_status).toLowerCase())).reduce((sum, r) => sum + r.eligible_itc, 0);
     const totalOutputGSTCollected = invoices.reduce((sum, inv) => sum + inv.total_tax, 0);
+    const totalCGST = invoices.reduce((sum, inv) => sum + (inv.cgst_amount || 0), 0);
+    const totalSGST = invoices.reduce((sum, inv) => sum + (inv.sgst_amount || 0), 0);
+    const totalIGST = invoices.reduce((sum, inv) => sum + (inv.igst_amount || 0), 0);
+    const countB2B = invoices.filter(inv => inv.invoice_type === 'B2B').length;
+    const countB2C = invoices.filter(inv => inv.invoice_type === 'B2C').length;
+    const countExport = invoices.filter(inv => inv.invoice_type === 'Export').length;
     const netTaxPayable = Math.max(0, totalOutputGSTCollected - totalITCClaimable);
 
     const filteredInvoices = invoices.filter(inv => 
@@ -598,22 +604,47 @@ const BusinessGST = () => {
 
             {/* Quick Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                {[
-                    { label: 'Total Output GST Collected', value: formatCurrency(totalOutputGSTCollected), icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Eligible ITC (Claimed GSTR-2B)', value: formatCurrency(totalITCClaimable), icon: ArrowDownRight, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Net GST Payable Liability', value: formatCurrency(netTaxPayable), icon: PercentCircle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Cumulative Taxable Sales', value: formatCurrency(totalTaxableSales), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' }
-                ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                {activeTab === 'gstr1' ? (
+                    <>
+                        {[
+                            { label: 'Total Taxable Sales', value: formatCurrency(totalTaxableSales), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' },
+                            { label: 'Total Output GST', value: formatCurrency(totalOutputGSTCollected), icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
+                            { label: 'Total IGST', value: formatCurrency(totalIGST), icon: Zap, color: '#8B5CF6', bg: '#F5F3FF' },
+                            { label: 'Total CGST + SGST', value: formatCurrency(totalCGST + totalSGST), icon: PercentCircle, color: '#10B981', bg: '#ECFDF5' },
+                            { label: 'B2B Invoices', value: countB2B, icon: Building, color: '#6366F1', bg: '#EEF2FF' },
+                            { label: 'B2C Invoices', value: countB2C, icon: User, color: '#F59E0B', bg: '#FFFBEB' },
+                            { label: 'Export Invoices', value: countExport, icon: Truck, color: '#14B8A6', bg: '#F0FDFA' },
+                            { label: 'Total Count', value: invoices.length, icon: Activity, color: '#64748B', bg: '#F8FAFC' }
+                        ].map((stat, idx) => (
+                            <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                                </div>
+                                <div style={{ width: '40px', height: '42px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                                    <stat.icon size={18} />
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                ) : (
+                    [
+                        { label: 'Total Output GST Collected', value: formatCurrency(totalOutputGSTCollected), icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
+                        { label: 'Eligible ITC (Claimed GSTR-2B)', value: formatCurrency(totalITCClaimable), icon: ArrowDownRight, color: '#10B981', bg: '#ECFDF5' },
+                        { label: 'Net GST Payable Liability', value: formatCurrency(netTaxPayable), icon: PercentCircle, color: '#EF4444', bg: '#FEF2F2' },
+                        { label: 'Cumulative Taxable Sales', value: formatCurrency(totalTaxableSales), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' }
+                    ].map((stat, idx) => (
+                        <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                                <stat.icon size={20} />
+                            </div>
                         </div>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={20} />
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
 
             {/* Tab Swappers */}
@@ -665,68 +696,89 @@ const BusinessGST = () => {
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'invoice_number', label: 'Invoice No', placeholder: 'e.g. INV-001' },
-        { key: 'type', label: 'Type', placeholder: 'e.g. B2B' },
-        { key: 'place_of_supply', label: 'Place of Supply', placeholder: 'State' },
-        { key: 'taxable_value', label: 'Taxable Value', placeholder: 'e.g. 10000' },
-        { key: 'cgst_sgst', label: 'CGST/SGST', placeholder: 'e.g. 900' },
-        { key: 'igst', label: 'IGST', placeholder: 'e.g. 1800' },
-        { key: 'total_gst', label: 'Total GST', placeholder: 'e.g. 1800' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Filed' },
-        { key: '_actions', label: 'Actions', noFilter: true }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'invoice_number', label: 'Invoice No', placeholder: 'e.g. INV-001' },
+                                { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+                                { key: 'customer_gstin', label: 'GSTIN', placeholder: 'GSTIN' },
+                                { key: 'type', label: 'Type', placeholder: 'B2B/B2C' },
+                                { key: 'place_of_supply', label: 'Place of Supply', placeholder: 'State' },
+                                { key: 'taxable_value', label: 'Taxable Value', placeholder: 'e.g. 10000' },
+                                { key: 'cgst_sgst', label: 'CGST/SGST', placeholder: 'e.g. 900' },
+                                { key: 'igst', label: 'IGST', placeholder: 'e.g. 1800' },
+                                { key: 'total_gst', label: 'Total GST', placeholder: 'e.g. 1800' },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Filed' },
+                                { key: '_actions', label: 'Actions', noFilter: true }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredInvoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
-                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>{inv.invoice_number}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Date: {inv.date}</span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '800', fontSize: '0.75rem' }}>{inv.invoice_type}</span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{inv.place_of_supply}</td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{formatCurrency(inv.taxable_value)}</td>
-                                        <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.85rem' }}>
-                                            {inv.cgst_amount > 0 ? `${formatCurrency(inv.cgst_amount)} + ${formatCurrency(inv.sgst_amount)}` : 'N/A'}
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.85rem' }}>
-                                            {inv.igst_amount > 0 ? formatCurrency(inv.igst_amount) : 'N/A'}
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.85rem' }}>{formatCurrency(inv.total_tax)} ({inv.gst_percentage}%)</td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>READY</span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                            {confirmingDeleteId === inv.id ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end' }}>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(inv.id); setConfirmingDeleteId(null); }} 
-                                                        style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
-                                                        style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
-                                                    >
-                                                        No
-                                                    </button>
+                                {filteredInvoices.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="11" style={{ padding: '3rem', textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                                    <FileText size={24} />
                                                 </div>
-                                            ) : (
-                                                <button 
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(inv.id); }}
-                                                    style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '6px' }}
-                                                    className="hover-bg-red-50"
-                                                    title="Delete Record"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            )}
+                                                <p style={{ color: '#64748B', fontWeight: '600', margin: 0 }}>No GST sales invoices found for the selected period.</p>
+                                            </div>
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    filteredInvoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
+                                        <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                            <td style={{ padding: '0.6rem 1rem' }}>
+                                                <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>{inv.invoice_number}</p>
+                                                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{inv.date}</span>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem' }}>
+                                                <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.82rem', margin: 0 }}>{inv.customer_name}</p>
+                                                <span style={{ fontSize: '0.72rem', color: '#64748B', fontFamily: 'monospace' }}>{inv.customer_gstin}</span>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>{inv.customer_gstin}</td>
+                                            <td style={{ padding: '0.6rem 1rem' }}>
+                                                <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: inv.invoice_type === 'B2B' ? '#EFF6FF' : '#F5F3FF', color: inv.invoice_type === 'B2B' ? '#1D4ED8' : '#8B5CF6', fontWeight: '800', fontSize: '0.72rem' }}>{inv.invoice_type}</span>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.82rem' }}>{inv.place_of_supply}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.82rem' }}>{formatCurrency(inv.taxable_value)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.8rem' }}>
+                                                {inv.cgst_amount > 0 ? `${formatCurrency(inv.cgst_amount)} + ${formatCurrency(inv.sgst_amount)}` : '—'}
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.8rem' }}>
+                                                {inv.igst_amount > 0 ? formatCurrency(inv.igst_amount) : '—'}
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.82rem' }}>{formatCurrency(inv.total_tax)}</td>
+                                            <td style={{ padding: '0.6rem 1rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                                    <span style={{ padding: '0.15rem 0.4rem', borderRadius: '5px', background: '#E6F4EA', color: '#137333', fontWeight: '850', fontSize: '0.65rem', textAlign: 'center' }}>READY</span>
+                                                    {inv.irn_number && <span style={{ fontSize: '0.6rem', color: '#047857', fontWeight: '700' }}>IRN Generated</span>}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                                    {inv.irn_number && (
+                                                        <button
+                                                            onClick={() => setSelectedQrInvoice(inv)}
+                                                            style={{ border: 'none', background: '#EFF6FF', color: '#1D4ED8', padding: '0.3rem', borderRadius: '6px', cursor: 'pointer' }}
+                                                            title="View e-Invoice Details"
+                                                        >
+                                                            <QrCode size={14} />
+                                                        </button>
+                                                    )}
+                                                    {confirmingDeleteId === inv.id ? (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(inv.id); setConfirmingDeleteId(null); }}
+                                                            style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '800' }}
+                                                        >Del</button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(inv.id); }}
+                                                            style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
