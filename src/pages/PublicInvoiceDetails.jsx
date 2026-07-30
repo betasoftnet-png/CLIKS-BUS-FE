@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { Printer, ShieldCheck, Download } from 'lucide-react';
 
 const PublicInvoiceDetails = () => {
@@ -10,13 +9,17 @@ const PublicInvoiceDetails = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        axios.get(`${window.location.origin}/api/v1/public/invoice/${id}`)
+        fetch(`${window.location.origin}/api/v1/public/invoice/${id}`)
             .then(res => {
-                setInvoice(res.data.data);
+                if (!res.ok) throw new Error('Invoice verification failed');
+                return res.json();
+            })
+            .then(res => {
+                setInvoice(res.data);
                 setLoading(false);
             })
             .catch(err => {
-                setError(err.response?.data?.message || err.message || 'Invoice not found');
+                setError(err.message || 'Invoice not found');
                 setLoading(false);
             });
     }, [id]);
