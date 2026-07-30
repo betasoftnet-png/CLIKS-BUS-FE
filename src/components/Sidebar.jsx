@@ -312,17 +312,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 children: [
                     { label: 'Accounting', icon: Calculator, path: '/finance/accounting' },
                     { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses' },
-                    {
-                        label: 'Purchases',
-                        icon: ShoppingCart,
-                        children: [
-                            { label: 'New Purchase', icon: Plus, path: '/finance/purchases/new' },
-                            { label: 'Purchase Register', icon: Layers, path: '/finance/purchases/register' },
-                            { label: 'Vendors', icon: UsersRound, path: '/finance/purchases/vendors' },
-                            { label: 'Vendor Bills', icon: Receipt, path: '/finance/purchases/bills' },
-                            { label: 'Purchase Reports', icon: BarChart3, path: '/finance/purchases/reports' }
-                        ]
-                    },
                     { label: 'GST', icon: PercentCircle, path: '/finance/gst' }
                 ]
             },
