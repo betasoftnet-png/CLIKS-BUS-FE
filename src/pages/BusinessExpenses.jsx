@@ -27,7 +27,7 @@ import '../App.css';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { expensesService } from '../services';
+import { expensesService, staffingService } from '../services';
 import { useCurrency } from '../context';
 
 const BusinessExpenses = () => {
@@ -101,6 +101,11 @@ const BusinessExpenses = () => {
     const { data: dbRecurrings = [] } = useQuery({
         queryKey: ['recurringsList'],
         queryFn: () => expensesService.getRecurrings()
+    });
+
+    const { data: dbEmployees = [] } = useQuery({
+        queryKey: ['employeesList'],
+        queryFn: () => staffingService.getEmployees()
     });
 
     // Mutations
@@ -233,6 +238,7 @@ const BusinessExpenses = () => {
             category_name: item.category_name || 'Uncategorized',
             budget_limit: parseFloat(item.budget_limit) || 0,
             spent_amount: spent,
+            team_members: item.team_members || '[]',
             alert_status: spent >= (parseFloat(item.budget_limit) || 0) * 0.8 ? 'Warning' : 'Optimal'
         };
     });
@@ -282,6 +288,16 @@ const BusinessExpenses = () => {
         spent_amount: 0
     });
 
+    const [newBudgetMembers, setNewBudgetMembers] = useState([]);
+    const [viewingTeamDetails, setViewingTeamDetails] = useState(null);
+    const [selectedBudgetForSpend, setSelectedBudgetForSpend] = useState(null);
+    const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+    const [memberInputMode, setMemberInputMode] = useState('db'); // 'db' or 'manual'
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+    const [manualEmpId, setManualEmpId] = useState('');
+    const [manualEmpName, setManualEmpName] = useState('');
+    const [manualEmpSalary, setManualEmpSalary] = useState('');
+
     const [newClaim, setNewClaim] = useState({
         employee_name: '',
         travel_expense: '',
@@ -309,10 +325,45 @@ const BusinessExpenses = () => {
 
     const handleSaveSpending = (e) => {
         e.preventDefault();
+
+        // Update member budget allocation inside selected budget
+        if (selectedBudgetForSpend && recordSpendingForm.employee_id) {
+            let parsedMembers = [];
+            try {
+                parsedMembers = typeof selectedBudgetForSpend.team_members === 'string'
+                    ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
+                    : (selectedBudgetForSpend.team_members || []);
+            } catch (err) {
+                parsedMembers = [];
+            }
+            
+            const updatedMembers = parsedMembers.map(m => {
+                if (String(m.employee_id) === String(recordSpendingForm.employee_id)) {
+                    return {
+                        ...m,
+                        spent: (parseFloat(m.spent) || 0) + parseFloat(recordSpendingForm.amount)
+                    };
+                }
+                return m;
+            });
+            
+            const newSpentAmount = (parseFloat(selectedBudgetForSpend.spent_amount) || 0) + parseFloat(recordSpendingForm.amount);
+            
+            updateBudgetMutation.mutate({
+                id: selectedBudgetForSpend.id,
+                data: {
+                    category_name: selectedBudgetForSpend.category_name,
+                    budget_limit: String(selectedBudgetForSpend.budget_limit),
+                    spent_amount: newSpentAmount,
+                    team_members: updatedMembers
+                }
+            });
+        }
+
         createExpenseMutation.mutate({
             category_name: recordSpendingForm.category_name,
             subcategory: recordSpendingForm.description.trim() || 'Departmental Spend',
-            payee_name: 'Departmental Spend',
+            payee_name: recordSpendingForm.employee_name || 'Departmental Spend',
             expense_amount: String(recordSpendingForm.amount),
             gst_percentage: 0,
             payment_mode: recordSpendingForm.payment_mode || 'UPI',
@@ -327,11 +378,47 @@ const BusinessExpenses = () => {
 
     const handleSaveBudget = (e) => {
         e.preventDefault();
+        const budgetData = {
+            ...newBudget,
+            team_members: newBudgetMembers
+        };
         if (editingBudget) {
-            updateBudgetMutation.mutate({ id: editingBudget.id, data: newBudget });
+            updateBudgetMutation.mutate({ id: editingBudget.id, data: budgetData });
         } else {
-            createBudgetMutation.mutate(newBudget);
+            createBudgetMutation.mutate(budgetData);
         }
+    };
+
+    const handleAddMember = () => {
+        const empId = (memberInputMode === 'db' ? selectedEmployeeId : manualEmpId).trim();
+        const empName = (memberInputMode === 'db' ? (dbEmployees.find(e => String(e.employee_id || e.id) === selectedEmployeeId)?.name || '') : manualEmpName).trim();
+        const empSalary = String(manualEmpSalary).trim();
+
+        if (!empId || !empName) {
+            alert('Employee ID and Name are required.');
+            return;
+        }
+        if (newBudgetMembers.some(m => m.employee_id === empId)) {
+            alert('This employee is already added to the team.');
+            return;
+        }
+
+        setNewBudgetMembers([
+            ...newBudgetMembers,
+            {
+                employee_id: empId,
+                name: empName,
+                salary: empSalary ? parseFloat(empSalary) : '',
+                spent: 0
+            }
+        ]);
+
+        // Reset add member form fields
+        setSelectedEmployeeId('');
+        setManualEmpId('');
+        setManualEmpName('');
+        setManualEmpSalary('');
+        setShowAddMemberForm(false);
     };
 
     const handleCreateClaim = (e) => {
@@ -744,6 +831,8 @@ const BusinessExpenses = () => {
                         <button onClick={() => {
                             setEditingBudget(null);
                             setNewBudget({ category_name: '', budget_limit: '', spent_amount: 0 });
+                            setNewBudgetMembers([]);
+                            setShowAddMemberForm(false);
                             setIsBudgetModalOpen(true);
                         }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Set Budget Limit</button>
                     </div>
@@ -752,11 +841,11 @@ const BusinessExpenses = () => {
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Group</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Monthly Allocated Limit</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Actual Spent (MTD)</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Team Members</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Monthly Budget</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Actual Spent</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Remaining Budget</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Utilization Index</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Budget Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Spend</th>
                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
                                 </tr>
@@ -764,26 +853,33 @@ const BusinessExpenses = () => {
                             <tbody>
                                 {budgets.map((bg) => {
                                     const percent = bg.budget_limit > 0 ? Math.round((bg.spent_amount / bg.budget_limit) * 100) : 0;
-                                    const displayPercent = Math.min(100, percent);
                                     const isExceeded = bg.spent_amount > bg.budget_limit;
                                     const isOverWarning = bg.spent_amount >= bg.budget_limit * 0.8 && bg.spent_amount <= bg.budget_limit;
                                     const remaining = bg.budget_limit - bg.spent_amount;
 
+                                    let membersCount = 0;
+                                    try {
+                                        const parsed = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
+                                        membersCount = Array.isArray(parsed) ? parsed.length : 0;
+                                    } catch (e) {
+                                        membersCount = 0;
+                                    }
+
                                     return (
                                         <tr key={bg.id || bg.category_name} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#1E293B' }}>{bg.category_name}</td>
+                                            <td 
+                                                style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#7C3AED', cursor: 'pointer', textDecoration: 'underline' }}
+                                                onClick={() => setViewingTeamDetails(bg)}
+                                            >
+                                                {bg.category_name}
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#475569' }}>
+                                                {membersCount} {membersCount === 1 ? 'Member' : 'Members'}
+                                            </td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{formatCurrency(bg.budget_limit)}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: isExceeded ? '#EF4444' : (isOverWarning ? '#F59E0B' : '#7C3AED'), fontSize: '0.85rem' }}>{formatCurrency(bg.spent_amount)}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: remaining >= 0 ? '#10B981' : '#EF4444', fontSize: '0.85rem' }}>
                                                 {remaining >= 0 ? formatCurrency(remaining) : `-${formatCurrency(Math.abs(remaining))}`}
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem', width: '200px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                    <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: '#F1F5F9', overflow: 'hidden' }}>
-                                                        <div style={{ width: `${displayPercent}%`, height: '100%', background: isExceeded ? 'linear-gradient(90deg, #EF4444 0%, #B91C1C 100%)' : (isOverWarning ? 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)' : 'linear-gradient(90deg, #10B981 0%, #059669 100%)'), borderRadius: '3px' }}></div>
-                                                    </div>
-                                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#475569' }}>{percent}%</span>
-                                                </div>
                                             </td>
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <span style={{ 
@@ -796,14 +892,17 @@ const BusinessExpenses = () => {
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <button 
                                                     onClick={() => {
-                                                        setRecordSpendingForm({
-                                                            category_name: bg.category_name,
-                                                            amount: '',
-                                                            description: '',
-                                                            date: new Date().toISOString().split('T')[0],
-                                                            payment_mode: 'UPI'
-                                                        });
-                                                        setIsRecordSpendingModalOpen(true);
+                                                         setRecordSpendingForm({
+                                                             category_name: bg.category_name,
+                                                             amount: '',
+                                                             description: '',
+                                                             date: new Date().toISOString().split('T')[0],
+                                                             payment_mode: 'UPI',
+                                                             employee_id: '',
+                                                             employee_name: ''
+                                                         });
+                                                         setSelectedBudgetForSpend(bg);
+                                                         setIsRecordSpendingModalOpen(true);
                                                     }}
                                                     style={{ border: 'none', background: '#E6F4EA', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#137333', display: 'flex', alignItems: 'center', gap: '2px' }}
                                                 >
@@ -819,6 +918,14 @@ const BusinessExpenses = () => {
                                                             budget_limit: String(bg.budget_limit),
                                                             spent_amount: bg.spent_amount
                                                         });
+                                                        let members = [];
+                                                        try {
+                                                            members = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
+                                                        } catch (e) {
+                                                            members = [];
+                                                        }
+                                                        setNewBudgetMembers(members);
+                                                        setShowAddMemberForm(false);
                                                         setIsBudgetModalOpen(true);
                                                     }}
                                                     style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
@@ -998,29 +1105,279 @@ const BusinessExpenses = () => {
             {/* Set Budget Limit Modal */}
             {isBudgetModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '540px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingBudget ? 'Edit Department Budget' : 'Set Department Budget'}</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingBudget ? 'Edit Team Budget' : 'Set Team Budget'}</h3>
                             <button onClick={() => setIsBudgetModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleSaveBudget} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category Group</label>
-                                <input required type="text" value={newBudget.category_name} onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. Fuel & Logistics" disabled={!!editingBudget} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Team / Department Name</label>
+                                <input required type="text" value={newBudget.category_name} onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. HR Team" disabled={!!editingBudget} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Allocated Monthly Spending Limit ({currency.code})</label>
-                                <input required type="number" value={newBudget.budget_limit} onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly Budget ({currency.code})</label>
+                                <input required type="number" value={newBudget.budget_limit} onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. 100000" />
                             </div>
 
-                            <button type="submit" disabled={createBudgetMutation.isPending || updateBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
+                            {/* Team Members Section */}
+                            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Team Members ({newBudgetMembers.length})</label>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setShowAddMemberForm(!showAddMemberForm)}
+                                        style={{ border: 'none', background: '#F1F5F9', color: '#7C3AED', padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        {showAddMemberForm ? 'Cancel' : '+ Add Member'}
+                                    </button>
+                                </div>
+
+                                {showAddMemberForm && (
+                                    <div style={{ background: '#F8FAFC', padding: '0.8rem', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.4rem', marginBottom: '0.2rem' }}>
+                                            <button 
+                                                type="button"
+                                                onClick={() => { setMemberInputMode('db'); setSelectedEmployeeId(''); }}
+                                                style={{ border: 'none', background: memberInputMode === 'db' ? '#E0F2FE' : 'transparent', color: memberInputMode === 'db' ? '#0369A1' : '#64748B', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
+                                            >
+                                                Select from HR Database
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                onClick={() => { setMemberInputMode('manual'); setSelectedEmployeeId(''); }}
+                                                style={{ border: 'none', background: memberInputMode === 'manual' ? '#E0F2FE' : 'transparent', color: memberInputMode === 'manual' ? '#0369A1' : '#64748B', padding: '3px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
+                                            >
+                                                Manual Entry
+                                            </button>
+                                        </div>
+
+                                        {memberInputMode === 'db' ? (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Select Employee</label>
+                                                <select 
+                                                    value={selectedEmployeeId} 
+                                                    onChange={(e) => {
+                                                        const empId = e.target.value;
+                                                        setSelectedEmployeeId(empId);
+                                                        const emp = dbEmployees.find(emp => String(emp.employee_id || emp.id) === empId);
+                                                        if (emp) {
+                                                            setManualEmpSalary(emp.salary || emp.base_salary || '');
+                                                        }
+                                                    }}
+                                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem', fontWeight: '600' }}
+                                                >
+                                                    <option value="">-- Choose Employee --</option>
+                                                    {dbEmployees.map(emp => (
+                                                        <option key={emp.employee_id || emp.id} value={emp.employee_id || emp.id}>
+                                                            {emp.employee_id || emp.id} - {emp.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.5rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Employee ID</label>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="EMP001" 
+                                                        value={manualEmpId} 
+                                                        onChange={(e) => setManualEmpId(e.target.value)} 
+                                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Employee Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Arun Kumar" 
+                                                        value={manualEmpName} 
+                                                        onChange={(e) => setManualEmpName(e.target.value)} 
+                                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Salary (Optional)</label>
+                                            <input 
+                                                type="number" 
+                                                placeholder="e.g. 25000" 
+                                                value={manualEmpSalary} 
+                                                onChange={(e) => setManualEmpSalary(e.target.value)} 
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+
+                                        <button 
+                                            type="button" 
+                                            onClick={handleAddMember}
+                                            style={{ background: '#7C3AED', color: 'white', border: 'none', padding: '0.5rem', borderRadius: '8px', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', marginTop: '0.2rem' }}
+                                        >
+                                            Add to List
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Members List Table */}
+                                {newBudgetMembers.length > 0 ? (
+                                    <div style={{ overflowX: 'auto', marginBottom: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Employee ID</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Name</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Salary</th>
+                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B', textAlign: 'center' }}>Remove</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {newBudgetMembers.map(m => (
+                                                    <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
+                                                        <td style={{ padding: '0.4rem 0.6rem' }}>{m.name}</td>
+                                                        <td style={{ padding: '0.4rem 0.6rem', color: '#64748B' }}>{m.salary ? formatCurrency(m.salary) : '-'}</td>
+                                                        <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
+                                                                style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer' }}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', marginBottom: '0.75rem' }}>No team members assigned yet.</div>
+                                )}
+
+                                {/* Auto Budget Distribution Section */}
+                                {(() => {
+                                    const budgetPerMember = newBudgetMembers.length > 0
+                                        ? (parseFloat(newBudget.budget_limit) || 0) / newBudgetMembers.length
+                                        : 0;
+                                    if (newBudgetMembers.length > 0) {
+                                        return (
+                                            <div style={{ background: '#F5F3FF', padding: '0.8rem', borderRadius: '10px', border: '1px solid #DDD6FE', marginBottom: '0.5rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', textTransform: 'uppercase' }}>Employee Budget Share</span>
+                                                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#5B21B6' }}>{formatCurrency(budgetPerMember)} / member</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', background: 'white', padding: '0.5rem', borderRadius: '6px', border: '1px solid #EDE9FE', maxHeight: '120px', overflowY: 'auto' }}>
+                                                    {newBudgetMembers.map(m => (
+                                                        <div key={m.employee_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#475569' }}>
+                                                            <span>{m.name} <span style={{ color: '#94A3B8', fontSize: '0.68rem' }}>({m.employee_id})</span></span>
+                                                            <span style={{ fontWeight: '700', color: '#7C3AED' }}>{formatCurrency(budgetPerMember)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+                            </div>
+
+                            <button type="submit" disabled={createBudgetMutation.isPending || updateBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)', marginTop: '0.5rem' }}>
                                 {editingBudget ? 'Updating...' : 'Settle Budget Target'}
                             </button>
                         </form>
                     </div>
                 </div>
             )}
+
+            {/* Team Details Modal */}
+            {viewingTeamDetails && (() => {
+                let parsedMembers = [];
+                try {
+                    parsedMembers = typeof viewingTeamDetails.team_members === 'string'
+                        ? JSON.parse(viewingTeamDetails.team_members || '[]')
+                        : (viewingTeamDetails.team_members || []);
+                } catch (e) {
+                    parsedMembers = [];
+                }
+                const budgetPerMember = parsedMembers.length > 0
+                    ? (parseFloat(viewingTeamDetails.budget_limit) || 0) / parsedMembers.length
+                    : 0;
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{viewingTeamDetails.category_name}</h3>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Team Budgets & Allocations</span>
+                                </div>
+                                <button onClick={() => setViewingTeamDetails(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                    <div>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Monthly Budget</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(viewingTeamDetails.budget_limit)}</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Spent</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#EF4444' }}>{formatCurrency(viewingTeamDetails.spent_amount)}</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#475569', margin: '0 0 0.75rem 0', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Members & Allocations</h4>
+                                    {parsedMembers.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {parsedMembers.map(m => {
+                                                const mSpent = parseFloat(m.spent) || 0;
+                                                const mRemaining = budgetPerMember - mSpent;
+                                                return (
+                                                    <div key={m.employee_id} style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.8rem 1rem' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.3rem' }}>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{m.name}</span>
+                                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>ID: {m.employee_id}</span>
+                                                        </div>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', fontSize: '0.78rem' }}>
+                                                            <div>
+                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Budget</span>
+                                                                <span style={{ fontWeight: '700' }}>{formatCurrency(budgetPerMember)}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Spent</span>
+                                                                <span style={{ fontWeight: '700', color: '#EF4444' }}>{formatCurrency(mSpent)}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Remaining</span>
+                                                                <span style={{ fontWeight: '700', color: mRemaining >= 0 ? '#10B981' : '#EF4444' }}>
+                                                                    {mRemaining >= 0 ? formatCurrency(mRemaining) : `-${formatCurrency(Math.abs(mRemaining))}`}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {m.salary && (
+                                                            <div style={{ marginTop: '0.4rem', fontSize: '0.7rem', color: '#64748B', borderTop: '1px dotted #F1F5F9', paddingTop: '0.25rem' }}>
+                                                                <span>Monthly Reference Salary: </span>
+                                                                <span style={{ fontWeight: '700', color: '#475569' }}>{formatCurrency(m.salary)}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>No members registered in this team.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Lodge Staff Claim Modal */}
             {isClaimModalOpen && (
@@ -1199,7 +1556,7 @@ const BusinessExpenses = () => {
 
                         <form onSubmit={handleSaveSpending} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category / Team Name</label>
                                 <input 
                                     readOnly 
                                     type="text" 
@@ -1207,25 +1564,79 @@ const BusinessExpenses = () => {
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontWeight: '600', color: '#64748B' }} 
                                 />
                             </div>
+                            {(() => {
+                                let currentBudgetMembers = [];
+                                if (selectedBudgetForSpend) {
+                                    try {
+                                        currentBudgetMembers = typeof selectedBudgetForSpend.team_members === 'string'
+                                            ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
+                                            : (selectedBudgetForSpend.team_members || []);
+                                    } catch (e) {
+                                        currentBudgetMembers = [];
+                                    }
+                                }
+                                if (currentBudgetMembers.length > 0) {
+                                    return (
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee *</label>
+                                            <select 
+                                                required 
+                                                value={recordSpendingForm.employee_id || ''} 
+                                                onChange={(e) => {
+                                                    const selectedId = e.target.value;
+                                                    const member = currentBudgetMembers.find(m => String(m.employee_id) === String(selectedId));
+                                                    setRecordSpendingForm(prev => ({ 
+                                                        ...prev, 
+                                                        employee_id: selectedId,
+                                                        employee_name: member ? member.name : '' 
+                                                    }));
+                                                }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                            >
+                                                <option value="">-- Choose Member --</option>
+                                                {currentBudgetMembers.map(m => (
+                                                    <option key={m.employee_id} value={m.employee_id}>
+                                                        {m.employee_id} - {m.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    );
+                                } else {
+                                    return (
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name (Manual Entry) *</label>
+                                            <input 
+                                                required
+                                                type="text" 
+                                                placeholder="e.g. Arun Kumar"
+                                                value={recordSpendingForm.employee_name || ''}
+                                                onChange={(e) => setRecordSpendingForm(prev => ({ ...prev, employee_name: e.target.value, employee_id: `MAN-${Date.now().toString().slice(-4)}` }))}
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
+                                            />
+                                        </div>
+                                    );
+                                }
+                            })()}
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount Spent (₹)</label>
                                 <input 
                                     required 
                                     type="number" 
-                                    placeholder="e.g. 10000" 
+                                    placeholder="e.g. 2500" 
                                     value={recordSpendingForm.amount} 
                                     onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, amount: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
                                 />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description (Optional)</label>
                                 <input 
                                     type="text" 
-                                    placeholder="e.g. Fuel purchased for company vehicles" 
+                                    placeholder="e.g. Office Stationery" 
                                     value={recordSpendingForm.description} 
                                     onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, description: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
                                 />
                             </div>
                             <div>
@@ -1235,7 +1646,7 @@ const BusinessExpenses = () => {
                                     type="date" 
                                     value={recordSpendingForm.date} 
                                     onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, date: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
                                 />
                             </div>
                             <div>
@@ -1251,7 +1662,7 @@ const BusinessExpenses = () => {
                                     <option value="Cheque">Cheque</option>
                                 </select>
                             </div>
-
+ 
                             <button 
                                 type="submit" 
                                 disabled={createExpenseMutation.isPending} 
