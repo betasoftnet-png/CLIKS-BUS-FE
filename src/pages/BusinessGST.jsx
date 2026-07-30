@@ -220,7 +220,12 @@ const BusinessGST = () => {
         total_tax: parseFloat(item.total_tax) || 0,
         reverse_charge: item.reverse_charge || 'No',
         irn_number: item.irn_number || '',
-        qr_status: item.qr_status || 'Pending'
+        qr_status: item.qr_status || 'Pending',
+        export_under_lut: item.export_under_lut || 'false',
+        lut_document_path: item.lut_document_path || '',
+        lut_file_name: item.lut_file_name || '',
+        lut_uploaded_at: item.lut_uploaded_at || '',
+        lut_uploaded_by: item.lut_uploaded_by || ''
     }));
 
     const reconciliations = dbReconciliations
@@ -268,9 +273,15 @@ const BusinessGST = () => {
         gst_percentage: 12,
         reverse_charge: 'No',
         client_name: '',
-        customer_gstin: ''
+        customer_gstin: '',
+        export_under_lut: 'No',
+        lut_document_path: '',
+        lut_file_name: '',
+        lut_uploaded_at: '',
+        lut_uploaded_by: ''
     });
 
+    const [isLutModalOpen, setIsLutModalOpen] = useState(false);
     const [customerMode, setCustomerMode] = useState('existing'); // 'existing' or 'manual'
     const [saveCustomerForFuture, setSaveCustomerForFuture] = useState(false);
 
@@ -317,6 +328,12 @@ const BusinessGST = () => {
         if (val <= 0) {
             errors.taxable_value = 'Taxable value must be greater than 0.';
         }
+        if (invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes') {
+            if (!invoiceForm.lut_document_path) {
+                errors.lut_document_path = 'Please upload a valid LUT document.';
+                alert('Please upload a valid LUT document.');
+            }
+        }
         
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
@@ -346,10 +363,15 @@ const BusinessGST = () => {
             invoice_type: invoiceForm.invoice_type,
             place_of_supply: invoiceForm.place_of_supply,
             taxable_value: parseFloat(invoiceForm.taxable_value) || 0,
-            gst_percentage: parseInt(invoiceForm.gst_percentage) || 12,
+            gst_percentage: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 0 : (parseInt(invoiceForm.gst_percentage) || 12),
             reverse_charge: invoiceForm.reverse_charge,
             client_name: invoiceForm.client_name,
-            customer_gstin: invoiceForm.customer_gstin
+            customer_gstin: invoiceForm.customer_gstin,
+            export_under_lut: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'true' : 'false',
+            lut_document_path: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_document_path : '',
+            lut_file_name: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_file_name : '',
+            lut_uploaded_at: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_at : '',
+            lut_uploaded_by: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_by : ''
         });
     };
 
@@ -885,13 +907,28 @@ const BusinessGST = () => {
                         <div key={inv.gst_invoice_number} style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                 <div>
-                                    <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '800', fontSize: '0.75rem' }}>e-Invoice IRN Active</span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                        <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '800', fontSize: '0.75rem' }}>e-Invoice IRN Active</span>
+                                        {inv.export_under_lut === 'true' && (
+                                            <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontWeight: '800', fontSize: '0.75rem' }}>Export Under LUT: YES (GST 0%)</span>
+                                        )}
+                                    </div>
                                     <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', marginTop: '0.4rem', margin: 0 }}>Invoice Ref: {inv.gst_invoice_number}</h3>
                                 </div>
                                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
                                     <QrCode size={18} />
                                 </div>
                             </div>
+
+                            {inv.export_under_lut === 'true' && inv.lut_file_name && (
+                                <div style={{ marginBottom: '1rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#F0FDF4', padding: '0.4rem 0.6rem', borderRadius: '8px', border: '1px solid #DCFCE7', color: '#15803D' }}>
+                                    <span>📎</span>
+                                    <span style={{ fontWeight: '700' }}>LUT Document Attached:</span>
+                                    <a href={inv.lut_document_path} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', color: '#166534', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                                        {inv.lut_file_name}
+                                    </a>
+                                </div>
+                            )}
 
                             <p style={{ fontSize: '0.75rem', background: '#F8FAFC', padding: '0.5rem 0.75rem', borderRadius: '8px', color: '#64748B', fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: '1rem', margin: 0 }}>
                                 IRN: {inv.irn_number}
@@ -1133,7 +1170,24 @@ const BusinessGST = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Type</label>
-                                        <select value={invoiceForm.invoice_type} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoice_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        <select 
+                                            value={invoiceForm.invoice_type} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setInvoiceForm(prev => ({
+                                                    ...prev,
+                                                    invoice_type: val,
+                                                    ...(val !== 'Export' ? {
+                                                        export_under_lut: 'No',
+                                                        lut_document_path: '',
+                                                        lut_file_name: '',
+                                                        lut_uploaded_at: '',
+                                                        lut_uploaded_by: ''
+                                                    } : {})
+                                                }));
+                                            }} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                        >
                                             <option value="B2B">B2B</option>
                                             <option value="B2C">B2C</option>
                                             <option value="Export">Export</option>
@@ -1148,7 +1202,13 @@ const BusinessGST = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST %</label>
-                                        <select value={invoiceForm.gst_percentage} onChange={(e) => setInvoiceForm({ ...invoiceForm, gst_percentage: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                        <select 
+                                            value={invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? '0' : invoiceForm.gst_percentage} 
+                                            disabled={invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes'}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, gst_percentage: parseInt(e.target.value) })} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? '#F1F5F9' : 'white', fontWeight: '600', cursor: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'not-allowed' : 'pointer' }}
+                                        >
+                                            {invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' && <option value="0">0% (LUT)</option>}
                                             <option value="5">5%</option>
                                             <option value="12">12%</option>
                                             <option value="18">18%</option>
@@ -1163,22 +1223,91 @@ const BusinessGST = () => {
                                         </select>
                                     </div>
                                 </div>
+
+                                {invoiceForm.invoice_type === 'Export' && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Export Under LUT / Bond?</label>
+                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', height: '2.8rem' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="export_under_lut" 
+                                                        value="Yes" 
+                                                        checked={invoiceForm.export_under_lut === 'Yes'} 
+                                                        onChange={() => {
+                                                            setInvoiceForm(prev => ({ ...prev, export_under_lut: 'Yes' }));
+                                                            setIsLutModalOpen(true);
+                                                        }}
+                                                    />
+                                                    Yes
+                                                </label>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="export_under_lut" 
+                                                        value="No" 
+                                                        checked={invoiceForm.export_under_lut !== 'Yes'} 
+                                                        onChange={() => {
+                                                            setInvoiceForm(prev => ({ 
+                                                                ...prev, 
+                                                                export_under_lut: 'No',
+                                                                lut_document_path: '',
+                                                                lut_file_name: '',
+                                                                lut_uploaded_at: '',
+                                                                lut_uploaded_by: ''
+                                                            }));
+                                                        }}
+                                                    />
+                                                    No
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {invoiceForm.export_under_lut === 'Yes' && invoiceForm.lut_file_name && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#047857', marginBottom: '0.2rem' }}>LUT DOC ATTACHED</label>
+                                                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#065F46', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                                    📎 {invoiceForm.lut_file_name}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Auto GST Detection Panel */}
                                 {(() => {
                                     const senderStateCode = (gstProfile.state_code || '33').substring(0, 2);
                                     const receiverStateCode = (invoiceForm.place_of_supply || '33').substring(0, 2);
                                     const isSameState = senderStateCode === receiverStateCode;
-                                    const gstPct = parseFloat(invoiceForm.gst_percentage) || 12;
+                                    const isLut = invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes';
+                                    const gstPct = isLut ? 0 : (parseFloat(invoiceForm.gst_percentage) || 12);
                                     const taxable = parseFloat(invoiceForm.taxable_value) || 0;
                                     const taxTotal = taxable * (gstPct / 100);
                                     return (
                                         <div style={{ background: '#F5F3FF', padding: '0.8rem', borderRadius: '10px', border: '1px solid #DDD6FE', fontSize: '0.78rem', color: '#4C1D95' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '0.25rem' }}>
                                                 <span>TAX TYPE DETERMINED:</span>
-                                                <span style={{ color: '#7C3AED' }}>{isSameState ? 'INTRA-STATE (CGST + SGST)' : 'INTER-STATE (IGST)'}</span>
+                                                <span style={{ color: '#7C3AED' }}>
+                                                    {isLut ? 'EXPORT UNDER LUT (GST 0%)' : (isSameState ? 'INTRA-STATE (CGST + SGST)' : 'INTER-STATE (IGST)')}
+                                                </span>
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', color: '#5B21B6', fontSize: '0.74rem' }}>
-                                                {isSameState ? (
+                                                {isLut ? (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>CGST (0%)</span>
+                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(0)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>SGST (0%)</span>
+                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(0)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>IGST (0%)</span>
+                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(0)}</span>
+                                                        </div>
+                                                    </>
+                                                ) : isSameState ? (
                                                     <>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                                             <span>CGST ({gstPct / 2}%)</span>
@@ -1213,6 +1342,132 @@ const BusinessGST = () => {
                                 {generateInvoiceMutation.isPending ? 'Generating...' : 'Generate / Authenticate e-Invoice'}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Upload Letter of Undertaking (LUT) Modal */}
+            {isLutModalOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '1rem' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '440px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #E2E8F0', position: 'relative' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Upload Letter of Undertaking (LUT)</h3>
+                            <button 
+                                onClick={() => {
+                                    setIsLutModalOpen(false);
+                                    if (!invoiceForm.lut_document_path) {
+                                        setInvoiceForm(prev => ({ ...prev, export_under_lut: 'No' }));
+                                    }
+                                }} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '600', lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+                            You selected Export under LUT/Bond. Please upload your valid Letter of Undertaking (LUT) document before generating the invoice.
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <input 
+                                type="file" 
+                                accept=".pdf,.jpg,.jpeg,.png" 
+                                id="lut-file-upload-input" 
+                                style={{ display: 'none' }} 
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    if (file.size > 10 * 1024 * 1024) {
+                                        alert("Maximum file size allowed is 10 MB.");
+                                        return;
+                                    }
+                                    const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                                    if (!allowed.includes(file.type)) {
+                                        alert("Invalid file format. Only PDF, JPG, JPEG, and PNG are supported.");
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        const reader = new FileReader();
+                                        reader.onload = async () => {
+                                            const base64Content = reader.result.split(',')[1];
+                                            const uploadRes = await splitExpenseService.uploadAttachment({
+                                                name: file.name,
+                                                content: base64Content
+                                            });
+                                            
+                                            setInvoiceForm(prev => ({
+                                                ...prev,
+                                                lut_document_path: uploadRes.url,
+                                                lut_file_name: file.name,
+                                                lut_uploaded_at: new Date().toISOString(),
+                                                lut_uploaded_by: JSON.parse(localStorage.getItem('cliks_user_profile') || '{}')?.username || 'Current User'
+                                            }));
+                                        };
+                                        reader.readAsDataURL(file);
+                                    } catch (err) {
+                                        console.error('[LUT Upload] Failed:', err);
+                                        alert('Failed to upload LUT document. Please try again.');
+                                    }
+                                }}
+                            />
+                            
+                            <button 
+                                type="button"
+                                onClick={() => document.getElementById('lut-file-upload-input').click()}
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '2rem 1.5rem', border: invoiceForm.lut_file_name ? '2px solid #10B981' : '2px dashed #CBD5E1', borderRadius: '16px', background: '#F8FAFC', cursor: 'pointer', outline: 'none' }}
+                            >
+                                <span style={{ fontSize: '1.75rem' }}>📄</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1E293B' }}>
+                                    {invoiceForm.lut_file_name ? 'Change Document' : 'Choose File'}
+                                </span>
+                                <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '650' }}>
+                                    Supported Formats: PDF, JPG, JPEG, PNG (Max 10 MB)
+                                </span>
+                            </button>
+                            
+                            {invoiceForm.lut_file_name && (
+                                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ color: '#10B981', fontSize: '1rem' }}>✓</span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: '750', color: '#065F46', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {invoiceForm.lut_file_name}
+                                        </p>
+                                        <span style={{ fontSize: '0.65rem', color: '#047857', fontWeight: '600' }}>
+                                            Ready to attach
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    setIsLutModalOpen(false);
+                                    if (!invoiceForm.lut_document_path) {
+                                        setInvoiceForm(prev => ({ ...prev, export_under_lut: 'No' }));
+                                    }
+                                }} 
+                                style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', color: '#334155', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    if (!invoiceForm.lut_document_path) {
+                                        alert("Please upload a valid LUT document.");
+                                        return;
+                                    }
+                                    setIsLutModalOpen(false);
+                                }} 
+                                style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                            >
+                                Upload & Continue
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
