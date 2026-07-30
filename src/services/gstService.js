@@ -13,7 +13,7 @@ export const gstService = {
     runReconciliation: (data) => apiClient.post('/gst/reconciliation/run', data).then(res => res.data.data || res.data),
     deleteInvoice: (id) => apiClient.delete(`/gst/invoices/${id}`).then(res => res.data.data || res.data),
     getGSTR3B: () => apiClient.get('/gst/reports/gstr3b').then(res => res.data.data || res.data),
-    getGSTR9: () => apiClient.get('/gst/reports/gstr9').then(res => res.data.data || res.data)
+    getGSTR9: (fy) => apiClient.get('/gst/reports/gstr9', { params: { fy } }).then(res => res.data.data || res.data)
 };
 
 export default gstService;

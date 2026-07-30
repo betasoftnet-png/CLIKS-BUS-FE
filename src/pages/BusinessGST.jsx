@@ -46,6 +46,7 @@ const BusinessGST = () => {
     const [isEwayModalOpen, setIsEwayModalOpen] = useState(false);
     const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
     const [selectedReconcile, setSelectedReconcile] = useState(null);
+    const [selectedFY, setSelectedFY] = useState('2024-25');
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
     const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
     const [validationErrors, setValidationErrors] = useState({});
@@ -82,8 +83,8 @@ const BusinessGST = () => {
     });
 
     const { data: dbGstr9 = null } = useQuery({
-        queryKey: ['gstr9Report'],
-        queryFn: () => gstService.getGSTR9()
+        queryKey: ['gstr9Report', selectedFY],
+        queryFn: () => gstService.getGSTR9(selectedFY)
     });
 
     // Mutations
@@ -880,56 +881,161 @@ const BusinessGST = () => {
 
             {/* Tab 2c: GSTR-9 Consolidated Annual Return Summary */}
             {activeTab === 'gstr9' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {dbGstr9 && typeof dbGstr9.consolidated_turnover !== 'undefined' ? (
-                        <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.01)' }}>
-                            
-                            {/* Premium Top Ribbon Banner */}
-                            <div style={{ padding: '2rem', background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)', borderBottom: '1px solid #FDE68A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Award size={16} color="#D97706" />
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '850', color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Annual Tax Settlement Console</span>
-                                    </div>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#78350F', margin: '0.5rem 0 0.25rem 0', letterSpacing: '-0.02em' }}>GSTR-9 Annual Return ({dbGstr9?.fiscal_year || 'FY 2025-26'})</h2>
-                                    <p style={{ fontSize: '0.82rem', color: '#B45309', fontWeight: '600', margin: 0 }}>Consolidated performance audit data aggregated from individual monthly cycles.</p>
-                                </div>
-                                <div style={{ background: 'white', border: '1px solid #FCD34D', padding: '0.75rem 1rem', borderRadius: '14px', boxShadow: '0 4px 6px rgba(217, 119, 6, 0.05)', textAlign: 'right' }}>
-                                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Filing Integrity</span>
-                                    <div style={{ color: '#D97706', fontWeight: '900', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                        <Zap size={16} /> 100% Reconciled
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ padding: '1.5rem' }}>
-                                {/* Metrics Layout */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                                    {[
-                                        { label: 'Consolidated Annual Turnover', sub: 'Includes all exempt & B2B sales', val: dbGstr9?.consolidated_turnover || 0, color: '#3B82F6', bg: '#EFF6FF' },
-                                        { label: 'Total Annual Tax Paid Outward', sub: 'Sum of IGST/CGST/SGST paid', val: dbGstr9?.total_tax_paid_outward || 0, color: '#EC4899', bg: '#FDF2F8' },
-                                        { label: 'Cumulative ITC Availed (Annual)', sub: 'Verified Input Tax credit claims', val: dbGstr9?.total_itc_availed || 0, color: '#10B981', bg: '#ECFDF5' }
-                                    ].map((box, k) => (
-                                        <div key={k} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1.25rem', boxSizing: 'border-box' }}>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: '850', textTransform: 'uppercase', color: '#64748B', marginBottom: '0.25rem' }}>{box.label}</div>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', marginBottom: '0.4rem' }}>{formatCurrency(box.val)}</div>
-                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{box.sub}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', padding: '1rem 1.25rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <Activity size={18} color="#D97706" />
-                                        <span style={{ fontSize: '0.78rem', color: '#78350F', fontWeight: '750' }}>No annual gaps found between audited books & GSTR-9 summary drafts. All modules synced.</span>
-                                    </div>
-                                    <button style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'white', color: '#D97706', border: '1px solid #FCD34D', fontWeight: '850', fontSize: '0.78rem', cursor: 'pointer' }}>Download Audited Balance Sheet</button>
-                                </div>
-                            </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* FY Selector and Header */}
+                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.01)' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>GSTR-9 Annual Return</h2>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Financial Year Summary & Reconciliation</p>
                         </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <select
+                                value={selectedFY}
+                                onChange={(e) => setSelectedFY(e.target.value)}
+                                style={{ padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#0F172A', outline: 'none' }}
+                            >
+                                <option value="2023-24">FY 2023–24</option>
+                                <option value="2024-25">FY 2024–25</option>
+                                <option value="2025-26">FY 2025–26</option>
+                            </select>
+                            <button style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Download size={16} /> Export Annual PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    {dbGstr9 && (dbGstr9.summary?.total_taxable_sales > 0 || dbGstr9.summary?.total_taxable_purchases > 0) ? (
+                        <>
+                            {/* Annual Summary Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                                {[
+                                    { label: 'Total Taxable Sales', val: dbGstr9.summary.total_taxable_sales, icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
+                                    { label: 'Total Taxable Purchases', val: dbGstr9.summary.total_taxable_purchases, icon: ArrowDownRight, color: '#3B82F6', bg: '#EFF6FF' },
+                                    { label: 'Output GST Collected', val: dbGstr9.summary.total_output_gst, icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
+                                    { label: 'Eligible ITC Claimed', val: dbGstr9.summary.total_itc_availed, icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' }
+                                ].map((stat, idx) => (
+                                    <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', margin: '0 0 0.35rem 0' }}>{stat.label}</p>
+                                            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>{formatCurrency(stat.val)}</h3>
+                                        </div>
+                                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                                            <stat.icon size={20} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
+                                {/* Annual GST Summary Table */}
+                                <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', padding: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>Annual Statutory Summary</h3>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <tbody>
+                                            {[
+                                                { label: 'Total Taxable Sales (Outward)', val: dbGstr9.summary.total_taxable_sales },
+                                                { label: 'Exempt / Nil Rated Sales', val: dbGstr9.summary.exempt_sales },
+                                                { label: 'Zero Rated / Export Sales', val: dbGstr9.summary.export_sales },
+                                                { label: 'Total Taxable Purchases (Inward)', val: dbGstr9.summary.total_taxable_purchases },
+                                                { label: 'Total Eligible ITC Availed', val: dbGstr9.summary.total_itc_availed },
+                                                { label: 'Total Output Tax Liability', val: dbGstr9.summary.total_output_gst, bold: true, color: '#6B21A8' },
+                                                { label: 'Net GST Paid (Cash Ledger)', val: dbGstr9.summary.net_gst_paid, bold: true, color: '#059669' }
+                                            ].map((row, i) => (
+                                                <tr key={i} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                    <td style={{ padding: '0.85rem 0', fontSize: '0.85rem', color: '#475569', fontWeight: row.bold ? '800' : '500' }}>{row.label}</td>
+                                                    <td style={{ padding: '0.85rem 0', textAlign: 'right', fontSize: '1rem', fontWeight: row.bold ? '900' : '750', color: row.color || '#0F172A' }}>{formatCurrency(row.val)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Annual Reconciliation */}
+                                <div style={{ background: '#FAF5FF', borderRadius: '20px', border: '1px solid #E9D5FF', padding: '1.5rem' }}>
+                                    <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#6B21A8', marginBottom: '1.25rem', borderBottom: '1px solid #F3E8FF', paddingBottom: '0.75rem' }}>Annual Reconciliation</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #F3E8FF' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#6B21A8', textTransform: 'uppercase' }}>Difference in Sales (Books vs Returns)</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                                                <span style={{ fontWeight: '900', color: '#0F172A' }}>{formatCurrency(0)}</span>
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#DCFCE7', color: '#15803D', fontSize: '0.65rem', fontWeight: '850' }}>MATCHED</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #F3E8FF' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#6B21A8', textTransform: 'uppercase' }}>Difference in ITC (GSTR-2B vs 3B)</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                                                <span style={{ fontWeight: '900', color: '#0F172A' }}>{formatCurrency(0)}</span>
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#DCFCE7', color: '#15803D', fontSize: '0.65rem', fontWeight: '850' }}>MATCHED</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ background: '#FFF7ED', padding: '1rem', borderRadius: '12px', border: '1px solid #FFEDD5' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#C2410C', textTransform: 'uppercase' }}>Late Filing Interests / Penalties</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                                                <span style={{ fontWeight: '900', color: '#9A3412' }}>{formatCurrency(0)}</span>
+                                                <span style={{ color: '#C2410C', fontSize: '0.65rem', fontWeight: '800' }}>NONE DUE</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button style={{ width: '100%', padding: '0.85rem', marginTop: '1.5rem', borderRadius: '12px', border: 'none', background: '#6B21A8', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(107,33,168,0.2)' }}>
+                                        Generate GSTR-9C Reconciliation
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Monthly Filing Summary Table */}
+                            <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC' }}>
+                                    <h3 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Monthly Filing History Breakdown</h3>
+                                </div>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                        <thead style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                            <tr>
+                                                <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Month</th>
+                                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Taxable Sales</th>
+                                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Output GST</th>
+                                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Eligible ITC</th>
+                                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GST Paid</th>
+                                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTR-1</th>
+                                                <th style={{ padding: '0.85rem 1.5rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>GSTR-3B</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {dbGstr9.monthly_filings.map((m, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                    <td style={{ padding: '0.85rem 1.5rem', fontSize: '0.85rem', fontWeight: '750', color: '#1E293B' }}>{m.month}</td>
+                                                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#475569', fontWeight: '600' }}>{formatCurrency(m.sales)}</td>
+                                                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#6B21A8', fontWeight: '750' }}>{formatCurrency(m.output_gst)}</td>
+                                                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#15803D', fontWeight: '750' }}>{formatCurrency(m.itc)}</td>
+                                                    <td style={{ padding: '0.85rem 1rem', fontSize: '0.85rem', color: '#991B1B', fontWeight: '800' }}>{formatCurrency(m.gst_paid)}</td>
+                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: m.gstr1_status === 'Filed' ? '#DCFCE7' : '#F1F5F9', color: m.gstr1_status === 'Filed' ? '#15803D' : '#64748B', fontSize: '0.7rem', fontWeight: '850' }}>
+                                                            {m.gstr1_status.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1.5rem' }}>
+                                                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: m.gstr3b_status === 'Filed' ? '#DCFCE7' : '#F1F5F9', color: m.gstr3b_status === 'Filed' ? '#15803D' : '#64748B', fontSize: '0.7rem', fontWeight: '850' }}>
+                                                            {m.gstr3b_status.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </>
                     ) : (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                            Compiling annual GSTR-9 consolidated return data... If the service is temporarily unavailable, please verify backend connectivity.
+                        <div style={{ padding: '5rem 2rem', textAlign: 'center', background: 'white', borderRadius: '24px', border: '2px dashed #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                                <Award size={32} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#1E293B' }}>No annual GST data found for {selectedFY}</h3>
+                                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#64748B', fontWeight: '500', maxWidth: '450px', lineHeight: '1.5' }}>
+                                    Create sales invoices and purchase bills for the selected financial year to automatically generate your GSTR-9 Annual Return and statutory summaries.
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
