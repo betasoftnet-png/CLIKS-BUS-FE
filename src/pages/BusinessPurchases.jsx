@@ -645,30 +645,57 @@ const BusinessPurchases = () => {
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'purchase_number', label: 'Bill No', placeholder: 'Bill No' },
+                                { key: 'po_number', label: 'PO Details', placeholder: 'PO No' },
                                 { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
-                                { key: 'purchase_date', label: 'Date', placeholder: 'Date' },
-                                { key: 'grand_total', label: 'Amount', placeholder: 'e.g. 5000' },
+                                { key: 'items', label: 'Items', placeholder: 'Item' },
+                                { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000' },
                                 { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
                                 { key: '_actions', label: 'Actions', noFilter: true }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredBills.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bill) => (
                                     <tr key={bill.id || bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.9rem', margin: 0 }}>{bill.purchase_number}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Due: {bill.due_date || '—'}</span>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem', margin: 0 }}>{bill.purchase_number}</p>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {bill.purchase_date} | Due: {bill.due_date || '—'}</span>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
                                             <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem', margin: 0 }}>{bill.supplier_name}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>GSTIN: {bill.supplier_gstin || 'Unregistered'}</span>
+                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{bill.billing_address || (bill.supplier_gstin ? `GSTIN: ${bill.supplier_gstin}` : 'Unregistered')}</span>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.85rem', color: '#64748B' }}>{bill.purchase_date}</td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
-                                            <p style={{ fontWeight: '900', color: '#1E293B', margin: 0 }}>{formatCurrency(bill.grand_total)}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Paid: {formatCurrency(bill.paid_amount || 0)}</span>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            {bill.items && bill.items.length > 0 ? (
+                                                bill.items.map((item, idx) => (
+                                                    <div key={idx} style={{ fontSize: '0.85rem' }}>
+                                                        <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>{item.product_name}</p>
+                                                        <span style={{ color: '#94A3B8' }}>Qty: {item.quantity} @ {formatCurrency(item.purchase_price)}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>
+                                                    {bill.notes || 'Inventory Purchases'}
+                                                </div>
+                                            )}
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            {(() => {
+                                                const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
+                                                const finalTotal = totals.grand_total || bill.grand_total || 0;
+                                                const singleTax = (totals.total_tax || 0) / 2;
+                                                return (
+                                                    <div style={{ fontSize: '0.85rem' }}>
+                                                        <p style={{ fontWeight: '900', color: '#1E293B', fontSize: '1.05rem', margin: 0 }}>{formatCurrency(finalTotal)}</p>
+                                                        {singleTax > 0 && (
+                                                            <>
+                                                                <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>CGST (9%): {formatCurrency(singleTax)}</p>
+                                                                <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>SGST (9%): {formatCurrency(singleTax)}</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </td>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
                                             <span style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                                 padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
@@ -679,13 +706,13 @@ const BusinessPurchases = () => {
                                                 {bill.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
-                                            {bill.status === 'Pending Goods' && (
+                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                            {bill.status === 'Pending Goods' ? (
                                                 <button
                                                     disabled={receiveGoodsMutation.isPending}
                                                     onClick={() => setPendingReceiveBill(bill)}
                                                     style={{
-                                                        padding: '0.5rem 1rem', borderRadius: '10px', border: 'none',
+                                                        padding: '0.5rem 1.1rem', borderRadius: '10px', border: 'none',
                                                         background: '#064E3B',
                                                         color: 'white',
                                                         fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
@@ -695,6 +722,10 @@ const BusinessPurchases = () => {
                                                 >
                                                     <PackageOpen size={14} /> Receive Goods
                                                 </button>
+                                            ) : (
+                                                <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '10px', background: '#F1F5F9', color: '#475569', fontSize: '0.8rem', fontWeight: '800' }}>
+                                                    {bill.status === 'Completed' ? 'COMPLETED' : bill.status.toUpperCase()}
+                                                </span>
                                             )}
                                         </td>
                                     </tr>
