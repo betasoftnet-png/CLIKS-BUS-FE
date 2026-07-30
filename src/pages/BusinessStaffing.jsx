@@ -35,6 +35,8 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
+import { expensesService } from '../services/expensesService';
+import { splitExpenseService } from '../services/splitExpenseService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
@@ -117,7 +119,7 @@ const INITIAL_EMPLOYEES = [
 ];
 
 const BusinessStaffing = () => {
-    const { formatCurrency } = useCurrency();
+    const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
@@ -128,6 +130,83 @@ const BusinessStaffing = () => {
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [colFiltersHistory, setColFiltersHistory] = useState({});
     const [editForm, setEditForm] = useState({});
+
+    // Reimbursement module state variables
+    const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [payingClaimId, setPayingClaimId] = useState(null);
+    const [paymentDetails, setPaymentDetails] = useState({
+        paymentMode: 'Cash in Hand',
+        paymentDate: new Date().toISOString().split('T')[0]
+    });
+    const [newClaim, setNewClaim] = useState({
+        employee_name: '',
+        travel_expense: '',
+        claim_amount: '',
+        receipt: '',
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toTimeString().slice(0, 5),
+        proof_file_path: '',
+        proof_file_name: '',
+        proof_file_type: '',
+        proof_timestamp: ''
+    });
+
+    const handleProofUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Maximum file size allowed is 5 MB.");
+            return;
+        }
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            alert("Invalid file type. Only JPG, JPEG, PNG, and PDF are accepted.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const base64Content = reader.result.split(',')[1];
+                const uploadRes = await splitExpenseService.uploadAttachment({
+                    name: file.name,
+                    content: base64Content
+                });
+                
+                setNewClaim(prev => ({
+                    ...prev,
+                    proof_file_path: uploadRes.url,
+                    proof_file_name: file.name,
+                    proof_file_type: file.type,
+                    proof_timestamp: new Date().toISOString()
+                }));
+            } catch (err) {
+                console.error("Upload error:", err);
+                alert("Failed to upload proof attachment.");
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleProofDelete = () => {
+        setNewClaim(prev => ({
+            ...prev,
+            proof_file_path: '',
+            proof_file_name: '',
+            proof_file_type: '',
+            proof_timestamp: ''
+        }));
+        const fileInput = document.getElementById('proof-upload-input');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+    const [reimbSearchTerm, setReimbSearchTerm] = useState('');
+    const [reimbStatusFilter, setReimbStatusFilter] = useState('All');
+    const [reimbCurrentPage, setReimbCurrentPage] = useState(1);
+    const claimsPerPage = 10;
 
     // Trigger instant onboarding flow from dashboard shortcuts
     const [searchParams, setSearchParams] = useSearchParams();
@@ -145,6 +224,74 @@ const BusinessStaffing = () => {
         queryKey: ['employees'],
         queryFn: () => staffingService.getEmployees()
     });
+
+    // Query for claims list
+    const { data: dbClaims = [] } = useQuery({
+        queryKey: ['claimsList'],
+        queryFn: () => expensesService.getClaims()
+    });
+
+    const lodgeClaimMutation = useMutation({
+        mutationFn: (data) => expensesService.lodgeClaim(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            setIsClaimModalOpen(false);
+            alert('Employee reimbursement claim logged in managers verification queue!');
+        }
+    });
+
+    const approveClaimMutation = useMutation({
+        mutationFn: (id) => expensesService.approveClaim(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            alert('Claim approved successfully!');
+        }
+    });
+
+    const rejectClaimMutation = useMutation({
+        mutationFn: ({ id, reason }) => expensesService.rejectClaim(id, { reason }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            alert('Claim rejected successfully!');
+        }
+    });
+
+    const payClaimMutation = useMutation({
+        mutationFn: ({ id, data }) => expensesService.payClaim(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            setIsPaymentModalOpen(false);
+            alert('Claim marked as Paid and reimbursed successfully!');
+        }
+    });
+
+    const claims = dbClaims.map(item => ({
+        claim_id: item.id,
+        employee_name: item.employee_name || 'Anonymous Staff',
+        travel_expense: item.travel_expense || '-',
+        claim_amount: parseFloat(item.claim_amount) || 0,
+        reimbursement_status: item.reimbursement_status || 'Pending',
+        approval_by: item.approval_by || '',
+        receipt: item.receipt || '',
+        date: item.date || (item.created_at ? item.created_at.split('T')[0] : '-')
+    }));
+
+    const filteredClaims = claims.filter(cl => {
+        const matchesSearch = !reimbSearchTerm || 
+            cl.employee_name.toLowerCase().includes(reimbSearchTerm.toLowerCase()) ||
+            cl.travel_expense.toLowerCase().includes(reimbSearchTerm.toLowerCase()) ||
+            `CLM-${cl.claim_id}`.toLowerCase().includes(reimbSearchTerm.toLowerCase()) ||
+            cl.claim_amount.toString().includes(reimbSearchTerm);
+
+        const matchesStatus = reimbStatusFilter === 'All' || cl.reimbursement_status.toLowerCase() === reimbStatusFilter.toLowerCase();
+
+        return matchesSearch && matchesStatus;
+    });
+
+    const totalClaimsPages = Math.ceil(filteredClaims.length / claimsPerPage) || 1;
+    const paginatedClaims = filteredClaims.slice((reimbCurrentPage - 1) * claimsPerPage, reimbCurrentPage * claimsPerPage);
 
     const createEmpMutation = useMutation({
         mutationFn: async (data) => {
@@ -566,7 +713,8 @@ const BusinessStaffing = () => {
                     { id: 'employment', label: 'Hierarchy & Employment', icon: Building2, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
                     { id: 'payroll', label: 'Payroll & Bank Details', icon: CreditCard, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
                     { id: 'leaves', label: 'Leaves & Shifts Rosters', icon: Calendar, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
-                    { id: 'performance', label: 'Performance Appraisals', icon: Award, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' }
+                    { id: 'performance', label: 'Performance Appraisals', icon: Award, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' },
+                    { id: 'reimbursements', label: 'Staff Reimbursements', icon: User, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -806,6 +954,184 @@ const BusinessStaffing = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {/* Tab 6: Staff Reimbursements */}
+                {activeTab === 'reimbursements' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#047857', margin: 0 }}>Employee Reimbursements & Travel claims</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.25rem 0 0 0', fontWeight: '500' }}>Manage, approve, reject and settle workforce expense reimbursement claims.</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setNewClaim({
+                                        employee_name: '',
+                                        travel_expense: '',
+                                        claim_amount: '',
+                                        receipt: '',
+                                        date: new Date().toISOString().split('T')[0],
+                                        time: new Date().toTimeString().slice(0, 5),
+                                        proof_file_path: '',
+                                        proof_file_name: '',
+                                        proof_file_type: '',
+                                        proof_timestamp: ''
+                                    });
+                                    setIsClaimModalOpen(true);
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' }}
+                            >
+                                <Plus size={15} /> Lodge Staff Claim
+                            </button>
+                        </div>
+
+                        {/* Search & Filters Panel */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem', background: '#F8FAFC', padding: '1rem', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+                            <div style={{ position: 'relative', width: '320px' }}>
+                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by claim ID, employee, amount or purpose..."
+                                    value={reimbSearchTerm}
+                                    onChange={(e) => {
+                                        setReimbSearchTerm(e.target.value);
+                                        setReimbCurrentPage(1);
+                                    }}
+                                    style={{ width: '100%', padding: '0.55rem 1rem 0.55rem 2.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Filter Status:</span>
+                                <select
+                                    value={reimbStatusFilter}
+                                    onChange={(e) => {
+                                        setReimbStatusFilter(e.target.value);
+                                        setReimbCurrentPage(1);
+                                    }}
+                                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#475569', fontWeight: '600' }}
+                                >
+                                    <option value="All">All Claims</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '16px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1.5px solid #F1F5F9', background: '#F8FAFC' }}>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim ID</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Employee Profile</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Purpose Description</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Lodge Date</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt Details</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Amount</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedClaims.length > 0 ? (
+                                        paginatedClaims.map((cl) => (
+                                            <tr key={cl.claim_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '750', fontSize: '0.85rem' }}>CLM-{cl.claim_id}</td>
+                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{cl.employee_name}</td>
+                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>{cl.travel_expense}</td>
+                                                <td style={{ padding: '1rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
+                                                <td style={{ padding: '1rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.receipt || 'No receipt attached'}</td>
+                                                <td style={{ padding: '1rem 1.25rem' }}>
+                                                    <span style={{
+                                                        padding: '0.2rem 0.5rem', borderRadius: '6px',
+                                                        background: cl.reimbursement_status === 'Approved' ? '#E8F0FE' : (cl.reimbursement_status === 'Paid' ? '#E6F4EA' : (cl.reimbursement_status === 'Rejected' ? '#FCE8E6' : '#FEF3C7')),
+                                                        color: cl.reimbursement_status === 'Approved' ? '#1A73E8' : (cl.reimbursement_status === 'Paid' ? '#137333' : (cl.reimbursement_status === 'Rejected' ? '#C5221F' : '#B45309')),
+                                                        fontWeight: '800', fontSize: '0.72rem'
+                                                    }}>{cl.reimbursement_status.toUpperCase()}</span>
+                                                </td>
+                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(cl.claim_amount)}</td>
+                                                <td style={{ padding: '1.25rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                                    {cl.reimbursement_status === 'Pending' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => approveClaimMutation.mutate(cl.claim_id)}
+                                                                style={{ border: 'none', background: '#E6F4EA', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#137333' }}
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const reason = prompt("Enter optional rejection reason:");
+                                                                    if (reason !== null) {
+                                                                        rejectClaimMutation.mutate({ id: cl.claim_id, reason });
+                                                                    }
+                                                                }}
+                                                                style={{ border: 'none', background: '#FCE8E6', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {cl.reimbursement_status === 'Approved' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setPayingClaimId(cl.claim_id);
+                                                                setPaymentDetails(prev => ({
+                                                                    ...prev,
+                                                                    paymentDate: new Date().toISOString().split('T')[0]
+                                                                }));
+                                                                setIsPaymentModalOpen(true);
+                                                            }}
+                                                            style={{ border: 'none', background: '#E8F0FE', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#1A73E8' }}
+                                                        >
+                                                            Mark as Paid
+                                                        </button>
+                                                    )}
+                                                    {(cl.reimbursement_status === 'Paid' || cl.reimbursement_status === 'Rejected') && (
+                                                        <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600', padding: '4px 0' }}>Settled</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="8" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600', fontSize: '0.9rem' }}>
+                                                No staff reimbursement claims matching search/filters.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Footer */}
+                        {filteredClaims.length > claimsPerPage && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', background: '#F8FAFC', padding: '0.85rem 1.25rem', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '650' }}>
+                                    Showing {(reimbCurrentPage - 1) * claimsPerPage + 1} to {Math.min(reimbCurrentPage * claimsPerPage, filteredClaims.length)} of {filteredClaims.length} entries
+                                </span>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        disabled={reimbCurrentPage === 1}
+                                        onClick={() => setReimbCurrentPage(prev => prev - 1)}
+                                        style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: reimbCurrentPage === 1 ? '#F1F5F9' : 'white', color: reimbCurrentPage === 1 ? '#94A3B8' : '#475569', fontSize: '0.8rem', fontWeight: '700', cursor: reimbCurrentPage === 1 ? 'not-allowed' : 'pointer' }}
+                                    >
+                                        Previous
+                                    </button>
+                                    <button
+                                        disabled={reimbCurrentPage === totalClaimsPages}
+                                        onClick={() => setReimbCurrentPage(prev => prev + 1)}
+                                        style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: reimbCurrentPage === totalClaimsPages ? '#F1F5F9' : 'white', color: reimbCurrentPage === totalClaimsPages ? '#94A3B8' : '#475569', fontSize: '0.8rem', fontWeight: '700', cursor: reimbCurrentPage === totalClaimsPages ? 'not-allowed' : 'pointer' }}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -1384,6 +1710,48 @@ const BusinessStaffing = () => {
                                             );
                                         })()}
                                     </div>
+
+                                    {/* Reimbursement Claims History Card */}
+                                    {(() => {
+                                        const empFullName = `${currentSelectedEmployee.first_name} ${currentSelectedEmployee.last_name}`.trim().toLowerCase();
+                                        const empClaims = claims.filter(c => (c.employee_name || '').trim().toLowerCase() === empFullName);
+                                        
+                                        return (
+                                            <div style={{ background: '#EFF6FF', padding: '1.25rem', borderRadius: '20px', border: '1px solid #DBEAFE' }}>
+                                                <h4 style={{ fontSize: '0.88rem', fontWeight: '850', color: '#1E40AF', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#DBEAFE', color: '#1D4ED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <User size={14} />
+                                                    </div>
+                                                    Reimbursements & Claims History
+                                                </h4>
+                                                {empClaims.length > 0 ? (
+                                                    <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                                        {empClaims.map((claim, cIdx) => (
+                                                            <div key={cIdx} style={{ background: 'white', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div>
+                                                                    <p style={{ margin: 0, fontWeight: '800', fontSize: '0.8rem', color: '#1E293B' }}>CLM-{claim.claim_id} • {claim.travel_expense}</p>
+                                                                    <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Lodged: {claim.date} {claim.receipt ? `• Receipt: ${claim.receipt}` : ''}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                    <span style={{ fontWeight: '850', color: '#7C3AED', fontSize: '0.82rem' }}>{formatCurrency(claim.claim_amount)}</span>
+                                                                    <span style={{
+                                                                        padding: '0.15rem 0.45rem', borderRadius: '6px',
+                                                                        background: claim.reimbursement_status === 'Approved' ? '#E8F0FE' : (claim.reimbursement_status === 'Paid' ? '#E6F4EA' : (claim.reimbursement_status === 'Rejected' ? '#FCE8E6' : '#FEF3C7')),
+                                                                        color: claim.reimbursement_status === 'Approved' ? '#1A73E8' : (claim.reimbursement_status === 'Paid' ? '#137333' : (claim.reimbursement_status === 'Rejected' ? '#C5221F' : '#B45309')),
+                                                                        fontWeight: '800', fontSize: '0.68rem', textTransform: 'uppercase'
+                                                                    }}>{claim.reimbursement_status}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B', fontWeight: '600', padding: '0.5rem 0' }}>
+                                                        No reimbursement claims history recorded for this employee.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                     
                                     {/* Contact Details Card */}
                                     <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
@@ -1524,6 +1892,165 @@ const BusinessStaffing = () => {
                     </div>
                 );
             })()}
+
+            {/* Lodge Staff Claim Modal */}
+            {isClaimModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Lodge Staff Claim</h3>
+                            <button onClick={() => setIsClaimModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            lodgeClaimMutation.mutate(newClaim);
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Profile Name</label>
+                                <select 
+                                    required 
+                                    value={newClaim.employee_name} 
+                                    onChange={(e) => setNewClaim({ ...newClaim, employee_name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                >
+                                    <option value="">Select Employee</option>
+                                    {employees.map(emp => (
+                                        <option key={emp.employee_id} value={`${emp.first_name} ${emp.last_name}`}>
+                                            {emp.first_name} {emp.last_name} ({emp.department_name})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Out-of-pocket Description</label>
+                                <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
+                                    <input required type="date" value={newClaim.date} onChange={(e) => setNewClaim({ ...newClaim, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Time</label>
+                                    <input required type="time" value={newClaim.time} onChange={(e) => setNewClaim({ ...newClaim, time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
+                                <input required type="number" value={newClaim.claim_amount} onChange={(e) => setNewClaim({ ...newClaim, claim_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receipt / Reference (Optional)</label>
+                                <input type="text" value={newClaim.receipt} onChange={(e) => setNewClaim({ ...newClaim, receipt: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. UPI Ref No, Bank Txn ID, Receipt No., or Manual Reference" />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Upload Proof (Optional)</label>
+                                <input type="file" accept=".png,.jpg,.jpeg,.pdf" style={{ display: 'none' }} id="proof-upload-input" onChange={handleProofUpload} />
+                                {newClaim.proof_file_path ? (
+                                    <div style={{ position: 'relative', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        {newClaim.proof_file_type.startsWith('image/') ? (
+                                            <img src={newClaim.proof_file_path} alt="Proof thumbnail" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} />
+                                        ) : (
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.72rem' }}>
+                                                PDF
+                                            </div>
+                                        )}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '750', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {newClaim.proof_file_name}
+                                            </p>
+                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                {newClaim.proof_file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => document.getElementById('proof-upload-input').click()}
+                                                title="Replace proof" 
+                                                style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.35rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800' }}
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleProofDelete}
+                                                title="Delete proof" 
+                                                style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.35rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800' }}
+                                            >
+                                                🗑 Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => document.getElementById('proof-upload-input').click()}
+                                        style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '12px', border: '1.5px dashed #CBD5E1', background: '#F8FAFC', color: '#64748B', fontWeight: '750', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer' }}
+                                    >
+                                        Choose File (Max 5MB)
+                                    </button>
+                                )}
+                            </div>
+
+                            <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}>
+                                {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Payment Modal */}
+            {isPaymentModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Process Reimbursement Payment</h3>
+                            <button onClick={() => setIsPaymentModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            payClaimMutation.mutate({ id: payingClaimId, data: paymentDetails });
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Cash/Bank Account</label>
+                                <select 
+                                    value={paymentDetails.paymentMode} 
+                                    onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentMode: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    <option value="Cash in Hand">Cash in Hand</option>
+                                    <option value="HDFC Bank Account">HDFC Bank Account</option>
+                                    <option value="SBI Current Account">SBI Current Account</option>
+                                    <option value="ICICI Bank Account">ICICI Bank Account</option>
+                                    <option value="UPI / Razorpay">UPI / Razorpay</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Date</label>
+                                <input 
+                                    required 
+                                    type="date" 
+                                    value={paymentDetails.paymentDate} 
+                                    onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentDate: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                />
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                disabled={payClaimMutation.isPending} 
+                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}
+                            >
+                                {payClaimMutation.isPending ? 'Processing...' : 'Confirm & Reduce Balance'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
