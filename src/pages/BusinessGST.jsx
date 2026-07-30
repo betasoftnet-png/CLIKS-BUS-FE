@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gstService, billingService } from '../services';
+import { gstService, billingService, crmService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 import { 
@@ -56,6 +56,12 @@ const BusinessGST = () => {
         queryKey: ['salesInvoices'],
         queryFn: () => billingService.getInvoices()
     });
+
+    const { data: dbCustomersResponse = { data: [] } } = useQuery({
+        queryKey: ['customers'],
+        queryFn: () => crmService.getCustomers()
+    });
+    const dbCustomers = dbCustomersResponse?.data || [];
 
     // Queries
     const { data: dbInvoices = [] } = useQuery({
@@ -231,10 +237,12 @@ const BusinessGST = () => {
     // Form inputs states
     const [invoiceForm, setInvoiceForm] = useState({
         invoice_type: 'B2B',
-        place_of_supply: '27-Maharashtra',
+        place_of_supply: '33-Tamil Nadu',
         taxable_value: '',
-        gst_percentage: 18,
-        reverse_charge: 'No'
+        gst_percentage: 12,
+        reverse_charge: 'No',
+        client_name: '',
+        customer_gstin: ''
     });
 
     const [ewayForm, setEwayForm] = useState({
@@ -271,8 +279,10 @@ const BusinessGST = () => {
             invoice_type: invoiceForm.invoice_type,
             place_of_supply: invoiceForm.place_of_supply,
             taxable_value: parseFloat(invoiceForm.taxable_value) || 0,
-            gst_percentage: parseInt(invoiceForm.gst_percentage) || 18,
-            reverse_charge: invoiceForm.reverse_charge
+            gst_percentage: parseInt(invoiceForm.gst_percentage) || 12,
+            reverse_charge: invoiceForm.reverse_charge,
+            client_name: invoiceForm.client_name,
+            customer_gstin: invoiceForm.customer_gstin
         });
     };
 
@@ -923,56 +933,114 @@ const BusinessGST = () => {
             {/* Generate e-Invoice Modal */}
             {isInvoiceModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Generate GST e-Invoice</h3>
                             <button onClick={() => setIsInvoiceModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleGenerateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Type</label>
-                                    <select value={invoiceForm.invoice_type} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoice_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        <option>B2B Tax Invoice</option>
-                                        <option>B2C Invoice</option>
-                                        <option>Export Invoice</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Place of supply</label>
-                                    <select value={invoiceForm.place_of_supply} onChange={(e) => setInvoiceForm({ ...invoiceForm, place_of_supply: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        <option value="27-Maharashtra">27-Maharashtra</option>
-                                        <option value="29-Karnataka">29-Karnataka</option>
-                                        <option value="33-Tamil Nadu">33-Tamil Nadu</option>
-                                    </select>
+                            {/* Sender (From) Section */}
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Sender (From)</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#0F172A' }}>
+                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>Company Name:</span> <span style={{ fontWeight: '750' }}>{gstProfile.legal_name || 'Saravana Stores Pvt Ltd'}</span></div>
+                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{gstProfile.gstin || '33ABCDE1234F1Z5'}</span></div>
+                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>State:</span> <span style={{ fontWeight: '750' }}>{gstProfile.place_of_business || 'Tamil Nadu'}</span></div>
                                 </div>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Taxable Value (Before GST)</label>
-                                <input required type="number" value={invoiceForm.taxable_value} onChange={(e) => setInvoiceForm({ ...invoiceForm, taxable_value: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST % Percentage</label>
-                                    <select value={invoiceForm.gst_percentage} onChange={(e) => setInvoiceForm({ ...invoiceForm, gst_percentage: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        <option value="5">5% GST</option>
-                                        <option value="12">12% GST</option>
-                                        <option value="18">18% GST</option>
-                                        <option value="28">28% GST</option>
-                                    </select>
+
+                            {/* Receiver (To) Section */}
+                            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
+                                <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Receiver (To)</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name *</label>
+                                        <select 
+                                            value={invoiceForm.client_name} 
+                                            onChange={(e) => {
+                                                const selectedName = e.target.value;
+                                                const customer = dbCustomers.find(c => c.name === selectedName);
+                                                setInvoiceForm(prev => ({
+                                                    ...prev,
+                                                    client_name: selectedName,
+                                                    customer_gstin: customer?.gstin || prev.customer_gstin,
+                                                    place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
+                                                }));
+                                            }}
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                        >
+                                            <option value="">Select Customer</option>
+                                            {dbCustomers.map(cust => (
+                                                <option key={cust.id} value={cust.name}>{cust.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer GSTIN</label>
+                                            <input 
+                                                type="text" 
+                                                value={invoiceForm.customer_gstin} 
+                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, customer_gstin: e.target.value })} 
+                                                placeholder="Enter GSTIN"
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State / Place of Supply</label>
+                                            <select 
+                                                value={invoiceForm.place_of_supply} 
+                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, place_of_supply: e.target.value })} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                            >
+                                                <option value="33-Tamil Nadu">33 - Tamil Nadu</option>
+                                                <option value="27-Maharashtra">27 - Maharashtra</option>
+                                                <option value="29-Karnataka">29 - Karnataka</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reverse Charge</label>
-                                    <select value={invoiceForm.reverse_charge} onChange={(e) => setInvoiceForm({ ...invoiceForm, reverse_charge: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        <option>No</option>
-                                        <option>Yes</option>
-                                    </select>
+                            </div>
+
+                            {/* e-Invoice parameters Section */}
+                            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Type</label>
+                                        <select value={invoiceForm.invoice_type} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoice_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                            <option value="B2B">B2B</option>
+                                            <option value="B2C">B2C</option>
+                                            <option value="Export">Export</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Taxable Value (Before GST)</label>
+                                        <input required type="number" value={invoiceForm.taxable_value} onChange={(e) => setInvoiceForm({ ...invoiceForm, taxable_value: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST %</label>
+                                        <select value={invoiceForm.gst_percentage} onChange={(e) => setInvoiceForm({ ...invoiceForm, gst_percentage: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="18">18%</option>
+                                            <option value="28">28%</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reverse Charge</label>
+                                        <select value={invoiceForm.reverse_charge} onChange={(e) => setInvoiceForm({ ...invoiceForm, reverse_charge: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
-                                Settle e-Invoice Authentication
+                                Generate / Authenticate e-Invoice
                             </button>
                         </form>
                     </div>
