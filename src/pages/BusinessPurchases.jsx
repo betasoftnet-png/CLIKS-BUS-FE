@@ -48,6 +48,7 @@ const BusinessPurchases = () => {
     const [createDocType, setCreateDocType] = useState('PO'); // 'PO', 'BILL', 'RETURN'
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
+    const [pendingReceiveBill, setPendingReceiveBill] = useState(null);
 
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings } = useQuery({
@@ -682,20 +683,17 @@ const BusinessPurchases = () => {
                                             {bill.status === 'Pending Goods' && (
                                                 <button
                                                     disabled={receiveGoodsMutation.isPending}
-                                                    onClick={() => {
-                                                        if (window.confirm(`Confirm goods received for ${bill.purchase_number}?\n\nThis will automatically update:\n• Vendor Ledger\n• Accounts Payable\n• Accounting Journal\n• GSTR-2B (Input Tax Credit)`)) {
-                                                            receiveGoodsMutation.mutate(bill.id);
-                                                        }
-                                                    }}
+                                                    onClick={() => setPendingReceiveBill(bill)}
                                                     style={{
                                                         padding: '0.5rem 1rem', borderRadius: '10px', border: 'none',
-                                                        background: receiveGoodsMutation.isPending ? '#E2E8F0' : '#064E3B',
-                                                        color: receiveGoodsMutation.isPending ? '#94A3B8' : 'white',
-                                                        fontWeight: '700', fontSize: '0.8rem', cursor: receiveGoodsMutation.isPending ? 'not-allowed' : 'pointer',
-                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem'
+                                                        background: '#064E3B',
+                                                        color: 'white',
+                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                                        boxShadow: '0 4px 6px -1px rgba(6, 78, 59, 0.2)'
                                                     }}
                                                 >
-                                                    <PackageOpen size={14} /> {receiveGoodsMutation.isPending ? 'Processing...' : 'Receive Goods'}
+                                                    <PackageOpen size={14} /> Receive Goods
                                                 </button>
                                             )}
                                         </td>
@@ -787,6 +785,121 @@ const BusinessPurchases = () => {
                                 Commit Goods & Update Stocks
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Structured Goods Receipt Confirmation Modal */}
+            {pendingReceiveBill && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Confirm Goods Receipt</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Review and verify purchase details before completion</p>
+                            </div>
+                            <button onClick={() => setPendingReceiveBill(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* Bill Header Info */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', textTransform: 'uppercase' }}>Bill Number</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{pendingReceiveBill.purchase_number}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', textTransform: 'uppercase' }}>Supplier</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{pendingReceiveBill.supplier_name}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', textTransform: 'uppercase' }}>Warehouse</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{pendingReceiveBill.warehouse_id || 'Main Godown'}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', display: 'block', textTransform: 'uppercase' }}>Received Date</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1B6B3A' }}>{new Date().toISOString().split('T')[0]} (Today)</strong>
+                                </div>
+                            </div>
+
+                            {/* Product List Section */}
+                            <div>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Product List</h4>
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                        <thead>
+                                            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Item / Description</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Ordered Qty</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Received Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pendingReceiveBill.items && pendingReceiveBill.items.length > 0 ? (
+                                                pendingReceiveBill.items.map((item, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: idx < pendingReceiveBill.items.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1E293B' }}>{item.product_name}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{item.quantity}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '850', color: '#1B6B3A' }}>{item.quantity}</td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                /* Fallback for journal created credit purchases which have no items */
+                                                <tr>
+                                                    <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1E293B' }}>
+                                                        {pendingReceiveBill.notes || 'Inventory Purchases'}
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>1</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '850', color: '#1B6B3A' }}>1</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* ERP Cascade Highlights */}
+                            <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '16px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>ERP Cascade Action Summary</span>
+                                <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8rem', color: '#065F46', display: 'flex', flexDirection: 'column', gap: '0.2rem', fontWeight: '600' }}>
+                                    <li>Mark Purchase Bill as Completed</li>
+                                    <li>Replenish stocks & update inventory levels</li>
+                                    <li>Update Vendor Ledger and Accounts Payable ({formatCurrency(pendingReceiveBill.grand_total)})</li>
+                                    <li>Post to Accounting Journal (Inventory Purchase Dr + Input GST Dr)</li>
+                                    <li>Create GSTR-2B entry & claim Eligible Input Tax Credit (ITC)</li>
+                                </ul>
+                            </div>
+
+                            {/* Buttons */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setPendingReceiveBill(null)}
+                                    style={{ padding: '0.9rem', borderRadius: '16px', background: '#F1F5F9', color: '#475569', border: 'none', fontWeight: '750', fontSize: '0.95rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={receiveGoodsMutation.isPending}
+                                    onClick={() => {
+                                        receiveGoodsMutation.mutate(pendingReceiveBill.id, {
+                                            onSuccess: () => {
+                                                setPendingReceiveBill(null);
+                                            }
+                                        });
+                                    }}
+                                    style={{
+                                        padding: '0.9rem', borderRadius: '16px',
+                                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
+                                        color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer',
+                                        boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)'
+                                    }}
+                                >
+                                    {receiveGoodsMutation.isPending ? 'Confirming...' : 'Confirm Receive'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
