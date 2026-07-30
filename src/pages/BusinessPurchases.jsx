@@ -163,7 +163,9 @@ const BusinessPurchases = () => {
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['ledger'] });
             queryClient.invalidateQueries({ queryKey: ['accounting'] });
-            queryClient.invalidateQueries({ queryKey: ['gst-2b'] });
+            queryClient.invalidateQueries({ queryKey: ['gstReconciliations'] });
+            queryClient.invalidateQueries({ queryKey: ['gstr3bReport'] });
+            queryClient.invalidateQueries({ queryKey: ['gstr9Report'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
             alert('✅ Goods received successfully!\n\nThe following were updated automatically:\n• Purchase Bill → Completed\n• Vendor Ledger\n• Accounts Payable\n• Accounting Journal\n• GSTR-2B (Input Tax Credit)');
         },

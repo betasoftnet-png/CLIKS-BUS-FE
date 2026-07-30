@@ -533,7 +533,7 @@ const BusinessGST = () => {
     };
 
     const totalTaxableSales = invoices.reduce((sum, inv) => sum + inv.taxable_value, 0);
-    const totalITCClaimable = reconciliations.filter(r => r.invoice_match_status === 'matched').reduce((sum, r) => sum + r.eligible_itc, 0);
+    const totalITCClaimable = reconciliations.filter(r => ['matched', 'verified'].includes(String(r.invoice_match_status).toLowerCase())).reduce((sum, r) => sum + r.eligible_itc, 0);
     const totalOutputGSTCollected = invoices.reduce((sum, inv) => sum + inv.total_tax, 0);
     const netTaxPayable = Math.max(0, totalOutputGSTCollected - totalITCClaimable);
 
