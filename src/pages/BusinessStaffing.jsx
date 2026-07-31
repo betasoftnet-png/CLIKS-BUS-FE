@@ -289,7 +289,11 @@ const BusinessStaffing = () => {
                 proof_file_path: ''
             });
             setIsClaimModalOpen(false);
-            alert('Employee reimbursement claim logged in managers verification queue!');
+            alert('Reimbursement claim submitted successfully.');
+        },
+        onError: (err) => {
+            console.error('Lodge claim error:', err);
+            alert(`Failed to submit reimbursement claim: ${err.message || JSON.stringify(err)}`);
         }
     });
 
@@ -320,20 +324,25 @@ const BusinessStaffing = () => {
         }
     });
 
-    const claims = dbClaims.map(item => ({
-        claim_id: item.id,
-        employee_name: item.employee_name || 'Anonymous Staff',
-        travel_expense: item.travel_expense || '-',
-        claim_amount: parseFloat(item.claim_amount) || 0,
-        reimbursement_status: item.reimbursement_status || 'Pending',
-        approval_by: item.approval_by || '',
-        receipt: item.receipt || '',
-        proof_file_path: item.proof_file_path || '',
-        proof_file_name: item.proof_file_name || '',
-        proof_file_type: item.proof_file_type || '',
-        proof_timestamp: item.proof_timestamp || '',
-        date: item.date || (item.created_at ? item.created_at.split('T')[0] : '-')
-    }));
+    const claims = dbClaims.map(item => {
+        const datePart = (item.date || (item.created_at || '').split('T')[0] || '').replace(/-/g, '');
+        const displayId = datePart ? `CLM-${datePart}-${String(item.id).padStart(4, '0')}` : `CLM-${item.id}`;
+        return {
+            claim_id: item.id,
+            display_claim_id: displayId,
+            employee_name: item.employee_name || 'Anonymous Staff',
+            travel_expense: item.travel_expense || '-',
+            claim_amount: parseFloat(item.claim_amount) || 0,
+            reimbursement_status: item.reimbursement_status || 'Pending Approval',
+            approval_by: item.approval_by || '',
+            receipt: item.receipt || '',
+            proof_file_path: item.proof_file_path || '',
+            proof_file_name: item.proof_file_name || '',
+            proof_file_type: item.proof_file_type || '',
+            proof_timestamp: item.proof_timestamp || '',
+            date: item.date || (item.created_at ? item.created_at.split('T')[0] : '-')
+        };
+    });
 
     const filteredClaims = claims.filter(cl => {
         const matchesSearch = !reimbSearchTerm || 
@@ -1098,7 +1107,7 @@ const BusinessStaffing = () => {
                                     {paginatedClaims.length > 0 ? (
                                         paginatedClaims.map((cl) => (
                                             <tr key={cl.claim_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '750', fontSize: '0.85rem' }}>CLM-{cl.claim_id}</td>
+                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '750', fontSize: '0.85rem' }}>{cl.display_claim_id}</td>
                                                 <td style={{ padding: '1rem 1.25rem', fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{cl.employee_name}</td>
                                                 <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem' }}>{cl.travel_expense}</td>
                                                 <td style={{ padding: '1rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
