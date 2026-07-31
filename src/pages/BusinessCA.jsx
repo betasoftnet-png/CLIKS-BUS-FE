@@ -193,6 +193,22 @@ export default function BusinessCA() {
         retry: false
     });
 
+    const { data: clientDocuments = [], refetch: refetchClientDocuments } = useQuery({
+        queryKey: ['clientDocuments', selectedWorkpaperClientId],
+        queryFn: () => selectedWorkpaperClientId ? caService.getClientDocuments(selectedWorkpaperClientId) : Promise.resolve([]),
+        enabled: !!selectedWorkpaperClientId,
+        retry: false
+    });
+
+    const updateDocumentReviewMutation = useMutation({
+        mutationFn: ({ documentId, status, remark }) => 
+            caService.updateClientDocumentReview(selectedWorkpaperClientId, { documentId, status, remark }),
+        onSuccess: () => {
+            refetchClientDocuments();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to update review')
+    });
+
     const [activeDocFolder, setActiveDocFolder] = useState('All');
     const [uploadProgress, setUploadProgress] = useState(null);
     const [uploadedFileName, setUploadedFileName] = useState('');
@@ -2575,6 +2591,118 @@ export default function BusinessCA() {
                                                         <div style={{ width: '100%', height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' }}>
                                                             <div style={{ width: `${percentage}%`, height: '100%', background: '#15803d', transition: 'width 0.3s ease' }} />
                                                         </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Uploaded Documents List */}
+                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', marginTop: '24px' }}>
+                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', marginBottom: '4px', marginTop: 0 }}>📁 Client Uploaded Documents</h3>
+                                                    <p style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '16px', marginTop: 0 }}>Verify the documents uploaded by the Business Owner for auditing.</p>
+                                                    
+                                                    <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+                                                            <thead>
+                                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
+                                                                    <th style={{ padding: '14px 16px' }}>Document Name</th>
+                                                                    <th style={{ padding: '14px 16px' }}>File Type</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Uploaded By</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Upload Date &amp; Time</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Task / Checklist Item</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Status</th>
+                                                                    <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {clientDocuments.length === 0 ? (
+                                                                    <tr>
+                                                                        <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
+                                                                            No documents uploaded by the business owner yet.
+                                                                        </td>
+                                                                    </tr>
+                                                                ) : (
+                                                                    clientDocuments.map(doc => {
+                                                                        const fileUrl = doc.path.startsWith('/uploads/') ? `http://localhost:5173${doc.path}` : doc.path;
+                                                                        return (
+                                                                            <tr key={doc.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                                <td style={{ padding: '14px 16px', fontWeight: '750', color: '#0F172A' }}>{doc.name}</td>
+                                                                                <td style={{ padding: '14px 16px' }}>
+                                                                                    <span style={{ fontSize: '11px', fontWeight: '800', background: doc.type === 'PDF' ? '#FEE2E2' : '#E0F2FE', color: doc.type === 'PDF' ? '#EF4444' : '#0284C7', padding: '3px 8px', borderRadius: '6px' }}>
+                                                                                        {doc.type}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td style={{ padding: '14px 16px', color: '#334155', fontWeight: '600' }}>{doc.uploaded_by}</td>
+                                                                                <td style={{ padding: '14px 16px', color: '#64748B' }}>
+                                                                                    {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleString() : '-'}
+                                                                                </td>
+                                                                                <td style={{ padding: '14px 16px', color: '#475569', fontWeight: '650' }}>{doc.task_name}</td>
+                                                                                <td style={{ padding: '14px 16px' }}>
+                                                                                    <span style={{
+                                                                                        fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '20px',
+                                                                                        background: doc.status === 'Approved' ? '#DCFCE7' : doc.status === 'Rejected' ? '#FEE2E2' : '#FEF9C3',
+                                                                                        color: doc.status === 'Approved' ? '#15803d' : doc.status === 'Rejected' ? '#991B1B' : '#A16207'
+                                                                                    }}>{doc.status.toUpperCase()}</span>
+                                                                                </td>
+                                                                                <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                                                        <a
+                                                                                            href={fileUrl}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            style={{ textDecoration: 'none', color: '#15803d', fontWeight: '750', fontSize: '12px' }}
+                                                                                        >
+                                                                                            View
+                                                                                        </a>
+                                                                                        <a
+                                                                                            href={fileUrl}
+                                                                                            download={doc.name}
+                                                                                            style={{ textDecoration: 'none', color: '#334155', fontWeight: '750', fontSize: '12px' }}
+                                                                                        >
+                                                                                            Download
+                                                                                        </a>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                const rem = prompt("Enter remark for this document:", doc.remark);
+                                                                                                if (rem !== null) {
+                                                                                                    updateDocumentReviewMutation.mutate({ documentId: doc.id, remark: rem });
+                                                                                                }
+                                                                                            }}
+                                                                                            style={{ border: 'none', background: 'transparent', color: '#475569', cursor: 'pointer', fontWeight: '750', fontSize: '12px', padding: 0 }}
+                                                                                        >
+                                                                                            Remark
+                                                                                        </button>
+                                                                                        {doc.status !== 'Approved' && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' })}
+                                                                                                style={{ background: '#DCFCE7', color: '#15803d', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
+                                                                                            >
+                                                                                                Approve
+                                                                                            </button>
+                                                                                        )}
+                                                                                        {doc.status !== 'Rejected' && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Rejected' })}
+                                                                                                style={{ background: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
+                                                                                                
+                                                                                            >
+                                                                                                Reject
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    {doc.remark && (
+                                                                                        <div style={{ fontSize: '11px', color: '#64748B', fontStyle: 'italic', marginTop: '4px' }}>
+                                                                                            Remark: "{doc.remark}"
+                                                                                        </div>
+                                                                                    )}
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })
+                                                                )}
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 </div>
                                             </div>
