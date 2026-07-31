@@ -29,6 +29,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { expensesService, staffingService } from '../services';
 import { useCurrency } from '../context';
+import { config } from '../lib/config';
 
 const BusinessExpenses = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -150,6 +151,21 @@ const BusinessExpenses = () => {
         mutationFn: (data) => expensesService.lodgeClaim(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            if (newClaim.file_preview_url) {
+                URL.revokeObjectURL(newClaim.file_preview_url);
+            }
+            setNewClaim({
+                employee_name: '',
+                travel_expense: '',
+                claim_amount: '',
+                receipt: '',
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().slice(0, 5),
+                file_name: '',
+                file_type: '',
+                file_data: '',
+                file_preview_url: ''
+            });
             setIsClaimModalOpen(false);
             alert('Employee reimbursement claim logged in managers verification queue!');
         }
@@ -256,6 +272,10 @@ const BusinessExpenses = () => {
         reimbursement_status: item.reimbursement_status || 'Pending',
         approval_by: item.approval_by || '',
         receipt: item.receipt || '',
+        proof_file_path: item.proof_file_path || '',
+        proof_file_name: item.proof_file_name || '',
+        proof_file_type: item.proof_file_type || '',
+        proof_timestamp: item.proof_timestamp || '',
         date: item.date || (item.created_at ? item.created_at.split('T')[0] : '-')
     }));
 
@@ -304,7 +324,11 @@ const BusinessExpenses = () => {
         claim_amount: '',
         receipt: '',
         date: new Date().toISOString().split('T')[0],
-        time: new Date().toTimeString().slice(0, 5)
+        time: new Date().toTimeString().slice(0, 5),
+        file_name: '',
+        file_type: '',
+        file_data: '',
+        file_preview_url: ''
     });
 
     const [newRecurring, setNewRecurring] = useState({
@@ -421,6 +445,92 @@ const BusinessExpenses = () => {
         setShowAddMemberForm(false);
     };
 
+    const getFileUrl = (path) => {
+        if (!path) return '';
+        if (path.startsWith('http://') || path.startsWith('https://')) return path;
+        const apiBase = config.api.baseUrl || window.location.origin;
+        const hostBase = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
+        return `${hostBase}${path}`;
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Maximum file size is 10 MB.");
+            e.target.value = '';
+            return;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            alert("Invalid file type. Only JPG, JPEG, PNG, WEBP, and PDF are accepted.");
+            e.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64Data = reader.result;
+            const previewUrl = URL.createObjectURL(file);
+            
+            setNewClaim(prev => {
+                if (prev.file_preview_url) {
+                    URL.revokeObjectURL(prev.file_preview_url);
+                }
+                return {
+                    ...prev,
+                    file_name: file.name,
+                    file_type: file.type,
+                    file_data: base64Data,
+                    file_preview_url: previewUrl
+                };
+            });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveFile = () => {
+        if (newClaim.file_preview_url) {
+            URL.revokeObjectURL(newClaim.file_preview_url);
+        }
+        setNewClaim(prev => ({
+            ...prev,
+            file_name: '',
+            file_type: '',
+            file_data: '',
+            file_preview_url: ''
+        }));
+        const fileInput = document.getElementById('claim-receipt-upload');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+
+    const closeClaimModal = () => {
+        if (newClaim.file_preview_url) {
+            URL.revokeObjectURL(newClaim.file_preview_url);
+        }
+        setNewClaim({
+            employee_name: '',
+            travel_expense: '',
+            claim_amount: '',
+            receipt: '',
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toTimeString().slice(0, 5),
+            file_name: '',
+            file_type: '',
+            file_data: '',
+            file_preview_url: ''
+        });
+        const fileInput = document.getElementById('claim-receipt-upload');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        setIsClaimModalOpen(false);
+    };
+
     const handleCreateClaim = (e) => {
         e.preventDefault();
         lodgeClaimMutation.mutate(newClaim);
@@ -488,7 +598,11 @@ const BusinessExpenses = () => {
                                 claim_amount: '',
                                 receipt: '',
                                 date: new Date().toISOString().split('T')[0],
-                                time: new Date().toTimeString().slice(0, 5)
+                                time: new Date().toTimeString().slice(0, 5),
+                                file_name: '',
+                                file_type: '',
+                                file_data: '',
+                                file_preview_url: ''
                             });
                             setIsClaimModalOpen(true);
                         }}
@@ -977,7 +1091,21 @@ const BusinessExpenses = () => {
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem', color: '#1E293B' }}>{cl.employee_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>{cl.travel_expense}</td>
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.date}</td>
-                                        <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{cl.receipt || 'No receipt attached'}</td>
+                                        <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                                <span>{cl.receipt || (!cl.proof_file_path && 'No receipt attached')}</span>
+                                                {cl.proof_file_path && (
+                                                    <a 
+                                                        href={getFileUrl(cl.proof_file_path)} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        style={{ color: '#7C3AED', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                                    >
+                                                        📎 View File
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <span style={{ 
                                                 padding: '0.2rem 0.5rem', borderRadius: '6px',
@@ -1385,7 +1513,7 @@ const BusinessExpenses = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Lodge Staff Claim</h3>
-                            <button onClick={() => setIsClaimModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            <button type="button" onClick={closeClaimModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleCreateClaim} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -1394,7 +1522,7 @@ const BusinessExpenses = () => {
                                 <input required type="text" value={newClaim.employee_name} onChange={(e) => setNewClaim({ ...newClaim, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Karan Mehra (Inventory)" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Travel / Out-of-pocket Description</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Out-of-pocket Description</label>
                                 <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1413,7 +1541,78 @@ const BusinessExpenses = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receipt File / URL / Reference</label>
-                                <input type="text" value={newClaim.receipt} onChange={(e) => setNewClaim({ ...newClaim, receipt: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. claim_receipt_77.pdf or scan link" />
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <input type="text" value={newClaim.receipt} onChange={(e) => setNewClaim({ ...newClaim, receipt: e.target.value })} style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. claim_receipt_77.pdf or scan link" />
+                                    <input type="file" id="claim-receipt-upload" accept=".png,.jpg,.jpeg,.webp,.pdf" style={{ display: 'none' }} onChange={handleFileChange} />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => document.getElementById('claim-receipt-upload').click()} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center', 
+                                            width: '2.8rem', 
+                                            height: '2.8rem', 
+                                            borderRadius: '12px', 
+                                            border: '1px solid #E2E8F0', 
+                                            background: '#F8FAFC', 
+                                            color: '#64748B', 
+                                            fontSize: '1.25rem', 
+                                            fontWeight: '600', 
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                                {newClaim.file_name && (
+                                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#F8FAFC' }}>
+                                        {newClaim.file_type && newClaim.file_type.startsWith('image/') ? (
+                                            <img 
+                                                src={newClaim.file_preview_url} 
+                                                alt="Preview" 
+                                                style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} 
+                                            />
+                                        ) : (
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.7rem' }}>
+                                                PDF
+                                            </div>
+                                        )}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {newClaim.file_name}
+                                            </p>
+                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                {newClaim.file_type && newClaim.file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => window.open(newClaim.file_preview_url, '_blank')} 
+                                                style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                            >
+                                                View
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => document.getElementById('claim-receipt-upload').click()} 
+                                                style={{ border: 'none', background: '#F1F5F9', color: '#475569', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                            >
+                                                Replace
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleRemoveFile} 
+                                                style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
