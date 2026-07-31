@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gstService, billingService, crmService } from '../services';
+import { gstService, billingService, crmService, inventoryService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 import { 
@@ -61,6 +61,11 @@ const BusinessGST = () => {
         queryFn: () => billingService.getInvoices()
     });
 
+    const { data: dbInventory = [] } = useQuery({
+        queryKey: ['inventory'],
+        queryFn: () => inventoryService.getInventory()
+    });
+
     const { data: dbCustomersResponse = { data: [] } } = useQuery({
         queryKey: ['customers'],
         queryFn: () => crmService.getCustomers()
@@ -99,6 +104,22 @@ const BusinessGST = () => {
             setIsInvoiceModalOpen(false);
             setCustomerMode('existing');
             setSaveCustomerForFuture(false);
+            setInvoiceForm({
+                invoice_type: 'B2B',
+                place_of_supply: '33-Tamil Nadu',
+                taxable_value: '',
+                gst_percentage: 12,
+                reverse_charge: 'No',
+                client_name: '',
+                customer_gstin: '',
+                export_under_lut: 'No',
+                lut_document_path: '',
+                lut_file_name: '',
+                lut_uploaded_at: '',
+                lut_uploaded_by: '',
+                sender_product_name: '',
+                receiver_product_name: ''
+            });
             
             const invoiceNo = resData.invoice_number || 'N/A';
             const status = resData.status || 'Generated';
@@ -303,7 +324,9 @@ const BusinessGST = () => {
         lut_document_path: '',
         lut_file_name: '',
         lut_uploaded_at: '',
-        lut_uploaded_by: ''
+        lut_uploaded_by: '',
+        sender_product_name: '',
+        receiver_product_name: ''
     });
 
     const [isLutModalOpen, setIsLutModalOpen] = useState(false);
@@ -366,6 +389,12 @@ const BusinessGST = () => {
                 alert('Please upload a valid LUT document.');
             }
         }
+        if (!invoiceForm.sender_product_name || !invoiceForm.sender_product_name.trim()) {
+            errors.sender_product_name = 'Product Name is required.';
+        }
+        if (!invoiceForm.receiver_product_name || !invoiceForm.receiver_product_name.trim()) {
+            errors.receiver_product_name = 'Product Name is required.';
+        }
         
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
@@ -403,7 +432,9 @@ const BusinessGST = () => {
             lut_document_path: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_document_path : '',
             lut_file_name: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_file_name : '',
             lut_uploaded_at: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_at : '',
-            lut_uploaded_by: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_by : ''
+            lut_uploaded_by: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_by : '',
+            sender_product_name: invoiceForm.sender_product_name,
+            receiver_product_name: invoiceForm.receiver_product_name
         });
     };
 
@@ -1243,12 +1274,32 @@ const BusinessGST = () => {
 
                         <form onSubmit={handleGenerateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             {/* Sender (From) Section */}
-                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                                <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Sender (From)</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#0F172A' }}>
-                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>Company Name:</span> <span style={{ fontWeight: '750' }}>{gstProfile.legal_name || 'Saravana Stores Pvt Ltd'}</span></div>
-                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{gstProfile.gstin || '33ABCDE1234F1Z5'}</span></div>
-                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>State:</span> <span style={{ fontWeight: '750' }}>{gstProfile.place_of_business || 'Tamil Nadu'}</span></div>
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div>
+                                    <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Sender (From)</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#0F172A' }}>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>Company Name:</span> <span style={{ fontWeight: '750' }}>{gstProfile.legal_name || 'Saravana Stores Pvt Ltd'}</span></div>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{gstProfile.gstin || '33ABCDE1234F1Z5'}</span></div>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>State:</span> <span style={{ fontWeight: '750' }}>{gstProfile.place_of_business || 'Tamil Nadu'}</span></div>
+                                    </div>
+                                </div>
+                                <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name *</label>
+                                    <input 
+                                        list="sender-inventory-products"
+                                        required 
+                                        type="text" 
+                                        value={invoiceForm.sender_product_name} 
+                                        onChange={(e) => setInvoiceForm({ ...invoiceForm, sender_product_name: e.target.value })} 
+                                        placeholder="Select or enter Product Name"
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.sender_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                    />
+                                    <datalist id="sender-inventory-products">
+                                        {dbInventory.map(item => (
+                                            <option key={item.id} value={item.name} />
+                                        ))}
+                                    </datalist>
+                                    {validationErrors.sender_product_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.sender_product_name}</span>}
                                 </div>
                             </div>
 
@@ -1360,6 +1411,24 @@ const BusinessGST = () => {
                                             </label>
                                         </div>
                                     )}
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name *</label>
+                                        <input 
+                                            list="receiver-inventory-products"
+                                            required 
+                                            type="text" 
+                                            value={invoiceForm.receiver_product_name} 
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, receiver_product_name: e.target.value })} 
+                                            placeholder="Select or enter Product Name"
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.receiver_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                        />
+                                        <datalist id="receiver-inventory-products">
+                                            {dbInventory.map(item => (
+                                                <option key={item.id} value={item.name} />
+                                            ))}
+                                        </datalist>
+                                        {validationErrors.receiver_product_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.receiver_product_name}</span>}
+                                    </div>
                                 </div>
                             </div>
 
@@ -2064,12 +2133,18 @@ const BusinessGST = () => {
                                     <strong style={{ fontSize: '0.85rem', color: '#1E293B', display: 'block' }}>{selectedQrInvoice.sender_name}</strong>
                                     <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '0.1rem' }}>GSTIN: {selectedQrInvoice.sender_gstin}</span>
                                     <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>State: {selectedQrInvoice.sender_state}</span>
+                                    {selectedQrInvoice.sender_product_name && (
+                                        <span style={{ fontSize: '0.75rem', color: '#4F46E5', display: 'block', fontWeight: '700', marginTop: '0.25rem' }}>Product: {selectedQrInvoice.sender_product_name}</span>
+                                    )}
                                 </div>
                                 <div>
                                     <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>Buyer details</span>
                                     <strong style={{ fontSize: '0.85rem', color: '#1E293B', display: 'block' }}>{selectedQrInvoice.customer_name}</strong>
                                     <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '0.1rem' }}>GSTIN: {selectedQrInvoice.customer_gstin}</span>
                                     <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Supply Place: {selectedQrInvoice.customer_state}</span>
+                                    {selectedQrInvoice.receiver_product_name && (
+                                        <span style={{ fontSize: '0.75rem', color: '#4F46E5', display: 'block', fontWeight: '700', marginTop: '0.25rem' }}>Product: {selectedQrInvoice.receiver_product_name}</span>
+                                    )}
                                 </div>
                             </div>
 

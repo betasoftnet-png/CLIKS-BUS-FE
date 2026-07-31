@@ -92,12 +92,18 @@ const PublicInvoiceDetails = () => {
                             <strong style={{ fontSize: '1rem', color: '#1E293B', display: 'block' }}>{invoice.sender_name || 'N/A'}</strong>
                             <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0.4rem 0 0 0' }}>GSTIN: {invoice.sender_gstin || 'N/A'}</p>
                             <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0.2rem 0 0 0' }}>State: {invoice.sender_state || 'N/A'}</p>
+                            {invoice.sender_product_name && (
+                                <p style={{ color: '#047857', fontSize: '0.85rem', fontWeight: '700', margin: '0.4rem 0 0 0' }}>Product: {invoice.sender_product_name}</p>
+                            )}
                         </div>
                         <div>
                             <h3 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.75rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.4rem' }}>Buyer (To)</h3>
                             <strong style={{ fontSize: '1rem', color: '#1E293B', display: 'block' }}>{invoice.customer_name || invoice.client_name || 'N/A'}</strong>
                             <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0.4rem 0 0 0' }}>GSTIN: {invoice.customer_gstin || 'N/A'}</p>
                             <p style={{ color: '#475569', fontSize: '0.85rem', margin: '0.2rem 0 0 0' }}>Place of Supply: {invoice.place_of_supply || 'N/A'}</p>
+                            {invoice.receiver_product_name && (
+                                <p style={{ color: '#047857', fontSize: '0.85rem', fontWeight: '700', margin: '0.4rem 0 0 0' }}>Product: {invoice.receiver_product_name}</p>
+                            )}
                         </div>
                     </div>
 
