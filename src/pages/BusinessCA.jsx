@@ -208,11 +208,61 @@ export default function BusinessCA() {
     const [copiedUser, setCopiedUser] = useState(false);
     const [copiedPass, setCopiedPass] = useState(false);
 
-    const { data: gstCredentials = null } = useQuery({
-        queryKey: ['gstCredentials', selectedWorkpaperClientId],
-        queryFn: () => selectedWorkpaperClientId ? caService.getClientGstCredentials(selectedWorkpaperClientId) : Promise.resolve(null),
-        enabled: !!selectedWorkpaperClientId,
+    // CA access control states
+    const [showAccessConfirmModal, setShowAccessConfirmModal] = useState(false);
+    const [hasConfirmedGstAccess, setHasConfirmedGstAccess] = useState(false);
+    const [caShowGstPass, setCaShowGstPass] = useState(false);
+
+    const { data: gstCredentials = null, refetch: refetchGstCredentials } = useQuery({
+        queryKey: ['gstCredentials', selectedWorkpaperClientId, hasConfirmedGstAccess],
+        queryFn: () => (selectedWorkpaperClientId && hasConfirmedGstAccess) ? caService.getClientGstCredentials(selectedWorkpaperClientId) : Promise.resolve(null),
+        enabled: !!selectedWorkpaperClientId && hasConfirmedGstAccess,
         retry: false
+    });
+
+    // Reset access state when client selection changes
+    useEffect(() => {
+        setHasConfirmedGstAccess(false);
+        setIsGstCardExpanded(false);
+        setCaShowGstPass(false);
+    }, [selectedWorkpaperClientId]);
+
+    // Business Owner credentials states and queries
+    const [ownerGstUser, setOwnerGstUser] = useState('');
+    const [ownerGstPass, setOwnerGstPass] = useState('');
+    const [showOwnerGstPass, setShowOwnerGstPass] = useState(false);
+
+    const { data: ownerGstCreds, refetch: refetchOwnerGstCreds } = useQuery({
+        queryKey: ['ownerGstCredentials'],
+        queryFn: () => caService.getOwnerGstCredentials(),
+        retry: false
+    });
+
+    useEffect(() => {
+        if (ownerGstCreds) {
+            setOwnerGstUser(ownerGstCreds.gstUsername || '');
+            setOwnerGstPass(ownerGstCreds.gstPassword || '');
+        }
+    }, [ownerGstCreds]);
+
+    const saveOwnerGstMutation = useMutation({
+        mutationFn: (creds) => caService.saveOwnerGstCredentials(creds),
+        onSuccess: () => {
+            refetchOwnerGstCreds();
+            alert('GST Portal credentials saved and shared successfully!');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to save credentials')
+    });
+
+    const revokeOwnerGstMutation = useMutation({
+        mutationFn: () => caService.revokeOwnerGstCredentials(),
+        onSuccess: () => {
+            refetchOwnerGstCreds();
+            setOwnerGstUser('');
+            setOwnerGstPass('');
+            alert('GST Portal credentials access revoked successfully.');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to revoke access')
     });
 
     const handleCopyUser = (val) => {
@@ -1470,6 +1520,99 @@ export default function BusinessCA() {
                                             ))}
                                         </div>
                                     </div>
+
+                                    {/* 🔐 GST Portal Credentials (Private Sharing) */}
+                                    <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        <div>
+                                            <div style={{ fontSize: '13.5px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                🔐 GST Portal Credentials (Private Sharing)
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>
+                                                Only your connected Chartered Accountant can access these credentials after you choose to share them.
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', alignItems: 'end' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter GST login email or username"
+                                                    value={ownerGstUser}
+                                                    onChange={(e) => setOwnerGstUser(e.target.value)}
+                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                />
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
+                                                <input
+                                                    type={showOwnerGstPass ? 'text' : 'password'}
+                                                    placeholder="Enter GST password"
+                                                    value={ownerGstPass}
+                                                    onChange={(e) => setOwnerGstPass(e.target.value)}
+                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showOwnerGstPass}
+                                                    onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
+                                                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                                />
+                                                Show Password
+                                            </label>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
+                                                <span>Status:</span>
+                                                {(ownerGstCreds?.gstUsername && ownerGstCreds?.gstPassword) ? (
+                                                    <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
+                                                        Shared with Connected CA
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
+                                                        Not Shared
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
+                                                        alert('Both Username/Email and Password are required to share.');
+                                                        return;
+                                                    }
+                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim() });
+                                                }}
+                                                style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                Save & Share with CA
+                                            </button>
+
+                                            {(ownerGstCreds?.gstUsername || ownerGstCreds?.gstPassword) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (confirm('Are you sure you want to revoke GST credentials access? Your CA will no longer be able to view them.')) {
+                                                            revokeOwnerGstMutation.mutate();
+                                                        }
+                                                    }}
+                                                    style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                >
+                                                    Revoke Sharing
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             ))
                         )}
@@ -2637,7 +2780,13 @@ export default function BusinessCA() {
                                                         }}>
                                                             <div 
                                                                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} 
-                                                                onClick={() => setIsGstCardExpanded(!isGstCardExpanded)}
+                                                                onClick={() => {
+                                                                    if (!hasConfirmedGstAccess) {
+                                                                        setShowAccessConfirmModal(true);
+                                                                    } else {
+                                                                        setIsGstCardExpanded(!isGstCardExpanded);
+                                                                    }
+                                                                }}
                                                             >
                                                                 <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                     🔑 GST Portal Credentials
@@ -2662,78 +2811,144 @@ export default function BusinessCA() {
                                                                 </span>
                                                             </div>
                                                             
-                                                            <AnimatePresence>
-                                                                {isGstCardExpanded && (
-                                                                    <Motion.div 
-                                                                        initial={{ opacity: 0, height: 0 }} 
-                                                                        animate={{ opacity: 1, height: 'auto' }} 
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        transition={{ duration: 0.2 }}
-                                                                        style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}
+                                                            {!hasConfirmedGstAccess ? (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '16px 0', textAlign: 'center' }}>
+                                                                    <span style={{ fontSize: '12.5px', fontWeight: '750', color: '#64748B' }}>GST Account Credentials</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowAccessConfirmModal(true)}
+                                                                        style={{ padding: '8px 16px', background: '#F1F5F9', color: '#0F172A', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                                                                     >
-                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                                <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Portal</span>
-                                                                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>https://www.gst.gov.in</span>
-                                                                            </div>
-                                                                            
-                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
-                                                                                <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Login Email</span>
-                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                                                    <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A', wordBreak: 'break-all' }}>santhosh@bnxmail.com</span>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => handleCopyUser('santhosh@bnxmail.com')}
-                                                                                        style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                                                                    >
-                                                                                        {copiedUser ? 'Copied!' : 'Copy'}
-                                                                                    </button>
+                                                                        💡 View Credentials
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <AnimatePresence>
+                                                                    {isGstCardExpanded && (
+                                                                        <Motion.div 
+                                                                            initial={{ opacity: 0, height: 0 }} 
+                                                                            animate={{ opacity: 1, height: 'auto' }} 
+                                                                            exit={{ opacity: 0, height: 0 }}
+                                                                            transition={{ duration: 0.2 }}
+                                                                            style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}
+                                                                        >
+                                                                            {(!gstCredentials || (!gstCredentials.gstUsername && !gstCredentials.gstPassword)) ? (
+                                                                                <p style={{ fontSize: '12.5px', color: '#64748B', fontStyle: 'italic', margin: 0 }}>
+                                                                                    GST Portal credentials have not been provided by the Business Owner.
+                                                                                </p>
+                                                                            ) : (
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                                        <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Portal</span>
+                                                                                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>https://www.gst.gov.in</span>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                                                                                        <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Username / Email</span>
+                                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                                            <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A', wordBreak: 'break-all' }}>{gstCredentials.gstUsername}</span>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleCopyUser(gstCredentials.gstUsername)}
+                                                                                                style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                            >
+                                                                                                {copiedUser ? 'Copied!' : 'Copy'}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                                                                                        <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Password</span>
+                                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                                            <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A' }}>
+                                                                                                {caShowGstPass ? gstCredentials.gstPassword : '••••••••••••••'}
+                                                                                            </span>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleCopyPass(gstCredentials.gstPassword)}
+                                                                                                style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                            >
+                                                                                                {copiedPass ? 'Copied!' : 'Copy'}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none', marginTop: '4px' }}>
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={caShowGstPass}
+                                                                                                onChange={() => setCaShowGstPass(!caShowGstPass)}
+                                                                                                style={{ width: '14px', height: '14px', cursor: 'pointer' }}
+                                                                                            />
+                                                                                            Show Password
+                                                                                        </label>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
+                                                                                        <a
+                                                                                            href="https://www.gst.gov.in"
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            style={{ 
+                                                                                                display: 'flex', 
+                                                                                                width: '100%', 
+                                                                                                alignItems: 'center', 
+                                                                                                justifyContent: 'center', 
+                                                                                                padding: '8px 16px', 
+                                                                                                background: '#15803d', 
+                                                                                                color: '#FFFFFF', 
+                                                                                                border: 'none', 
+                                                                                                borderRadius: '8px', 
+                                                                                                fontSize: '12.5px', 
+                                                                                                fontWeight: '800', 
+                                                                                                cursor: 'pointer', 
+                                                                                                textDecoration: 'none',
+                                                                                                boxSizing: 'border-box'
+                                                                                            }}
+                                                                                        >
+                                                                                            🌐 Open GST Portal
+                                                                                        </a>
+                                                                                    </div>
                                                                                 </div>
-                                                                            </div>
-                                                                            
-                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
-                                                                                <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Password</span>
-                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                                                    <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A' }}>Santhosh-2004</span>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => handleCopyPass('Santhosh-2004')}
-                                                                                        style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                                                                    >
-                                                                                        {copiedPass ? 'Copied!' : 'Copy'}
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                                
-                                                                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
-                                                                                    <a
-                                                                                        href="https://www.gst.gov.in"
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        style={{ 
-                                                                                            display: 'flex', 
-                                                                                            width: '100%', 
-                                                                                            alignItems: 'center', 
-                                                                                            justifyContent: 'center', 
-                                                                                            padding: '8px 16px', 
-                                                                                            background: '#15803d', 
-                                                                                            color: '#FFFFFF', 
-                                                                                            border: 'none', 
-                                                                                            borderRadius: '8px', 
-                                                                                            fontSize: '12.5px', 
-                                                                                            fontWeight: '800', 
-                                                                                            cursor: 'pointer', 
-                                                                                            textDecoration: 'none',
-                                                                                            boxSizing: 'border-box'
-                                                                                        }}
-                                                                                    >
-                                                                                        🌐 Open GST Portal
-                                                                                    </a>
-                                                                                </div>
-                                                                            </div>
-                                                                    </Motion.div>
-                                                                )}
-                                                            </AnimatePresence>
+                                                                            )}
+                                                                        </Motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Access Logging Confirmation Modal */}
+                                                        {showAccessConfirmModal && (
+                                                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '95%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                        <span style={{ fontSize: '24px' }}>🛡</span>
+                                                                        <h4 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>Security Confirmation</h4>
+                                                                    </div>
+                                                                    <p style={{ fontSize: '13.5px', color: '#475569', margin: 0, lineHeight: '1.5', fontWeight: '600' }}>
+                                                                        This action is logged. Do you want to view the client's GST credentials?
+                                                                    </p>
+                                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setShowAccessConfirmModal(false)}
+                                                                            style={{ padding: '8px 16px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer' }}
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setShowAccessConfirmModal(false);
+                                                                                setHasConfirmedGstAccess(true);
+                                                                                setIsGstCardExpanded(true);
+                                                                            }}
+                                                                            style={{ padding: '8px 16px', background: '#15803d', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#FFFFFF', cursor: 'pointer' }}
+                                                                        >
+                                                                            View
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                         </div>
                                                     </div>
                                                 </div>
