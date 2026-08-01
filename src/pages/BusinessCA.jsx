@@ -128,6 +128,7 @@ export default function BusinessCA() {
     const { data: practiceClients = [], refetch: refetchClients } = useQuery({
         queryKey: ['practiceClients'],
         queryFn: () => caService.getClients(),
+        refetchInterval: 2000,
         retry: false
     });
 
@@ -141,6 +142,7 @@ export default function BusinessCA() {
     const { data: practiceRequests = [], refetch: refetchRequests } = useQuery({
         queryKey: ['practiceRequests'],
         queryFn: () => caService.getRequests(),
+        refetchInterval: 2000,
         retry: false
     });
 
@@ -157,6 +159,7 @@ export default function BusinessCA() {
     const { data: practiceTasks = [], refetch: refetchTasks } = useQuery({
         queryKey: ['practiceTasks'],
         queryFn: () => caService.getTasks(),
+        refetchInterval: 2000,
         retry: false
     });
 
@@ -197,8 +200,32 @@ export default function BusinessCA() {
         queryKey: ['clientDocuments', selectedWorkpaperClientId],
         queryFn: () => selectedWorkpaperClientId ? caService.getClientDocuments(selectedWorkpaperClientId) : Promise.resolve([]),
         enabled: !!selectedWorkpaperClientId,
+        refetchInterval: 2000,
         retry: false
     });
+
+    const [isGstCardExpanded, setIsGstCardExpanded] = useState(false);
+    const [copiedUser, setCopiedUser] = useState(false);
+    const [copiedPass, setCopiedPass] = useState(false);
+
+    const { data: gstCredentials = null } = useQuery({
+        queryKey: ['gstCredentials', selectedWorkpaperClientId],
+        queryFn: () => selectedWorkpaperClientId ? caService.getClientGstCredentials(selectedWorkpaperClientId) : Promise.resolve(null),
+        enabled: !!selectedWorkpaperClientId,
+        retry: false
+    });
+
+    const handleCopyUser = (val) => {
+        navigator.clipboard.writeText(val || '');
+        setCopiedUser(true);
+        setTimeout(() => setCopiedUser(false), 1500);
+    };
+
+    const handleCopyPass = (val) => {
+        navigator.clipboard.writeText(val || '');
+        setCopiedPass(true);
+        setTimeout(() => setCopiedPass(false), 1500);
+    };
 
     const updateDocumentReviewMutation = useMutation({
         mutationFn: ({ documentId, status, remark }) => 
@@ -433,12 +460,14 @@ export default function BusinessCA() {
     const { data: outgoingInvitations = [], refetch: refetchOutgoing } = useQuery({
         queryKey: ['caInvitationsOutgoing'],
         queryFn: () => caService.getOutgoingInvitations(),
+        refetchInterval: 2000,
         retry: false
     });
 
     const { data: incomingInvitations = [], refetch: refetchIncoming } = useQuery({
         queryKey: ['caInvitationsIncoming'],
         queryFn: () => caService.getIncomingInvitations(),
+        refetchInterval: 2000,
         retry: false
     });
 
@@ -920,16 +949,16 @@ export default function BusinessCA() {
                                                                                 padding: '6px 12px',
                                                                                 borderRadius: '8px',
                                                                                 border: '1.5px solid',
-                                                                                borderColor: task.status === 'Completed' ? '#BBF7D0' : (task.status === 'In Progress' ? '#BFDBFE' : '#CBD5E1'),
-                                                                                background: task.status === 'Completed' ? '#F0FDF4' : (task.status === 'In Progress' ? '#EFF6FF' : 'transparent'),
-                                                                                color: task.status === 'Completed' ? '#15803d' : (task.status === 'In Progress' ? '#1D4ED8' : '#475569'),
+                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified') ? '#BBF7D0' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#BFDBFE' : '#CBD5E1'),
+                                                                                background: (task.status === 'Completed' || task.status === 'Verified') ? '#F0FDF4' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#EFF6FF' : 'transparent'),
+                                                                                color: (task.status === 'Completed' || task.status === 'Verified') ? '#15803d' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#1D4ED8' : '#475569'),
                                                                                 fontWeight: '800',
                                                                                 fontSize: '12px',
                                                                                 cursor: 'pointer',
                                                                                 transition: 'all 0.2s'
                                                                             }}
                                                                         >
-                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')}
+                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))}
                                                                         </button>
                                                                         {task.askForDocument && (
                                                                             task.attachedFile ? (
@@ -1958,16 +1987,16 @@ export default function BusinessCA() {
                                                                     padding: '6px 12px',
                                                                     borderRadius: '8px',
                                                                     border: '1.5px solid',
-                                                                    borderColor: task.status === 'Completed' ? '#BBF7D0' : (task.status === 'In Progress' ? '#BFDBFE' : '#CBD5E1'),
-                                                                    background: task.status === 'Completed' ? '#F0FDF4' : (task.status === 'In Progress' ? '#EFF6FF' : 'transparent'),
-                                                                    color: task.status === 'Completed' ? '#15803d' : (task.status === 'In Progress' ? '#1D4ED8' : '#475569'),
+                                                                    borderColor: (task.status === 'Completed' || task.status === 'Verified') ? '#BBF7D0' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#BFDBFE' : '#CBD5E1'),
+                                                                    background: (task.status === 'Completed' || task.status === 'Verified') ? '#F0FDF4' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#EFF6FF' : 'transparent'),
+                                                                    color: (task.status === 'Completed' || task.status === 'Verified') ? '#15803d' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#1D4ED8' : '#475569'),
                                                                     fontWeight: '800',
                                                                     fontSize: '12px',
                                                                     cursor: 'pointer',
                                                                     transition: 'all 0.2s'
                                                                 }}
                                                             >
-                                                                {task.status === 'Completed' ? '✓ Completed' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')}
+                                                                {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))}
                                                             </button>
                                                         </td>
                                                     </tr>
@@ -2578,18 +2607,139 @@ export default function BusinessCA() {
                                                              </button>
                                                         </div>
                                                     </div>
-                                                    {/* Progress widget */}
-                                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center', alignItems: 'center' }}>
-                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, width: '100%' }}>📊 Audit Completion Progress</h3>
-                                                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#F0FDF4', border: '6px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <span style={{ fontSize: '24px', fontWeight: '950', color: '#15803d' }}>{percentage}%</span>
+                                                    {/* Right Column */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                                        {/* Progress widget */}
+                                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'center', alignItems: 'center' }}>
+                                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, width: '100%' }}>📊 Audit Completion Progress</h3>
+                                                            <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#F0FDF4', border: '6px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <span style={{ fontSize: '24px', fontWeight: '950', color: '#15803d' }}>{percentage}%</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                <div style={{ fontSize: '13.5px', fontWeight: '850', color: '#0F172A' }}>{doneCount} of {checkItems.length} Procedures Complete</div>
+                                                                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>All steps must be checked before generating reports.</span>
+                                                            </div>
+                                                            <div style={{ width: '100%', height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' }}>
+                                                                <div style={{ width: `${percentage}%`, height: '100%', background: '#15803d', transition: 'width 0.3s ease' }} />
+                                                            </div>
                                                         </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                            <div style={{ fontSize: '13.5px', fontWeight: '850', color: '#0F172A' }}>{doneCount} of {checkItems.length} Procedures Complete</div>
-                                                            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>All steps must be checked before generating reports.</span>
-                                                        </div>
-                                                        <div style={{ width: '100%', height: '8px', background: '#F1F5F9', borderRadius: '4px', overflow: 'hidden' }}>
-                                                            <div style={{ width: `${percentage}%`, height: '100%', background: '#15803d', transition: 'width 0.3s ease' }} />
+
+                                                        {/* GST Portal Credentials card */}
+                                                        <div style={{ 
+                                                            background: '#FFFFFF', 
+                                                            padding: '24px', 
+                                                            borderRadius: '16px', 
+                                                            border: '1px solid #E2E8F0', 
+                                                            height: 'fit-content', 
+                                                            display: 'flex', 
+                                                            flexDirection: 'column', 
+                                                            transition: 'all 0.3s ease'
+                                                        }}>
+                                                            <div 
+                                                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} 
+                                                                onClick={() => setIsGstCardExpanded(!isGstCardExpanded)}
+                                                            >
+                                                                <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    🔑 GST Portal Credentials
+                                                                </h3>
+                                                                <span 
+                                                                    style={{ 
+                                                                        fontSize: '16px', 
+                                                                        cursor: 'pointer', 
+                                                                        userSelect: 'none',
+                                                                        background: '#F1F5F9',
+                                                                        width: '28px',
+                                                                        height: '28px',
+                                                                        borderRadius: '50%',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        transition: 'background 0.2s'
+                                                                    }}
+                                                                    title="Toggle Details"
+                                                                >
+                                                                    💡
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <AnimatePresence>
+                                                                {isGstCardExpanded && (
+                                                                    <Motion.div 
+                                                                        initial={{ opacity: 0, height: 0 }} 
+                                                                        animate={{ opacity: 1, height: 'auto' }} 
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        transition={{ duration: 0.2 }}
+                                                                        style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}
+                                                                    >
+                                                                        {(!gstCredentials || (!gstCredentials.gstUsername && !gstCredentials.gstPassword)) ? (
+                                                                            <p style={{ fontSize: '12.5px', color: '#64748B', fontStyle: 'italic', margin: 0 }}>
+                                                                                GST Portal credentials have not been provided by the Business Owner.
+                                                                            </p>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Portal</span>
+                                                                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>https://www.gst.gov.in</span>
+                                                                                </div>
+                                                                                
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Username / Email</span>
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                                        <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A', wordBreak: 'break-all' }}>{gstCredentials.gstUsername}</span>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleCopyUser(gstCredentials.gstUsername)}
+                                                                                            style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                        >
+                                                                                            {copiedUser ? 'Copied!' : 'Copy'}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                                
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Password</span>
+                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                                        <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A' }}>{gstCredentials.gstPassword}</span>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleCopyPass(gstCredentials.gstPassword)}
+                                                                                            style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                        >
+                                                                                            {copiedPass ? 'Copied!' : 'Copy'}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                                
+                                                                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
+                                                                                    <a
+                                                                                        href="https://www.gst.gov.in"
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        style={{ 
+                                                                                            display: 'flex', 
+                                                                                            width: '100%', 
+                                                                                            alignItems: 'center', 
+                                                                                            justifyContent: 'center', 
+                                                                                            padding: '8px 16px', 
+                                                                                            background: '#15803d', 
+                                                                                            color: '#FFFFFF', 
+                                                                                            border: 'none', 
+                                                                                            borderRadius: '8px', 
+                                                                                            fontSize: '12.5px', 
+                                                                                            fontWeight: '800', 
+                                                                                            cursor: 'pointer', 
+                                                                                            textDecoration: 'none',
+                                                                                            boxSizing: 'border-box'
+                                                                                        }}
+                                                                                    >
+                                                                                        🌐 Open GST Portal
+                                                                                    </a>
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </Motion.div>
+                                                                )}
+                                                            </AnimatePresence>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2638,8 +2788,8 @@ export default function BusinessCA() {
                                                                                 <td style={{ padding: '14px 16px' }}>
                                                                                     <span style={{
                                                                                         fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '20px',
-                                                                                        background: doc.status === 'Approved' ? '#DCFCE7' : doc.status === 'Rejected' ? '#FEE2E2' : '#FEF9C3',
-                                                                                        color: doc.status === 'Approved' ? '#15803d' : doc.status === 'Rejected' ? '#991B1B' : '#A16207'
+                                                                                        background: (doc.status === 'Approved' || doc.status === 'Verified') ? '#DCFCE7' : doc.status === 'Rejected' ? '#FEE2E2' : '#FEF9C3',
+                                                                                        color: (doc.status === 'Approved' || doc.status === 'Verified') ? '#15803d' : doc.status === 'Rejected' ? '#991B1B' : '#A16207'
                                                                                     }}>{doc.status.toUpperCase()}</span>
                                                                                 </td>
                                                                                 <td style={{ padding: '14px 16px', textAlign: 'right' }}>
@@ -2671,7 +2821,7 @@ export default function BusinessCA() {
                                                                                         >
                                                                                             Remark
                                                                                         </button>
-                                                                                        {doc.status !== 'Approved' && (
+                                                                                        {(doc.status !== 'Approved' && doc.status !== 'Verified') && (
                                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' })}
