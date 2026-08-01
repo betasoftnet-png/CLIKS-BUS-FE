@@ -264,23 +264,43 @@ export default function BusinessCA() {
     }, [ownerGstCreds]);
 
     const saveOwnerGstMutation = useMutation({
-        mutationFn: (creds) => caService.saveOwnerGstCredentials(creds),
+        mutationFn: async (creds) => {
+            try {
+                const response = await caService.saveOwnerGstCredentials(creds);
+                if (!response) {
+                    throw new Error('Server returned an empty response.');
+                }
+                return response;
+            } catch (err) {
+                throw err?.message ? err : new Error('Unable to save GST credentials. Please try again.');
+            }
+        },
         onSuccess: () => {
             refetchOwnerGstCreds();
             alert('GST Portal credentials saved and shared successfully!');
         },
-        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to save credentials')
+        onError: (err) => alert(err?.response?.data?.message || err?.message || 'Failed to save credentials')
     });
 
     const revokeOwnerGstMutation = useMutation({
-        mutationFn: () => caService.revokeOwnerGstCredentials(),
+        mutationFn: async () => {
+            try {
+                const response = await caService.revokeOwnerGstCredentials();
+                if (!response) {
+                    throw new Error('Server returned an empty response.');
+                }
+                return response;
+            } catch (err) {
+                throw err?.message ? err : new Error('Unable to revoke GST credentials. Please try again.');
+            }
+        },
         onSuccess: () => {
             refetchOwnerGstCreds();
             setOwnerGstUser('');
             setOwnerGstPass('');
             alert('GST Portal credentials access revoked successfully.');
         },
-        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to revoke access')
+        onError: (err) => alert(err?.response?.data?.message || err?.message || 'Failed to revoke access')
     });
 
     const handleCopyUser = (val) => {
