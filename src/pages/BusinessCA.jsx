@@ -353,8 +353,7 @@ export default function BusinessCA() {
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'documents', label: 'Documents', icon: Folder },
-        { id: 'reports', label: 'Reports', icon: BarChart }
+        { id: 'documents', label: 'Documents', icon: Folder }
     ];
 
     // Timer Effect
@@ -1794,7 +1793,9 @@ export default function BusinessCA() {
 
                         {sidebarTabs.map((tab) => {
                             const TabIcon = tab.icon;
-                            const isActive = personalTab === tab.id;
+                            const isActive = personalTab === tab.id ||
+                                (tab.id === 'clients' && personalTab === 'requests') ||
+                                (tab.id === 'teams' && personalTab === 'team_requests');
                             return (
                                 <button
                                     key={tab.id}
@@ -2297,9 +2298,6 @@ export default function BusinessCA() {
                                                             }}>{task.priority}</span>
                                                         </td>
                                                         <td style={{ padding: '16px 20px' }}>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => toggleTaskStatus(task.id)}
                                                              <button 
                                                                  type="button"
                                                                  onClick={() => toggleTaskStatus(task.id)}
