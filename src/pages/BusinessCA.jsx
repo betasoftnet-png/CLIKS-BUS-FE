@@ -6,7 +6,7 @@ import {
     RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock, 
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
-    Eye, Download, MessageSquare, History, X
+    Calculator, History, Info, Save, X, ChevronDown, Check
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency } from '../context';
@@ -177,14 +177,6 @@ export default function BusinessCA() {
         retry: false
     });
 
-    // Timer States
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [timerSeconds, setTimerSeconds] = useState(0);
-    const [timerClient, setTimerClient] = useState('Rohan Sharma');
-    const [timerTask, setTimerTask] = useState('');
-
-    const [activeClientSearch, setActiveClientSearch] = useState('');
-
     const { data: practiceFolders = [], refetch: refetchFolders } = useQuery({
         queryKey: ['practiceFolders'],
         queryFn: () => caService.getFolders(),
@@ -219,6 +211,103 @@ export default function BusinessCA() {
     const [showVersionModal, setShowVersionModal] = useState(false);
 
     const [previewFile, setPreviewFile] = useState(null);
+
+    // --- TDS Calculator & History States ---
+    const [showTdsCalculator, setShowTdsCalculator] = useState(false);
+    const [showTdsHistory, setShowTdsHistory] = useState(false);
+    const [tdsFormData, setTdsTformData] = useState({
+        financialYear: '2026-27',
+        residentialStatus: 'Resident',
+        recipientCategory: 'Individual/HUF',
+        panNotAvailable: false,
+        section: '194C - Contractor (Single)',
+        amount: '',
+        paymentDate: new Date().toISOString().split('T')[0],
+        surchargeRate: 'Nil'
+    });
+    const [calculatedTdsResult, setCalculatedTdsResult] = useState(null);
+    const [isEditingTdsId, setIsEditingTdsId] = useState(null);
+
+    const { data: tdsHistory = [], refetch: refetchTdsHistory } = useQuery({
+        queryKey: ['tdsHistory'],
+        queryFn: () => caService.getTdsHistory(),
+        enabled: personalTab === 'workpaper' || personalTab === 'home',
+        retry: false
+    });
+
+    const saveTdsMutation = useMutation({
+        mutationFn: (data) => isEditingTdsId
+            ? caService.updateTdsCalculation(isEditingTdsId, data)
+            : caService.saveTdsCalculation(data),
+        onSuccess: () => {
+            refetchTdsHistory();
+            setShowTdsCalculator(false);
+            setIsEditingTdsId(null);
+            alert(isEditingTdsId ? 'TDS calculation updated!' : 'TDS calculation saved to history!');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to save TDS calculation')
+    });
+
+    const deleteTdsMutation = useMutation({
+        mutationFn: (id) => caService.deleteTdsCalculation(id),
+        onSuccess: () => {
+            refetchTdsHistory();
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to delete record')
+    });
+
+    const calculateTdsValue = () => {
+        const amt = parseFloat(tdsFormData.amount) || 0;
+        let rate = 0.10; // Placeholder 10%
+
+        if (tdsFormData.section.includes('194C')) {
+            rate = tdsFormData.recipientCategory === 'Individual/HUF' ? 0.01 : 0.02;
+        } else if (tdsFormData.section.includes('194J')) {
+            rate = 0.10;
+        } else if (tdsFormData.section.includes('194H')) {
+            rate = 0.05;
+        } else if (tdsFormData.section.includes('194I')) {
+            rate = tdsFormData.section.includes('Plant/Machinery') ? 0.02 : 0.10;
+        }
+
+        if (tdsFormData.panNotAvailable) rate = 0.20;
+
+        const tds = amt * rate;
+        setCalculatedTdsResult({
+            baseAmount: amt,
+            rate: (rate * 100).toFixed(1) + '%',
+            tdsAmount: tds,
+            totalPayable: amt - tds
+        });
+    };
+
+    // Timer States
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [timerSeconds, setTimerSeconds] = useState(0);
+    const [timerClient, setTimerClient] = useState('Rohan Sharma');
+    const [timerTask, setTimerTask] = useState('');
+
+    const [activeClientSearch, setActiveClientSearch] = useState('');
+
+    const { data: practiceFolders = [], refetch: refetchFolders } = useQuery({
+        queryKey: ['practiceFolders'],
+        queryFn: () => caService.getFolders(),
+        retry: false
+    });
+
+    const { data: practiceFiles = [], refetch: refetchFiles } = useQuery({
+        queryKey: ['practiceFiles'],
+        queryFn: () => caService.getFiles(),
+        retry: false
+    });
+
+    const { data: clientDocuments = [], refetch: refetchClientDocuments } = useQuery({
+        queryKey: ['clientDocuments', selectedWorkpaperClientId],
+        queryFn: () => selectedWorkpaperClientId ? caService.getClientDocuments(selectedWorkpaperClientId) : Promise.resolve([]),
+        enabled: !!selectedWorkpaperClientId,
+        refetchInterval: 2000,
+        retry: false
+    });
 
     const [isGstCardExpanded, setIsGstCardExpanded] = useState(false);
     const [copiedUser, setCopiedUser] = useState(false);
@@ -342,8 +431,6 @@ export default function BusinessCA() {
             caService.updateClientDocumentReview(selectedWorkpaperClientId, { documentId, status, remark }),
         onSuccess: () => {
             refetchClientDocuments();
-            setShowReviewModal(false);
-            alert('Review notes saved successfully and notified to client.');
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to update review')
     });
@@ -367,8 +454,10 @@ export default function BusinessCA() {
     const sidebarTabs = [
         { id: 'home', label: 'Home', icon: Home },
         { id: 'clients', label: 'Clients', icon: User, badge: null },
+        { id: 'requests', label: 'Client Requests', icon: HelpCircle, badge: null },
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
+        { id: 'team_requests', label: 'Team Requests', icon: UserCheck, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
         { id: 'documents', label: 'Documents', icon: Folder }
@@ -988,22 +1077,6 @@ export default function BusinessCA() {
                                                 <CheckCircle2 size={20} style={{ color: '#004aad' }} />
                                                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 FIN-PRO-Assigned Compliance Checklist</h3>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Pending Uploads</span>
-                                                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status === 'Pending').length}</span>
-                                                </div>
-                                                <div style={{ width: '1px', height: '24px', background: '#E2E8F0' }} />
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Documents Returned</span>
-                                                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#D97706' }}>{practiceTasks.filter(t => t.status === 'Needs Correction' || t.status === 'Rejected').length}</span>
-                                                </div>
-                                                <div style={{ width: '1px', height: '24px', background: '#E2E8F0' }} />
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Approved Docs</span>
-                                                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#15803d' }}>{practiceTasks.filter(t => t.status === 'Approved' || t.status === 'Verified').length}</span>
-                                                </div>
-                                            </div>
                                         </div>
 
                                         <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
@@ -1058,86 +1131,51 @@ export default function BusinessCA() {
                                                                                 padding: '6px 12px',
                                                                                 borderRadius: '8px',
                                                                                 border: '1.5px solid',
-                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#BFDBFE' : '#CBD5E1'),
-                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#EFF6FF' : 'transparent'),
-                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#1D4ED8' : '#475569'),
+                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
+                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
+                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
                                                                                 fontWeight: '800',
                                                                                 fontSize: '12px',
                                                                                 cursor: 'pointer',
                                                                                 transition: 'all 0.2s'
                                                                             }}
                                                                         >
-                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'Needs Correction' ? '⚠️ Needs Correction' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending'))))))}
+                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
                                                                         </button>
                                                                         {task.askForDocument && (
-                                                                            (task.status === 'Needs Correction' || task.status === 'Rejected') ? (
-                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                                    <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                                                                                        <input
-                                                                                            type="file"
-                                                                                            style={{ display: 'none' }}
-                                                                                            onChange={(e) => {
-                                                                                                if (e.target.files && e.target.files.length > 0) {
-                                                                                                    uploadTaskDocMutation.mutate(task.id);
-                                                                                                }
-                                                                                            }}
-                                                                                        />
-                                                                                        <span
-                                                                                            style={{
-                                                                                                padding: '6px 12px',
-                                                                                                borderRadius: '8px',
-                                                                                                background: '#EF4444',
-                                                                                                color: '#FFFFFF',
-                                                                                                border: 'none',
-                                                                                                fontWeight: '800',
-                                                                                                fontSize: '12px',
-                                                                                                display: 'inline-block'
-                                                                                            }}
-                                                                                        >
-                                                                                            Upload Revised Document
-                                                                                        </span>
-                                                                                    </label>
-                                                                                </div>
+                                                                            task.attachedFile ? (
+                                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                    <CheckCircle2 size={14} /> Uploaded
+                                                                                </span>
                                                                             ) : (
-                                                                                task.attachedFile ? (
-                                                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                                        <CheckCircle2 size={14} /> Uploaded
+                                                                                <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                    <input
+                                                                                        type="file"
+                                                                                        style={{ display: 'none' }}
+                                                                                        onChange={(e) => {
+                                                                                            if (e.target.files && e.target.files.length > 0) {
+                                                                                                uploadTaskDocMutation.mutate(task.id);
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                    <span
+                                                                                        style={{
+                                                                                            padding: '6px 12px',
+                                                                                            borderRadius: '8px',
+                                                                                            background: '#0F172A',
+                                                                                            color: '#FFFFFF',
+                                                                                            border: 'none',
+                                                                                            fontWeight: '800',
+                                                                                            fontSize: '12px',
+                                                                                            display: 'inline-block'
+                                                                                        }}
+                                                                                    >
+                                                                                        Upload Document
                                                                                     </span>
-                                                                                ) : (
-                                                                                    <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                                                                                        <input
-                                                                                            type="file"
-                                                                                            style={{ display: 'none' }}
-                                                                                            onChange={(e) => {
-                                                                                                if (e.target.files && e.target.files.length > 0) {
-                                                                                                    uploadTaskDocMutation.mutate(task.id);
-                                                                                                }
-                                                                                            }}
-                                                                                        />
-                                                                                        <span
-                                                                                            style={{
-                                                                                                padding: '6px 12px',
-                                                                                                borderRadius: '8px',
-                                                                                                background: '#0F172A',
-                                                                                                color: '#FFFFFF',
-                                                                                                border: 'none',
-                                                                                                fontWeight: '800',
-                                                                                                fontSize: '12px',
-                                                                                                display: 'inline-block'
-                                                                                            }}
-                                                                                        >
-                                                                                            Upload Document
-                                                                                        </span>
-                                                                                    </label>
-                                                                                )
+                                                                                </label>
                                                                             )
                                                                         )}
                                                                     </div>
-                                                                    {task.taskDescription !== task.title && (
-                                                                        <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: '700', marginTop: '4px', background: '#FEF2F2', padding: '6px 10px', borderRadius: '6px', border: '1px solid #FEE2E2' }}>
-                                                                            Note: {task.taskDescription}
-                                                                        </div>
-                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -1891,6 +1929,11 @@ export default function BusinessCA() {
                                     <TabIcon size={16} style={{ color: isActive ? '#15803d' : '#64748B' }} />
                                     <span>{tab.label}</span>
                                     {/* Dynamic Badges */}
+                                    {tab.id === 'requests' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
+                                        </span>
+                                    )}
                                     {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length > 0 && (
                                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
                                             {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
@@ -1915,24 +1958,24 @@ export default function BusinessCA() {
                                     {/* Stats grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Pending Review</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#D97706' }}>{practiceTasks.filter(t => t.status === 'Uploaded' || t.status === 'Under Review').length}</div>
-                                            <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '600' }}>Documents to verify</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Total Practice Clients</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{allPracticeClients.length}</div>
+                                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>Active Taxpayers Portal</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Awaiting Client Upload</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status === 'Pending').length}</div>
-                                            <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>Outbound requests pending</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Awaiting Client Uploads</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#D97706' }}>{practiceRequests.filter(r => r.status === 'Awaiting Client').length}</div>
+                                            <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '600' }}>Outbound requests pending</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Approved Today</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#15803d' }}>{practiceTasks.filter(t => t.status === 'Approved' || t.status === 'Verified').length}</div>
-                                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>Audit steps finalized</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Open Compliance Tasks</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}</div>
+                                            <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>Filing checklist items</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Needs Correction</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284C7' }}>{practiceTasks.filter(t => t.status === 'Needs Correction').length}</div>
-                                            <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '600' }}>Returned to client</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Timesheet Records</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284C7' }}>{practiceTimesheets.length}</div>
+                                            <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '600' }}>Logged consulting blocks</span>
                                         </div>
                                     </div>
 
@@ -2054,47 +2097,9 @@ export default function BusinessCA() {
                                                 style={{ width: '100%', border: 'none', outline: 'none', fontSize: '13.5px', fontWeight: '600', color: '#0F172A' }}
                                             />
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <button
-                                                onClick={() => setPersonalTab('requests')}
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    background: '#FFFFFF',
-                                                    color: '#475569',
-                                                    border: '1px solid #E2E8F0',
-                                                    borderRadius: '8px',
-                                                    fontSize: '13px',
-                                                    fontWeight: '750',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#0F172A'; }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#475569'; }}
-                                            >
-                                                <HelpCircle size={16} />
-                                                Client Requests
-                                                {practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
-                                                    <span style={{
-                                                        fontSize: '10px',
-                                                        fontWeight: '900',
-                                                        background: '#FEF2F2',
-                                                        color: '#EF4444',
-                                                        border: '1px solid #FEE2E2',
-                                                        padding: '1px 6px',
-                                                        borderRadius: '8px',
-                                                        marginLeft: '4px'
-                                                    }}>
-                                                        {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
-                                                    </span>
-                                                )}
-                                            </button>
-                                            <button onClick={() => setShowAddClientModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Plus size={16} /> Add Taxpayer Client
-                                            </button>
-                                        </div>
+                                        <button onClick={() => setShowAddClientModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Plus size={16} /> Add Taxpayer Client
+                                        </button>
                                     </div>
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
@@ -2396,47 +2401,9 @@ export default function BusinessCA() {
                                             <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>👥 Practice Team Members</h2>
                                             <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Manage roles, access control, and staff associations inside your advisory firm.</p>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <button
-                                                onClick={() => setPersonalTab('team_requests')}
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    background: '#FFFFFF',
-                                                    color: '#475569',
-                                                    border: '1px solid #E2E8F0',
-                                                    borderRadius: '8px',
-                                                    fontSize: '13px',
-                                                    fontWeight: '750',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#0F172A'; }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#475569'; }}
-                                            >
-                                                <UserCheck size={16} />
-                                                Team Requests
-                                                {teamRequests.filter(r => r.status === 'Pending').length > 0 && (
-                                                    <span style={{
-                                                        fontSize: '10px',
-                                                        fontWeight: '900',
-                                                        background: '#EFF6FF',
-                                                        color: '#1D4ED8',
-                                                        border: '1px solid #BFDBFE',
-                                                        padding: '1px 6px',
-                                                        borderRadius: '8px',
-                                                        marginLeft: '4px'
-                                                    }}>
-                                                        {teamRequests.filter(r => r.status === 'Pending').length}
-                                                    </span>
-                                                )}
-                                            </button>
-                                            <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Plus size={16} /> Add Team Member
-                                            </button>
-                                        </div>
+                                        <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Plus size={16} /> Add Team Member
+                                        </button>
                                     </div>
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
@@ -3321,7 +3288,37 @@ export default function BusinessCA() {
                                                 
                                                 {/* Uploaded Documents List */}
                                                 <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', marginTop: '24px' }}>
-                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', marginBottom: '4px', marginTop: 0 }}>📁 Client Uploaded Documents</h3>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Client Uploaded Documents</h3>
+                                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setTdsTformData({
+                                                                        financialYear: '2026-27',
+                                                                        residentialStatus: 'Resident',
+                                                                        recipientCategory: 'Individual/HUF',
+                                                                        panNotAvailable: false,
+                                                                        section: '194C - Contractor (Single)',
+                                                                        amount: '',
+                                                                        paymentDate: new Date().toISOString().split('T')[0],
+                                                                        surchargeRate: 'Nil'
+                                                                    });
+                                                                    setCalculatedTdsResult(null);
+                                                                    setIsEditingTdsId(null);
+                                                                    setShowTdsCalculator(true);
+                                                                }}
+                                                                style={{ padding: '6px 12px', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '12px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            >
+                                                                <Calculator size={14} /> TDS Calculator
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setShowTdsHistory(true)}
+                                                                style={{ padding: '6px 12px', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '12px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            >
+                                                                <History size={14} /> History
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                     <p style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '16px', marginTop: 0 }}>Verify the documents uploaded by the Business Owner for auditing.</p>
                                                     
                                                     <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
@@ -3998,6 +3995,273 @@ export default function BusinessCA() {
                                     ) : (
                                         <img src={previewFile.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TDS Calculator Modal */}
+                    {showTdsCalculator && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+                            <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Calculator size={22} style={{ color: '#004aad' }} />
+                                        TDS Calculator (Temporary Implementation)
+                                    </h3>
+                                    <button onClick={() => setShowTdsCalculator(false)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>FINANCIAL YEAR</label>
+                                        <select value={tdsFormData.financialYear} onChange={e=>setTdsTformData({...tdsFormData, financialYear: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                            <option value="2026-27">2026-27</option>
+                                            <option value="2025-26">2025-26</option>
+                                            <option value="2024-25">2024-25</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>RESIDENTIAL STATUS</label>
+                                        <select value={tdsFormData.residentialStatus} onChange={e=>setTdsTformData({...tdsFormData, residentialStatus: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                            <option value="Resident">Resident</option>
+                                            <option value="Non-Resident">Non-Resident</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>RECIPIENT CATEGORY</label>
+                                        <select value={tdsFormData.recipientCategory} onChange={e=>setTdsTformData({...tdsFormData, recipientCategory: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                            <option value="Individual/HUF">Individual/HUF</option>
+                                            <option value="Domestic Company">Domestic Company</option>
+                                            <option value="Firm">Firm</option>
+                                            <option value="Trust">Trust</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '18px' }}>
+                                        <input type="checkbox" id="panCheck" checked={tdsFormData.panNotAvailable} onChange={e=>setTdsTformData({...tdsFormData, panNotAvailable: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: '#EF4444', cursor: 'pointer' }} />
+                                        <label htmlFor="panCheck" style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', cursor: 'pointer' }}>PAN Not Available (Sec 206AA)</label>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SECTION / DESCRIPTION</label>
+                                        <select value={tdsFormData.section} onChange={e=>setTdsTformData({...tdsFormData, section: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                            <option value="194C - Contractor (Single)">194C - Payment to Contractors (Single)</option>
+                                            <option value="194J - Professional Services">194J - Fees for Professional/Technical Services</option>
+                                            <option value="194I - Rent of Land/Building">194I - Rent of Land/Building</option>
+                                            <option value="194I - Rent of Plant/Machinery">194I - Rent of Plant/Machinery</option>
+                                            <option value="194H - Commission/Brokerage">194H - Commission or Brokerage</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>AMOUNT PAID / CREDITED ({currency.symbol})</label>
+                                        <input type="number" value={tdsFormData.amount} onChange={e=>setTdsTformData({...tdsFormData, amount: e.target.value})} placeholder="e.g. 50000" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DATE OF PAYMENT / CREDIT</label>
+                                        <input type="date" value={tdsFormData.paymentDate} onChange={e=>setTdsTformData({...tdsFormData, paymentDate: e.target.value})} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', color: '#475569', outline: 'none' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>THRESHOLD LIMIT</label>
+                                        <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: '13px', fontWeight: '750', color: '#64748B' }}>
+                                            {tdsFormData.section.includes('194C') ? '₹ 30,000 (Single) / ₹ 1,00,000 (Agg)' : '₹ 30,000'}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SURCHARGE RATE</label>
+                                        <select value={tdsFormData.surchargeRate} onChange={e=>setTdsTformData({...tdsFormData, surchargeRate: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                            <option value="Nil">Nil</option>
+                                            <option value="10%">10%</option>
+                                            <option value="15%">15%</option>
+                                            <option value="25%">25%</option>
+                                            <option value="37%">37%</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {calculatedTdsResult && (
+                                    <div style={{ marginTop: '10px', padding: '20px', background: '#F0F9FF', border: '1.5px solid #BAE6FD', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '900', color: '#0369A1', display: 'flex', alignItems: 'center', gap: '8px' }}><Info size={16} /> Calculation Summary</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                            <div>
+                                                <div style={{ fontSize: '10px', fontWeight: '800', color: '#0284C7', textTransform: 'uppercase' }}>TDS Rate Applied</div>
+                                                <div style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A' }}>{calculatedTdsResult.rate}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '10px', fontWeight: '800', color: '#0284C7', textTransform: 'uppercase' }}>Calculated TDS</div>
+                                                <div style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(calculatedTdsResult.tdsAmount)}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '10px', fontWeight: '800', color: '#0284C7', textTransform: 'uppercase' }}>Net Payable Amt</div>
+                                                <div style={{ fontSize: '16px', fontWeight: '900', color: '#15803d' }}>{formatCurrency(calculatedTdsResult.totalPayable)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px', borderTop: '1px solid #F1F5F9', paddingTop: '20px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowTdsCalculator(false)}
+                                        style={{ padding: '10px 16px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#64748B', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTdsTformData({
+                                                financialYear: '2026-27',
+                                                residentialStatus: 'Resident',
+                                                recipientCategory: 'Individual/HUF',
+                                                panNotAvailable: false,
+                                                section: '194C - Contractor (Single)',
+                                                amount: '',
+                                                paymentDate: new Date().toISOString().split('T')[0],
+                                                surchargeRate: 'Nil'
+                                            });
+                                            setCalculatedTdsResult(null);
+                                        }}
+                                        style={{ padding: '10px 16px', background: '#F1F5F9', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#475569', cursor: 'pointer' }}
+                                    >
+                                        Reset
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={calculateTdsValue}
+                                        style={{ padding: '10px 20px', background: '#004aad', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer' }}
+                                    >
+                                        Calculate
+                                    </button>
+                                    {calculatedTdsResult && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const selClient = allPracticeClients.find(c => c.id === selectedWorkpaperClientId);
+                                                saveTdsMutation.mutate({
+                                                    client_id: selectedWorkpaperClientId,
+                                                    client_name: selClient?.name || 'Walk-in Client',
+                                                    financial_year: tdsFormData.financialYear,
+                                                    section: tdsFormData.section,
+                                                    amount: parseFloat(tdsFormData.amount),
+                                                    calculated_tds: calculatedTdsResult.tdsAmount,
+                                                    payment_date: tdsFormData.paymentDate,
+                                                    residential_status: tdsFormData.residentialStatus,
+                                                    recipient_category: tdsFormData.recipientCategory,
+                                                    pan_not_available: tdsFormData.panNotAvailable,
+                                                    surcharge_rate: tdsFormData.surchargeRate
+                                                });
+                                            }}
+                                            style={{ padding: '10px 20px', background: '#15803d', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <Save size={16} /> {isEditingTdsId ? 'Update Record' : 'Save to History'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TDS History Modal */}
+                    {showTdsHistory && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+                            <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '900px', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <History size={22} style={{ color: '#004aad' }} />
+                                        TDS Calculation History
+                                    </h3>
+                                    <button onClick={() => setShowTdsHistory(false)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+
+                                <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
+                                                <th style={{ padding: '14px 16px' }}>Client Name</th>
+                                                <th style={{ padding: '14px 16px' }}>FY</th>
+                                                <th style={{ padding: '14px 16px' }}>Section</th>
+                                                <th style={{ padding: '14px 16px' }}>Base Amount</th>
+                                                <th style={{ padding: '14px 16px' }}>TDS Amount</th>
+                                                <th style={{ padding: '14px 16px' }}>Payment Date</th>
+                                                <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tdsHistory.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
+                                                        No TDS calculations saved yet. Use the calculator to record entries.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                tdsHistory.map(entry => (
+                                                    <tr key={entry.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '14px 16px', fontWeight: '800', color: '#0F172A' }}>{entry.client_name}</td>
+                                                        <td style={{ padding: '14px 16px', color: '#475569', fontWeight: '600' }}>{entry.financial_year}</td>
+                                                        <td style={{ padding: '14px 16px', color: '#64748B', fontSize: '12px' }}>{entry.section}</td>
+                                                        <td style={{ padding: '14px 16px', fontWeight: '750', color: '#334155' }}>{formatCurrency(entry.amount)}</td>
+                                                        <td style={{ padding: '14px 16px', fontWeight: '900', color: '#EF4444' }}>{formatCurrency(entry.calculated_tds)}</td>
+                                                        <td style={{ padding: '14px 16px', color: '#64748B' }}>{entry.payment_date}</td>
+                                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setTdsTformData({
+                                                                            financialYear: entry.financial_year,
+                                                                            residentialStatus: entry.residential_status,
+                                                                            recipientCategory: entry.recipient_category,
+                                                                            panNotAvailable: entry.pan_not_available === 1,
+                                                                            section: entry.section,
+                                                                            amount: entry.amount.toString(),
+                                                                            paymentDate: entry.payment_date,
+                                                                            surchargeRate: entry.surcharge_rate
+                                                                        });
+                                                                        setIsEditingTdsId(null); // Just viewing
+                                                                        calculateTdsValue();
+                                                                        setShowTdsCalculator(true);
+                                                                        setShowTdsHistory(false);
+                                                                    }}
+                                                                    style={{ border: 'none', background: 'transparent', color: '#15803d', cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}
+                                                                >
+                                                                    View
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setTdsTformData({
+                                                                            financialYear: entry.financial_year,
+                                                                            residentialStatus: entry.residential_status,
+                                                                            recipientCategory: entry.recipient_category,
+                                                                            panNotAvailable: entry.pan_not_available === 1,
+                                                                            section: entry.section,
+                                                                            amount: entry.amount.toString(),
+                                                                            paymentDate: entry.payment_date,
+                                                                            surchargeRate: entry.surcharge_rate
+                                                                        });
+                                                                        setIsEditingTdsId(entry.id);
+                                                                        calculateTdsValue();
+                                                                        setShowTdsCalculator(true);
+                                                                        setShowTdsHistory(false);
+                                                                    }}
+                                                                    style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (confirm('Delete this TDS calculation record?')) {
+                                                                            deleteTdsMutation.mutate(entry.id);
+                                                                        }
+                                                                    }}
+                                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
