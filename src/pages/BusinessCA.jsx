@@ -962,19 +962,7 @@ export default function BusinessCA() {
                                 ? (connectedCa.receiver_email === myEmail ? connectedCa.sender_email : connectedCa.receiver_email) 
                                 : null;
 
-                            const myClientTasks = practiceTasks.filter(task => {
-                                // Load tasks linked to the logged-in Business Owner
-                                const isMyTaskId = profile?.id && (task.businessOwnerId === profile.id || task.clientId === profile.id);
-                                const isMyTaskEmail = profile?.email && task.clientEmail && task.clientEmail.toLowerCase() === profile.email.toLowerCase();
-                                if (isMyTaskId || isMyTaskEmail) return true;
-
-                                if (!task.clientName) return false;
-                                const clientNameLower = task.clientName.toLowerCase();
-                                const isMyEmail = myEmail && clientNameLower === myEmail.toLowerCase();
-                                const isConnectedCA = connectedCaEmail && clientNameLower === connectedCaEmail.toLowerCase();
-                                const isMockClient = ['rohan sharma', 'priya patel (sme)', 'vikram malhotra', 'aditya birla group (individual)', 'ananya roy', 'general client'].includes(clientNameLower);
-                                return isMyEmail || isConnectedCA || isMockClient;
-                            });
+                            const myClientTasks = practiceTasks;
                             const pendingCount = myClientTasks.filter(t => t.status !== 'Completed' && t.status !== 'Verified' && t.status !== 'Approved').length;
 
                             return (
