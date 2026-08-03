@@ -2771,6 +2771,12 @@ export default function BusinessCA() {
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '10px' }}>
                                                     <button
+                                                        onClick={() => setShowTdsHistory(true)}
+                                                        style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #004aad', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#004aad', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                    >
+                                                        <History size={15} /> History
+                                                    </button>
+                                                    <button
                                                         onClick={() => {
                                                             setTdsTformData({
                                                                 financialYear: '2026-27',
@@ -2789,12 +2795,6 @@ export default function BusinessCA() {
                                                         style={{ padding: '8px 16px', background: '#004aad', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0, 74, 173, 0.2)' }}
                                                     >
                                                         <Calculator size={15} /> TDS Calculator
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setShowTdsHistory(true)}
-                                                        style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                    >
-                                                        <History size={15} /> History
                                                     </button>
                                                 </div>
                                             </div>
