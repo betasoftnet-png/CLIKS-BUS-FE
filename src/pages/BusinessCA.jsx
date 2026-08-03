@@ -2769,6 +2769,34 @@ export default function BusinessCA() {
                                                     <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper — Select a Client</h3>
                                                     <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>Click on a client to view and manage their audit checklist.</p>
                                                 </div>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setTdsTformData({
+                                                                financialYear: '2026-27',
+                                                                residentialStatus: 'Resident',
+                                                                recipientCategory: 'Individual/HUF',
+                                                                panNotAvailable: false,
+                                                                section: '194C - Contractor (Single)',
+                                                                amount: '',
+                                                                paymentDate: new Date().toISOString().split('T')[0],
+                                                                surchargeRate: 'Nil'
+                                                            });
+                                                            setCalculatedTdsResult(null);
+                                                            setIsEditingTdsId(null);
+                                                            setShowTdsCalculator(true);
+                                                        }}
+                                                        style={{ padding: '8px 16px', background: '#004aad', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0, 74, 173, 0.2)' }}
+                                                    >
+                                                        <Calculator size={15} /> TDS Calculator
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setShowTdsHistory(true)}
+                                                        style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                    >
+                                                        <History size={15} /> History
+                                                    </button>
+                                                </div>
                                             </div>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                                 <thead>
