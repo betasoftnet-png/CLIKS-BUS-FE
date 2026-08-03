@@ -289,26 +289,6 @@ export default function BusinessCA() {
 
     const [activeClientSearch, setActiveClientSearch] = useState('');
 
-    const { data: practiceFolders = [], refetch: refetchFolders } = useQuery({
-        queryKey: ['practiceFolders'],
-        queryFn: () => caService.getFolders(),
-        retry: false
-    });
-
-    const { data: practiceFiles = [], refetch: refetchFiles } = useQuery({
-        queryKey: ['practiceFiles'],
-        queryFn: () => caService.getFiles(),
-        retry: false
-    });
-
-    const { data: clientDocuments = [], refetch: refetchClientDocuments } = useQuery({
-        queryKey: ['clientDocuments', selectedWorkpaperClientId],
-        queryFn: () => selectedWorkpaperClientId ? caService.getClientDocuments(selectedWorkpaperClientId) : Promise.resolve([]),
-        enabled: !!selectedWorkpaperClientId,
-        refetchInterval: 2000,
-        retry: false
-    });
-
     const [isGstCardExpanded, setIsGstCardExpanded] = useState(false);
     const [copiedUser, setCopiedUser] = useState(false);
     const [copiedPass, setCopiedPass] = useState(false);
