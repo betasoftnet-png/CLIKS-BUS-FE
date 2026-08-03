@@ -963,6 +963,11 @@ export default function BusinessCA() {
                                 : null;
 
                             const myClientTasks = practiceTasks.filter(task => {
+                                // Load tasks linked to the logged-in Business Owner
+                                const isMyTaskId = profile?.id && (task.businessOwnerId === profile.id || task.clientId === profile.id);
+                                const isMyTaskEmail = profile?.email && task.clientEmail && task.clientEmail.toLowerCase() === profile.email.toLowerCase();
+                                if (isMyTaskId || isMyTaskEmail) return true;
+
                                 if (!task.clientName) return false;
                                 const clientNameLower = task.clientName.toLowerCase();
                                 const isMyEmail = myEmail && clientNameLower === myEmail.toLowerCase();
@@ -970,7 +975,7 @@ export default function BusinessCA() {
                                 const isMockClient = ['rohan sharma', 'priya patel (sme)', 'vikram malhotra', 'aditya birla group (individual)', 'ananya roy', 'general client'].includes(clientNameLower);
                                 return isMyEmail || isConnectedCA || isMockClient;
                             });
-                            const pendingCount = myClientTasks.filter(t => t.status !== 'Completed').length;
+                            const pendingCount = myClientTasks.filter(t => t.status !== 'Completed' && t.status !== 'Verified' && t.status !== 'Approved').length;
 
                             return (
                                 <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1017,7 +1022,7 @@ export default function BusinessCA() {
                                                     <tbody>
                                                         {myClientTasks.filter(item => applyTableFilters(item, colFiltersChecklist)).map(task => (
                                                             <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>
-                                                                <td style={{ padding: '16px 20px', fontWeight: '800', color: task.status === 'Completed' ? '#94A3B8' : '#0F172A', textDecoration: task.status === 'Completed' ? 'line-through' : 'none' }}>
+                                                                <td style={{ padding: '16px 20px', fontWeight: '800', color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#94A3B8' : '#0F172A', textDecoration: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? 'line-through' : 'none' }}>
                                                                     {task.title}
                                                                 </td>
                                                                 <td style={{ padding: '16px 20px', color: '#64748B', fontWeight: '500' }}>📅 {task.dueDate}</td>
@@ -1043,16 +1048,16 @@ export default function BusinessCA() {
                                                                                 padding: '6px 12px',
                                                                                 borderRadius: '8px',
                                                                                 border: '1.5px solid',
-                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified') ? '#BBF7D0' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#BFDBFE' : '#CBD5E1'),
-                                                                                background: (task.status === 'Completed' || task.status === 'Verified') ? '#F0FDF4' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#EFF6FF' : 'transparent'),
-                                                                                color: (task.status === 'Completed' || task.status === 'Verified') ? '#15803d' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#1D4ED8' : '#475569'),
+                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
+                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
+                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
                                                                                 fontWeight: '800',
                                                                                 fontSize: '12px',
                                                                                 cursor: 'pointer',
                                                                                 transition: 'all 0.2s'
                                                                             }}
                                                                         >
-                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))}
+                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
                                                                         </button>
                                                                         {task.askForDocument && (
                                                                             task.attachedFile ? (
@@ -1844,9 +1849,9 @@ export default function BusinessCA() {
                                             {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
                                         </span>
                                     )}
-                                    {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed').length > 0 && (
+                                    {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length > 0 && (
                                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {practiceTasks.filter(t => t.status !== 'Completed').length}
+                                            {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
                                         </span>
                                     )}
                                     {tab.id === 'team_requests' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
@@ -1879,7 +1884,7 @@ export default function BusinessCA() {
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                             <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Open Compliance Tasks</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status !== 'Completed').length}</div>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}</div>
                                             <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>Filing checklist items</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2276,24 +2281,27 @@ export default function BusinessCA() {
                                                             <button 
                                                                 type="button"
                                                                 onClick={() => toggleTaskStatus(task.id)}
-                                                                style={{
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '6px',
-                                                                    padding: '6px 12px',
-                                                                    borderRadius: '8px',
-                                                                    border: '1.5px solid',
-                                                                    borderColor: (task.status === 'Completed' || task.status === 'Verified') ? '#BBF7D0' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#BFDBFE' : '#CBD5E1'),
-                                                                    background: (task.status === 'Completed' || task.status === 'Verified') ? '#F0FDF4' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#EFF6FF' : 'transparent'),
-                                                                    color: (task.status === 'Completed' || task.status === 'Verified') ? '#15803d' : (task.status === 'In Progress' || task.status === 'Uploaded' ? '#1D4ED8' : '#475569'),
-                                                                    fontWeight: '800',
-                                                                    fontSize: '12px',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.2s'
-                                                                }}
-                                                            >
-                                                                {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))}
-                                                            </button>
+                                                             <button 
+                                                                 type="button"
+                                                                 onClick={() => toggleTaskStatus(task.id)}
+                                                                 style={{
+                                                                     display: 'inline-flex',
+                                                                     alignItems: 'center',
+                                                                     gap: '6px',
+                                                                     padding: '6px 12px',
+                                                                     borderRadius: '8px',
+                                                                     border: '1.5px solid',
+                                                                     borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
+                                                                     background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
+                                                                     color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
+                                                                     fontWeight: '800',
+                                                                     fontSize: '12px',
+                                                                     cursor: 'pointer',
+                                                                     transition: 'all 0.2s'
+                                                                 }}
+                                                             >
+                                                                 {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
+                                                             </button>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -3273,7 +3281,34 @@ export default function BusinessCA() {
                                                                                         >
                                                                                             Remark
                                                                                         </button>
-                                                                                        {(doc.status !== 'Approved' && doc.status !== 'Verified') && (
+                                                                                        {doc.status === 'Uploaded' && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Under Review' })}
+                                                                                                style={{ background: '#F3E8FF', color: '#6B21A8', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
+                                                                                            >
+                                                                                                Review
+                                                                                            </button>
+                                                                                        )}
+                                                                                        {doc.status === 'Under Review' && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Verified' })}
+                                                                                                style={{ background: '#DBEAFE', color: '#1E40AF', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
+                                                                                            >
+                                                                                                Verify
+                                                                                            </button>
+                                                                                        )}
+                                                                                        {doc.status === 'Verified' && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' })}
+                                                                                                style={{ background: '#DCFCE7', color: '#15803d', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
+                                                                                            >
+                                                                                                Approve
+                                                                                            </button>
+                                                                                        )}
+                                                                                        {(doc.status !== 'Approved' && doc.status !== 'Verified' && doc.status !== 'Uploaded' && doc.status !== 'Under Review') && (
                                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' })}
