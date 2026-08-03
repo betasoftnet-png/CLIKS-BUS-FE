@@ -5,7 +5,8 @@ import {
     Briefcase, ShieldAlert, FileText, CheckCircle2, AlertTriangle, 
     RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock, 
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
-    User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2
+    User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
+    Eye, Download, MessageSquare, History, X
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency } from '../context';
@@ -204,6 +205,21 @@ export default function BusinessCA() {
         retry: false
     });
 
+    const [selectedDocIdForReview, setSelectedDocIdForReview] = useState(null);
+    const [reviewStatus, setReviewStatus] = useState('Approved');
+    const [reviewNotes, setReviewNotes] = useState('');
+    const [showReviewModal, setShowReviewModal] = useState(false);
+
+    const [selectedDocIdForVersions, setSelectedDocIdForVersions] = useState(null);
+    const { data: docVersions = [], refetch: refetchDocVersions } = useQuery({
+        queryKey: ['docVersions', selectedDocIdForVersions],
+        queryFn: () => selectedDocIdForVersions ? caService.getDocumentVersions(selectedDocIdForVersions) : Promise.resolve([]),
+        enabled: !!selectedDocIdForVersions
+    });
+    const [showVersionModal, setShowVersionModal] = useState(false);
+
+    const [previewFile, setPreviewFile] = useState(null);
+
     const [isGstCardExpanded, setIsGstCardExpanded] = useState(false);
     const [copiedUser, setCopiedUser] = useState(false);
     const [copiedPass, setCopiedPass] = useState(false);
@@ -326,6 +342,8 @@ export default function BusinessCA() {
             caService.updateClientDocumentReview(selectedWorkpaperClientId, { documentId, status, remark }),
         onSuccess: () => {
             refetchClientDocuments();
+            setShowReviewModal(false);
+            alert('Review notes saved successfully and notified to client.');
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to update review')
     });
@@ -970,15 +988,22 @@ export default function BusinessCA() {
                                                 <CheckCircle2 size={20} style={{ color: '#004aad' }} />
                                                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 FIN-PRO-Assigned Compliance Checklist</h3>
                                             </div>
-                                            {pendingCount > 0 ? (
-                                                <span style={{ fontSize: '11px', background: '#FFF3C7', color: '#D97706', padding: '4px 10px', borderRadius: '20px', fontWeight: '800', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <Clock size={12} className="animate-pulse" /> {pendingCount} Actions Required
-                                                </span>
-                                            ) : (
-                                                <span style={{ fontSize: '11px', background: '#ECFDF5', color: '#059669', padding: '4px 10px', borderRadius: '20px', fontWeight: '800', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <CheckCircle2 size={12} /> All Caught Up!
-                                                </span>
-                                            )}
+                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Pending Uploads</span>
+                                                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status === 'Pending').length}</span>
+                                                </div>
+                                                <div style={{ width: '1px', height: '24px', background: '#E2E8F0' }} />
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Documents Returned</span>
+                                                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#D97706' }}>{practiceTasks.filter(t => t.status === 'Needs Correction' || t.status === 'Rejected').length}</span>
+                                                </div>
+                                                <div style={{ width: '1px', height: '24px', background: '#E2E8F0' }} />
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Approved Docs</span>
+                                                    <span style={{ fontSize: '14px', fontWeight: '900', color: '#15803d' }}>{practiceTasks.filter(t => t.status === 'Approved' || t.status === 'Verified').length}</span>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
@@ -1033,51 +1058,86 @@ export default function BusinessCA() {
                                                                                 padding: '6px 12px',
                                                                                 borderRadius: '8px',
                                                                                 border: '1.5px solid',
-                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
-                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
-                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
+                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#BFDBFE' : '#CBD5E1'),
+                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#EFF6FF' : 'transparent'),
+                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#1D4ED8' : '#475569'),
                                                                                 fontWeight: '800',
                                                                                 fontSize: '12px',
                                                                                 cursor: 'pointer',
                                                                                 transition: 'all 0.2s'
                                                                             }}
                                                                         >
-                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
+                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'Needs Correction' ? '⚠️ Needs Correction' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending'))))))}
                                                                         </button>
                                                                         {task.askForDocument && (
-                                                                            task.attachedFile ? (
-                                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                                    <CheckCircle2 size={14} /> Uploaded
-                                                                                </span>
+                                                                            (task.status === 'Needs Correction' || task.status === 'Rejected') ? (
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                                    <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                        <input
+                                                                                            type="file"
+                                                                                            style={{ display: 'none' }}
+                                                                                            onChange={(e) => {
+                                                                                                if (e.target.files && e.target.files.length > 0) {
+                                                                                                    uploadTaskDocMutation.mutate(task.id);
+                                                                                                }
+                                                                                            }}
+                                                                                        />
+                                                                                        <span
+                                                                                            style={{
+                                                                                                padding: '6px 12px',
+                                                                                                borderRadius: '8px',
+                                                                                                background: '#EF4444',
+                                                                                                color: '#FFFFFF',
+                                                                                                border: 'none',
+                                                                                                fontWeight: '800',
+                                                                                                fontSize: '12px',
+                                                                                                display: 'inline-block'
+                                                                                            }}
+                                                                                        >
+                                                                                            Upload Revised Document
+                                                                                        </span>
+                                                                                    </label>
+                                                                                </div>
                                                                             ) : (
-                                                                                <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                                                                                    <input 
-                                                                                        type="file" 
-                                                                                        style={{ display: 'none' }} 
-                                                                                        onChange={(e) => {
-                                                                                            if (e.target.files && e.target.files.length > 0) {
-                                                                                                uploadTaskDocMutation.mutate(task.id);
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                    <span 
-                                                                                        style={{
-                                                                                            padding: '6px 12px',
-                                                                                            borderRadius: '8px',
-                                                                                            background: '#0F172A',
-                                                                                            color: '#FFFFFF',
-                                                                                            border: 'none',
-                                                                                            fontWeight: '800',
-                                                                                            fontSize: '12px',
-                                                                                            display: 'inline-block'
-                                                                                        }}
-                                                                                    >
-                                                                                        Upload Document
+                                                                                task.attachedFile ? (
+                                                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                        <CheckCircle2 size={14} /> Uploaded
                                                                                     </span>
-                                                                                </label>
+                                                                                ) : (
+                                                                                    <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                        <input
+                                                                                            type="file"
+                                                                                            style={{ display: 'none' }}
+                                                                                            onChange={(e) => {
+                                                                                                if (e.target.files && e.target.files.length > 0) {
+                                                                                                    uploadTaskDocMutation.mutate(task.id);
+                                                                                                }
+                                                                                            }}
+                                                                                        />
+                                                                                        <span
+                                                                                            style={{
+                                                                                                padding: '6px 12px',
+                                                                                                borderRadius: '8px',
+                                                                                                background: '#0F172A',
+                                                                                                color: '#FFFFFF',
+                                                                                                border: 'none',
+                                                                                                fontWeight: '800',
+                                                                                                fontSize: '12px',
+                                                                                                display: 'inline-block'
+                                                                                            }}
+                                                                                        >
+                                                                                            Upload Document
+                                                                                        </span>
+                                                                                    </label>
+                                                                                )
                                                                             )
                                                                         )}
                                                                     </div>
+                                                                    {task.taskDescription !== task.title && (
+                                                                        <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: '700', marginTop: '4px', background: '#FEF2F2', padding: '6px 10px', borderRadius: '6px', border: '1px solid #FEE2E2' }}>
+                                                                            Note: {task.taskDescription}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -1855,24 +1915,24 @@ export default function BusinessCA() {
                                     {/* Stats grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Total Practice Clients</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A' }}>{allPracticeClients.length}</div>
-                                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>Active Taxpayers Portal</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Pending Review</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#D97706' }}>{practiceTasks.filter(t => t.status === 'Uploaded' || t.status === 'Under Review').length}</div>
+                                            <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '600' }}>Documents to verify</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Awaiting Client Uploads</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#D97706' }}>{practiceRequests.filter(r => r.status === 'Awaiting Client').length}</div>
-                                            <span style={{ fontSize: '11px', color: '#D97706', fontWeight: '600' }}>Outbound requests pending</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Awaiting Client Upload</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status === 'Pending').length}</div>
+                                            <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>Outbound requests pending</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Open Compliance Tasks</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#EF4444' }}>{practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}</div>
-                                            <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>Filing checklist items</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Approved Today</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#15803d' }}>{practiceTasks.filter(t => t.status === 'Approved' || t.status === 'Verified').length}</div>
+                                            <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>Audit steps finalized</span>
                                         </div>
                                         <div style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Timesheet Records</span>
-                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284C7' }}>{practiceTimesheets.length}</div>
-                                            <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '600' }}>Logged consulting blocks</span>
+                                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>Needs Correction</span>
+                                            <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284C7' }}>{practiceTasks.filter(t => t.status === 'Needs Correction').length}</div>
+                                            <span style={{ fontSize: '11px', color: '#0284C7', fontWeight: '600' }}>Returned to client</span>
                                         </div>
                                     </div>
 
@@ -3273,14 +3333,15 @@ export default function BusinessCA() {
                                                                     <th style={{ padding: '14px 16px' }}>Uploaded By</th>
                                                                     <th style={{ padding: '14px 16px' }}>Upload Date &amp; Time</th>
                                                                     <th style={{ padding: '14px 16px' }}>Task / Checklist Item</th>
-                                                                    <th style={{ padding: '14px 16px' }}>Status</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Review Status</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Version</th>
                                                                     <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 {clientDocuments.length === 0 ? (
                                                                     <tr>
-                                                                        <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
+                                                                        <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
                                                                             No documents uploaded by the business owner yet.
                                                                         </td>
                                                                     </tr>
@@ -3303,89 +3364,54 @@ export default function BusinessCA() {
                                                                                 <td style={{ padding: '14px 16px' }}>
                                                                                     <span style={{
                                                                                         fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '20px',
-                                                                                        background: (doc.status === 'Approved' || doc.status === 'Verified') ? '#DCFCE7' : doc.status === 'Rejected' ? '#FEE2E2' : '#FEF9C3',
-                                                                                        color: (doc.status === 'Approved' || doc.status === 'Verified') ? '#15803d' : doc.status === 'Rejected' ? '#991B1B' : '#A16207'
+                                                                                        background: doc.status === 'Approved' ? '#DCFCE7' : (doc.status === 'Needs Correction' ? '#FEF3C7' : (doc.status === 'Rejected' ? '#FEE2E2' : '#EFF6FF')),
+                                                                                        color: doc.status === 'Approved' ? '#15803d' : (doc.status === 'Needs Correction' ? '#D97706' : (doc.status === 'Rejected' ? '#B91C1C' : '#1D4ED8'))
                                                                                     }}>{doc.status.toUpperCase()}</span>
                                                                                 </td>
+                                                                                <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '800' }}>V{doc.version || 1}</td>
                                                                                 <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                                                                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                                                                        <a
-                                                                                            href={fileUrl}
-                                                                                            target="_blank"
-                                                                                            rel="noopener noreferrer"
-                                                                                            style={{ textDecoration: 'none', color: '#15803d', fontWeight: '750', fontSize: '12px' }}
+                                                                                        <button
+                                                                                            onClick={() => setPreviewFile({ url: fileUrl, name: doc.name })}
+                                                                                            style={{ border: 'none', background: 'transparent', color: '#15803d', cursor: 'pointer' }}
+                                                                                            title="View Document"
                                                                                         >
-                                                                                            View
-                                                                                        </a>
+                                                                                            <Eye size={18} />
+                                                                                        </button>
                                                                                         <a
                                                                                             href={fileUrl}
                                                                                             download={doc.name}
-                                                                                            style={{ textDecoration: 'none', color: '#334155', fontWeight: '750', fontSize: '12px' }}
+                                                                                            style={{ textDecoration: 'none', color: '#334155' }}
+                                                                                            title="Download"
                                                                                         >
-                                                                                            Download
+                                                                                            <Download size={18} />
                                                                                         </a>
                                                                                         <button
-                                                                                            type="button"
                                                                                             onClick={() => {
-                                                                                                const rem = prompt("Enter remark for this document:", doc.remark);
-                                                                                                if (rem !== null) {
-                                                                                                    updateDocumentReviewMutation.mutate({ documentId: doc.id, remark: rem });
-                                                                                                }
+                                                                                                setSelectedDocIdForReview(doc.id);
+                                                                                                setReviewStatus(doc.status === 'Uploaded' ? 'Approved' : doc.status);
+                                                                                                setReviewNotes(doc.remark || '');
+                                                                                                setShowReviewModal(true);
                                                                                             }}
-                                                                                            style={{ border: 'none', background: 'transparent', color: '#475569', cursor: 'pointer', fontWeight: '750', fontSize: '12px', padding: 0 }}
+                                                                                            style={{ border: 'none', background: 'transparent', color: '#0284C7', cursor: 'pointer' }}
+                                                                                            title="Review Notes"
                                                                                         >
-                                                                                            Remark
+                                                                                            <MessageSquare size={18} />
                                                                                         </button>
-                                                                                        {doc.status === 'Uploaded' && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Under Review' })}
-                                                                                                style={{ background: '#F3E8FF', color: '#6B21A8', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
-                                                                                            >
-                                                                                                Review
-                                                                                            </button>
-                                                                                        )}
-                                                                                        {doc.status === 'Under Review' && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Verified' })}
-                                                                                                style={{ background: '#DBEAFE', color: '#1E40AF', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
-                                                                                            >
-                                                                                                Verify
-                                                                                            </button>
-                                                                                        )}
-                                                                                        {doc.status === 'Verified' && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' })}
-                                                                                                style={{ background: '#DCFCE7', color: '#15803d', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
-                                                                                            >
-                                                                                                Approve
-                                                                                            </button>
-                                                                                        )}
-                                                                                        {(doc.status !== 'Approved' && doc.status !== 'Verified' && doc.status !== 'Uploaded' && doc.status !== 'Under Review') && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' })}
-                                                                                                style={{ background: '#DCFCE7', color: '#15803d', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
-                                                                                            >
-                                                                                                Approve
-                                                                                            </button>
-                                                                                        )}
-                                                                                        {doc.status !== 'Rejected' && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Rejected' })}
-                                                                                                style={{ background: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: '4px', padding: '4px 8px', fontWeight: '750', fontSize: '11px', cursor: 'pointer' }}
-                                                                                                
-                                                                                            >
-                                                                                                Reject
-                                                                                            </button>
-                                                                                        )}
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                setSelectedDocIdForVersions(doc.id);
+                                                                                                setShowVersionModal(true);
+                                                                                            }}
+                                                                                            style={{ border: 'none', background: 'transparent', color: '#6B21A8', cursor: 'pointer' }}
+                                                                                            title="Version History"
+                                                                                        >
+                                                                                            <History size={18} />
+                                                                                        </button>
                                                                                     </div>
                                                                                     {doc.remark && (
                                                                                         <div style={{ fontSize: '11px', color: '#64748B', fontStyle: 'italic', marginTop: '4px' }}>
-                                                                                            Remark: "{doc.remark}"
+                                                                                            Note: "{doc.remark}"
                                                                                         </div>
                                                                                     )}
                                                                                 </td>
@@ -3858,6 +3884,122 @@ export default function BusinessCA() {
                                     <button type="submit" style={{ padding: '10px 18px', background: '#15803d', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer' }}>Send Invitation</button>
                                 </div>
                             </form>
+                        </div>
+                    )}
+
+                    {/* Document Review Modal */}
+                    {showReviewModal && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+                            <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0 }}>💬 Document Review Notes</h3>
+                                    <button onClick={() => setShowReviewModal(false)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '8px' }}>REVIEW STATUS</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {['Approved', 'Needs Correction', 'Rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setReviewStatus(status)}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '8px 12px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '12px',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        border: '1.5px solid',
+                                                        borderColor: reviewStatus === status ? (status === 'Approved' ? '#15803d' : (status === 'Rejected' ? '#EF4444' : '#D97706')) : '#E2E8F0',
+                                                        background: reviewStatus === status ? (status === 'Approved' ? '#F0FDF4' : (status === 'Rejected' ? '#FEF2F2' : '#FFFBEB')) : '#FFFFFF',
+                                                        color: reviewStatus === status ? (status === 'Approved' ? '#15803d' : (status === 'Rejected' ? '#EF4444' : '#D97706')) : '#64748B',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    {status}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '8px' }}>AUDITOR NOTES / OBSERVATIONS</label>
+                                        <textarea
+                                            value={reviewNotes}
+                                            onChange={(e) => setReviewNotes(e.target.value)}
+                                            placeholder="Specify what needs correction or any general observations..."
+                                            style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none', height: '120px', resize: 'none' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                    <button type="button" onClick={() => setShowReviewModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
+                                    <button
+                                        onClick={() => updateDocumentReviewMutation.mutate({ documentId: selectedDocIdForReview, status: reviewStatus, remark: reviewNotes })}
+                                        style={{ padding: '10px 20px', background: '#15803d', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '850', cursor: 'pointer' }}
+                                    >
+                                        Save Review & Notify
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Version History Modal */}
+                    {showVersionModal && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+                            <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '540px', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0 }}>📜 Document Version History</h3>
+                                    <button onClick={() => setShowVersionModal(false)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {docVersions.length === 0 ? (
+                                        <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>No version history found. Only current version exists.</div>
+                                    ) : (
+                                        docVersions.map((v, i) => (
+                                            <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', background: i === 0 ? '#F0FDF4' : 'transparent' }}>
+                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: i === 0 ? '#15803d' : '#94A3B8', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '900' }}>
+                                                        V{v.version_number}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#0F172A' }}>{v.file_name}</div>
+                                                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>Uploaded: {new Date(v.uploaded_at).toLocaleString()}</div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button onClick={() => setPreviewFile({ url: v.file_path, name: v.file_name })} style={{ border: 'none', background: 'transparent', color: '#15803d', cursor: 'pointer', fontWeight: '800', fontSize: '12px' }}>View</button>
+                                                    <a href={v.file_path} download={v.file_name} style={{ textDecoration: 'none', color: '#334155', fontWeight: '800', fontSize: '12px' }}>Download</a>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Document Preview Modal */}
+                    {previewFile && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '40px' }}>
+                            <div style={{ background: '#FFFFFF', borderRadius: '16px', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                <div style={{ padding: '16px 24px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>Preview: {previewFile.name}</h3>
+                                    <button onClick={() => setPreviewFile(null)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={24} /></button>
+                                </div>
+                                <div style={{ flex: 1, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {previewFile.url.toLowerCase().endsWith('.pdf') ? (
+                                        <iframe src={previewFile.url} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+                                    ) : (
+                                        <img src={previewFile.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

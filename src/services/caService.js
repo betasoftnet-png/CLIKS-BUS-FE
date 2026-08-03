@@ -20,6 +20,7 @@ export const caService = {
     addClient: (client) => apiClient.post('/ca/clients', client).then(res => res.data.data || res.data),
     getClientDocuments: (clientId) => apiClient.get(`/ca/clients/${clientId}/documents`).then(res => res.data.data || res.data),
     updateClientDocumentReview: (clientId, review) => apiClient.post(`/ca/clients/${clientId}/documents/review`, review).then(res => res.data.data || res.data),
+    getDocumentVersions: (docId) => apiClient.get(`/ca/documents/${docId}/versions`).then(res => res.data.data || res.data),
     getClientGstCredentials: (clientId) => apiClient.get(`/ca/clients/${clientId}/gst-credentials`).then(res => res?.data ?? res),
     getClientGstStatus: (clientId) => apiClient.get(`/ca/clients/${clientId}/gst-status`).then(res => res?.data ?? res),
     requestClientGstCredentials: (clientId) => apiClient.post(`/ca/clients/${clientId}/request-gst-credentials`).then(res => res?.data ?? res),
