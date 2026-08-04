@@ -2905,47 +2905,17 @@ export default function BusinessCA() {
                                         return (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                                 {/* Back button + title */}
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelectedWorkpaperClientId(null)}
-                                                            style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: '#FFFFFF', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                        >
-                                                            ← Back
-                                                        </button>
-                                                        <div>
-                                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper: {selClient?.name}</h3>
-                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit &amp; Verification Checklist</p>
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                                        <button
-                                                            onClick={() => {
-                                                                setTdsTformData({
-                                                                    financialYear: '2026-27',
-                                                                    residentialStatus: 'Resident',
-                                                                    recipientCategory: 'Individual/HUF',
-                                                                    panNotAvailable: false,
-                                                                    section: '194C - Contractor (Single)',
-                                                                    amount: '',
-                                                                    paymentDate: new Date().toISOString().split('T')[0],
-                                                                    surchargeRate: 'Nil'
-                                                                });
-                                                                setCalculatedTdsResult(null);
-                                                                setIsEditingTdsId(null);
-                                                                setShowTdsCalculator(true);
-                                                            }}
-                                                            style={{ padding: '8px 16px', background: '#004aad', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0, 74, 173, 0.2)' }}
-                                                        >
-                                                            <Calculator size={15} /> TDS Calculator
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setShowTdsHistory(true)}
-                                                            style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                        >
-                                                            <History size={15} /> View TDS History
-                                                        </button>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedWorkpaperClientId(null)}
+                                                        style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: '#FFFFFF', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                    >
+                                                        ← Back
+                                                    </button>
+                                                    <div>
+                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper: {selClient?.name}</h3>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit &amp; Verification Checklist</p>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
@@ -3380,38 +3350,8 @@ export default function BusinessCA() {
                                                 </div>
                                                 
                                                 {/* Uploaded Documents List */}
-                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', marginTop: '24px', position: 'relative' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
-                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Client Uploaded Documents</h3>
-                                                        <div style={{ display: 'flex', gap: '12px' }}>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setTdsTformData({
-                                                                        financialYear: '2026-27',
-                                                                        residentialStatus: 'Resident',
-                                                                        recipientCategory: 'Individual/HUF',
-                                                                        panNotAvailable: false,
-                                                                        section: '194C - Contractor (Single)',
-                                                                        amount: '',
-                                                                        paymentDate: new Date().toISOString().split('T')[0],
-                                                                        surchargeRate: 'Nil'
-                                                                    });
-                                                                    setCalculatedTdsResult(null);
-                                                                    setIsEditingTdsId(null);
-                                                                    setShowTdsCalculator(true);
-                                                                }}
-                                                                style={{ padding: '8px 16px', background: '#004aad', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0, 74, 173, 0.2)' }}
-                                                            >
-                                                                <Calculator size={15} /> TDS Calculator
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setShowTdsHistory(true)}
-                                                                style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                            >
-                                                                <History size={15} /> View History
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', marginTop: '24px' }}>
+                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', marginBottom: '4px', marginTop: 0 }}>📁 Client Uploaded Documents</h3>
                                                     <p style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '16px', marginTop: 0 }}>Verify the documents uploaded by the Business Owner for auditing.</p>
                                                     
                                                     <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
@@ -3487,6 +3427,29 @@ export default function BusinessCA() {
                                                                                             title="Review Notes"
                                                                                         >
                                                                                             <MessageSquare size={18} />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                const remark = prompt('Enter correction reason:');
+                                                                                                if (remark) {
+                                                                                                    updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Needs Correction', remark });
+                                                                                                }
+                                                                                            }}
+                                                                                            style={{ border: 'none', background: 'transparent', color: '#D97706', cursor: 'pointer' }}
+                                                                                            title="Return for Correction"
+                                                                                        >
+                                                                                            <RefreshCw size={17} />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                if (confirm('Approve this document?')) {
+                                                                                                    updateDocumentReviewMutation.mutate({ documentId: doc.id, status: 'Approved' });
+                                                                                                }
+                                                                                            }}
+                                                                                            style={{ border: 'none', background: 'transparent', color: '#15803d', cursor: 'pointer' }}
+                                                                                            title="Quick Approve"
+                                                                                        >
+                                                                                            <Check size={18} />
                                                                                         </button>
                                                                                         <button
                                                                                             onClick={() => {
