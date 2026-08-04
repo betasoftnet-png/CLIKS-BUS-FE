@@ -2985,17 +2985,47 @@ export default function BusinessCA() {
                                         return (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                                 {/* Back button + title */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSelectedWorkpaperClientId(null)}
-                                                        style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: '#FFFFFF', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                    >
-                                                        ← Back
-                                                    </button>
-                                                    <div>
-                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper: {selClient?.name}</h3>
-                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit &amp; Verification Checklist</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedWorkpaperClientId(null)}
+                                                            style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: '#FFFFFF', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            ← Back
+                                                        </button>
+                                                        <div>
+                                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper: {selClient?.name}</h3>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Statutory Audit &amp; Verification Checklist</p>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                                        <button
+                                                            onClick={() => setShowTdsHistory(true)}
+                                                            style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                        >
+                                                            <History size={16} /> History
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setTdsTformData({
+                                                                    financialYear: '2026-27',
+                                                                    residentialStatus: 'Resident',
+                                                                    recipientCategory: 'Individual/HUF',
+                                                                    panNotAvailable: false,
+                                                                    section: '194C - Contractor (Single)',
+                                                                    amount: '',
+                                                                    paymentDate: new Date().toISOString().split('T')[0],
+                                                                    surchargeRate: 'Nil'
+                                                                });
+                                                                setCalculatedTdsResult(null);
+                                                                setIsEditingTdsId(null);
+                                                                setShowTdsCalculator(true);
+                                                            }}
+                                                            style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                        >
+                                                            <Calculator size={16} /> TDS Calculator
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
