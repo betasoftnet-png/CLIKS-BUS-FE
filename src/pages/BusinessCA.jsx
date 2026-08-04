@@ -1051,7 +1051,10 @@ export default function BusinessCA() {
                                 ? (connectedCa.receiver_email === myEmail ? connectedCa.sender_email : connectedCa.receiver_email) 
                                 : null;
 
-                            const myClientTasks = practiceTasks;
+                            const myClientTasks = practiceTasks.filter(t =>
+                                (t.businessOwnerId === profile?.id) ||
+                                (t.clientEmail && t.clientEmail.toLowerCase() === myEmail.toLowerCase())
+                            );
                             const pendingCount = myClientTasks.filter(t => t.status !== 'Completed' && t.status !== 'Verified' && t.status !== 'Approved').length;
 
                             return (
@@ -1116,23 +1119,19 @@ export default function BusinessCA() {
                                                                                 padding: '6px 12px',
                                                                                 borderRadius: '8px',
                                                                                 border: '1.5px solid',
-                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
-                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
-                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
+                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#BFDBFE' : '#CBD5E1'),
+                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#EFF6FF' : 'transparent'),
+                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#1D4ED8' : '#475569'),
                                                                                 fontWeight: '800',
                                                                                 fontSize: '12px',
                                                                                 cursor: 'pointer',
                                                                                 transition: 'all 0.2s'
                                                                             }}
                                                                         >
-                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
+                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'Needs Correction' ? '⚠️ Needs Correction' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending'))))))}
                                                                         </button>
                                                                         {task.askForDocument && (
-                                                                            task.attachedFile ? (
-                                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                                    <CheckCircle2 size={14} /> Uploaded
-                                                                                </span>
-                                                                            ) : (
+                                                                            (task.status === 'Needs Correction' || task.status === 'Rejected') ? (
                                                                                 <label style={{ cursor: 'pointer', display: 'inline-block' }}>
                                                                                     <input
                                                                                         type="file"
@@ -1147,7 +1146,7 @@ export default function BusinessCA() {
                                                                                         style={{
                                                                                             padding: '6px 12px',
                                                                                             borderRadius: '8px',
-                                                                                            background: '#0F172A',
+                                                                                            background: '#EF4444',
                                                                                             color: '#FFFFFF',
                                                                                             border: 'none',
                                                                                             fontWeight: '800',
@@ -1155,12 +1154,49 @@ export default function BusinessCA() {
                                                                                             display: 'inline-block'
                                                                                         }}
                                                                                     >
-                                                                                        Upload Document
+                                                                                        Upload Revised Document
                                                                                     </span>
                                                                                 </label>
+                                                                            ) : (
+                                                                                task.attachedFile ? (
+                                                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                        <CheckCircle2 size={14} /> Uploaded
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                        <input
+                                                                                            type="file"
+                                                                                            style={{ display: 'none' }}
+                                                                                            onChange={(e) => {
+                                                                                                if (e.target.files && e.target.files.length > 0) {
+                                                                                                    uploadTaskDocMutation.mutate(task.id);
+                                                                                                }
+                                                                                            }}
+                                                                                        />
+                                                                                        <span
+                                                                                            style={{
+                                                                                                padding: '6px 12px',
+                                                                                                borderRadius: '8px',
+                                                                                                background: '#0F172A',
+                                                                                                color: '#FFFFFF',
+                                                                                                border: 'none',
+                                                                                                fontWeight: '800',
+                                                                                                fontSize: '12px',
+                                                                                                display: 'inline-block'
+                                                                                            }}
+                                                                                        >
+                                                                                            Upload Document
+                                                                                        </span>
+                                                                                    </label>
+                                                                                )
                                                                             )
                                                                         )}
                                                                     </div>
+                                                                    {task.taskDescription !== task.title && (
+                                                                        <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: '700', marginTop: '4px', background: '#FEF2F2', padding: '6px 10px', borderRadius: '6px', border: '1px solid #FEE2E2' }}>
+                                                                            Note: {task.taskDescription}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         ))}
