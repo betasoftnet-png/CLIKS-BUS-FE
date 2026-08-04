@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                const userData = await authService.getProfile();
+                const userData = await profileService.getProfile();
                 setUser(userData);
             } catch (error) {
                 console.error('[AuthContext] Failed to fetch profile:', error);
