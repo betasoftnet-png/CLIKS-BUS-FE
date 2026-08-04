@@ -166,6 +166,7 @@ export default function BusinessCA() {
 
     const [showAddTaskModal, setShowAddTaskModal] = useState(false);
     const [newTaskClient, setNewTaskClient] = useState('Rohan Sharma');
+    const [newTaskBusinessOwnerEmail, setNewTaskBusinessOwnerEmail] = useState('');
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -436,7 +437,6 @@ export default function BusinessCA() {
         { id: 'clients', label: 'Clients', icon: User, badge: null },
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
-        { id: 'team_requests', label: 'Team Requests', icon: UserCheck, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
         { id: 'documents', label: 'Documents', icon: Folder },
@@ -503,9 +503,13 @@ export default function BusinessCA() {
 
     const handleAddPracticeTask = (e) => {
         e.preventDefault();
-        if (!newTaskTitle.trim()) return;
+        if (!newTaskTitle.trim() || !newTaskBusinessOwnerEmail.trim()) {
+            alert('Task title and Business Owner Email are required.');
+            return;
+        }
         addTaskMutation.mutate({
             clientName: newTaskClient,
+            businessOwnerEmail: newTaskBusinessOwnerEmail.trim(),
             title: newTaskTitle.trim(),
             priority: newTaskPriority,
             // eslint-disable-next-line react-hooks/purity
@@ -773,6 +777,7 @@ export default function BusinessCA() {
             refetchTasks();
             setShowAddTaskModal(false);
             setNewTaskTitle('');
+            setNewTaskBusinessOwnerEmail('');
             setNewTaskDueDate('');
             setNewTaskAskForDocument(false);
         },
@@ -1872,7 +1877,8 @@ export default function BusinessCA() {
                         {sidebarTabs.map((tab) => {
                             const TabIcon = tab.icon;
                             const isActive = personalTab === tab.id ||
-                                (tab.id === 'clients' && personalTab === 'requests');
+                                (tab.id === 'clients' && personalTab === 'requests') ||
+                                (tab.id === 'teams' && personalTab === 'team_requests');
                             return (
                                 <button
                                     key={tab.id}
@@ -1918,7 +1924,7 @@ export default function BusinessCA() {
                                             {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
                                         </span>
                                     )}
-                                    {tab.id === 'team_requests' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                    {tab.id === 'teams' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
                                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
                                             {teamRequests.filter(r => r.status === 'Pending').length}
                                         </span>
@@ -2402,6 +2408,17 @@ export default function BusinessCA() {
                                             <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Manage roles, access control, and staff associations inside your advisory firm.</p>
                                         </div>
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <button
+                                                onClick={() => setPersonalTab('team_requests')}
+                                                style={{ padding: '8px 16px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <UserCheck size={16} /> Team Requests
+                                                {teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                                    <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                                        {teamRequests.filter(r => r.status === 'Pending').length}
+                                                    </span>
+                                                )}
+                                            </button>
                                             <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <Plus size={16} /> Add Team Member
                                             </button>
@@ -3846,6 +3863,17 @@ export default function BusinessCA() {
                                             <option key={c.id} value={c.name}>{c.name}</option>
                                         ))}
                                     </select>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>BUSINESS OWNER EMAIL (For sync & notification) *</label>
+                                    <input
+                                        type="email"
+                                        value={newTaskBusinessOwnerEmail}
+                                        onChange={e=>setNewTaskBusinessOwnerEmail(e.target.value)}
+                                        required
+                                        placeholder="e.g. owner@business.com"
+                                        style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                    />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>TASK DESCRIPTION TITLE</label>
