@@ -436,9 +436,11 @@ export default function BusinessCA() {
         { id: 'clients', label: 'Clients', icon: User, badge: null },
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
+        { id: 'team_requests', label: 'Team Requests', icon: UserCheck, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'documents', label: 'Documents', icon: Folder }
+        { id: 'documents', label: 'Documents', icon: Folder },
+        { id: 'reports', label: 'Reports', icon: BarChart }
     ];
 
     // Timer Effect
@@ -1870,8 +1872,7 @@ export default function BusinessCA() {
                         {sidebarTabs.map((tab) => {
                             const TabIcon = tab.icon;
                             const isActive = personalTab === tab.id ||
-                                (tab.id === 'clients' && personalTab === 'requests') ||
-                                (tab.id === 'teams' && personalTab === 'team_requests');
+                                (tab.id === 'clients' && personalTab === 'requests');
                             return (
                                 <button
                                     key={tab.id}
@@ -1917,7 +1918,7 @@ export default function BusinessCA() {
                                             {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
                                         </span>
                                     )}
-                                    {tab.id === 'teams' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                    {tab.id === 'team_requests' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
                                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
                                             {teamRequests.filter(r => r.status === 'Pending').length}
                                         </span>
@@ -2401,17 +2402,6 @@ export default function BusinessCA() {
                                             <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Manage roles, access control, and staff associations inside your advisory firm.</p>
                                         </div>
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                            <button
-                                                onClick={() => setPersonalTab('team_requests')}
-                                                style={{ padding: '8px 16px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                            >
-                                                <UserCheck size={16} /> Team Requests
-                                                {teamRequests.filter(r => r.status === 'Pending').length > 0 && (
-                                                    <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                                        {teamRequests.filter(r => r.status === 'Pending').length}
-                                                    </span>
-                                                )}
-                                            </button>
                                             <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <Plus size={16} /> Add Team Member
                                             </button>
@@ -2788,34 +2778,6 @@ export default function BusinessCA() {
                                                 <div>
                                                     <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📝 Workpaper — Select a Client</h3>
                                                     <p style={{ fontSize: '12.5px', color: '#64748B', margin: '4px 0 0 0' }}>Click on a client to view and manage their audit checklist.</p>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '10px' }}>
-                                                    <button
-                                                        onClick={() => setShowTdsHistory(true)}
-                                                        style={{ padding: '8px 16px', background: '#FFFFFF', border: '1.5px solid #004aad', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#004aad', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                    >
-                                                        <History size={15} /> History
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setTdsTformData({
-                                                                financialYear: '2026-27',
-                                                                residentialStatus: 'Resident',
-                                                                recipientCategory: 'Individual/HUF',
-                                                                panNotAvailable: false,
-                                                                section: '194C - Contractor (Single)',
-                                                                amount: '',
-                                                                paymentDate: new Date().toISOString().split('T')[0],
-                                                                surchargeRate: 'Nil'
-                                                            });
-                                                            setCalculatedTdsResult(null);
-                                                            setIsEditingTdsId(null);
-                                                            setShowTdsCalculator(true);
-                                                        }}
-                                                        style={{ padding: '8px 16px', background: '#004aad', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '850', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0, 74, 173, 0.2)' }}
-                                                    >
-                                                        <Calculator size={15} /> TDS Calculator
-                                                    </button>
                                                 </div>
                                             </div>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
