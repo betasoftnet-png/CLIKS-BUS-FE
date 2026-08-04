@@ -671,11 +671,29 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                             
                                             <div style={{ display: 'flex', gap: '5px' }}>
                                                 <button 
-                                                    onClick={() => {
-                                                        setTape(hist.tape);
-                                                        setActiveInput("0");
-                                                        setActiveOp(null);
-                                                        setShowHistory(false);
+                                                    onClick={async () => {
+                                                        try {
+                                                            const fullSession = await calculatorService.getSession(hist.id);
+                                                            const mappedTape = (fullSession.items || []).map(item => ({
+                                                                id: item.id || String(Math.random()),
+                                                                type: item.operator === '=' ? 'base' : item.operator,
+                                                                value: Number(item.value),
+                                                                label: item.label || '',
+                                                                runningAfter: Number(item.runningTotal)
+                                                            }));
+                                                            // If backend returned items, use them; otherwise fallback to hist.tape if available
+                                                            setTape(mappedTape.length > 0 ? mappedTape : (hist.tape || []));
+                                                            setActiveInput("0");
+                                                            setActiveOp(null);
+                                                            setShowHistory(false);
+                                                        } catch (err) {
+                                                            console.error("Failed to restore session", err);
+                                                            // Fallback to locally mapped tape from history summary if fetch fails
+                                                            setTape(hist.tape || []);
+                                                            setActiveInput("0");
+                                                            setActiveOp(null);
+                                                            setShowHistory(false);
+                                                        }
                                                     }}
                                                     style={{ 
                                                         padding: '6px 12px', 
