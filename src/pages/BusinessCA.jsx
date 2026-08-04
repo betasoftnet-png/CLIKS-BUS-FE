@@ -323,6 +323,7 @@ export default function BusinessCA() {
 
     // --- Phase Upload States ---
     const [showPhaseModal, setShowPhaseModal] = useState(false);
+    const [draggingPhase, setDraggingPhase] = useState(null);
     const [phaseUploadSuccess, setPhaseUploadSuccess] = useState(null);
 
     // --- TDS Calculator & History States ---
@@ -530,6 +531,9 @@ export default function BusinessCA() {
             caService.updateClientDocumentReview(selectedWorkpaperClientId, { documentId, status, remark }),
         onSuccess: () => {
             refetchClientDocuments();
+            refetchTasks();
+            setShowReviewModal(false);
+            setReviewNotes('');
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to update review')
     });
@@ -637,11 +641,11 @@ export default function BusinessCA() {
     };
 
     const uploadPhaseMutation = useMutation({
-        mutationFn: ({ clientId, phase }) => caService.uploadClientPhaseDoc(clientId, phase),
+        mutationFn: ({ clientId, phase, fileName }) => caService.uploadClientPhaseDoc(clientId, phase, fileName),
         onSuccess: (data) => {
             refetchClientDocuments();
             setPhaseUploadSuccess({ fileName: data.attachedFile, phase: data.phase });
-            setTimeout(() => setPhaseUploadSuccess(null), 4000);
+            setTimeout(() => setPhaseUploadSuccess(null), 5000);
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload phase document')
     });
@@ -835,6 +839,7 @@ export default function BusinessCA() {
         mutationFn: (id) => caService.uploadRequestDoc(id),
         onSuccess: () => {
             refetchRequests();
+            refetchClientDocuments();
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload document')
     });
@@ -872,6 +877,7 @@ export default function BusinessCA() {
         mutationFn: (id) => caService.uploadTaskDoc(id),
         onSuccess: () => {
             refetchTasks();
+            refetchClientDocuments();
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload task document')
     });
@@ -4518,63 +4524,96 @@ export default function BusinessCA() {
                                 </div>
 
                                 {phaseUploadSuccess && (
-                                    <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: '#DCFCE7', border: '1px solid #BBF7D0', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#15803d', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✓</div>
-                                        <div>
-                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#14532D' }}>Upload Successful</div>
-                                            <div style={{ fontSize: '11px', color: '#166534', fontWeight: '600' }}>{phaseUploadSuccess.fileName} uploaded to {phaseUploadSuccess.phase}</div>
+                                    <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: '#DCFCE7', border: '1px solid #BBF7D0', padding: '16px', borderRadius: '12px', display: 'flex', alignItems: 'start', gap: '12px' }}>
+                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#15803d', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>✓</div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '14px', fontWeight: '900', color: '#14532D', marginBottom: '8px' }}>✅ Document Uploaded Successfully</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <div style={{ fontSize: '12px', color: '#166534', fontWeight: '600' }}><strong>File:</strong> {phaseUploadSuccess.fileName}</div>
+                                                <div style={{ fontSize: '12px', color: '#166534', fontWeight: '600' }}><strong>Phase:</strong> {phaseUploadSuccess.phase}</div>
+                                                <div style={{ fontSize: '11.5px', color: '#15803d', fontWeight: '800', marginTop: '4px' }}>Uploaded Successfully</div>
+                                            </div>
                                         </div>
                                     </Motion.div>
                                 )}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                                    {['Phase 1', 'Phase 2'].map((phase, idx) => (
-                                        <div
-                                            key={phase}
-                                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#15803d'; e.currentTarget.style.background = '#F0FDF4'; }}
-                                            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; }}
-                                            onDrop={(e) => {
-                                                e.preventDefault();
-                                                e.currentTarget.style.borderColor = '#E2E8F0';
-                                                e.currentTarget.style.background = '#F8FAFC';
-                                                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                                    uploadPhaseMutation.mutate({ clientId: selectedWorkpaperClientId, phase });
-                                                }
-                                            }}
-                                            style={{
-                                                background: '#F8FAFC',
-                                                border: '2px dashed #E2E8F0',
-                                                borderRadius: '16px',
-                                                padding: '40px 24px',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '16px',
-                                                transition: 'all 0.2s ease'
-                                            }}
-                                        >
-                                            <div style={{ fontSize: '14px', fontWeight: '900', color: idx === 0 ? '#004aad' : '#15803d', textTransform: 'uppercase', letterSpacing: '1px' }}>{phase}</div>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: '13px', color: '#475569', fontWeight: '650' }}>Drag documents here</div>
-                                                <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', margin: '8px 0' }}>OR</div>
-                                                <label style={{ cursor: 'pointer' }}>
-                                                    <input
-                                                        type="file"
-                                                        multiple
-                                                        style={{ display: 'none' }}
-                                                        onChange={(e) => {
-                                                            if (e.target.files && e.target.files.length > 0) {
-                                                                uploadPhaseMutation.mutate({ clientId: selectedWorkpaperClientId, phase });
-                                                            }
-                                                        }}
-                                                    />
-                                                    <span style={{ padding: '8px 20px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', display: 'inline-block', transition: 'all 0.2s' }}>Browse Files</span>
-                                                </label>
+                                    {['Phase 1', 'Phase 2'].map((phase, idx) => {
+                                        const isDragging = draggingPhase === phase;
+
+                                        const handleFileUpload = (files) => {
+                                            if (!files || files.length === 0) return;
+                                            const file = files[0];
+                                            const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'];
+                                            const extension = file.name.split('.').pop().toLowerCase();
+
+                                            if (!allowedExtensions.includes(extension)) {
+                                                alert(`Invalid file type: .${extension}. Supported types: ${allowedExtensions.join(', ').toUpperCase()}`);
+                                                return;
+                                            }
+
+                                            uploadPhaseMutation.mutate({
+                                                clientId: selectedWorkpaperClientId,
+                                                phase,
+                                                fileName: file.name
+                                            });
+                                        };
+
+                                        return (
+                                            <div
+                                                key={phase}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    setDraggingPhase(phase);
+                                                }}
+                                                onDragLeave={(e) => {
+                                                    e.preventDefault();
+                                                    setDraggingPhase(null);
+                                                }}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    setDraggingPhase(null);
+                                                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                        handleFileUpload(e.dataTransfer.files);
+                                                    }
+                                                }}
+                                                style={{
+                                                    background: isDragging ? '#F0FDF4' : '#F8FAFC',
+                                                    border: `2px dashed ${isDragging ? '#15803d' : '#E2E8F0'}`,
+                                                    borderRadius: '16px',
+                                                    padding: '40px 24px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '16px',
+                                                    transition: 'all 0.2s ease',
+                                                    transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+                                                    boxShadow: isDragging ? '0 10px 15px -3px rgba(21, 128, 61, 0.1)' : 'none'
+                                                }}
+                                            >
+                                                <div style={{ fontSize: '14px', fontWeight: '900', color: idx === 0 ? '#004aad' : '#15803d', textTransform: 'uppercase', letterSpacing: '1px' }}>{phase}</div>
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <div style={{ fontSize: '13px', color: '#475569', fontWeight: '650' }}>Drag documents here</div>
+                                                    <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', margin: '8px 0' }}>OR</div>
+                                                    <label style={{ cursor: 'pointer' }}>
+                                                        <input
+                                                            type="file"
+                                                            multiple
+                                                            style={{ display: 'none' }}
+                                                            onChange={(e) => {
+                                                                if (e.target.files && e.target.files.length > 0) {
+                                                                    handleFileUpload(e.target.files);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span style={{ padding: '8px 20px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', display: 'inline-block', transition: 'all 0.2s' }}>Browse Files</span>
+                                                    </label>
+                                                </div>
+                                                <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: '500' }}>Supports: PDF, JPG, PNG, DOCX, XLSX</div>
                                             </div>
-                                            <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: '500' }}>Supports: PDF, JPG, PNG, DOCX, XLSX</div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
