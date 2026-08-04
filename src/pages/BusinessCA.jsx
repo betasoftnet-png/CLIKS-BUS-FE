@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { 
-    Briefcase, ShieldAlert, FileText, CheckCircle2, AlertTriangle, 
-    RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock, 
+import {
+    Briefcase, ShieldAlert, FileText, CheckCircle2, AlertTriangle,
+    RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock,
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
     Calculator, History, Info, Save, X, ChevronDown, Check
@@ -107,7 +107,7 @@ export default function BusinessCA() {
             return;
         }
         const emailLower = newTeamEmail.trim().toLowerCase();
-        
+
         if (teamMembers.some(m => m.email.toLowerCase() === emailLower)) {
             alert('This user is already a member of your team.');
             return;
@@ -412,7 +412,7 @@ export default function BusinessCA() {
     };
 
     const updateDocumentReviewMutation = useMutation({
-        mutationFn: ({ documentId, status, remark }) => 
+        mutationFn: ({ documentId, status, remark }) =>
             caService.updateClientDocumentReview(selectedWorkpaperClientId, { documentId, status, remark }),
         onSuccess: () => {
             refetchClientDocuments();
@@ -560,8 +560,8 @@ export default function BusinessCA() {
         const file = e.target.files[0];
         if (!file) return;
         setUploadedFileName(file.name);
-        const formattedSize = file.size > 1024 * 1024 
-            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+        const formattedSize = file.size > 1024 * 1024
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
             : `${(file.size / 1024).toFixed(0)} KB`;
         setUploadedFileSize(formattedSize);
     };
@@ -971,29 +971,29 @@ export default function BusinessCA() {
 
     return (
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', backgroundColor: '#F8FAFC', minHeight: '85vh', fontFamily: 'Inter, sans-serif' }}>
-            
+
             {/* Workspace Selector Segment Control */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: '12px', 
-                background: '#FFFFFF', 
-                padding: '6px', 
-                borderRadius: '16px', 
-                border: '1px solid #E2E8F0', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' 
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+                background: '#FFFFFF',
+                padding: '6px',
+                borderRadius: '16px',
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
             }}>
-                <button 
-                    onClick={() => setCaMode('business')} 
-                    style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '10px', 
-                        padding: '14px', 
-                        borderRadius: '12px', 
-                        border: 'none', 
-                        cursor: 'pointer', 
+                <button
+                    onClick={() => setCaMode('business')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        padding: '14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
                         transition: 'all 0.2s ease-in-out',
                         background: caMode === 'business' ? 'linear-gradient(135deg, #004aad 0%, #003380 100%)' : 'transparent',
                         color: caMode === 'business' ? '#FFFFFF' : '#64748B',
@@ -1005,17 +1005,17 @@ export default function BusinessCA() {
                     <Building size={18} />
                     FIN-PRO Command Centre (Business)
                 </button>
-                <button 
-                    onClick={() => setCaMode('personal')} 
-                    style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '10px', 
-                        padding: '14px', 
-                        borderRadius: '12px', 
-                        border: 'none', 
-                        cursor: 'pointer', 
+                <button
+                    onClick={() => setCaMode('personal')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        padding: '14px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
                         transition: 'all 0.2s ease-in-out',
                         background: caMode === 'personal' ? 'linear-gradient(135deg, #15803d 0%, #166534 100%)' : 'transparent',
                         color: caMode === 'personal' ? '#FFFFFF' : '#64748B',
@@ -1032,945 +1032,945 @@ export default function BusinessCA() {
             {caMode === 'business' ? (
                 <>
                     {/* Command Centre Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: '#F0F5FF', border: '1px solid #C3DAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004aad' }}>
-                        <Briefcase size={28} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: '#F0F5FF', border: '1px solid #C3DAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004aad' }}>
+                                <Briefcase size={28} />
+                            </div>
+                            <div>
+                                <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    FIN-PRO Command Centre <span style={{ fontSize: '11px', fontWeight: '900', color: '#004aad', background: '#E0EBFF', border: '1px solid #C3DAFE', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' }}>Professional Layer</span>
+                                </h1>
+                                <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Manage audits, taxes, compliance, and client reports in one place.</p>
+                            </div>
+                        </div>
+
+                        {/* Tab switcher commented out per user request */}
                     </div>
-                    <div>
-                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            FIN-PRO Command Centre <span style={{ fontSize: '11px', fontWeight: '900', color: '#004aad', background: '#E0EBFF', border: '1px solid #C3DAFE', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' }}>Professional Layer</span>
-                        </h1>
-                        <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Manage audits, taxes, compliance, and client reports in one place.</p>
-                    </div>
-                </div>
 
-                {/* Tab switcher commented out per user request */}
-            </div>
+                    {/* Main Area - Restructured as 2-column Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{
+                        width: '100%',
+                        alignItems: 'start'
+                    }}>
 
-            {/* Main Area - Restructured as 2-column Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{ 
-                width: '100%',
-                alignItems: 'start'
-            }}>
-                
-                {/* Left Column: FIN-PRO-Assigned Compliance Checklist & Workspaces */}
-                <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'auditor' && (() => {
-                            // Find the connected CA's email dynamically from accepted invitations
-                            const connectedCa = outgoingInvitations.find(inv => inv.status === 'Accepted') || 
-                                                incomingInvitations.find(inv => inv.status === 'Accepted');
-                            const connectedCaEmail = connectedCa 
-                                ? (connectedCa.receiver_email === myEmail ? connectedCa.sender_email : connectedCa.receiver_email) 
-                                : null;
+                        {/* Left Column: FIN-PRO-Assigned Compliance Checklist & Workspaces */}
+                        <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                            <AnimatePresence mode="wait">
+                                {activeTab === 'auditor' && (() => {
+                                    // Find the connected CA's email dynamically from accepted invitations
+                                    const connectedCa = outgoingInvitations.find(inv => inv.status === 'Accepted') ||
+                                        incomingInvitations.find(inv => inv.status === 'Accepted');
+                                    const connectedCaEmail = connectedCa
+                                        ? (connectedCa.receiver_email === myEmail ? connectedCa.sender_email : connectedCa.receiver_email)
+                                        : null;
 
-                            const myClientTasks = practiceTasks.filter(t =>
-                                (t.businessOwnerId === profile?.id) ||
-                                (t.clientEmail && t.clientEmail.toLowerCase() === myEmail.toLowerCase())
-                            );
-                            const pendingCount = myClientTasks.filter(t => t.status !== 'Completed' && t.status !== 'Verified' && t.status !== 'Approved').length;
+                                    const myClientTasks = practiceTasks.filter(t =>
+                                        (t.businessOwnerId === profile?.id) ||
+                                        (t.clientEmail && t.clientEmail.toLowerCase() === myEmail.toLowerCase())
+                                    );
+                                    const pendingCount = myClientTasks.filter(t => t.status !== 'Completed' && t.status !== 'Verified' && t.status !== 'Approved').length;
 
-                            return (
-                                <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <CheckCircle2 size={20} style={{ color: '#004aad' }} />
-                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 FIN-PRO-Assigned Compliance Checklist</h3>
+                                    return (
+                                        <Motion.div key="auditor" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <CheckCircle2 size={20} style={{ color: '#004aad' }} />
+                                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 FIN-PRO-Assigned Compliance Checklist</h3>
+                                                    </div>
+                                                </div>
+
+                                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
+                                                    These are the live compliance and audit actions assigned to your account by your connected FIN-PRO. Mark them as 'Completed' or 'In Progress' to sync status in real time.
+                                                </p>
+
+                                                {myClientTasks.length === 0 ? (
+                                                    <div style={{ padding: '48px 24px', textAlign: 'center', border: '1.5px dashed #E2E8F0', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                            <CheckCircle2 size={24} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: '0 0 4px 0' }}>No Active Tasks</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Your FIN-PRO Advisor hasn't assigned any compliance checklists to your email yet.</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                            <FilterableTableHead columns={[
+                                                                { key: 'title', label: 'Task Details', placeholder: 'Search task...' },
+                                                                { key: 'dueDate', label: 'Due Date', placeholder: 'Due date...' },
+                                                                { key: 'priority', label: 'Priority', placeholder: 'Priority...' },
+                                                                { key: 'status', label: 'Filing Status / Action', placeholder: 'Status...' }
+                                                            ]} onFilterChange={setColFiltersChecklist} />
+                                                            <tbody>
+                                                                {myClientTasks.filter(item => applyTableFilters(item, colFiltersChecklist)).map(task => (
+                                                                    <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>
+                                                                        <td style={{ padding: '16px 20px', fontWeight: '800', color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#94A3B8' : '#0F172A', textDecoration: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? 'line-through' : 'none' }}>
+                                                                            {task.title}
+                                                                        </td>
+                                                                        <td style={{ padding: '16px 20px', color: '#64748B', fontWeight: '500' }}>📅 {task.dueDate}</td>
+                                                                        <td style={{ padding: '16px 20px' }}>
+                                                                            <span style={{
+                                                                                fontSize: '11px',
+                                                                                fontWeight: '800',
+                                                                                padding: '3px 8px',
+                                                                                borderRadius: '12px',
+                                                                                backgroundColor: task.priority === 'High' ? '#FEF2F2' : (task.priority === 'Medium' ? '#EFF6FF' : '#F1F5F9'),
+                                                                                color: task.priority === 'High' ? '#EF4444' : (task.priority === 'Medium' ? '#1D4ED8' : '#475569')
+                                                                            }}>{task.priority}</span>
+                                                                        </td>
+                                                                        <td style={{ padding: '16px 20px' }}>
+                                                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => toggleTaskStatus(task.id)}
+                                                                                    style={{
+                                                                                        display: 'inline-flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '6px',
+                                                                                        padding: '6px 12px',
+                                                                                        borderRadius: '8px',
+                                                                                        border: '1.5px solid',
+                                                                                        borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#BFDBFE' : '#CBD5E1'),
+                                                                                        background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#EFF6FF' : 'transparent'),
+                                                                                        color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#1D4ED8' : '#475569'),
+                                                                                        fontWeight: '800',
+                                                                                        fontSize: '12px',
+                                                                                        cursor: 'pointer',
+                                                                                        transition: 'all 0.2s'
+                                                                                    }}
+                                                                                >
+                                                                                    {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'Needs Correction' ? '⚠️ Needs Correction' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending'))))))}
+                                                                                </button>
+                                                                                {task.askForDocument && (
+                                                                                    (task.status === 'Needs Correction' || task.status === 'Rejected') ? (
+                                                                                        <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                            <input
+                                                                                                type="file"
+                                                                                                style={{ display: 'none' }}
+                                                                                                onChange={(e) => {
+                                                                                                    if (e.target.files && e.target.files.length > 0) {
+                                                                                                        uploadTaskDocMutation.mutate(task.id);
+                                                                                                    }
+                                                                                                }}
+                                                                                            />
+                                                                                            <span
+                                                                                                style={{
+                                                                                                    padding: '6px 12px',
+                                                                                                    borderRadius: '8px',
+                                                                                                    background: '#EF4444',
+                                                                                                    color: '#FFFFFF',
+                                                                                                    border: 'none',
+                                                                                                    fontWeight: '800',
+                                                                                                    fontSize: '12px',
+                                                                                                    display: 'inline-block'
+                                                                                                }}
+                                                                                            >
+                                                                                                Upload Revised Document
+                                                                                            </span>
+                                                                                        </label>
+                                                                                    ) : (
+                                                                                        task.attachedFile ? (
+                                                                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                                <CheckCircle2 size={14} /> Uploaded
+                                                                                            </span>
+                                                                                        ) : (
+                                                                                            <label style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                                                                                <input
+                                                                                                    type="file"
+                                                                                                    style={{ display: 'none' }}
+                                                                                                    onChange={(e) => {
+                                                                                                        if (e.target.files && e.target.files.length > 0) {
+                                                                                                            uploadTaskDocMutation.mutate(task.id);
+                                                                                                        }
+                                                                                                    }}
+                                                                                                />
+                                                                                                <span
+                                                                                                    style={{
+                                                                                                        padding: '6px 12px',
+                                                                                                        borderRadius: '8px',
+                                                                                                        background: '#0F172A',
+                                                                                                        color: '#FFFFFF',
+                                                                                                        border: 'none',
+                                                                                                        fontWeight: '800',
+                                                                                                        fontSize: '12px',
+                                                                                                        display: 'inline-block'
+                                                                                                    }}
+                                                                                                >
+                                                                                                    Upload Document
+                                                                                                </span>
+                                                                                            </label>
+                                                                                        )
+                                                                                    )
+                                                                                )}
+                                                                            </div>
+                                                                            {task.taskDescription !== task.title && (
+                                                                                <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: '700', marginTop: '4px', background: '#FEF2F2', padding: '6px 10px', borderRadius: '6px', border: '1px solid #FEE2E2' }}>
+                                                                                    Note: {task.taskDescription}
+                                                                                </div>
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Motion.div>
+                                    );
+                                })()}
+
+                                {activeTab === 'ca_cpa' && (
+                                    <Motion.div key="ca_cpa" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                            {/* Jurisdiction Toggle */}
+                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Dynamic Jurisdiction Engine</h3>
+                                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Instantly maps legal and tax system properties dynamically based on the client profile's geo-jurisdiction.</p>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <button onClick={() => setJurisdiction('IN')} style={{ width: '100%', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '10px', fontSize: '13px', fontWeight: '850', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: jurisdiction === 'IN' ? '#004aad' : '#E2E8F0', background: jurisdiction === 'IN' ? '#F0F5FF' : 'transparent', color: jurisdiction === 'IN' ? '#004aad' : '#475569' }}>
+                                                        <span>🇮🇳 India Jurisdiction</span>
+                                                        <span style={{ fontSize: '11px', fontWeight: '600' }}>GST, TDS &amp; Income Tax</span>
+                                                    </button>
+                                                    <button onClick={() => setJurisdiction('US')} style={{ width: '100%', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '10px', fontSize: '13px', fontWeight: '850', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: jurisdiction === 'US' ? '#004aad' : '#E2E8F0', background: jurisdiction === 'US' ? '#F0F5FF' : 'transparent', color: jurisdiction === 'US' ? '#004aad' : '#475569' }}>
+                                                        <span>🇺🇸 United States Jurisdiction</span>
+                                                        <span style={{ fontSize: '11px', fontWeight: '600' }}>IRS &amp; State Sales Tax</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Active Tax System View */}
+                                            <div className="lg:col-span-2" style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
+                                                        Active System Calculations - {jurisdiction === 'IN' ? 'India (GST/TDS)' : 'United States (IRS)'}
+                                                    </h3>
+                                                    <span style={{ fontSize: '12px', fontWeight: '750', color: '#004aad' }}>FY 2026-27</span>
+                                                </div>
+
+                                                {jurisdiction === 'IN' ? (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                        <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>GSTR-3B Status</div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Ready to File</div>
+                                                            <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '4px' }}>{formatCurrency(computedEligibleItc)} ITC Auto-matched</div>
+                                                        </div>
+                                                        <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Total Tax Liability</div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>{formatCurrency(computedTotalOutputTax)}</div>
+                                                            <div style={{ fontSize: '11px', color: '#D97706', fontWeight: '600', marginTop: '4px' }}>Based on outward invoices</div>
+                                                        </div>
+                                                        <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Net Payable CGST/SGST</div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>{formatCurrency(computedNetPayableCGST + computedNetPayableSGST)}</div>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', marginTop: '4px' }}>Post ITC offset balance</div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                        <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>IRS Form 1120</div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Computed</div>
+                                                            <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '4px' }}>21% Federal Flat Rate</div>
+                                                        </div>
+                                                        <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Federal Tax Due</div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>${(computedTaxUS / 80).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', marginTop: '4px' }}>Calculated from P&amp;L ledger</div>
+                                                        </div>
+                                                        <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>State Franchise Tax</div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Delaware Franchise</div>
+                                                            <div style={{ fontSize: '11px', color: '#D97706', fontWeight: '600', marginTop: '4px' }}>Min Liability calculated</div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
-                                            These are the live compliance and audit actions assigned to your account by your connected FIN-PRO. Mark them as 'Completed' or 'In Progress' to sync status in real time.
-                                        </p>
+                                        {/* Direct E-Filing Portal Integration */}
+                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Landmark size={20} style={{ color: '#004aad' }} />
+                                                    Direct Portal Integration Engine
+                                                </h3>
+                                                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>API Gateway Version: v1.4.2</span>
+                                            </div>
 
-                                        {myClientTasks.length === 0 ? (
-                                            <div style={{ padding: '48px 24px', textAlign: 'center', border: '1.5px dashed #E2E8F0', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
-                                                    <CheckCircle2 size={24} />
-                                                </div>
-                                                <div>
-                                                    <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: '0 0 4px 0' }}>No Active Tasks</h4>
-                                                    <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Your FIN-PRO Advisor hasn't assigned any compliance checklists to your email yet.</p>
+                                            <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Configure secure credentials and directly upload certified draft returns to government servers (such as India's MCA/IT portal or international IRS/State tax registries) with 256-bit encryption compliance.</p>
+
+                                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                <button onClick={triggerPortalSync} disabled={syncingState !== 'idle' && syncingState !== 'success'} style={{ padding: '12px 24px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {syncingState === 'idle' && "Initialize Secure Sync"}
+                                                    {syncingState === 'connecting' && "Connecting Secure Tunnel..."}
+                                                    {syncingState === 'validating' && "Validating Tax Computations..."}
+                                                    {syncingState === 'pushing' && "Pushing Returns to Govt Portal..."}
+                                                    {syncingState === 'success' && "Upload Completed ✓"}
+                                                </button>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: '750', color: '#475569' }}>
+                                                        {syncingState === 'idle' && "System Ready to Sync"}
+                                                        {syncingState === 'connecting' && "Status: Connecting to MCA/IT Servers..."}
+                                                        {syncingState === 'validating' && "Status: Scanning for checksum integrity..."}
+                                                        {syncingState === 'pushing' && "Status: Uploading encrypted return packet..."}
+                                                        {syncingState === 'success' && "Encrypted returns pushed successfully. Reference: CLX-94857A."}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        ) : (
+                                        </div>
+                                    </Motion.div>
+                                )}
+
+                                {activeTab === 'cs_vault' && (
+                                    <Motion.div key="cs_vault" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        {/* Secretarial Dashboard */}
+                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Secretarial Dashboard & Resolutions Registry</h3>
+                                                <span style={{ fontSize: '11px', background: '#F0F5FF', border: '1px solid #C3DAFE', color: '#004aad', padding: '3px 10px', borderRadius: '20px', fontWeight: '750' }}>CS Governance Module</span>
+                                            </div>
+
+                                            <form onSubmit={handleAddResolution} style={{ display: 'flex', gap: '12px', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter new Resolution description (e.g. Adoption of annual finances)..."
+                                                    value={newResolutionTitle}
+                                                    onChange={(e) => setNewResolutionTitle(e.target.value)}
+                                                    style={{ flex: 3, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', fontWeight: '600' }}
+                                                />
+                                                <select
+                                                    value={newResolutionType}
+                                                    onChange={(e) => setNewResolutionType(e.target.value)}
+                                                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', fontWeight: '700', color: '#475569' }}
+                                                >
+                                                    <option value="Ordinary">Ordinary Resolution</option>
+                                                    <option value="Special">Special Resolution</option>
+                                                </select>
+                                                <button type="submit" style={{ flex: 1, background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px' }}>
+                                                    <Plus size={16} /> Add Resolution
+                                                </button>
+                                            </form>
+
                                             <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                                    <FilterableTableHead columns={[
-                                                        { key: 'title', label: 'Task Details', placeholder: 'Search task...' },
-                                                        { key: 'dueDate', label: 'Due Date', placeholder: 'Due date...' },
-                                                        { key: 'priority', label: 'Priority', placeholder: 'Priority...' },
-                                                        { key: 'status', label: 'Filing Status / Action', placeholder: 'Status...' }
-                                                    ]} onFilterChange={setColFiltersChecklist} />
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                            <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Date Passed</th>
+                                                            <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Resolution Details</th>
+                                                            <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Category</th>
+                                                            <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Filing Status</th>
+                                                        </tr>
+                                                    </thead>
                                                     <tbody>
-                                                        {myClientTasks.filter(item => applyTableFilters(item, colFiltersChecklist)).map(task => (
-                                                            <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>
-                                                                <td style={{ padding: '16px 20px', fontWeight: '800', color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#94A3B8' : '#0F172A', textDecoration: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? 'line-through' : 'none' }}>
-                                                                    {task.title}
+                                                        {resolutions.map((r) => (
+                                                            <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                <td style={{ padding: '14px 16px', color: '#64748B', fontWeight: '600' }}>{r.date}</td>
+                                                                <td style={{ padding: '14px 16px', fontWeight: '750', color: '#0F172A' }}>{r.title}</td>
+                                                                <td style={{ padding: '14px 16px' }}>
+                                                                    <span style={{ fontSize: '11px', fontWeight: '750', padding: '3px 8px', borderRadius: '6px', background: r.type === 'Special' ? '#FEE2E2' : '#F1F5F9', color: r.type === 'Special' ? '#991B1B' : '#475569' }}>
+                                                                        {r.type}
+                                                                    </span>
                                                                 </td>
-                                                                <td style={{ padding: '16px 20px', color: '#64748B', fontWeight: '500' }}>📅 {task.dueDate}</td>
-                                                                <td style={{ padding: '16px 20px' }}>
-                                                                    <span style={{
-                                                                        fontSize: '11px',
-                                                                        fontWeight: '800',
-                                                                        padding: '3px 8px',
-                                                                        borderRadius: '12px',
-                                                                        backgroundColor: task.priority === 'High' ? '#FEF2F2' : (task.priority === 'Medium' ? '#EFF6FF' : '#F1F5F9'),
-                                                                        color: task.priority === 'High' ? '#EF4444' : (task.priority === 'Medium' ? '#1D4ED8' : '#475569')
-                                                                    }}>{task.priority}</span>
-                                                                </td>
-                                                                <td style={{ padding: '16px 20px' }}>
-                                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                                        <button 
-                                                                            type="button"
-                                                                            onClick={() => toggleTaskStatus(task.id)}
-                                                                            style={{
-                                                                                display: 'inline-flex',
-                                                                                alignItems: 'center',
-                                                                                gap: '6px',
-                                                                                padding: '6px 12px',
-                                                                                borderRadius: '8px',
-                                                                                border: '1.5px solid',
-                                                                                borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#BFDBFE' : '#CBD5E1'),
-                                                                                background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#EFF6FF' : 'transparent'),
-                                                                                color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review' || task.status === 'Needs Correction') ? '#1D4ED8' : '#475569'),
-                                                                                fontWeight: '800',
-                                                                                fontSize: '12px',
-                                                                                cursor: 'pointer',
-                                                                                transition: 'all 0.2s'
-                                                                            }}
-                                                                        >
-                                                                            {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'Needs Correction' ? '⚠️ Needs Correction' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending'))))))}
-                                                                        </button>
-                                                                        {task.askForDocument && (
-                                                                            (task.status === 'Needs Correction' || task.status === 'Rejected') ? (
-                                                                                <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                                                                                    <input
-                                                                                        type="file"
-                                                                                        style={{ display: 'none' }}
-                                                                                        onChange={(e) => {
-                                                                                            if (e.target.files && e.target.files.length > 0) {
-                                                                                                uploadTaskDocMutation.mutate(task.id);
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                    <span
-                                                                                        style={{
-                                                                                            padding: '6px 12px',
-                                                                                            borderRadius: '8px',
-                                                                                            background: '#EF4444',
-                                                                                            color: '#FFFFFF',
-                                                                                            border: 'none',
-                                                                                            fontWeight: '800',
-                                                                                            fontSize: '12px',
-                                                                                            display: 'inline-block'
-                                                                                        }}
-                                                                                    >
-                                                                                        Upload Revised Document
-                                                                                    </span>
-                                                                                </label>
-                                                                            ) : (
-                                                                                task.attachedFile ? (
-                                                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                                        <CheckCircle2 size={14} /> Uploaded
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <label style={{ cursor: 'pointer', display: 'inline-block' }}>
-                                                                                        <input
-                                                                                            type="file"
-                                                                                            style={{ display: 'none' }}
-                                                                                            onChange={(e) => {
-                                                                                                if (e.target.files && e.target.files.length > 0) {
-                                                                                                    uploadTaskDocMutation.mutate(task.id);
-                                                                                                }
-                                                                                            }}
-                                                                                        />
-                                                                                        <span
-                                                                                            style={{
-                                                                                                padding: '6px 12px',
-                                                                                                borderRadius: '8px',
-                                                                                                background: '#0F172A',
-                                                                                                color: '#FFFFFF',
-                                                                                                border: 'none',
-                                                                                                fontWeight: '800',
-                                                                                                fontSize: '12px',
-                                                                                                display: 'inline-block'
-                                                                                            }}
-                                                                                        >
-                                                                                            Upload Document
-                                                                                        </span>
-                                                                                    </label>
-                                                                                )
-                                                                            )
-                                                                        )}
-                                                                    </div>
-                                                                    {task.taskDescription !== task.title && (
-                                                                        <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: '700', marginTop: '4px', background: '#FEF2F2', padding: '6px 10px', borderRadius: '6px', border: '1px solid #FEE2E2' }}>
-                                                                            Note: {task.taskDescription}
-                                                                        </div>
-                                                                    )}
+                                                                <td style={{ padding: '14px 16px' }}>
+                                                                    <span style={{ fontSize: '11px', fontWeight: '750', color: r.status === 'Approved' ? '#16A34A' : '#D97706' }}>
+                                                                        ● {r.status}
+                                                                    </span>
                                                                 </td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
                                                 </table>
                                             </div>
-                                        )}
-                                    </div>
-                                </Motion.div>
-                            );
-                        })()}
-
-                        {activeTab === 'ca_cpa' && (
-                            <Motion.div key="ca_cpa" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    {/* Jurisdiction Toggle */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Dynamic Jurisdiction Engine</h3>
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Instantly maps legal and tax system properties dynamically based on the client profile's geo-jurisdiction.</p>
-                                        
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <button onClick={() => setJurisdiction('IN')} style={{ width: '100%', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '10px', fontSize: '13px', fontWeight: '850', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: jurisdiction === 'IN' ? '#004aad' : '#E2E8F0', background: jurisdiction === 'IN' ? '#F0F5FF' : 'transparent', color: jurisdiction === 'IN' ? '#004aad' : '#475569' }}>
-                                                <span>🇮🇳 India Jurisdiction</span>
-                                                <span style={{ fontSize: '11px', fontWeight: '600' }}>GST, TDS &amp; Income Tax</span>
-                                            </button>
-                                            <button onClick={() => setJurisdiction('US')} style={{ width: '100%', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '10px', fontSize: '13px', fontWeight: '850', border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s', borderColor: jurisdiction === 'US' ? '#004aad' : '#E2E8F0', background: jurisdiction === 'US' ? '#F0F5FF' : 'transparent', color: jurisdiction === 'US' ? '#004aad' : '#475569' }}>
-                                                <span>🇺🇸 United States Jurisdiction</span>
-                                                <span style={{ fontSize: '11px', fontWeight: '600' }}>IRS &amp; State Sales Tax</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Active Tax System View */}
-                                    <div className="lg:col-span-2" style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
-                                                Active System Calculations - {jurisdiction === 'IN' ? 'India (GST/TDS)' : 'United States (IRS)'}
-                                            </h3>
-                                            <span style={{ fontSize: '12px', fontWeight: '750', color: '#004aad' }}>FY 2026-27</span>
                                         </div>
 
-                                        {jurisdiction === 'IN' ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>GSTR-3B Status</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Ready to File</div>
-                                                    <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '4px' }}>{formatCurrency(computedEligibleItc)} ITC Auto-matched</div>
-                                                </div>
-                                                <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Total Tax Liability</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>{formatCurrency(computedTotalOutputTax)}</div>
-                                                    <div style={{ fontSize: '11px', color: '#D97706', fontWeight: '600', marginTop: '4px' }}>Based on outward invoices</div>
-                                                </div>
-                                                <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Net Payable CGST/SGST</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>{formatCurrency(computedNetPayableCGST + computedNetPayableSGST)}</div>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', marginTop: '4px' }}>Post ITC offset balance</div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>IRS Form 1120</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Computed</div>
-                                                    <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '4px' }}>21% Federal Flat Rate</div>
-                                                </div>
-                                                <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Federal Tax Due</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>${(computedTaxUS / 80).toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', marginTop: '4px' }}>Calculated from P&amp;L ledger</div>
-                                                </div>
-                                                <div style={{ padding: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>State Franchise Tax</div>
-                                                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', marginTop: '6px' }}>Delaware Franchise</div>
-                                                    <div style={{ fontSize: '11px', color: '#D97706', fontWeight: '600', marginTop: '4px' }}>Min Liability calculated</div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                        {/* Deadline Matrix Calendar */}
+                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Compliance Deadline Matrix</h3>
+                                            <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>High-priority calendar tracker detailing crucial global annual filing dates and corporate compliance renewals to bypass state penalties.</p>
 
-                                {/* Direct E-Filing Portal Integration */}
-                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Landmark size={20} style={{ color: '#004aad' }} />
-                                            Direct Portal Integration Engine
-                                        </h3>
-                                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>API Gateway Version: v1.4.2</span>
-                                    </div>
-
-                                    <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Configure secure credentials and directly upload certified draft returns to government servers (such as India's MCA/IT portal or international IRS/State tax registries) with 256-bit encryption compliance.</p>
-
-                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                                        <button onClick={triggerPortalSync} disabled={syncingState !== 'idle' && syncingState !== 'success'} style={{ padding: '12px 24px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {syncingState === 'idle' && "Initialize Secure Sync"}
-                                            {syncingState === 'connecting' && "Connecting Secure Tunnel..."}
-                                            {syncingState === 'validating' && "Validating Tax Computations..."}
-                                            {syncingState === 'pushing' && "Pushing Returns to Govt Portal..."}
-                                            {syncingState === 'success' && "Upload Completed ✓"}
-                                        </button>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <div style={{ fontSize: '12px', fontWeight: '750', color: '#475569' }}>
-                                                {syncingState === 'idle' && "System Ready to Sync"}
-                                                {syncingState === 'connecting' && "Status: Connecting to MCA/IT Servers..."}
-                                                {syncingState === 'validating' && "Status: Scanning for checksum integrity..."}
-                                                {syncingState === 'pushing' && "Status: Uploading encrypted return packet..."}
-                                                {syncingState === 'success' && "Encrypted returns pushed successfully. Reference: CLX-94857A."}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Motion.div>
-                        )}
-
-                        {activeTab === 'cs_vault' && (
-                            <Motion.div key="cs_vault" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                {/* Secretarial Dashboard */}
-                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Secretarial Dashboard & Resolutions Registry</h3>
-                                        <span style={{ fontSize: '11px', background: '#F0F5FF', border: '1px solid #C3DAFE', color: '#004aad', padding: '3px 10px', borderRadius: '20px', fontWeight: '750' }}>CS Governance Module</span>
-                                    </div>
-
-                                    <form onSubmit={handleAddResolution} style={{ display: 'flex', gap: '12px', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Enter new Resolution description (e.g. Adoption of annual finances)..." 
-                                            value={newResolutionTitle} 
-                                            onChange={(e) => setNewResolutionTitle(e.target.value)} 
-                                            style={{ flex: 3, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', fontWeight: '600' }}
-                                        />
-                                        <select 
-                                            value={newResolutionType} 
-                                            onChange={(e) => setNewResolutionType(e.target.value)} 
-                                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', fontWeight: '700', color: '#475569' }}
-                                        >
-                                            <option value="Ordinary">Ordinary Resolution</option>
-                                            <option value="Special">Special Resolution</option>
-                                        </select>
-                                        <button type="submit" style={{ flex: 1, background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px' }}>
-                                            <Plus size={16} /> Add Resolution
-                                        </button>
-                                    </form>
-
-                                    <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                            <thead>
-                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                                                    <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Date Passed</th>
-                                                    <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Resolution Details</th>
-                                                    <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Category</th>
-                                                    <th style={{ padding: '14px 16px', fontWeight: '800', color: '#475569' }}>Filing Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {resolutions.map((r) => (
-                                                    <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '14px 16px', color: '#64748B', fontWeight: '600' }}>{r.date}</td>
-                                                        <td style={{ padding: '14px 16px', fontWeight: '750', color: '#0F172A' }}>{r.title}</td>
-                                                        <td style={{ padding: '14px 16px' }}>
-                                                            <span style={{ fontSize: '11px', fontWeight: '750', padding: '3px 8px', borderRadius: '6px', background: r.type === 'Special' ? '#FEE2E2' : '#F1F5F9', color: r.type === 'Special' ? '#991B1B' : '#475569' }}>
-                                                                {r.type}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ padding: '14px 16px' }}>
-                                                            <span style={{ fontSize: '11px', fontWeight: '750', color: r.status === 'Approved' ? '#16A34A' : '#D97706' }}>
-                                                                ● {r.status}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* Deadline Matrix Calendar */}
-                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Compliance Deadline Matrix</h3>
-                                    <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>High-priority calendar tracker detailing crucial global annual filing dates and corporate compliance renewals to bypass state penalties.</p>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                                        <div style={{ padding: '16px', border: '1.5px solid #FEE2E2', background: '#FEF2F2', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '11px', background: '#EF4444', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>CRITICAL</span>
-                                                <span style={{ fontSize: '12px', fontWeight: '700', color: '#991B1B' }}>May 30</span>
-                                            </div>
-                                            <div style={{ fontSize: '14px', fontWeight: '900', color: '#991B1B' }}>MCA Form MGT-7</div>
-                                            <div style={{ fontSize: '11px', color: '#991B1B', fontWeight: '600' }}>Annual corporate compliance filing for all Indian Pvt Ltd entities.</div>
-                                        </div>
-
-                                        <div style={{ padding: '16px', border: '1.5px solid #FEF3C7', background: '#FFFBEB', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '11px', background: '#D97706', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>WARNING</span>
-                                                <span style={{ fontSize: '12px', fontWeight: '700', color: '#B45309' }}>June 15</span>
-                                            </div>
-                                            <div style={{ fontSize: '14px', fontWeight: '900', color: '#B45309' }}>US Form 1120-Q</div>
-                                            <div style={{ fontSize: '11px', color: '#B45309', fontWeight: '600' }}>Q2 Estimated Corporate Federal Tax filing date for C-Corps.</div>
-                                        </div>
-
-                                        <div style={{ padding: '16px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '11px', background: '#64748B', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>PENDING</span>
-                                                <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>July 10</span>
-                                            </div>
-                                            <div style={{ fontSize: '14px', fontWeight: '900', color: '#475569' }}>GST GSTR-1 File</div>
-                                            <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>Outward supplies return filing matching invoice serial databases.</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Motion.div>
-                        )}
-
-                        {activeTab === 'consultant' && (
-                            <Motion.div key="consultant" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    
-                                    {/* Multi-Tenant Client Portfolio */}
-                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Client Portfolio Management</h3>
-                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Switch seamlessly between business entities under your management desk without data token crossover.</p>
-                                        
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-                                            {clientsList.length > 0 ? clientsList.map(c => (
-                                                <button 
-                                                    key={c.id} 
-                                                    onClick={() => setSelectedClient(c.id)}
-                                                    style={{ 
-                                                        width: '100%', padding: '12px', borderRadius: '10px', textAlign: 'left',
-                                                        border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s',
-                                                        borderColor: selectedClient === c.id ? '#004aad' : '#E2E8F0',
-                                                        background: selectedClient === c.id ? '#F0F5FF' : 'transparent',
-                                                    }}
-                                                >
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                                <div style={{ padding: '16px', border: '1.5px solid #FEE2E2', background: '#FEF2F2', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ fontSize: '13px', fontWeight: '800', color: selectedClient === c.id ? '#004aad' : '#0F172A' }}>{c.name}</span>
-                                                        <span style={{ fontSize: '10px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: '750' }}>{c.status}</span>
+                                                        <span style={{ fontSize: '11px', background: '#EF4444', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>CRITICAL</span>
+                                                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#991B1B' }}>May 30</span>
                                                     </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: '#64748B' }}>
-                                                        <span>{c.industry}</span>
-                                                        <span>Revenue: <strong>{c.revenue}</strong></span>
-                                                    </div>
-                                                </button>
-                                            )) : (
-                                                <div style={{ padding: '24px', textAlign: 'center', border: '1px dashed #CBD5E1', borderRadius: '10px', color: '#64748B', fontSize: '12px', fontWeight: '600' }}>
-                                                    No client contacts registered. Go to Contacts to add a client.
+                                                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#991B1B' }}>MCA Form MGT-7</div>
+                                                    <div style={{ fontSize: '11px', color: '#991B1B', fontWeight: '600' }}>Annual corporate compliance filing for all Indian Pvt Ltd entities.</div>
                                                 </div>
+
+                                                <div style={{ padding: '16px', border: '1.5px solid #FEF3C7', background: '#FFFBEB', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '11px', background: '#D97706', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>WARNING</span>
+                                                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#B45309' }}>June 15</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#B45309' }}>US Form 1120-Q</div>
+                                                    <div style={{ fontSize: '11px', color: '#B45309', fontWeight: '600' }}>Q2 Estimated Corporate Federal Tax filing date for C-Corps.</div>
+                                                </div>
+
+                                                <div style={{ padding: '16px', border: '1.5px solid #E2E8F0', background: '#F8FAFC', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '11px', background: '#64748B', color: '#FFFFFF', padding: '2px 8px', borderRadius: '4px', fontWeight: '800' }}>PENDING</span>
+                                                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>July 10</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#475569' }}>GST GSTR-1 File</div>
+                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>Outward supplies return filing matching invoice serial databases.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Motion.div>
+                                )}
+
+                                {activeTab === 'consultant' && (
+                                    <Motion.div key="consultant" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                                            {/* Multi-Tenant Client Portfolio */}
+                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>Client Portfolio Management</h3>
+                                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6' }}>Switch seamlessly between business entities under your management desk without data token crossover.</p>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                                                    {clientsList.length > 0 ? clientsList.map(c => (
+                                                        <button
+                                                            key={c.id}
+                                                            onClick={() => setSelectedClient(c.id)}
+                                                            style={{
+                                                                width: '100%', padding: '12px', borderRadius: '10px', textAlign: 'left',
+                                                                border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s',
+                                                                borderColor: selectedClient === c.id ? '#004aad' : '#E2E8F0',
+                                                                background: selectedClient === c.id ? '#F0F5FF' : 'transparent',
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ fontSize: '13px', fontWeight: '800', color: selectedClient === c.id ? '#004aad' : '#0F172A' }}>{c.name}</span>
+                                                                <span style={{ fontSize: '10px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: '750' }}>{c.status}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: '#64748B' }}>
+                                                                <span>{c.industry}</span>
+                                                                <span>Revenue: <strong>{c.revenue}</strong></span>
+                                                            </div>
+                                                        </button>
+                                                    )) : (
+                                                        <div style={{ padding: '24px', textAlign: 'center', border: '1px dashed #CBD5E1', borderRadius: '10px', color: '#64748B', fontSize: '12px', fontWeight: '600' }}>
+                                                            No client contacts registered. Go to Contacts to add a client.
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                            </div>
+
+                                            {/* Financial Forecasting & Notes Desk */}
+                                            <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
+                                                            Cash Flow &amp; Financial Forecasting Desk
+                                                        </h3>
+                                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                                            <button onClick={() => setForecastPeriod(3)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 3 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 3 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>3M</button>
+                                                            <button onClick={() => setForecastPeriod(6)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 6 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 6 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>6M</button>
+                                                            <button onClick={() => setForecastPeriod(12)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 12 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 12 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>12M</button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', gap: '8px', background: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '12px' }}>
+                                                        <span>Active Client Model: <strong>{activeClientData.name}</strong></span>
+                                                        <span style={{ color: '#CBD5E1' }}>|</span>
+                                                        <span>Industry Benchmark Risk: <strong style={{ color: activeClientData.risk === 'Low' ? '#16A34A' : '#D97706' }}>{activeClientData.risk}</strong></span>
+                                                    </div>
+
+                                                    {/* Simulated Bar Graph using CSS flexboxes and divs */}
+                                                    <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px 10px 10px 10px' }}>
+                                                        {Array.from({ length: forecastPeriod }).map((_, idx) => {
+                                                            // Dynamic forecast generator algorithm
+                                                            const baseRev = parseInt(activeClientData.revenue.replace(/[^0-9]/g, '')) || 500;
+                                                            const multiplier = activeClientData.risk === 'High' ? 0.95 : 1.08;
+                                                            const predictedValue = Math.round(baseRev * Math.pow(multiplier, idx));
+                                                            const maxCapacity = baseRev * Math.pow(1.08, 12);
+                                                            const barHeightPercent = Math.max(10, Math.min(95, (predictedValue / maxCapacity) * 80));
+
+                                                            return (
+                                                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '30px' }}>
+                                                                    <div style={{ fontSize: '9px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>{formatCurrency(predictedValue)}</div>
+                                                                    <div style={{
+                                                                        width: '100%',
+                                                                        height: `${barHeightPercent}%`,
+                                                                        background: 'linear-gradient(180deg, #4788E6 0%, #004aad 100%)',
+                                                                        borderRadius: '6px 6px 0 0',
+                                                                        boxShadow: '0 2px 4px rgba(0, 74, 173, 0.25)',
+                                                                        transition: 'height 0.3s ease-out'
+                                                                    }} />
+                                                                    <div style={{ fontSize: '9px', fontWeight: '750', color: '#64748B', marginTop: '6px' }}>M{idx + 1}</div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                {/* CA Advisory Notes & Recommendations Section */}
+                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>
+                                                            💼 FIN-PRO Advisory &amp; Recommendation Ledger
+                                                        </h3>
+                                                        <span style={{ fontSize: '10px', background: '#F0F5FF', color: '#004aad', padding: '3px 8px', borderRadius: '4px', fontWeight: '700' }}>Active Workspace</span>
+                                                    </div>
+
+                                                    <div style={{ padding: '14px', background: '#FFFDF0', border: '1px solid #FDE047', borderRadius: '10px', fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>
+                                                        <strong>Current Advisory Note:</strong> {clientNotes[selectedClient] || "No advisory note recorded for this client entity yet."}
+                                                    </div>
+
+                                                    <form onSubmit={handleAddClientNote} style={{ display: 'flex', gap: '8px' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Add professional recommendation / compliance action note..."
+                                                            value={activeNoteInput}
+                                                            onChange={(e) => setActiveNoteInput(e.target.value)}
+                                                            style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px', outline: 'none', fontWeight: '600' }}
+                                                        />
+                                                        <button type="submit" style={{ padding: '10px 18px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '850', fontSize: '12px', cursor: 'pointer' }}>
+                                                            Save Note
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Right Column: Accountant Connection */}
+                        <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                            {/* Accountant Connection Portal */}
+                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Users size={20} style={{ color: '#004aad' }} />
+                                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
+                                    </div>
+                                    {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
+                                        <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <CheckCircle2 size={12} /> Connected FIN-PRO Active
+                                        </span>
+                                    ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
+                                        <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Clock size={12} className="animate-pulse" /> Pending Acceptance
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
+                                            Not Connected
+                                        </span>
+                                    )}
+                                </div>
+
+                                {outgoingInvitations.length === 0 ? (
+                                    // 1. DISCONNECTED / INVITE FORM STATE
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
+                                            Invite your FIN-PRO Advisory Partner to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
+                                        </p>
+                                        <form onSubmit={handleInviteCA} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="Enter your FIN-PRO's professional email address (e.g., finpro@firm.com)"
+                                                value={inviteEmailInput}
+                                                onChange={(e) => setInviteEmailInput(e.target.value)}
+                                                style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '500', outline: 'none', transition: 'all 0.2s' }}
+                                            />
+                                            <button
+                                                type="submit"
+                                                style={{ padding: '12px 20px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
+                                            >
+                                                <Plus size={16} /> Invite FIN-PRO
+                                            </button>
+                                        </form>
+
+                                        <div style={{ height: '1px', background: '#E2E8F0', margin: '8px 0' }} />
+
+                                        <div>
+                                            <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your FIN-PRO:</div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                                                {[
+                                                    { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
+                                                    { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
+                                                    { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
+                                                    { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
+                                                ].map((priv, idx) => (
+                                                    <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
+                                                        <span style={{ color: '#16A34A', marginTop: '2px', fontWeight: '800' }}>✓</span>
+                                                        <div>
+                                                            <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
+                                                            <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
+                                    // 2. PENDING ACCEPTANCE STATE
+                                    outgoingInvitations.filter(inv => inv.status === 'Pending').map(inv => (
+                                        <div key={inv.id} style={{ padding: '16px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <span style={{ fontSize: '12.5px', color: '#78350F', fontWeight: '750' }}>Access invitation sent to: </span>
+                                                    <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.receiver_email}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRevokeCA(inv.id)}
+                                                    style={{ background: 'transparent', border: 'none', color: '#B45309', fontSize: '12px', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                >
+                                                    <Trash2 size={14} /> Cancel Request
+                                                </button>
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: '#B45309', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                                                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#D97706', marginRight: '4px' }} className="animate-ping"></span>
+                                                Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}
+                                            </div>
+                                            <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
+                                                💡 <strong>How to Test:</strong> Switch to the <strong>Personal FIN-PRO Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    // 3. CONNECTED STATE
+                                    outgoingInvitations.filter(inv => inv.status === 'Accepted').map(inv => (
+                                        <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <div
+                                                onClick={() => setShowRevokeId(showRevokeId === inv.id ? null : inv.id)}
+                                                style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                        <UserCheck size={20} />
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
+
+                                                            {/* Presence Indicator */}
+                                                            <div
+                                                                style={{
+                                                                    width: '10px',
+                                                                    height: '10px',
+                                                                    borderRadius: '50%',
+                                                                    background: inv.is_online ? '#22C55E' : '#EF4444',
+                                                                    boxShadow: inv.is_online ? '0 0 8px #22C55E' : 'none',
+                                                                    border: '2px solid #FFFFFF'
+                                                                }}
+                                                                title={inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
+                                                                onMouseEnter={(e) => {
+                                                                    const popup = e.currentTarget.nextSibling;
+                                                                    if (popup) popup.style.display = 'block';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    const popup = e.currentTarget.nextSibling;
+                                                                    if (popup) popup.style.display = 'none';
+                                                                }}
+                                                            ></div>
+
+                                                            {/* Professional Popup */}
+                                                            <div style={{
+                                                                display: 'none',
+                                                                position: 'absolute',
+                                                                top: '100%',
+                                                                left: '50px',
+                                                                zIndex: 50,
+                                                                width: '220px',
+                                                                background: '#FFFFFF',
+                                                                border: '1px solid #E2E8F0',
+                                                                borderRadius: '12px',
+                                                                padding: '12px',
+                                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                                marginTop: '4px'
+                                                            }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: inv.is_online ? '#22C55E' : '#EF4444' }}></div>
+                                                                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>
+                                                                            {inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div style={{ fontSize: '13px', fontWeight: '850', color: '#334155' }}>{inv.receiver_name || inv.receiver_email.split('@')[0]}</div>
+                                                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '6px', marginTop: '2px' }}>
+                                                                        {inv.is_online ? (
+                                                                            <>
+                                                                                <div style={{ fontSize: '11px', color: '#64748B' }}>
+                                                                                    <span style={{ fontWeight: '750' }}>Online Since:</span> {inv.login_at ? new Date(inv.login_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                                                                                </div>
+                                                                                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                                                                                    <span style={{ fontWeight: '750' }}>Last Activity:</span> Just now
+                                                                                </div>
+                                                                            </>
+                                                                        ) : (
+                                                                            <div style={{ fontSize: '11px', color: '#64748B' }}>
+                                                                                <span style={{ fontWeight: '750' }}>Last Seen:</span> {inv.last_seen_at ? new Date(inv.last_seen_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Never'}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
+                                                    </div>
+                                                </div>
+                                                {showRevokeId === inv.id && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleRevokeCA(inv.id); }}
+                                                        style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                    >
+                                                        Revoke Access
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Privileges/What CA can do */}
+                                            <div>
+                                                <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '8px' }}>Security Clearance & Shared Privileges:</div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                                                    {[
+                                                        { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
+                                                        { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
+                                                        { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
+                                                        { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
+                                                    ].map((priv, idx) => (
+                                                        <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
+                                                            <span style={{ color: '#16A34A', marginTop: '2px' }}>✔</span>
+                                                            <div>
+                                                                <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* New Card directly below the Accountant Connection Portal */}
+                            {outgoingInvitations.some(inv => inv.status === 'Accepted') && (
+                                ownerGstCreds?.gstShareStatus === 'Requested' ? (
+                                    /* ── Request Card ── */
+                                    <div style={{
+                                        background: '#FFFFFF',
+                                        padding: '24px',
+                                        borderRadius: '16px',
+                                        border: '1px solid #E2E8F0',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '16px'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                                🔐 GST Portal Credential Request
+                                            </div>
+                                            <div style={{ fontSize: '13.5px', color: '#334155', fontWeight: '600', marginTop: '8px', lineHeight: '1.5' }}>
+                                                Your accountant <strong style={{ color: '#1D4ED8' }}>{outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_email || 'dineshkumar123@bnxmail.com'}</strong> has requested your GST Portal login credentials to file your GST Return.
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter GST login email or username"
+                                                    value={ownerGstUser}
+                                                    onChange={(e) => setOwnerGstUser(e.target.value)}
+                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                />
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
+                                                <input
+                                                    type={showOwnerGstPass ? 'text' : 'password'}
+                                                    placeholder="Enter GST password"
+                                                    value={ownerGstPass}
+                                                    onChange={(e) => setOwnerGstPass(e.target.value)}
+                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showOwnerGstPass}
+                                                    onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
+                                                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                                />
+                                                Show Password
+                                            </label>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
+                                                <span>Status:</span>
+                                                <span style={{ color: '#EAB308', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EAB308' }}></span>
+                                                    Pending
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
+                                                        alert('Both Username and Password are required.');
+                                                        return;
+                                                    }
+                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: false });
+                                                }}
+                                                style={{ padding: '10px 20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                            >
+                                                Save
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
+                                                        alert('Both Username and Password are required to share.');
+                                                        return;
+                                                    }
+                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
+                                                }}
+                                                style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                🔒 Save & Share with CA
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* ── Standard Credentials Card ── */
+                                    <div style={{
+                                        background: '#FFFFFF',
+                                        padding: '24px',
+                                        borderRadius: '16px',
+                                        border: '1px solid #E2E8F0',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '16px'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                                🔐 GST Portal Credentials (Private Sharing)
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '4px' }}>
+                                                Only your connected Chartered Accountant can access these credentials after you choose to share them.
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter GST login email or username"
+                                                    value={ownerGstUser}
+                                                    onChange={(e) => setOwnerGstUser(e.target.value)}
+                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                />
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
+                                                <input
+                                                    type={showOwnerGstPass ? 'text' : 'password'}
+                                                    placeholder="Enter GST password"
+                                                    value={ownerGstPass}
+                                                    onChange={(e) => setOwnerGstPass(e.target.value)}
+                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showOwnerGstPass}
+                                                    onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
+                                                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                                />
+                                                Show Password
+                                            </label>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
+                                                <span>Status:</span>
+                                                {ownerGstCreds?.gstShareStatus === 'Shared' ? (
+                                                    <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
+                                                        Shared with Connected CA
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
+                                                        Not Shared
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
+                                                        alert('Both Username/Email and Password are required to share.');
+                                                        return;
+                                                    }
+                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
+                                                }}
+                                                style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                Save & Share with CA
+                                            </button>
+
+                                            {ownerGstCreds?.gstShareStatus === 'Shared' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (confirm('Are you sure you want to revoke GST credentials access? Your CA will no longer be able to view them.')) {
+                                                            revokeOwnerGstMutation.mutate();
+                                                        }
+                                                    }}
+                                                    style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                >
+                                                    Revoke Sharing
+                                                </button>
                                             )}
                                         </div>
-
                                     </div>
-
-                                    {/* Financial Forecasting & Notes Desk */}
-                                    <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A' }}>
-                                                    Cash Flow &amp; Financial Forecasting Desk
-                                                </h3>
-                                                <div style={{ display: 'flex', gap: '6px' }}>
-                                                    <button onClick={() => setForecastPeriod(3)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 3 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 3 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>3M</button>
-                                                    <button onClick={() => setForecastPeriod(6)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 6 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 6 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>6M</button>
-                                                    <button onClick={() => setForecastPeriod(12)} style={{ padding: '4px 10px', border: '1px solid #E2E8F0', background: forecastPeriod === 12 ? '#004aad' : '#FFFFFF', color: forecastPeriod === 12 ? '#FFFFFF' : '#475569', borderRadius: '6px', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}>12M</button>
-                                                </div>
-                                            </div>
-
-                                            <div style={{ display: 'flex', gap: '8px', background: '#F8FAFC', padding: '12px 16px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '12px' }}>
-                                                <span>Active Client Model: <strong>{activeClientData.name}</strong></span>
-                                                <span style={{ color: '#CBD5E1' }}>|</span>
-                                                <span>Industry Benchmark Risk: <strong style={{ color: activeClientData.risk === 'Low' ? '#16A34A' : '#D97706' }}>{activeClientData.risk}</strong></span>
-                                            </div>
-
-                                            {/* Simulated Bar Graph using CSS flexboxes and divs */}
-                                            <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px 10px 10px 10px' }}>
-                                                {Array.from({ length: forecastPeriod }).map((_, idx) => {
-                                                    // Dynamic forecast generator algorithm
-                                                    const baseRev = parseInt(activeClientData.revenue.replace(/[^0-9]/g, '')) || 500;
-                                                    const multiplier = activeClientData.risk === 'High' ? 0.95 : 1.08;
-                                                    const predictedValue = Math.round(baseRev * Math.pow(multiplier, idx));
-                                                    const maxCapacity = baseRev * Math.pow(1.08, 12);
-                                                    const barHeightPercent = Math.max(10, Math.min(95, (predictedValue / maxCapacity) * 80));
-
-                                                    return (
-                                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', width: '30px' }}>
-                                                            <div style={{ fontSize: '9px', fontWeight: '800', color: '#475569', marginBottom: '4px' }}>{formatCurrency(predictedValue)}</div>
-                                                            <div style={{ 
-                                                                width: '100%', 
-                                                                height: `${barHeightPercent}%`, 
-                                                                background: 'linear-gradient(180deg, #4788E6 0%, #004aad 100%)', 
-                                                                borderRadius: '6px 6px 0 0',
-                                                                boxShadow: '0 2px 4px rgba(0, 74, 173, 0.25)',
-                                                                transition: 'height 0.3s ease-out'
-                                                            }} />
-                                                            <div style={{ fontSize: '9px', fontWeight: '750', color: '#64748B', marginTop: '6px' }}>M{idx + 1}</div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        {/* CA Advisory Notes & Recommendations Section */}
-                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>
-                                                    💼 FIN-PRO Advisory &amp; Recommendation Ledger
-                                                </h3>
-                                                <span style={{ fontSize: '10px', background: '#F0F5FF', color: '#004aad', padding: '3px 8px', borderRadius: '4px', fontWeight: '700' }}>Active Workspace</span>
-                                            </div>
-
-                                            <div style={{ padding: '14px', background: '#FFFDF0', border: '1px solid #FDE047', borderRadius: '10px', fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>
-                                                <strong>Current Advisory Note:</strong> {clientNotes[selectedClient] || "No advisory note recorded for this client entity yet."}
-                                            </div>
-
-                                            <form onSubmit={handleAddClientNote} style={{ display: 'flex', gap: '8px' }}>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Add professional recommendation / compliance action note..." 
-                                                    value={activeNoteInput} 
-                                                    onChange={(e) => setActiveNoteInput(e.target.value)} 
-                                                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px', outline: 'none', fontWeight: '600' }}
-                                                />
-                                                <button type="submit" style={{ padding: '10px 18px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '850', fontSize: '12px', cursor: 'pointer' }}>
-                                                    Save Note
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-
-                {/* Right Column: Accountant Connection */}
-                <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
-                    {/* Accountant Connection Portal */}
-                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Users size={20} style={{ color: '#004aad' }} />
-                                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
-                            </div>
-                            {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
-                                <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <CheckCircle2 size={12} /> Connected FIN-PRO Active
-                                </span>
-                            ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
-                                <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <Clock size={12} className="animate-pulse" /> Pending Acceptance
-                                </span>
-                            ) : (
-                                <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
-                                    Not Connected
-                                </span>
+                                )
                             )}
                         </div>
 
-                        {outgoingInvitations.length === 0 ? (
-                            // 1. DISCONNECTED / INVITE FORM STATE
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <p style={{ fontSize: '13px', color: '#64748B', lineHeight: '1.6', margin: 0 }}>
-                                    Invite your FIN-PRO Advisory Partner to securely manage your taxes, scan transactions for compliance, and compile operational financial audits in real time.
-                                </p>
-                                <form onSubmit={handleInviteCA} style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                    <input 
-                                        type="email" 
-                                        required 
-                                        placeholder="Enter your FIN-PRO's professional email address (e.g., finpro@firm.com)" 
-                                        value={inviteEmailInput}
-                                        onChange={(e) => setInviteEmailInput(e.target.value)}
-                                        style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1.5px solid #E2E8F0', fontSize: '13px', fontWeight: '500', outline: 'none', transition: 'all 0.2s' }}
-                                    />
-                                    <button 
-                                        type="submit" 
-                                        style={{ padding: '12px 20px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
-                                    >
-                                        <Plus size={16} /> Invite FIN-PRO
-                                    </button>
-                                </form>
-
-                                <div style={{ height: '1px', background: '#E2E8F0', margin: '8px 0' }} />
-
-                                <div>
-                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '10px' }}>What you will share with your FIN-PRO:</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                                        {[
-                                            { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
-                                            { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
-                                            { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
-                                            { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
-                                        ].map((priv, idx) => (
-                                            <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
-                                                <span style={{ color: '#16A34A', marginTop: '2px', fontWeight: '800' }}>✓</span>
-                                                <div>
-                                                    <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
-                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
-                            // 2. PENDING ACCEPTANCE STATE
-                            outgoingInvitations.filter(inv => inv.status === 'Pending').map(inv => (
-                                <div key={inv.id} style={{ padding: '16px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <span style={{ fontSize: '12.5px', color: '#78350F', fontWeight: '750' }}>Access invitation sent to: </span>
-                                            <span style={{ fontSize: '13px', color: '#92400E', fontWeight: '850', textDecoration: 'underline' }}>{inv.receiver_email}</span>
-                                        </div>
-                                        <button 
-                                            onClick={() => handleRevokeCA(inv.id)} 
-                                            style={{ background: 'transparent', border: 'none', color: '#B45309', fontSize: '12px', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                        >
-                                            <Trash2 size={14} /> Cancel Request
-                                        </button>
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#B45309', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
-                                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#D97706', marginRight: '4px' }} className="animate-ping"></span>
-                                        Sent: {inv.created_at ? new Date(inv.created_at).toLocaleString() : 'Just now'}
-                                    </div>
-                                    <div style={{ marginTop: '4px', padding: '10px 12px', background: '#FFFDF5', borderRadius: '8px', border: '1px dashed #FCD34D', fontSize: '11.5px', color: '#92400E', fontWeight: '600', lineHeight: '1.5' }}>
-                                        💡 <strong>How to Test:</strong> Switch to the <strong>Personal FIN-PRO Advisory Workspace</strong> at the top of the page, click on the <strong>Client Requests</strong> tab, and click <strong>"Accept Invitation"</strong> to simulate your accountant accepting this request.
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            // 3. CONNECTED STATE
-                            outgoingInvitations.filter(inv => inv.status === 'Accepted').map(inv => (
-                                <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    <div 
-                                        onClick={() => setShowRevokeId(showRevokeId === inv.id ? null : inv.id)}
-                                        style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
-                                                <UserCheck size={20} />
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
-
-                                                    {/* Presence Indicator */}
-                                                    <div
-                                                        style={{
-                                                            width: '10px',
-                                                            height: '10px',
-                                                            borderRadius: '50%',
-                                                            background: inv.is_online ? '#22C55E' : '#EF4444',
-                                                            boxShadow: inv.is_online ? '0 0 8px #22C55E' : 'none',
-                                                            border: '2px solid #FFFFFF'
-                                                        }}
-                                                        title={inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
-                                                        onMouseEnter={(e) => {
-                                                            const popup = e.currentTarget.nextSibling;
-                                                            if (popup) popup.style.display = 'block';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            const popup = e.currentTarget.nextSibling;
-                                                            if (popup) popup.style.display = 'none';
-                                                        }}
-                                                    ></div>
-
-                                                    {/* Professional Popup */}
-                                                    <div style={{
-                                                        display: 'none',
-                                                        position: 'absolute',
-                                                        top: '100%',
-                                                        left: '50px',
-                                                        zIndex: 50,
-                                                        width: '220px',
-                                                        background: '#FFFFFF',
-                                                        border: '1px solid #E2E8F0',
-                                                        borderRadius: '12px',
-                                                        padding: '12px',
-                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                                        marginTop: '4px'
-                                                    }}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: inv.is_online ? '#22C55E' : '#EF4444' }}></div>
-                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>
-                                                                    {inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
-                                                                </span>
-                                                            </div>
-                                                            <div style={{ fontSize: '13px', fontWeight: '850', color: '#334155' }}>{inv.receiver_name || inv.receiver_email.split('@')[0]}</div>
-                                                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '6px', marginTop: '2px' }}>
-                                                                {inv.is_online ? (
-                                                                    <>
-                                                                        <div style={{ fontSize: '11px', color: '#64748B' }}>
-                                                                            <span style={{ fontWeight: '750' }}>Online Since:</span> {inv.login_at ? new Date(inv.login_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
-                                                                        </div>
-                                                                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                                                                            <span style={{ fontWeight: '750' }}>Last Activity:</span> Just now
-                                                                        </div>
-                                                                    </>
-                                                                ) : (
-                                                                    <div style={{ fontSize: '11px', color: '#64748B' }}>
-                                                                        <span style={{ fontWeight: '750' }}>Last Seen:</span> {inv.last_seen_at ? new Date(inv.last_seen_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Never'}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
-                                            </div>
-                                        </div>
-                                        {showRevokeId === inv.id && (
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); handleRevokeCA(inv.id); }} 
-                                                style={{ padding: '8px 14px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
-                                            >
-                                                Revoke Access
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Privileges/What CA can do */}
-                                    <div>
-                                        <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', marginBottom: '8px' }}>Security Clearance & Shared Privileges:</div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                                            {[
-                                                { label: 'Check GST & Tax Records', desc: 'Validates input credit & filing status' },
-                                                { label: 'Analyze Invoices & Fraud Risks', desc: 'Flags suspicious payments & variance scores' },
-                                                { label: 'Map International Accounts', desc: 'IFRS / US GAAP layout mapping' },
-                                                { label: 'Reconcile Bank Feed Transactions', desc: 'Matches inbound ledger payments' }
-                                            ].map((priv, idx) => (
-                                                <div key={idx} style={{ padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', display: 'flex', gap: '8px', alignItems: 'start' }}>
-                                                    <span style={{ color: '#16A34A', marginTop: '2px' }}>✔</span>
-                                                    <div>
-                                                        <div style={{ fontSize: '12px', fontWeight: '750', color: '#0F172A' }}>{priv.label}</div>
-                                                        <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '500', marginTop: '1px' }}>{priv.desc}</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
                     </div>
-
-                    {/* New Card directly below the Accountant Connection Portal */}
-                    {outgoingInvitations.some(inv => inv.status === 'Accepted') && (
-                        ownerGstCreds?.gstShareStatus === 'Requested' ? (
-                            /* ── Request Card ── */
-                            <div style={{ 
-                                background: '#FFFFFF', 
-                                padding: '24px', 
-                                borderRadius: '16px', 
-                                border: '1px solid #E2E8F0', 
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                gap: '16px' 
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                                        🔐 GST Portal Credential Request
-                                    </div>
-                                    <div style={{ fontSize: '13.5px', color: '#334155', fontWeight: '600', marginTop: '8px', lineHeight: '1.5' }}>
-                                        Your accountant <strong style={{ color: '#1D4ED8' }}>{outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_email || 'dineshkumar123@bnxmail.com'}</strong> has requested your GST Portal login credentials to file your GST Return.
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter GST login email or username"
-                                            value={ownerGstUser}
-                                            onChange={(e) => setOwnerGstUser(e.target.value)}
-                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                        />
-                                    </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
-                                        <input
-                                            type={showOwnerGstPass ? 'text' : 'password'}
-                                            placeholder="Enter GST password"
-                                            value={ownerGstPass}
-                                            onChange={(e) => setOwnerGstPass(e.target.value)}
-                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={showOwnerGstPass}
-                                            onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
-                                            style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                                        />
-                                        Show Password
-                                    </label>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
-                                        <span>Status:</span>
-                                        <span style={{ color: '#EAB308', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EAB308' }}></span>
-                                            Pending
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                alert('Both Username and Password are required.');
-                                                return;
-                                            }
-                                            saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: false });
-                                        }}
-                                        style={{ padding: '10px 20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
-                                    >
-                                        Save
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                alert('Both Username and Password are required to share.');
-                                                return;
-                                            }
-                                            saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
-                                        }}
-                                        style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                    >
-                                        🔒 Save & Share with CA
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            /* ── Standard Credentials Card ── */
-                            <div style={{ 
-                                background: '#FFFFFF', 
-                                padding: '24px', 
-                                borderRadius: '16px', 
-                                border: '1px solid #E2E8F0', 
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                gap: '16px' 
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                                        🔐 GST Portal Credentials (Private Sharing)
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '4px' }}>
-                                        Only your connected Chartered Accountant can access these credentials after you choose to share them.
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter GST login email or username"
-                                            value={ownerGstUser}
-                                            onChange={(e) => setOwnerGstUser(e.target.value)}
-                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                        />
-                                    </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
-                                        <input
-                                            type={showOwnerGstPass ? 'text' : 'password'}
-                                            placeholder="Enter GST password"
-                                            value={ownerGstPass}
-                                            onChange={(e) => setOwnerGstPass(e.target.value)}
-                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={showOwnerGstPass}
-                                            onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
-                                            style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                                        />
-                                        Show Password
-                                    </label>
-
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
-                                        <span>Status:</span>
-                                        {ownerGstCreds?.gstShareStatus === 'Shared' ? (
-                                            <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
-                                                Shared with Connected CA
-                                            </span>
-                                        ) : (
-                                            <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
-                                                Not Shared
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                alert('Both Username/Email and Password are required to share.');
-                                                return;
-                                            }
-                                            saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
-                                        }}
-                                        style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                    >
-                                        Save & Share with CA
-                                    </button>
-
-                                    {ownerGstCreds?.gstShareStatus === 'Shared' && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (confirm('Are you sure you want to revoke GST credentials access? Your CA will no longer be able to view them.')) {
-                                                    revokeOwnerGstMutation.mutate();
-                                                }
-                                            }}
-                                            style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
-                                        >
-                                            Revoke Sharing
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    )}
-                </div>
-
-            </div>
-            </>
+                </>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
                     {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
-                    <div style={{ 
-                        background: '#FFFFFF', 
-                        borderRadius: '16px', 
-                        border: '1px solid #E2E8F0', 
-                        padding: '10px 16px', 
-                        display: 'flex', 
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '16px',
+                        border: '1px solid #E2E8F0',
+                        padding: '10px 16px',
+                        display: 'flex',
                         gap: '6px',
                         alignItems: 'center',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
@@ -1983,7 +1983,8 @@ export default function BusinessCA() {
                         scrollbarWidth: 'none' // For Firefox
                     }}>
                         {/* Inline custom styles to hide scrollbar in Webkit browsers */}
-                        <style dangerouslySetInnerHTML={{__html: `
+                        <style dangerouslySetInnerHTML={{
+                            __html: `
                             div::-webkit-scrollbar {
                                 display: none;
                             }
@@ -2189,9 +2190,9 @@ export default function BusinessCA() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '16px 20px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, maxWidth: '400px' }}>
                                             <Search size={18} style={{ color: '#94A3B8' }} />
-                                            <input 
-                                                type="text" 
-                                                placeholder="Search taxpayers by name or email..." 
+                                            <input
+                                                type="text"
+                                                placeholder="Search taxpayers by name or email..."
                                                 value={activeClientSearch}
                                                 onChange={e => setActiveClientSearch(e.target.value)}
                                                 style={{ width: '100%', border: 'none', outline: 'none', fontSize: '13.5px', fontWeight: '600', color: '#0F172A' }}
@@ -2230,34 +2231,34 @@ export default function BusinessCA() {
                                                     .filter(c => c.name.toLowerCase().includes(activeClientSearch.toLowerCase()) || c.email.toLowerCase().includes(activeClientSearch.toLowerCase()))
                                                     .filter(item => applyTableFilters(item, colFiltersClients))
                                                     .map(client => (
-                                                    <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
-                                                        <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#F0FDF4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900' }}>{client.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
-                                                            {client.name}
-                                                        </td>
-                                                        <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '600' }}>{client.email}</td>
-                                                        <td style={{ padding: '16px 20px', fontWeight: '750', color: '#1E293B' }}>{client.regime} Regime</td>
-                                                        <td style={{ padding: '16px 20px', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(client.income)}</td>
-                                                        <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                                                            {client.pendingFilings > 0 ? (
-                                                                <span style={{ background: '#FFFBEB', color: '#D97706', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', border: '1px solid #FEF3C7' }}>{client.pendingFilings} Pending</span>
-                                                            ) : (
-                                                                <span style={{ color: '#16A34A', fontWeight: '800', fontSize: '12px' }}>✓ Up to date</span>
-                                                            )}
-                                                        </td>
-                                                        <td style={{ padding: '16px 20px' }}>
-                                                            <span style={{
-                                                                fontSize: '11px',
-                                                                fontWeight: '800',
-                                                                padding: '4px 10px',
-                                                                borderRadius: '20px',
-                                                                backgroundColor: client.status === 'Active' ? '#DCFCE7' : (client.status === 'Pending Filing' ? '#FEF3C7' : '#EFF6FF'),
-                                                                color: client.status === 'Active' ? '#15803d' : (client.status === 'Pending Filing' ? '#D97706' : '#1D4ED8'),
-                                                                border: `1px solid ${client.status === 'Active' ? '#BBF7D0' : (client.status === 'Pending Filing' ? '#FDE047' : '#BFDBFE')}`
-                                                            }}>{client.status}</span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                        <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
+                                                            <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#F0FDF4', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900' }}>{client.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+                                                                {client.name}
+                                                            </td>
+                                                            <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '600' }}>{client.email}</td>
+                                                            <td style={{ padding: '16px 20px', fontWeight: '750', color: '#1E293B' }}>{client.regime} Regime</td>
+                                                            <td style={{ padding: '16px 20px', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(client.income)}</td>
+                                                            <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                                                {client.pendingFilings > 0 ? (
+                                                                    <span style={{ background: '#FFFBEB', color: '#D97706', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', border: '1px solid #FEF3C7' }}>{client.pendingFilings} Pending</span>
+                                                                ) : (
+                                                                    <span style={{ color: '#16A34A', fontWeight: '800', fontSize: '12px' }}>✓ Up to date</span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '16px 20px' }}>
+                                                                <span style={{
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '800',
+                                                                    padding: '4px 10px',
+                                                                    borderRadius: '20px',
+                                                                    backgroundColor: client.status === 'Active' ? '#DCFCE7' : (client.status === 'Pending Filing' ? '#FEF3C7' : '#EFF6FF'),
+                                                                    color: client.status === 'Active' ? '#15803d' : (client.status === 'Pending Filing' ? '#D97706' : '#1D4ED8'),
+                                                                    border: `1px solid ${client.status === 'Active' ? '#BBF7D0' : (client.status === 'Pending Filing' ? '#FDE047' : '#BFDBFE')}`
+                                                                }}>{client.status}</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
                                             </tbody>
                                         </table>
                                     </div>
@@ -2287,7 +2288,7 @@ export default function BusinessCA() {
                                                     <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
-                                                                 <Building size={20} />
+                                                                <Building size={20} />
                                                             </div>
                                                             <div>
                                                                 <div style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A' }}>{inv.sender_name}</div>
@@ -2295,13 +2296,13 @@ export default function BusinessCA() {
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '10px' }}>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleAcceptInvitation(inv.id)}
                                                                 style={{ padding: '8px 16px', background: '#16A34A', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
                                                             >
                                                                 <UserCheck size={14} /> Accept Invitation
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleRevokeCA(inv.id)}
                                                                 style={{ padding: '8px 16px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s' }}
                                                             >
@@ -2333,15 +2334,15 @@ export default function BusinessCA() {
                                         {/* Left Side: Requests list */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                             {practiceRequests.map(req => (
-                                                <div 
-                                                    key={req.id} 
+                                                <div
+                                                    key={req.id}
                                                     onClick={() => setSelectedRequestForReview(req)}
-                                                    style={{ 
-                                                        background: '#FFFFFF', 
-                                                        padding: '18px', 
-                                                        borderRadius: '14px', 
-                                                        border: '1.5px solid', 
-                                                        borderColor: selectedRequestForReview?.id === req.id ? '#15803d' : '#E2E8F0', 
+                                                    style={{
+                                                        background: '#FFFFFF',
+                                                        padding: '18px',
+                                                        borderRadius: '14px',
+                                                        border: '1.5px solid',
+                                                        borderColor: selectedRequestForReview?.id === req.id ? '#15803d' : '#E2E8F0',
                                                         boxShadow: selectedRequestForReview?.id === req.id ? '0 4px 6px -1px rgba(21, 128, 61, 0.05)' : 'none',
                                                         cursor: 'pointer',
                                                         transition: 'all 0.2s',
@@ -2364,7 +2365,7 @@ export default function BusinessCA() {
                                                     </div>
                                                     <h4 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>{req.title}</h4>
                                                     <p style={{ fontSize: '12.5px', color: '#475569', margin: 0, fontWeight: '500' }}>{req.description}</p>
-                                                    
+
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11.5px', fontWeight: '750', color: '#64748B' }}>
                                                         <span>Due: {req.dueDate}</span>
                                                         <span style={{ color: req.priority === 'High' ? '#EF4444' : '#64748B' }}>Priority: {req.priority}</span>
@@ -2376,7 +2377,7 @@ export default function BusinessCA() {
                                         {/* Right Side: Simulation Panel */}
                                         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', position: 'sticky', top: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>🔬 Client Collaboration Simulator</h3>
-                                            
+
                                             {selectedRequestForReview ? (
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                                     <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
@@ -2388,7 +2389,7 @@ export default function BusinessCA() {
                                                     {selectedRequestForReview.status === 'Awaiting Client' && (
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                             <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.5', margin: 0 }}>This request has been sent to the taxpayer. You can simulate the taxpayer uploading the requested document.</p>
-                                                            <button 
+                                                            <button
                                                                 type="button"
                                                                 onClick={() => {
                                                                     simulateClientUpload(selectedRequestForReview.id);
@@ -2413,7 +2414,7 @@ export default function BusinessCA() {
                                                                 <span style={{ fontSize: '12.5px', fontWeight: '750', color: '#0F172A' }}>📄 {selectedRequestForReview.attachedFile || 'simulated_uploaded_file.pdf'}</span>
                                                             </div>
                                                             <p style={{ fontSize: '12px', color: '#475569', lineHeight: '1.5', margin: 0 }}>Review the document. You can lock and approve it to finalize this collection step.</p>
-                                                            <button 
+                                                            <button
                                                                 type="button"
                                                                 onClick={() => {
                                                                     approveUploadedDoc(selectedRequestForReview.id);
@@ -2484,27 +2485,27 @@ export default function BusinessCA() {
                                                             }}>{task.priority}</span>
                                                         </td>
                                                         <td style={{ padding: '16px 20px' }}>
-                                                             <button 
-                                                                 type="button"
-                                                                 onClick={() => toggleTaskStatus(task.id)}
-                                                                 style={{
-                                                                     display: 'inline-flex',
-                                                                     alignItems: 'center',
-                                                                     gap: '6px',
-                                                                     padding: '6px 12px',
-                                                                     borderRadius: '8px',
-                                                                     border: '1.5px solid',
-                                                                     borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
-                                                                     background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
-                                                                     color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
-                                                                     fontWeight: '800',
-                                                                     fontSize: '12px',
-                                                                     cursor: 'pointer',
-                                                                     transition: 'all 0.2s'
-                                                                 }}
-                                                             >
-                                                                 {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
-                                                             </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleTaskStatus(task.id)}
+                                                                style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '6px',
+                                                                    padding: '6px 12px',
+                                                                    borderRadius: '8px',
+                                                                    border: '1.5px solid',
+                                                                    borderColor: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#BBF7D0' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#BFDBFE' : '#CBD5E1'),
+                                                                    background: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#F0FDF4' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#EFF6FF' : 'transparent'),
+                                                                    color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#15803d' : ((task.status === 'In Progress' || task.status === 'Uploaded' || task.status === 'Under Review') ? '#1D4ED8' : '#475569'),
+                                                                    fontWeight: '800',
+                                                                    fontSize: '12px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.2s'
+                                                                }}
+                                                            >
+                                                                {task.status === 'Completed' ? '✓ Completed' : (task.status === 'Approved' ? '✓ Approved' : (task.status === 'Verified' ? '✓ Verified' : (task.status === 'Uploaded' ? '📤 Uploaded' : (task.status === 'Under Review' ? '🔍 Under Review' : (task.status === 'In Progress' ? '⚡ In Progress' : '○ Pending')))))}
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -2792,10 +2793,10 @@ export default function BusinessCA() {
                                         {/* Left Side: Stopwatch Widget */}
                                         <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>⏱️ Live Ticking Stopwatch Widget</h3>
-                                            
+
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                 <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
-                                                <select 
+                                                <select
                                                     value={timerClient}
                                                     onChange={e => setTimerClient(e.target.value)}
                                                     style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', outline: 'none' }}
@@ -2808,9 +2809,9 @@ export default function BusinessCA() {
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                 <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>TASK DESCRIPTION</label>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Audit draft calculation, GSTR preparation..." 
+                                                <input
+                                                    type="text"
+                                                    placeholder="Audit draft calculation, GSTR preparation..."
                                                     value={timerTask}
                                                     onChange={e => setTimerTask(e.target.value)}
                                                     style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
@@ -2830,7 +2831,7 @@ export default function BusinessCA() {
                                             {/* Clock controls */}
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 {!isTimerRunning ? (
-                                                    <button 
+                                                    <button
                                                         type="button"
                                                         onClick={() => setIsTimerRunning(true)}
                                                         style={{ flex: 1, padding: '12px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
@@ -2838,7 +2839,7 @@ export default function BusinessCA() {
                                                         <Play size={16} /> Start Timer
                                                     </button>
                                                 ) : (
-                                                    <button 
+                                                    <button
                                                         type="button"
                                                         onClick={() => setIsTimerRunning(false)}
                                                         style={{ flex: 1, padding: '12px', background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
@@ -2846,7 +2847,7 @@ export default function BusinessCA() {
                                                         <Square size={14} /> Pause Timer
                                                     </button>
                                                 )}
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={() => setTimerSeconds(0)}
                                                     style={{ padding: '12px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', color: '#475569', cursor: 'pointer' }}
@@ -2856,7 +2857,7 @@ export default function BusinessCA() {
                                             </div>
 
                                             {timerSeconds > 0 && (
-                                                <button 
+                                                <button
                                                     type="button"
                                                     onClick={handleSaveTimerSession}
                                                     style={{ width: '100%', padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
@@ -2871,14 +2872,14 @@ export default function BusinessCA() {
                                             <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: '0 0 16px 0' }}>📅 Practice Timesheet Sessions History</h3>
                                             <div style={{ overflowX: 'auto' }}>
                                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                                     <FilterableTableHead columns={[
-                                                            { key: 'clientName', label: 'Client', placeholder: 'Client...' },
-                                                            { key: 'taskName', label: 'Task Description', placeholder: 'Task...' },
-                                                            { key: 'date', label: 'Date', placeholder: 'Date...' },
-                                                            { key: 'duration', label: 'Duration', placeholder: 'Duration...' },
-                                                            { key: 'billable', label: 'Billable', placeholder: 'Yes/No...' }
-                                                        ]} onFilterChange={setColFiltersTimesheet} />
-                                                     <tbody>
+                                                    <FilterableTableHead columns={[
+                                                        { key: 'clientName', label: 'Client', placeholder: 'Client...' },
+                                                        { key: 'taskName', label: 'Task Description', placeholder: 'Task...' },
+                                                        { key: 'date', label: 'Date', placeholder: 'Date...' },
+                                                        { key: 'duration', label: 'Duration', placeholder: 'Duration...' },
+                                                        { key: 'billable', label: 'Billable', placeholder: 'Yes/No...' }
+                                                    ]} onFilterChange={setColFiltersTimesheet} />
+                                                    <tbody>
                                                         {practiceTimesheets.filter(item => applyTableFilters(item, colFiltersTimesheet)).map(session => (
                                                             <tr key={session.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                                 <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{session.clientName}</td>
@@ -2892,7 +2893,7 @@ export default function BusinessCA() {
                                                                 </td>
                                                             </tr>
                                                         ))}
-                                                     </tbody>
+                                                    </tbody>
                                                 </table>
                                             </div>
                                         </div>
@@ -3108,7 +3109,7 @@ export default function BusinessCA() {
                                                                 );
                                                             })}
                                                         </div>
-                                                        
+
                                                         {/* Add Procedure Section */}
                                                         <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
                                                             <input
@@ -3132,7 +3133,7 @@ export default function BusinessCA() {
                                                                 style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer' }}
                                                             >
                                                                 + Add Item
-                                                             </button>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                     {/* Right Column */}
@@ -3153,14 +3154,14 @@ export default function BusinessCA() {
                                                         </div>
 
                                                         {/* GST Portal Credentials card */}
-                                                        <div style={{ 
-                                                            background: '#FFFFFF', 
-                                                            padding: '24px', 
-                                                            borderRadius: '16px', 
-                                                            border: '1px solid #E2E8F0', 
-                                                            height: 'fit-content', 
-                                                            display: 'flex', 
-                                                            flexDirection: 'column', 
+                                                        <div style={{
+                                                            background: '#FFFFFF',
+                                                            padding: '24px',
+                                                            borderRadius: '16px',
+                                                            border: '1px solid #E2E8F0',
+                                                            height: 'fit-content',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
                                                             transition: 'all 0.3s ease'
                                                         }}>
                                                             {gstShareStatus === 'Not Shared' && (
@@ -3200,8 +3201,8 @@ export default function BusinessCA() {
 
                                                             {gstShareStatus === 'Shared' && (
                                                                 <>
-                                                                    <div 
-                                                                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} 
+                                                                    <div
+                                                                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                                                                         onClick={() => {
                                                                             if (!hasConfirmedGstAccess) {
                                                                                 setShowAccessConfirmModal(true);
@@ -3213,10 +3214,10 @@ export default function BusinessCA() {
                                                                         <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                             🔐 GST Portal Credentials
                                                                         </h3>
-                                                                        <span 
-                                                                            style={{ 
-                                                                                fontSize: '16px', 
-                                                                                cursor: 'pointer', 
+                                                                        <span
+                                                                            style={{
+                                                                                fontSize: '16px',
+                                                                                cursor: 'pointer',
                                                                                 userSelect: 'none',
                                                                                 background: '#F1F5F9',
                                                                                 width: '28px',
@@ -3232,7 +3233,7 @@ export default function BusinessCA() {
                                                                             💡
                                                                         </span>
                                                                     </div>
-                                                                    
+
                                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                                                             <span style={{ fontSize: '12.5px', color: '#475569', fontWeight: '650' }}>
@@ -3250,17 +3251,17 @@ export default function BusinessCA() {
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => setShowAccessConfirmModal(true)}
-                                                                                style={{ 
-                                                                                    background: '#FEF08A', 
-                                                                                    border: 'none', 
-                                                                                    borderRadius: '50%', 
-                                                                                    width: '60px', 
-                                                                                    height: '60px', 
-                                                                                    display: 'flex', 
-                                                                                    alignItems: 'center', 
-                                                                                    justifyContent: 'center', 
-                                                                                    fontSize: '28px', 
-                                                                                    cursor: 'pointer', 
+                                                                                style={{
+                                                                                    background: '#FEF08A',
+                                                                                    border: 'none',
+                                                                                    borderRadius: '50%',
+                                                                                    width: '60px',
+                                                                                    height: '60px',
+                                                                                    display: 'flex',
+                                                                                    alignItems: 'center',
+                                                                                    justifyContent: 'center',
+                                                                                    fontSize: '28px',
+                                                                                    cursor: 'pointer',
                                                                                     boxShadow: '0 4px 10px rgba(254, 240, 138, 0.5)',
                                                                                     transition: 'all 0.2s ease-in-out',
                                                                                     outline: 'none'
@@ -3275,9 +3276,9 @@ export default function BusinessCA() {
                                                                     ) : (
                                                                         <AnimatePresence>
                                                                             {isGstCardExpanded && (
-                                                                                <Motion.div 
-                                                                                    initial={{ opacity: 0, height: 0 }} 
-                                                                                    animate={{ opacity: 1, height: 'auto' }} 
+                                                                                <Motion.div
+                                                                                    initial={{ opacity: 0, height: 0 }}
+                                                                                    animate={{ opacity: 1, height: 'auto' }}
                                                                                     exit={{ opacity: 0, height: 0 }}
                                                                                     transition={{ duration: 0.2 }}
                                                                                     style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}
@@ -3292,7 +3293,7 @@ export default function BusinessCA() {
                                                                                                 <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Portal</span>
                                                                                                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>https://www.gst.gov.in</span>
                                                                                             </div>
-                                                                                            
+
                                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
                                                                                                 <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Username / Email</span>
                                                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
@@ -3306,7 +3307,7 @@ export default function BusinessCA() {
                                                                                                     </button>
                                                                                                 </div>
                                                                                             </div>
-                                                                                            
+
                                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
                                                                                                 <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Password</span>
                                                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
@@ -3331,7 +3332,7 @@ export default function BusinessCA() {
                                                                                                     Show Password
                                                                                                 </label>
                                                                                             </div>
-                                                                                            
+
                                                                                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
                                                                                                 <a
                                                                                                     href="https://www.gst.gov.in"
@@ -3342,19 +3343,19 @@ export default function BusinessCA() {
                                                                                                             caService.logGstClientAction(selectedWorkpaperClientId, 'open_portal').catch(console.error);
                                                                                                         }
                                                                                                     }}
-                                                                                                    style={{ 
-                                                                                                        display: 'flex', 
-                                                                                                        width: '100%', 
-                                                                                                        alignItems: 'center', 
-                                                                                                        justifyContent: 'center', 
-                                                                                                        padding: '8px 16px', 
-                                                                                                        background: '#15803d', 
-                                                                                                        color: '#FFFFFF', 
-                                                                                                        border: 'none', 
-                                                                                                        borderRadius: '8px', 
-                                                                                                        fontSize: '12.5px', 
-                                                                                                        fontWeight: '800', 
-                                                                                                        cursor: 'pointer', 
+                                                                                                    style={{
+                                                                                                        display: 'flex',
+                                                                                                        width: '100%',
+                                                                                                        alignItems: 'center',
+                                                                                                        justifyContent: 'center',
+                                                                                                        padding: '8px 16px',
+                                                                                                        background: '#15803d',
+                                                                                                        color: '#FFFFFF',
+                                                                                                        border: 'none',
+                                                                                                        borderRadius: '8px',
+                                                                                                        fontSize: '12.5px',
+                                                                                                        fontWeight: '800',
+                                                                                                        cursor: 'pointer',
                                                                                                         textDecoration: 'none',
                                                                                                         boxSizing: 'border-box'
                                                                                                     }}
@@ -3427,7 +3428,7 @@ export default function BusinessCA() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                
+
                                                 {/* Uploaded Documents List */}
                                                 <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', marginTop: '24px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -3440,7 +3441,7 @@ export default function BusinessCA() {
                                                         </button>
                                                     </div>
                                                     <p style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '16px', marginTop: 0 }}>Verify the documents uploaded by the Business Owner for auditing.</p>
-                                                    
+
                                                     <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
                                                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13.5px' }}>
                                                             <thead>
@@ -3476,11 +3477,6 @@ export default function BusinessCA() {
                                                                                 </td>
                                                                                 <td style={{ padding: '14px 16px', color: '#334155', fontWeight: '600' }}>{doc.uploaded_by}</td>
                                                                                 <td style={{ padding: '14px 16px', color: '#475569', fontWeight: '800' }}>{doc.phase || '-'}</td>
-                                                                                <td style={{ padding: '14px 16px', color: '#64748B' }}>
-                                                                                        {doc.type}
-                                                                                    </span>
-                                                                                </td>
-                                                                                <td style={{ padding: '14px 16px', color: '#334155', fontWeight: '600' }}>{doc.uploaded_by}</td>
                                                                                 <td style={{ padding: '14px 16px', color: '#64748B' }}>
                                                                                     {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleString() : '-'}
                                                                                 </td>
@@ -3583,7 +3579,7 @@ export default function BusinessCA() {
                                         {/* Left Side: Folder tree */}
                                         <div style={{ background: '#FFFFFF', padding: '20px 16px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Practice Folder Tree</h3>
-                                            
+
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                 <button
                                                     type="button"
@@ -3612,14 +3608,14 @@ export default function BusinessCA() {
                                             {/* Drop zone simulator */}
                                             <form onSubmit={handleSimulateDocumentUpload} style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                                 <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Upload Practice Document from Laptop</h3>
-                                                
-                                                <input 
-                                                    type="file" 
-                                                    id="laptop-file-picker" 
-                                                    style={{ display: 'none' }} 
-                                                    onChange={handleLaptopFileSelected} 
+
+                                                <input
+                                                    type="file"
+                                                    id="laptop-file-picker"
+                                                    style={{ display: 'none' }}
+                                                    onChange={handleLaptopFileSelected}
                                                 />
-                                                
+
                                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                                     <button
                                                         type="button"
@@ -3652,7 +3648,7 @@ export default function BusinessCA() {
                                                         ))}
                                                     </select>
                                                 </div>
-                                                
+
                                                 <button
                                                     type="submit"
                                                     disabled={uploadProgress !== null || !uploadedFileName}
@@ -3673,7 +3669,7 @@ export default function BusinessCA() {
                                                 >
                                                     <FileUp size={16} /> Upload to Practice Vault
                                                 </button>
-                                                
+
                                                 {uploadProgress !== null && (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1.5px solid #F1F5F9' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800', color: '#15803d' }}>
@@ -3763,20 +3759,20 @@ export default function BusinessCA() {
                                                     gap: '6px',
                                                     transition: 'all 0.2s'
                                                 }}
-                                                onMouseEnter={e => { if(!isGeneratingReport) e.currentTarget.style.backgroundColor = '#166534'; }}
-                                                onMouseLeave={e => { if(!isGeneratingReport) e.currentTarget.style.backgroundColor = '#15803d'; }}
+                                                onMouseEnter={e => { if (!isGeneratingReport) e.currentTarget.style.backgroundColor = '#166534'; }}
+                                                onMouseLeave={e => { if (!isGeneratingReport) e.currentTarget.style.backgroundColor = '#15803d'; }}
                                             >
                                                 {isGeneratingReport ? 'Compiling Report...' : 'Compile Master Audit Sheet'}
                                             </button>
                                         </div>
-                                        
+
                                         {showReportSuccess && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '14px', borderRadius: '10px', fontSize: '13px', color: '#166534', fontWeight: '800' }}>
                                                 <span>✓ Success!</span>
                                                 <span>Master compliance audit sheet has been compiled and downloaded to the documents vault.</span>
                                             </div>
                                         )}
-                                        
+
                                         <div style={{ overflowX: 'auto' }}>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                                 <FilterableTableHead columns={[
@@ -3862,27 +3858,27 @@ export default function BusinessCA() {
                         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                             <form onSubmit={handleAddPracticeClient} style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
                                 <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>👤 Register New Taxpayer Client</h3>
-                                
+
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>TAXPAYER FULL NAME</label>
-                                    <input type="text" value={newClientName} onChange={e=>setNewClientName(e.target.value)} required placeholder="Aditya Birla, Rohan Sharma..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                    <input type="text" value={newClientName} onChange={e => setNewClientName(e.target.value)} required placeholder="Aditya Birla, Rohan Sharma..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>EMAIL ADDRESS</label>
-                                    <input type="email" value={newClientEmail} onChange={e=>setNewClientEmail(e.target.value)} required placeholder="client@name.com" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                    <input type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} required placeholder="client@name.com" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>TAX REGIME</label>
-                                        <select value={newClientRegime} onChange={e=>setNewClientRegime(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={newClientRegime} onChange={e => setNewClientRegime(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="New">New Tax Regime</option>
                                             <option value="Old">Old Tax Regime</option>
                                         </select>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>EST. ANNUAL INCOME ({currency.symbol})</label>
-                                        <input type="number" value={newClientIncome} onChange={e=>setNewClientIncome(e.target.value)} required placeholder="1200000" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                        <input type="number" value={newClientIncome} onChange={e => setNewClientIncome(e.target.value)} required placeholder="1200000" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                     </div>
                                 </div>
 
@@ -3898,10 +3894,10 @@ export default function BusinessCA() {
                         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                             <form onSubmit={handleAddPracticeRequest} style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
                                 <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>🤝 Request Document from Taxpayer</h3>
-                                
+
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
-                                    <select value={newRequestClient} onChange={e=>setNewRequestClient(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                    <select value={newRequestClient} onChange={e => setNewRequestClient(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                         {allPracticeClients.map(c => (
                                             <option key={c.id} value={c.name}>{c.name}</option>
                                         ))}
@@ -3909,17 +3905,17 @@ export default function BusinessCA() {
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>REQUEST TITLE</label>
-                                    <input type="text" value={newRequestTitle} onChange={e=>setNewRequestTitle(e.target.value)} required placeholder="e.g. Form 16 Q4, Q1 GST Ledger..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                    <input type="text" value={newRequestTitle} onChange={e => setNewRequestTitle(e.target.value)} required placeholder="e.g. Form 16 Q4, Q1 GST Ledger..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DESCRIPTION / INSTRUCTIONS</label>
-                                    <textarea value={newRequestDesc} onChange={e=>setNewRequestDesc(e.target.value)} placeholder="Please upload the employer issued Form 16..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none', height: '80px', resize: 'none' }} />
+                                    <textarea value={newRequestDesc} onChange={e => setNewRequestDesc(e.target.value)} placeholder="Please upload the employer issued Form 16..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none', height: '80px', resize: 'none' }} />
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DOCUMENT CATEGORY</label>
-                                        <select value={newRequestDocType} onChange={e=>setNewRequestDocType(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={newRequestDocType} onChange={e => setNewRequestDocType(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="Form 16">Form 16 PDF</option>
                                             <option value="Excel Ledger">Excel Inward Ledger</option>
                                             <option value="KYC Scans">KYC Scans (PAN/Aadhaar)</option>
@@ -3928,7 +3924,7 @@ export default function BusinessCA() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>PRIORITY</label>
-                                        <select value={newRequestPriority} onChange={e=>setNewRequestPriority(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={newRequestPriority} onChange={e => setNewRequestPriority(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="High">High</option>
                                             <option value="Medium">Medium</option>
                                             <option value="Low">Low</option>
@@ -3948,10 +3944,10 @@ export default function BusinessCA() {
                         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                             <form onSubmit={handleAddPracticeTask} style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
                                 <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>✅ Assign Practice Operation Task</h3>
-                                
+
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
-                                    <select value={newTaskClient} onChange={e=>setNewTaskClient(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                    <select value={newTaskClient} onChange={e => setNewTaskClient(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                         {allPracticeClients.map(c => (
                                             <option key={c.id} value={c.name}>{c.name}</option>
                                         ))}
@@ -3962,7 +3958,7 @@ export default function BusinessCA() {
                                     <input
                                         type="email"
                                         value={newTaskBusinessOwnerEmail}
-                                        onChange={e=>setNewTaskBusinessOwnerEmail(e.target.value)}
+                                        onChange={e => setNewTaskBusinessOwnerEmail(e.target.value)}
                                         required
                                         placeholder="e.g. owner@business.com"
                                         style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
@@ -3970,13 +3966,13 @@ export default function BusinessCA() {
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>TASK DESCRIPTION TITLE</label>
-                                    <input type="text" value={newTaskTitle} onChange={e=>setNewTaskTitle(e.target.value)} required placeholder="Draft return, verify investment deductions..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                    <input type="text" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} required placeholder="Draft return, verify investment deductions..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>PRIORITY</label>
-                                        <select value={newTaskPriority} onChange={e=>setNewTaskPriority(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={newTaskPriority} onChange={e => setNewTaskPriority(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="High">High</option>
                                             <option value="Medium">Medium</option>
                                             <option value="Low">Low</option>
@@ -3984,12 +3980,12 @@ export default function BusinessCA() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DUE DATE</label>
-                                        <input type="date" value={newTaskDueDate} onChange={e=>setNewTaskDueDate(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', color: '#475569', outline: 'none' }} />
+                                        <input type="date" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', color: '#475569', outline: 'none' }} />
                                     </div>
                                 </div>
-                                
+
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                    <input type="checkbox" id="askDocCheck" checked={newTaskAskForDocument} onChange={e=>setNewTaskAskForDocument(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#15803d', cursor: 'pointer' }} />
+                                    <input type="checkbox" id="askDocCheck" checked={newTaskAskForDocument} onChange={e => setNewTaskAskForDocument(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#15803d', cursor: 'pointer' }} />
                                     <label htmlFor="askDocCheck" style={{ fontSize: '12.5px', fontWeight: '750', color: '#334155', cursor: 'pointer' }}>Require document upload from client</label>
                                 </div>
 
@@ -4005,15 +4001,15 @@ export default function BusinessCA() {
                         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                             <form onSubmit={handleSendTeamInvitation} style={{ background: '#FFFFFF', padding: '28px', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
                                 <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>👥 Invite New Team Member</h3>
-                                
+
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>EMAIL ADDRESS (MAIL ID)</label>
-                                    <input type="email" value={newTeamEmail} onChange={e=>setNewTeamEmail(e.target.value)} required placeholder="e.g. associate@firm.com" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                    <input type="email" value={newTeamEmail} onChange={e => setNewTeamEmail(e.target.value)} required placeholder="e.g. associate@firm.com" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>PROPOSED ROLE / DESIGNATION</label>
-                                    <select value={newTeamRole} onChange={e=>setNewTeamRole(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                    <select value={newTeamRole} onChange={e => setNewTeamRole(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                         <option value="Senior Tax Consultant">Senior Tax Consultant</option>
                                         <option value="Associate Consultant">Associate Consultant</option>
                                         <option value="Audit Associate">Audit Associate</option>
@@ -4026,13 +4022,13 @@ export default function BusinessCA() {
                                 {newTeamRole === 'Others' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>CUSTOM ROLE / DESIGNATION</label>
-                                        <input 
-                                            type="text" 
-                                            value={customTeamRole} 
-                                            onChange={e=>setCustomTeamRole(e.target.value)} 
-                                            required 
-                                            placeholder="e.g. Lead Financial Analyst" 
-                                            style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} 
+                                        <input
+                                            type="text"
+                                            value={customTeamRole}
+                                            onChange={e => setCustomTeamRole(e.target.value)}
+                                            required
+                                            placeholder="e.g. Lead Financial Analyst"
+                                            style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
                                         />
                                     </div>
                                 )}
@@ -4176,7 +4172,7 @@ export default function BusinessCA() {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>FINANCIAL YEAR</label>
-                                        <select value={tdsFormData.financialYear} onChange={e=>setTdsTformData({...tdsFormData, financialYear: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={tdsFormData.financialYear} onChange={e => setTdsTformData({ ...tdsFormData, financialYear: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="2026-27">2026-27</option>
                                             <option value="2025-26">2025-26</option>
                                             <option value="2024-25">2024-25</option>
@@ -4184,14 +4180,14 @@ export default function BusinessCA() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>RESIDENTIAL STATUS</label>
-                                        <select value={tdsFormData.residentialStatus} onChange={e=>setTdsTformData({...tdsFormData, residentialStatus: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={tdsFormData.residentialStatus} onChange={e => setTdsTformData({ ...tdsFormData, residentialStatus: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="Resident">Resident</option>
                                             <option value="Non-Resident">Non-Resident</option>
                                         </select>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>RECIPIENT CATEGORY</label>
-                                        <select value={tdsFormData.recipientCategory} onChange={e=>setTdsTformData({...tdsFormData, recipientCategory: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={tdsFormData.recipientCategory} onChange={e => setTdsTformData({ ...tdsFormData, recipientCategory: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="Individual/HUF">Individual/HUF</option>
                                             <option value="Domestic Company">Domestic Company</option>
                                             <option value="Firm">Firm</option>
@@ -4199,12 +4195,12 @@ export default function BusinessCA() {
                                         </select>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '18px' }}>
-                                        <input type="checkbox" id="panCheck" checked={tdsFormData.panNotAvailable} onChange={e=>setTdsTformData({...tdsFormData, panNotAvailable: e.target.checked})} style={{ width: '18px', height: '18px', accentColor: '#EF4444', cursor: 'pointer' }} />
+                                        <input type="checkbox" id="panCheck" checked={tdsFormData.panNotAvailable} onChange={e => setTdsTformData({ ...tdsFormData, panNotAvailable: e.target.checked })} style={{ width: '18px', height: '18px', accentColor: '#EF4444', cursor: 'pointer' }} />
                                         <label htmlFor="panCheck" style={{ fontSize: '12.5px', fontWeight: '800', color: '#334155', cursor: 'pointer' }}>PAN Not Available (Sec 206AA)</label>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SECTION / DESCRIPTION</label>
-                                        <select value={tdsFormData.section} onChange={e=>setTdsTformData({...tdsFormData, section: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={tdsFormData.section} onChange={e => setTdsTformData({ ...tdsFormData, section: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="194C - Contractor (Single)">194C - Payment to Contractors (Single)</option>
                                             <option value="194J - Professional Services">194J - Fees for Professional/Technical Services</option>
                                             <option value="194I - Rent of Land/Building">194I - Rent of Land/Building</option>
@@ -4214,11 +4210,11 @@ export default function BusinessCA() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>AMOUNT PAID / CREDITED ({currency.symbol})</label>
-                                        <input type="number" value={tdsFormData.amount} onChange={e=>setTdsTformData({...tdsFormData, amount: e.target.value})} placeholder="e.g. 50000" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
+                                        <input type="number" value={tdsFormData.amount} onChange={e => setTdsTformData({ ...tdsFormData, amount: e.target.value })} placeholder="e.g. 50000" style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }} />
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DATE OF PAYMENT / CREDIT</label>
-                                        <input type="date" value={tdsFormData.paymentDate} onChange={e=>setTdsTformData({...tdsFormData, paymentDate: e.target.value})} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', color: '#475569', outline: 'none' }} />
+                                        <input type="date" value={tdsFormData.paymentDate} onChange={e => setTdsTformData({ ...tdsFormData, paymentDate: e.target.value })} style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', color: '#475569', outline: 'none' }} />
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>THRESHOLD LIMIT</label>
@@ -4228,7 +4224,7 @@ export default function BusinessCA() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SURCHARGE RATE</label>
-                                        <select value={tdsFormData.surchargeRate} onChange={e=>setTdsTformData({...tdsFormData, surchargeRate: e.target.value})} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
+                                        <select value={tdsFormData.surchargeRate} onChange={e => setTdsTformData({ ...tdsFormData, surchargeRate: e.target.value })} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
                                             <option value="Nil">Nil</option>
                                             <option value="10%">10%</option>
                                             <option value="15%">15%</option>
