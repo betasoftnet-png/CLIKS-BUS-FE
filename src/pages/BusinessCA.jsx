@@ -434,10 +434,8 @@ export default function BusinessCA() {
     const sidebarTabs = [
         { id: 'home', label: 'Home', icon: Home },
         { id: 'clients', label: 'Clients', icon: User, badge: null },
-        { id: 'requests', label: 'Client Requests', icon: HelpCircle, badge: null },
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
-        { id: 'team_requests', label: 'Team Requests', icon: UserCheck, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
         { id: 'documents', label: 'Documents', icon: Folder }
@@ -1909,7 +1907,7 @@ export default function BusinessCA() {
                                     <TabIcon size={16} style={{ color: isActive ? '#15803d' : '#64748B' }} />
                                     <span>{tab.label}</span>
                                     {/* Dynamic Badges */}
-                                    {tab.id === 'requests' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
+                                    {tab.id === 'clients' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
                                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
                                             {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
                                         </span>
@@ -1919,7 +1917,7 @@ export default function BusinessCA() {
                                             {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
                                         </span>
                                     )}
-                                    {tab.id === 'team_requests' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                    {tab.id === 'teams' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
                                         <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
                                             {teamRequests.filter(r => r.status === 'Pending').length}
                                         </span>
@@ -2077,9 +2075,22 @@ export default function BusinessCA() {
                                                 style={{ width: '100%', border: 'none', outline: 'none', fontSize: '13.5px', fontWeight: '600', color: '#0F172A' }}
                                             />
                                         </div>
-                                        <button onClick={() => setShowAddClientModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Plus size={16} /> Add Taxpayer Client
-                                        </button>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <button
+                                                onClick={() => setPersonalTab('requests')}
+                                                style={{ padding: '8px 16px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <HelpCircle size={16} /> Client Requests
+                                                {practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
+                                                    <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                                        {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
+                                                    </span>
+                                                )}
+                                            </button>
+                                            <button onClick={() => setShowAddClientModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Plus size={16} /> Add Taxpayer Client
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
@@ -2182,7 +2193,15 @@ export default function BusinessCA() {
                                     )}
 
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>🤝 Outbound Document Requests Ledger</h2>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <button
+                                                onClick={() => setPersonalTab('clients')}
+                                                style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: '#FFFFFF', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                ← Back to Clients
+                                            </button>
+                                            <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>🤝 Outbound Document Requests Ledger</h2>
+                                        </div>
                                         <button onClick={() => setShowAddRequestModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <PlusCircle size={16} /> Create Document Requisition
                                         </button>
@@ -2381,9 +2400,22 @@ export default function BusinessCA() {
                                             <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>👥 Practice Team Members</h2>
                                             <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Manage roles, access control, and staff associations inside your advisory firm.</p>
                                         </div>
-                                        <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Plus size={16} /> Add Team Member
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <button
+                                                onClick={() => setPersonalTab('team_requests')}
+                                                style={{ padding: '8px 16px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <UserCheck size={16} /> Team Requests
+                                                {teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                                    <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                                        {teamRequests.filter(r => r.status === 'Pending').length}
+                                                    </span>
+                                                )}
+                                            </button>
+                                            <button onClick={() => setShowAddTeamMemberModal(true)} style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Plus size={16} /> Add Team Member
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
@@ -2480,9 +2512,17 @@ export default function BusinessCA() {
                             {/* TEAM REQUESTS TAB */}
                             {personalTab === 'team_requests' && (
                                 <Motion.div key="team_requests" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    <div>
-                                        <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>✉️ Team Invitations & Requests</h2>
-                                        <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Approve incoming join requests or track pending outgoing invitations sent to other advisors.</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <button
+                                            onClick={() => setPersonalTab('teams')}
+                                            style={{ padding: '8px 14px', border: '1.5px solid #E2E8F0', background: '#FFFFFF', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            ← Back to Teams
+                                        </button>
+                                        <div>
+                                            <h2 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>✉️ Team Invitations & Requests</h2>
+                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0 0 0' }}>Approve join requests or track pending invitations.</p>
+                                        </div>
                                     </div>
 
                                     <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
