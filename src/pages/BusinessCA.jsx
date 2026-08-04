@@ -213,6 +213,10 @@ export default function BusinessCA() {
 
     const [previewFile, setPreviewFile] = useState(null);
 
+    // --- Phase Upload States ---
+    const [showPhaseModal, setShowPhaseModal] = useState(false);
+    const [phaseUploadSuccess, setPhaseUploadSuccess] = useState(null);
+
     // --- TDS Calculator & History States ---
     const [showTdsCalculator, setShowTdsCalculator] = useState(false);
     const [showTdsHistory, setShowTdsHistory] = useState(false);
@@ -439,7 +443,7 @@ export default function BusinessCA() {
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'documents', label: 'Documents', icon: Folder },
+        { id: 'documents', label: 'CA', icon: Folder },
         { id: 'reports', label: 'Reports', icon: BarChart }
     ];
 
@@ -517,6 +521,16 @@ export default function BusinessCA() {
             askForDocument: newTaskAskForDocument
         });
     };
+
+    const uploadPhaseMutation = useMutation({
+        mutationFn: ({ clientId, phase }) => caService.uploadClientPhaseDoc(clientId, phase),
+        onSuccess: (data) => {
+            refetchClientDocuments();
+            setPhaseUploadSuccess({ fileName: data.attachedFile, phase: data.phase });
+            setTimeout(() => setPhaseUploadSuccess(null), 4000);
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload phase document')
+    });
 
     const simulateClientUpload = (requestId) => {
         uploadRequestDocMutation.mutate(requestId);
@@ -1632,14 +1646,79 @@ export default function BusinessCA() {
                                 <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div 
                                         onClick={() => setShowRevokeId(showRevokeId === inv.id ? null : inv.id)}
-                                        style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                        style={{ padding: '16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
                                                 <UserCheck size={20} />
                                             </div>
-                                            <div>
-                                                <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
+
+                                                    {/* Presence Indicator */}
+                                                    <div
+                                                        style={{
+                                                            width: '10px',
+                                                            height: '10px',
+                                                            borderRadius: '50%',
+                                                            background: inv.is_online ? '#22C55E' : '#EF4444',
+                                                            boxShadow: inv.is_online ? '0 0 8px #22C55E' : 'none',
+                                                            border: '2px solid #FFFFFF'
+                                                        }}
+                                                        title={inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
+                                                        onMouseEnter={(e) => {
+                                                            const popup = e.currentTarget.nextSibling;
+                                                            if (popup) popup.style.display = 'block';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            const popup = e.currentTarget.nextSibling;
+                                                            if (popup) popup.style.display = 'none';
+                                                        }}
+                                                    ></div>
+
+                                                    {/* Professional Popup */}
+                                                    <div style={{
+                                                        display: 'none',
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: '50px',
+                                                        zIndex: 50,
+                                                        width: '220px',
+                                                        background: '#FFFFFF',
+                                                        border: '1px solid #E2E8F0',
+                                                        borderRadius: '12px',
+                                                        padding: '12px',
+                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                        marginTop: '4px'
+                                                    }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: inv.is_online ? '#22C55E' : '#EF4444' }}></div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>
+                                                                    {inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ fontSize: '13px', fontWeight: '850', color: '#334155' }}>{inv.receiver_name || inv.receiver_email.split('@')[0]}</div>
+                                                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '6px', marginTop: '2px' }}>
+                                                                {inv.is_online ? (
+                                                                    <>
+                                                                        <div style={{ fontSize: '11px', color: '#64748B' }}>
+                                                                            <span style={{ fontWeight: '750' }}>Online Since:</span> {inv.login_at ? new Date(inv.login_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                                                                        </div>
+                                                                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
+                                                                            <span style={{ fontWeight: '750' }}>Last Activity:</span> Just now
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div style={{ fontSize: '11px', color: '#64748B' }}>
+                                                                        <span style={{ fontWeight: '750' }}>Last Seen:</span> {inv.last_seen_at ? new Date(inv.last_seen_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Never'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
                                             </div>
                                         </div>
@@ -3351,7 +3430,15 @@ export default function BusinessCA() {
                                                 
                                                 {/* Uploaded Documents List */}
                                                 <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', marginTop: '24px' }}>
-                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', marginBottom: '4px', marginTop: 0 }}>📁 Client Uploaded Documents</h3>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Client Uploaded Documents</h3>
+                                                        <button
+                                                            onClick={() => setShowPhaseModal(true)}
+                                                            style={{ padding: '8px 16px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            📂 2 Phases Open
+                                                        </button>
+                                                    </div>
                                                     <p style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '16px', marginTop: 0 }}>Verify the documents uploaded by the Business Owner for auditing.</p>
                                                     
                                                     <div style={{ overflowX: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
@@ -3361,6 +3448,7 @@ export default function BusinessCA() {
                                                                     <th style={{ padding: '14px 16px' }}>Document Name</th>
                                                                     <th style={{ padding: '14px 16px' }}>File Type</th>
                                                                     <th style={{ padding: '14px 16px' }}>Uploaded By</th>
+                                                                    <th style={{ padding: '14px 16px' }}>Phase</th>
                                                                     <th style={{ padding: '14px 16px' }}>Upload Date &amp; Time</th>
                                                                     <th style={{ padding: '14px 16px' }}>Task / Checklist Item</th>
                                                                     <th style={{ padding: '14px 16px' }}>Review Status</th>
@@ -3371,7 +3459,7 @@ export default function BusinessCA() {
                                                             <tbody>
                                                                 {clientDocuments.length === 0 ? (
                                                                     <tr>
-                                                                        <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
+                                                                        <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
                                                                             No documents uploaded by the business owner yet.
                                                                         </td>
                                                                     </tr>
@@ -3383,6 +3471,12 @@ export default function BusinessCA() {
                                                                                 <td style={{ padding: '14px 16px', fontWeight: '750', color: '#0F172A' }}>{doc.name}</td>
                                                                                 <td style={{ padding: '14px 16px' }}>
                                                                                     <span style={{ fontSize: '11px', fontWeight: '800', background: doc.type === 'PDF' ? '#FEE2E2' : '#E0F2FE', color: doc.type === 'PDF' ? '#EF4444' : '#0284C7', padding: '3px 8px', borderRadius: '6px' }}>
+                                                                                        {doc.type}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td style={{ padding: '14px 16px', color: '#334155', fontWeight: '600' }}>{doc.uploaded_by}</td>
+                                                                                <td style={{ padding: '14px 16px', color: '#475569', fontWeight: '800' }}>{doc.phase || '-'}</td>
+                                                                                <td style={{ padding: '14px 16px', color: '#64748B' }}>
                                                                                         {doc.type}
                                                                                     </span>
                                                                                 </td>
@@ -4222,6 +4316,87 @@ export default function BusinessCA() {
                                             <Save size={16} /> {isEditingTdsId ? 'Update Record' : 'Save to History'}
                                         </button>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Phase Upload Modal */}
+                    {showPhaseModal && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050 }}>
+                            <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '20px', border: '1px solid #E2E8F0', width: '90%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0 }}>📂 Document Upload Phases</h3>
+                                    <button onClick={() => setShowPhaseModal(false)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={22} /></button>
+                                </div>
+
+                                {phaseUploadSuccess && (
+                                    <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: '#DCFCE7', border: '1px solid #BBF7D0', padding: '12px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#15803d', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✓</div>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#14532D' }}>Upload Successful</div>
+                                            <div style={{ fontSize: '11px', color: '#166534', fontWeight: '600' }}>{phaseUploadSuccess.fileName} uploaded to {phaseUploadSuccess.phase}</div>
+                                        </div>
+                                    </Motion.div>
+                                )}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                    {['Phase 1', 'Phase 2'].map((phase, idx) => (
+                                        <div
+                                            key={phase}
+                                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#15803d'; e.currentTarget.style.background = '#F0FDF4'; }}
+                                            onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; }}
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                e.currentTarget.style.borderColor = '#E2E8F0';
+                                                e.currentTarget.style.background = '#F8FAFC';
+                                                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                    uploadPhaseMutation.mutate({ clientId: selectedWorkpaperClientId, phase });
+                                                }
+                                            }}
+                                            style={{
+                                                background: '#F8FAFC',
+                                                border: '2px dashed #E2E8F0',
+                                                borderRadius: '16px',
+                                                padding: '40px 24px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '16px',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '14px', fontWeight: '900', color: idx === 0 ? '#004aad' : '#15803d', textTransform: 'uppercase', letterSpacing: '1px' }}>{phase}</div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: '13px', color: '#475569', fontWeight: '650' }}>Drag documents here</div>
+                                                <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '800', margin: '8px 0' }}>OR</div>
+                                                <label style={{ cursor: 'pointer' }}>
+                                                    <input
+                                                        type="file"
+                                                        multiple
+                                                        style={{ display: 'none' }}
+                                                        onChange={(e) => {
+                                                            if (e.target.files && e.target.files.length > 0) {
+                                                                uploadPhaseMutation.mutate({ clientId: selectedWorkpaperClientId, phase });
+                                                            }
+                                                        }}
+                                                    />
+                                                    <span style={{ padding: '8px 20px', background: '#FFFFFF', border: '1.5px solid #E2E8F0', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', color: '#0F172A', display: 'inline-block', transition: 'all 0.2s' }}>Browse Files</span>
+                                                </label>
+                                            </div>
+                                            <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: '500' }}>Supports: PDF, JPG, PNG, DOCX, XLSX</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                                    <button
+                                        onClick={() => setShowPhaseModal(false)}
+                                        style={{ padding: '10px 20px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '800', color: '#475569', cursor: 'pointer' }}
+                                    >
+                                        Close
+                                    </button>
                                 </div>
                             </div>
                         </div>

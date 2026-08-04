@@ -19,6 +19,7 @@ export const caService = {
     getClients: () => apiClient.get('/ca/clients').then(res => res.data.data || res.data),
     addClient: (client) => apiClient.post('/ca/clients', client).then(res => res.data.data || res.data),
     getClientDocuments: (clientId) => apiClient.get(`/ca/clients/${clientId}/documents`).then(res => res.data.data || res.data),
+    uploadClientPhaseDoc: (clientId, phase) => apiClient.post(`/ca/clients/${clientId}/upload-phase`, { phase }).then(res => res.data.data || res.data),
     updateClientDocumentReview: (clientId, review) => apiClient.post(`/ca/clients/${clientId}/documents/review`, review).then(res => res.data.data || res.data),
     getDocumentVersions: (docId) => apiClient.get(`/ca/documents/versions/${docId}`).then(res => res.data.data || res.data),
     getTdsHistory: () => apiClient.get('/ca/tds/history').then(res => res.data.data || res.data),

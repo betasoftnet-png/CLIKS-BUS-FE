@@ -15,8 +15,11 @@ export const authService = {
     /**
      * Get current user profile
      */
-    getProfile: async () => {
-        const res = await apiClient.get('/profile');
+    /**
+     * Update presence status
+     */
+    heartbeat: async () => {
+        const res = await apiClient.get('/auth/heartbeat');
         return res.data;
     }
 };

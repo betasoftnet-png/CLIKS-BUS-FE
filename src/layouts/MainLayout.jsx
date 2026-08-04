@@ -5,7 +5,7 @@ import AuditPanel from '../components/AuditPanel';
 import ReferralModal from '../components/ReferralModal';
 import '../App.css';
 import { useQuery } from '@tanstack/react-query';
-import { settingsService } from '../services';
+import { settingsService, authService } from '../services';
 
 import BroadcastBanner from '../components/BroadcastBanner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,6 +81,23 @@ const MainLayout = ({ children }) => {
         handleResize();
 
         return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Presence Heartbeat
+    useEffect(() => {
+        const sendHeartbeat = () => {
+            authService.heartbeat().catch(() => {
+                // Ignore errors (e.g. if not logged in)
+            });
+        };
+
+        // Send initial heartbeat
+        sendHeartbeat();
+
+        // Set up interval (every 30 seconds)
+        const interval = setInterval(sendHeartbeat, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const toggleSidebar = () => {
