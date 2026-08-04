@@ -148,6 +148,60 @@ export default function BusinessCA() {
     });
 
     const [showAddRequestModal, setShowAddRequestModal] = useState(false);
+
+    // Fetch logged-in user profile to dynamically filter out self/CA email
+    const { data: profile } = useQuery({
+        queryKey: ['profile'],
+        queryFn: () => profileService.getProfile(),
+        retry: false
+    });
+    const myEmail = profile?.email || '';
+
+    // CA Connection Queries
+    const { data: outgoingInvitations = [], refetch: refetchOutgoing } = useQuery({
+        queryKey: ['caInvitationsOutgoing'],
+        queryFn: () => caService.getOutgoingInvitations(),
+        refetchInterval: 2000,
+        retry: false
+    });
+
+    const { data: incomingInvitations = [], refetch: refetchIncoming } = useQuery({
+        queryKey: ['caInvitationsIncoming'],
+        queryFn: () => caService.getIncomingInvitations(),
+        refetchInterval: 2000,
+        retry: false
+    });
+
+    // Merge manual/mock practiceClients with accepted incoming DB invitations, filtering out CA's own email
+    const dbPracticeClients = incomingInvitations
+        .filter(inv => inv.status === 'Accepted' && inv.sender_email && inv.sender_email.toLowerCase() !== myEmail.toLowerCase())
+        .map(inv => ({
+            id: `db-${inv.id}`,
+            realId: inv.sender_id, // actual user id
+            name: inv.sender_name || 'Cliks Business Client (Acme Corp)',
+            email: inv.sender_email || 'business@cliks.com',
+            status: 'Active',
+            regime: 'New',
+            income: inv.income || (1500000 + ((inv.sender_email || '').length % 5) * 400000),
+            pendingFilings: 0
+        }));
+
+    // Combine database practice clients with dynamic accepted invitations, prioritizing DB clients for realistic values, and deduplicate by email, filtering out self/myEmail
+    const allPracticeClientsRaw = [
+        ...practiceClients.filter(c => c.email && c.email.toLowerCase() !== myEmail.toLowerCase()),
+        ...dbPracticeClients
+    ];
+
+    const seenEmails = new Set();
+    const allPracticeClients = allPracticeClientsRaw.filter(c => {
+        if (!c.email) return true;
+        const emailLower = c.email.toLowerCase();
+        if (seenEmails.has(emailLower)) {
+            return false;
+        }
+        seenEmails.add(emailLower);
+        return true;
+    });
     const [newRequestClient, setNewRequestClient] = useState('Priya Patel (SME)');
     const [newRequestTitle, setNewRequestTitle] = useState('');
     const [newRequestDesc, setNewRequestDesc] = useState('');
@@ -171,6 +225,60 @@ export default function BusinessCA() {
     const [newTaskPriority, setNewTaskPriority] = useState('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
     const [newTaskAskForDocument, setNewTaskAskForDocument] = useState(false);
+
+    // --- Billing & Audit Session States ---
+    const [auditStartTime, setAuditStartTime] = useState(null);
+    const [auditStopTime, setAuditStopTime] = useState(null);
+    const [lastSavedSession, setLastSavedSession] = useState(null);
+
+    const { data: auditSessions = [], refetch: refetchAuditSessions } = useQuery({
+        queryKey: ['auditSessions'],
+        queryFn: () => caService.getAuditSessions(),
+        enabled: personalTab === 'timetracking' || personalTab === 'documents',
+        retry: false
+    });
+
+    const { data: proInvoices = [], refetch: refetchProInvoices } = useQuery({
+        queryKey: ['proInvoices'],
+        queryFn: () => caService.getProfessionalInvoices(),
+        retry: false
+    });
+
+    const { data: earningsSummary, refetch: refetchEarnings } = useQuery({
+        queryKey: ['earningsSummary'],
+        queryFn: () => caService.getEarningsDashboard(),
+        enabled: personalTab === 'documents',
+        retry: false
+    });
+
+    const saveAuditSessionMutation = useMutation({
+        mutationFn: (session) => caService.addAuditSession(session),
+        onSuccess: (data) => {
+            refetchAuditSessions();
+            setLastSavedSession(data);
+            alert('Audit session saved successfully!');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to save audit session')
+    });
+
+    const generateInvoiceMutation = useMutation({
+        mutationFn: (invoice) => caService.generateProfessionalInvoice(invoice),
+        onSuccess: () => {
+            refetchProInvoices();
+            refetchEarnings();
+            alert('Professional invoice generated and sent to client!');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to generate invoice')
+    });
+
+    const payInvoiceMutation = useMutation({
+        mutationFn: (id) => caService.payInvoice(id),
+        onSuccess: () => {
+            refetchProInvoices();
+            alert('Payment processed successfully! Receipt is available for download.');
+        },
+        onError: (err) => alert(err.response?.data?.message || err.message || 'Payment failed')
+    });
 
     const { data: practiceTimesheets = [], refetch: refetchTimesheets } = useQuery({
         queryKey: ['practiceTimesheets'],
@@ -289,8 +397,14 @@ export default function BusinessCA() {
     // Timer States
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [timerSeconds, setTimerSeconds] = useState(0);
-    const [timerClient, setTimerClient] = useState('Rohan Sharma');
+    const [timerClient, setTimerClient] = useState('');
     const [timerTask, setTimerTask] = useState('');
+
+    useEffect(() => {
+        if (!timerClient && allPracticeClients.length > 0) {
+            setTimerClient(allPracticeClients[0].id);
+        }
+    }, [allPracticeClients, timerClient]);
 
     const [activeClientSearch, setActiveClientSearch] = useState('');
 
@@ -443,7 +557,7 @@ export default function BusinessCA() {
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'documents', label: 'CA', icon: Folder },
+        { id: 'documents', label: 'CA', icon: Wallet },
         { id: 'reports', label: 'Reports', icon: BarChart }
     ];
 
@@ -642,58 +756,6 @@ export default function BusinessCA() {
         queryFn: () => contactsService.getContacts(),
         select: (res) => res.rows || res.data || res,
         retry: false
-    });
-
-    // Fetch logged-in user profile to dynamically filter out self/CA email
-    const { data: profile } = useQuery({
-        queryKey: ['profile'],
-        queryFn: () => profileService.getProfile(),
-        retry: false
-    });
-    const myEmail = profile?.email || '';
-
-    // CA Connection Queries
-    const { data: outgoingInvitations = [], refetch: refetchOutgoing } = useQuery({
-        queryKey: ['caInvitationsOutgoing'],
-        queryFn: () => caService.getOutgoingInvitations(),
-        refetchInterval: 2000,
-        retry: false
-    });
-
-    const { data: incomingInvitations = [], refetch: refetchIncoming } = useQuery({
-        queryKey: ['caInvitationsIncoming'],
-        queryFn: () => caService.getIncomingInvitations(),
-        refetchInterval: 2000,
-        retry: false
-    });
-
-    // Merge manual/mock practiceClients with accepted incoming DB invitations, filtering out CA's own email
-    const dbPracticeClients = incomingInvitations
-        .filter(inv => inv.status === 'Accepted' && inv.sender_email && inv.sender_email.toLowerCase() !== myEmail.toLowerCase())
-        .map(inv => ({
-            id: `db-${inv.id}`,
-            name: inv.sender_name || 'Cliks Business Client (Acme Corp)',
-            email: inv.sender_email || 'business@cliks.com',
-            status: 'Active',
-            regime: 'New',
-            income: inv.income || (1500000 + ((inv.sender_email || '').length % 5) * 400000),
-            pendingFilings: 0
-        }));
-
-    // Combine database practice clients with dynamic accepted invitations, prioritizing DB clients for realistic values, and deduplicate by email, filtering out self/myEmail
-    const allPracticeClientsRaw = [
-        ...practiceClients.filter(c => c.email && c.email.toLowerCase() !== myEmail.toLowerCase()),
-        ...dbPracticeClients
-    ];
-    const seenEmails = new Set();
-    const allPracticeClients = allPracticeClientsRaw.filter(c => {
-        if (!c.email) return true;
-        const emailLower = c.email.toLowerCase();
-        if (seenEmails.has(emailLower)) {
-            return false;
-        }
-        seenEmails.add(emailLower);
-        return true;
     });
 
     // ── Mutations ──
@@ -1219,6 +1281,210 @@ export default function BusinessCA() {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* 💼 CA Professional Service Invoice Section (Only if unpaid invoice exists) */}
+                                            {proInvoices.filter(i => i.status === 'Unpaid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).length > 0 && (
+                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '2px solid #004aad', boxShadow: '0 10px 15px -3px rgba(0, 74, 173, 0.1)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <Briefcase size={22} style={{ color: '#004aad' }} />
+                                                            <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0 }}>💼 CA Professional Service Invoice</h3>
+                                                        </div>
+                                                        <span style={{ fontSize: '11px', background: '#FEE2E2', color: '#B91C1C', padding: '4px 12px', borderRadius: '20px', fontWeight: '800', border: '1px solid #FECDD3' }}>
+                                                            Payment Pending
+                                                        </span>
+                                                    </div>
+
+                                                    {proInvoices.filter(i => i.status === 'Unpaid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).map(inv => (
+                                                        <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '20px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Accountant / CA</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{inv.ca_name}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Invoice Number</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#475569' }}>{inv.invoice_number}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Audit Date</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{inv.audit_date}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Duration</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#004aad' }}>{Math.floor(inv.duration_seconds / 60)}m {inv.duration_seconds % 60}s</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Professional Fee</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(inv.amount)}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Grand Total (incl GST)</div>
+                                                                    <div style={{ fontSize: '18px', fontWeight: '950', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                                <button style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>View Invoice</button>
+                                                                <button style={{ flex: 1, padding: '12px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>Download PDF</button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if(confirm('Proceed to pay professional fee?')) {
+                                                                            payInvoiceMutation.mutate(inv.id);
+                                                                        }
+                                                                    }}
+                                                                    style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
+                                                                >
+                                                                    Pay Now
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* 💳 Payment History Section */}
+                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>💳 Professional Service Payment History</h3>
+                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).length === 0 ? (
+                                                    <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
+                                                        <p style={{ fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No payment history recorded yet.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ overflowX: 'auto' }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                                            <thead>
+                                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
+                                                                    <th style={{ padding: '12px 8px' }}>Invoice #</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Date</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Duration</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Amount Paid</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Status</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Receipt</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).map(inv => (
+                                                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{inv.invoice_number}</td>
+                                                                        <td style={{ padding: '12px 8px', color: '#475569' }}>{inv.invoice_date}</td>
+                                                                        <td style={{ padding: '12px 8px' }}>{Math.floor(inv.duration_seconds / 60)}m</td>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '850', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</td>
+                                                                        <td style={{ padding: '12px 8px' }}>
+                                                                            <span style={{ fontSize: '10px', fontWeight: '900', background: '#DCFCE7', color: '#15803d', padding: '3px 8px', borderRadius: '12px' }}>SUCCESS</span>
+                                                                        </td>
+                                                                        <td style={{ padding: '12px 8px' }}>
+                                                                            <button style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800' }}>Download</button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* 💼 CA Professional Service Invoice Section (Only if unpaid invoice exists) */}
+                                            {proInvoices.filter(i => i.status === 'Unpaid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).length > 0 && (
+                                                <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '2px solid #004aad', boxShadow: '0 10px 15px -3px rgba(0, 74, 173, 0.1)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                            <Briefcase size={22} style={{ color: '#004aad' }} />
+                                                            <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0 }}>💼 CA Professional Service Invoice</h3>
+                                                        </div>
+                                                        <span style={{ fontSize: '11px', background: '#FEE2E2', color: '#B91C1C', padding: '4px 12px', borderRadius: '20px', fontWeight: '800', border: '1px solid #FECDD3' }}>
+                                                            Payment Pending
+                                                        </span>
+                                                    </div>
+
+                                                    {proInvoices.filter(i => i.status === 'Unpaid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).map(inv => (
+                                                        <div key={inv.id} style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '20px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Accountant / CA</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{inv.ca_name}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Invoice Number</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#475569' }}>{inv.invoice_number}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Audit Date</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{inv.audit_date}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Duration</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#004aad' }}>{Math.floor(inv.duration_seconds / 60)}m {inv.duration_seconds % 60}s</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Professional Fee</div>
+                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(inv.amount)}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Grand Total (incl GST)</div>
+                                                                    <div style={{ fontSize: '18px', fontWeight: '950', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                                <button style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>View Invoice</button>
+                                                                <button style={{ flex: 1, padding: '12px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>Download PDF</button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if(confirm('Proceed to pay professional fee?')) {
+                                                                            payInvoiceMutation.mutate(inv.id);
+                                                                        }
+                                                                    }}
+                                                                    style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
+                                                                >
+                                                                    Pay Now
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* 💳 Payment History Section */}
+                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <h3 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>💳 Professional Service Payment History</h3>
+                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).length === 0 ? (
+                                                    <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
+                                                        <p style={{ fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No payment history recorded yet.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ overflowX: 'auto' }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                                            <thead>
+                                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
+                                                                    <th style={{ padding: '12px 8px' }}>Invoice #</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Date</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Duration</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Amount Paid</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Status</th>
+                                                                    <th style={{ padding: '12px 8px' }}>Receipt</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).map(inv => (
+                                                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{inv.invoice_number}</td>
+                                                                        <td style={{ padding: '12px 8px', color: '#475569' }}>{inv.invoice_date}</td>
+                                                                        <td style={{ padding: '12px 8px' }}>{Math.floor(inv.duration_seconds / 60)}m</td>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '850', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</td>
+                                                                        <td style={{ padding: '12px 8px' }}>
+                                                                            <span style={{ fontSize: '10px', fontWeight: '900', background: '#DCFCE7', color: '#15803d', padding: '3px 8px', borderRadius: '12px' }}>SUCCESS</span>
+                                                                        </td>
+                                                                        <td style={{ padding: '12px 8px' }}>
+                                                                            <button style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800' }}>Download</button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </Motion.div>
                                     );
                                 })()}
@@ -1663,10 +1929,10 @@ export default function BusinessCA() {
                                                                     height: '10px',
                                                                     borderRadius: '50%',
                                                                     background: inv.is_online ? '#22C55E' : '#EF4444',
-                                                                    boxShadow: inv.is_online ? '0 0 8px #22C55E' : 'none',
-                                                                    border: '2px solid #FFFFFF'
+                                                                    boxShadow: inv.is_online ? '0 0 10px #22C55E, 0 0 5px rgba(34, 197, 94, 0.5)' : 'none',
+                                                                    border: '2px solid #FFFFFF',
+                                                                    cursor: 'help'
                                                                 }}
-                                                                title={inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
                                                                 onMouseEnter={(e) => {
                                                                     const popup = e.currentTarget.nextSibling;
                                                                     if (popup) popup.style.display = 'block';
@@ -1684,35 +1950,40 @@ export default function BusinessCA() {
                                                                 top: '100%',
                                                                 left: '50px',
                                                                 zIndex: 50,
-                                                                width: '220px',
+                                                                width: '240px',
                                                                 background: '#FFFFFF',
                                                                 border: '1px solid #E2E8F0',
                                                                 borderRadius: '12px',
-                                                                padding: '12px',
-                                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                                                marginTop: '4px'
+                                                                padding: '14px',
+                                                                boxShadow: '0 10px 25px -3px rgba(0, 0, 0, 0.1)',
+                                                                marginTop: '6px'
                                                             }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: inv.is_online ? '#22C55E' : '#EF4444' }}></div>
-                                                                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>
-                                                                            {inv.is_online ? 'Accountant Online' : 'Accountant Offline'}
-                                                                        </span>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: inv.is_online ? '#22C55E' : '#EF4444', boxShadow: inv.is_online ? '0 0 6px #22C55E' : 'none' }}></div>
+                                                                            <span style={{ fontSize: '12px', fontWeight: '850', color: inv.is_online ? '#16A34A' : '#DC2626' }}>
+                                                                                {inv.is_online ? 'Online' : 'Offline'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>Presence Tracking</span>
                                                                     </div>
-                                                                    <div style={{ fontSize: '13px', fontWeight: '850', color: '#334155' }}>{inv.receiver_name || inv.receiver_email.split('@')[0]}</div>
-                                                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '6px', marginTop: '2px' }}>
+
+                                                                    <div style={{ fontSize: '13px', fontWeight: '850', color: '#0F172A' }}>{inv.receiver_name || inv.receiver_email.split('@')[0]}</div>
+
+                                                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                                         {inv.is_online ? (
                                                                             <>
-                                                                                <div style={{ fontSize: '11px', color: '#64748B' }}>
-                                                                                    <span style={{ fontWeight: '750' }}>Online Since:</span> {inv.login_at ? new Date(inv.login_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                                                                                <div style={{ fontSize: '11.5px', color: '#475569' }}>
+                                                                                    <span style={{ fontWeight: '750' }}>Status:</span> Active Now
                                                                                 </div>
-                                                                                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                                                                                    <span style={{ fontWeight: '750' }}>Last Activity:</span> Just now
+                                                                                <div style={{ fontSize: '11.5px', color: '#475569' }}>
+                                                                                    <span style={{ fontWeight: '750' }}>Online Since:</span> {inv.login_at ? new Date(inv.login_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
                                                                                 </div>
                                                                             </>
                                                                         ) : (
-                                                                            <div style={{ fontSize: '11px', color: '#64748B' }}>
-                                                                                <span style={{ fontWeight: '750' }}>Last Seen:</span> {inv.last_seen_at ? new Date(inv.last_seen_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'Never'}
+                                                                            <div style={{ fontSize: '11.5px', color: '#475569' }}>
+                                                                                <span style={{ fontWeight: '750' }}>Last Seen:</span> {inv.last_seen_at ? new Date(inv.last_seen_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -2789,113 +3060,123 @@ export default function BusinessCA() {
                             {/* 6. TIME TRACKING TAB */}
                             {personalTab === 'timetracking' && (
                                 <Motion.div key="timetracking" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '24px' }}>
-                                        {/* Left Side: Stopwatch Widget */}
-                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>⏱️ Live Ticking Stopwatch Widget</h3>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
-                                                <select
-                                                    value={timerClient}
-                                                    onChange={e => setTimerClient(e.target.value)}
-                                                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', outline: 'none' }}
-                                                >
-                                                    {allPracticeClients.map(c => (
-                                                        <option key={c.id} value={c.name}>{c.name}</option>
-                                                    ))}
-                                                </select>
+                                    <div style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+                                        {/* Professional Timer Widget */}
+                                        <div style={{ background: '#FFFFFF', padding: '32px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'center' }}>
+                                            <div>
+                                                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A', margin: 0 }}>⏱️ Audit Session Timer</h2>
+                                                <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Track your professional audit hours for billing.</p>
                                             </div>
 
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>TASK DESCRIPTION</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Audit draft calculation, GSTR preparation..."
-                                                    value={timerTask}
-                                                    onChange={e => setTimerTask(e.target.value)}
-                                                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                />
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', textAlign: 'left' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
+                                                    <select
+                                                        value={timerClient}
+                                                        onChange={e => setTimerClient(e.target.value)}
+                                                        disabled={isTimerRunning || timerSeconds > 0}
+                                                        style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', outline: 'none', background: (isTimerRunning || timerSeconds > 0) ? '#F1F5F9' : '#FFFFFF' }}
+                                                    >
+                                                        {allPracticeClients.map(c => (
+                                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>AUDIT DATE</label>
+                                                    <div style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '750', color: '#475569', background: '#F8FAFC' }}>
+                                                        {new Date().toLocaleDateString()}
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            {/* Digital Clock Display */}
-                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '20px', borderRadius: '12px', textAlign: 'center', margin: '4px 0' }}>
-                                                <div style={{ fontFamily: 'monospace', fontSize: '36px', fontWeight: '900', color: isTimerRunning ? '#15803d' : '#334155' }}>
+                                            {/* Big Digital Clock */}
+                                            <div style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0', padding: '40px 20px', borderRadius: '20px', margin: '10px 0' }}>
+                                                <div style={{ fontFamily: 'monospace', fontSize: '64px', fontWeight: '950', color: isTimerRunning ? '#15803d' : '#334155', letterSpacing: '2px' }}>
                                                     {formatTime(timerSeconds)}
                                                 </div>
-                                                <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', marginTop: '4px', textTransform: 'uppercase' }}>
-                                                    {isTimerRunning ? '● Timer Active & Ticking' : '● Timer Paused'}
+                                                <div style={{ fontSize: '12px', color: isTimerRunning ? '#16A34A' : '#94A3B8', fontWeight: '800', marginTop: '12px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isTimerRunning ? '#16A34A' : '#94A3B8', display: 'inline-block' }} className={isTimerRunning ? 'animate-pulse' : ''}></span>
+                                                    {isTimerRunning ? 'Live Audit in Progress' : (timerSeconds > 0 ? 'Audit Paused' : 'Ready to Start')}
                                                 </div>
                                             </div>
 
-                                            {/* Clock controls */}
-                                            <div style={{ display: 'flex', gap: '10px' }}>
-                                                {!isTimerRunning ? (
+                                            {/* Primary Controls */}
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                {!isTimerRunning && timerSeconds === 0 && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setIsTimerRunning(true)}
-                                                        style={{ flex: 1, padding: '12px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                                        onClick={() => {
+                                                            setIsTimerRunning(true);
+                                                            setAuditStartTime(new Date().toISOString());
+                                                        }}
+                                                        style={{ flex: 1, padding: '16px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
                                                     >
-                                                        <Play size={16} /> Start Timer
+                                                        <Play size={20} fill="currentColor" /> Start Audit Session
                                                     </button>
-                                                ) : (
+                                                )}
+
+                                                {isTimerRunning && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsTimerRunning(false)}
-                                                        style={{ flex: 1, padding: '12px', background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                                        style={{ flex: 1, padding: '16px', background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                                     >
-                                                        <Square size={14} /> Pause Timer
+                                                        <Square size={18} fill="currentColor" /> Pause Audit
                                                     </button>
                                                 )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setTimerSeconds(0)}
-                                                    style={{ padding: '12px', background: 'transparent', border: '1px solid #CBD5E1', borderRadius: '8px', color: '#475569', cursor: 'pointer' }}
-                                                >
-                                                    Reset
-                                                </button>
+
+                                                {!isTimerRunning && timerSeconds > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsTimerRunning(true)}
+                                                        style={{ flex: 1, padding: '16px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                                    >
+                                                        <Play size={20} fill="currentColor" /> Resume Audit
+                                                    </button>
+                                                )}
+
+                                                {timerSeconds > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const stopTime = new Date().toISOString();
+                                                            setAuditStopTime(stopTime);
+                                                            setIsTimerRunning(false);
+
+                                                            saveAuditSessionMutation.mutate({
+                                                                clientId: timerClient,
+                                                                startTime: auditStartTime,
+                                                                stopTime: stopTime,
+                                                                durationSeconds: timerSeconds,
+                                                                auditDate: new Date().toISOString().split('T')[0]
+                                                            });
+
+                                                            // Reset local timer
+                                                            setTimerSeconds(0);
+                                                            setAuditStartTime(null);
+                                                            setPersonalTab('documents'); // Navigate to Professional Billing (CA page)
+                                                        }}
+                                                        style={{ padding: '16px 24px', background: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                    >
+                                                        Stop & Save
+                                                    </button>
+                                                )}
                                             </div>
 
-                                            {timerSeconds > 0 && (
+                                            {timerSeconds > 0 && !isTimerRunning && (
                                                 <button
-                                                    type="button"
-                                                    onClick={handleSaveTimerSession}
-                                                    style={{ width: '100%', padding: '12px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                    onClick={() => {
+                                                        if (confirm('Discard this session? All progress will be lost.')) {
+                                                            setTimerSeconds(0);
+                                                            setAuditStartTime(null);
+                                                        }
+                                                    }}
+                                                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: '750', cursor: 'pointer', textDecoration: 'underline' }}
                                                 >
-                                                    💾 Record &amp; Save Session to Ledger
+                                                    Discard Session
                                                 </button>
                                             )}
-                                        </div>
-
-                                        {/* Right Side: Timesheet Log */}
-                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: '0 0 16px 0' }}>📅 Practice Timesheet Sessions History</h3>
-                                            <div style={{ overflowX: 'auto' }}>
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                                    <FilterableTableHead columns={[
-                                                        { key: 'clientName', label: 'Client', placeholder: 'Client...' },
-                                                        { key: 'taskName', label: 'Task Description', placeholder: 'Task...' },
-                                                        { key: 'date', label: 'Date', placeholder: 'Date...' },
-                                                        { key: 'duration', label: 'Duration', placeholder: 'Duration...' },
-                                                        { key: 'billable', label: 'Billable', placeholder: 'Yes/No...' }
-                                                    ]} onFilterChange={setColFiltersTimesheet} />
-                                                    <tbody>
-                                                        {practiceTimesheets.filter(item => applyTableFilters(item, colFiltersTimesheet)).map(session => (
-                                                            <tr key={session.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                                <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{session.clientName}</td>
-                                                                <td style={{ padding: '12px 8px', fontWeight: '600', color: '#334155' }}>{session.taskName}</td>
-                                                                <td style={{ padding: '12px 8px', color: '#64748B' }}>{session.date}</td>
-                                                                <td style={{ padding: '12px 8px', fontFamily: 'monospace', fontWeight: '750' }}>{session.duration}</td>
-                                                                <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                                                                    <span style={{ fontSize: '11px', fontWeight: '800', color: session.billable ? '#15803d' : '#475569', background: session.billable ? '#F0FDF4' : '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>
-                                                                        {session.billable ? 'Yes' : 'No'}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
                                         </div>
                                     </div>
                                 </Motion.div>
@@ -3602,156 +3883,136 @@ export default function BusinessCA() {
                                 </Motion.div>
                             )}
 
-                            {/* 8. DOCUMENTS TAB */}
+                            {/* 8. CA PROFESSIONAL BILLING TAB */}
                             {personalTab === 'documents' && (
-                                <Motion.div key="documents" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '24px' }}>
-                                        {/* Left Side: Folder tree */}
-                                        <div style={{ background: '#FFFFFF', padding: '20px 16px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Practice Folder Tree</h3>
+                                <Motion.div key="billing" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    {/* Top Summary Stats */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                                        {[
+                                            { label: "Today's Earnings", val: formatCurrency(earningsSummary?.today || 0), color: '#15803d' },
+                                            { label: "This Week", val: formatCurrency(earningsSummary?.thisWeek || 0), color: '#004aad' },
+                                            { label: "This Month", val: formatCurrency(earningsSummary?.thisMonth || 0), color: '#004aad' },
+                                            { label: "Pending Payments", val: formatCurrency(earningsSummary?.pending || 0), color: '#D97706' },
+                                            { label: "Paid Payments", val: formatCurrency(earningsSummary?.paid || 0), color: '#15803d' },
+                                            { label: "Total Revenue", val: formatCurrency(earningsSummary?.totalRevenue || 0), color: '#004aad' }
+                                        ].map((stat, i) => (
+                                            <div key={i} style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <span style={{ fontSize: '12px', color: '#64748B', fontWeight: '750' }}>{stat.label}</span>
+                                                <div style={{ fontSize: '24px', fontWeight: '900', color: stat.color }}>{stat.val}</div>
+                                            </div>
+                                        ))}
+                                    </div>
 
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setActiveDocFolder('All')}
-                                                    style={{ padding: '10px 12px', border: 'none', borderRadius: '8px', background: activeDocFolder === 'All' ? '#F0FDF4' : 'transparent', color: activeDocFolder === 'All' ? '#15803d' : '#475569', fontWeight: activeDocFolder === 'All' ? '800' : '600', fontSize: '13px', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
-                                                >
-                                                    <span>📁 All Folders</span>
-                                                    <span>{practiceFiles.length} files</span>
-                                                </button>
-                                                {practiceFolders.map(folder => (
-                                                    <button
-                                                        type="button"
-                                                        key={folder.id}
-                                                        onClick={() => setActiveDocFolder(folder.name)}
-                                                        style={{ padding: '10px 12px', border: 'none', borderRadius: '8px', background: activeDocFolder === folder.name ? '#F0FDF4' : 'transparent', color: activeDocFolder === folder.name ? '#15803d' : '#475569', fontWeight: activeDocFolder === folder.name ? '800' : '600', fontSize: '13px', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}
-                                                    >
-                                                        <span>📁 {folder.name}</span>
-                                                        <span style={{ opacity: 0.7 }}>{folder.count} files</span>
-                                                    </button>
-                                                ))}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+                                        {/* Billing History */}
+                                        <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📜 Professional Billing History</h3>
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
+                                                            <th style={{ padding: '12px 8px' }}>Invoice #</th>
+                                                            <th style={{ padding: '12px 8px' }}>Client</th>
+                                                            <th style={{ padding: '12px 8px' }}>Duration</th>
+                                                            <th style={{ padding: '12px 8px' }}>Amount</th>
+                                                            <th style={{ padding: '12px 8px' }}>Status</th>
+                                                            <th style={{ padding: '12px 8px' }}>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {proInvoices.length === 0 ? (
+                                                            <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>No billing records found</td></tr>
+                                                        ) : (
+                                                            proInvoices.map(inv => (
+                                                                <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                    <td style={{ padding: '12px 8px', fontWeight: '800' }}>{inv.invoice_number}</td>
+                                                                    <td style={{ padding: '12px 8px', fontWeight: '600' }}>{inv.client_name}</td>
+                                                                    <td style={{ padding: '12px 8px' }}>{Math.floor(inv.duration_seconds / 60)}m {inv.duration_seconds % 60}s</td>
+                                                                    <td style={{ padding: '12px 8px', fontWeight: '800' }}>{formatCurrency(inv.total_amount)}</td>
+                                                                    <td style={{ padding: '12px 8px' }}>
+                                                                        <span style={{ fontSize: '10px', fontWeight: '800', background: inv.status === 'Paid' ? '#DCFCE7' : '#FEF3C7', color: inv.status === 'Paid' ? '#15803d' : '#D97706', padding: '3px 8px', borderRadius: '12px' }}>
+                                                                            {inv.status}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td style={{ padding: '12px 8px' }}>
+                                                                        <button style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800' }}>Download</button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
 
-                                        {/* Right Side: Explorer & Upload Simulator */}
+                                        {/* Generation / Pending Session */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                            {/* Drop zone simulator */}
-                                            <form onSubmit={handleSimulateDocumentUpload} style={{ background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                                <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📁 Upload Practice Document from Laptop</h3>
-
-                                                <input
-                                                    type="file"
-                                                    id="laptop-file-picker"
-                                                    style={{ display: 'none' }}
-                                                    onChange={handleLaptopFileSelected}
-                                                />
-
-                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => document.getElementById('laptop-file-picker').click()}
-                                                        style={{ padding: '9px 16px', background: '#EFF6FF', border: '1.5px solid #3B82F6', color: '#1D4ED8', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                    >
-                                                        <Plus size={14} /> Choose File
-                                                    </button>
-                                                    <span style={{ fontSize: '13px', color: uploadedFileName ? '#1E293B' : '#94A3B8', fontWeight: '650', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                                        {uploadedFileName ? `${uploadedFileName} (${uploadedFileSize})` : 'No file selected'}
-                                                    </span>
+                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1.5px dashed #004aad', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0 }}>⏱️ Latest Unbilled Audit Session</h3>
+                                                    <span style={{ fontSize: '10px', background: '#EFF6FF', color: '#004aad', padding: '3px 8px', borderRadius: '12px', fontWeight: '800' }}>Awaiting Invoice</span>
                                                 </div>
 
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Document Name (e.g. pan_card_draft_2026.pdf)..."
-                                                        value={uploadedFileName}
-                                                        onChange={e => setUploadedFileName(e.target.value)}
-                                                        required
-                                                        style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                    />
-                                                    <select
-                                                        value={uploadTargetFolder}
-                                                        onChange={e => setUploadTargetFolder(e.target.value)}
-                                                        style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '750', outline: 'none' }}
-                                                    >
-                                                        {practiceFolders.map(f => (
-                                                            <option key={f.id} value={f.name}>{f.name}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-
-                                                <button
-                                                    type="submit"
-                                                    disabled={uploadProgress !== null || !uploadedFileName}
-                                                    style={{
-                                                        padding: '10px 16px',
-                                                        backgroundColor: uploadedFileName ? '#15803d' : '#94A3B8',
-                                                        color: '#FFFFFF',
-                                                        border: 'none',
-                                                        borderRadius: '8px',
-                                                        fontWeight: '850',
-                                                        fontSize: '12.5px',
-                                                        cursor: (uploadProgress !== null || !uploadedFileName) ? 'not-allowed' : 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '8px'
-                                                    }}
-                                                >
-                                                    <FileUp size={16} /> Upload to Practice Vault
-                                                </button>
-
-                                                {uploadProgress !== null && (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1.5px solid #F1F5F9' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800', color: '#15803d' }}>
-                                                            <span>Uploading: {uploadedFileName}</span>
-                                                            <span>{uploadProgress}%</span>
-                                                        </div>
-                                                        <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
-                                                            <div style={{ width: `${uploadProgress}%`, height: '100%', backgroundColor: '#15803d', borderRadius: '3px', transition: 'width 0.15s ease' }} />
-                                                        </div>
+                                                {auditSessions.filter(s => !proInvoices.some(inv => inv.audit_session_id === s.id)).length === 0 ? (
+                                                    <div style={{ padding: '20px', textAlign: 'center', color: '#64748B' }}>
+                                                        <Clock size={32} style={{ opacity: 0.2, margin: '0 auto 10px auto' }} />
+                                                        <p style={{ fontSize: '13px', fontWeight: '600', margin: 0 }}>All sessions have been billed.</p>
                                                     </div>
-                                                )}
-                                            </form>
+                                                ) : (() => {
+                                                    const latest = auditSessions.find(s => !proInvoices.some(inv => inv.audit_session_id === s.id));
+                                                    const mins = Math.ceil(latest.duration_seconds / 60);
+                                                    const fee = Math.ceil(mins / 10) * 100;
+                                                    const gst = fee * 0.18;
+                                                    const total = fee + gst;
 
-                                            {/* Explorer table */}
-                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                                                <h3 style={{ fontSize: '14px', fontWeight: '850', color: '#0F172A', margin: '0 0 16px 0' }}>
-                                                    📄 File Vault Explorer: {activeDocFolder === 'All' ? 'All Secure Documents' : activeDocFolder}
-                                                </h3>
-                                                <div style={{ overflowX: 'auto' }}>
-                                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                                        <FilterableTableHead columns={[
-                                                            { key: 'name', label: 'File Name', placeholder: 'Search...' },
-                                                            { key: 'size', label: 'Size', placeholder: 'Size...' },
-                                                            { key: 'folderName', label: 'Folder', placeholder: 'Folder...' },
-                                                            { key: 'date', label: 'Date Added', placeholder: 'Date...' },
-                                                            { key: '_actions', label: 'Actions' }
-                                                        ]} onFilterChange={setColFiltersDocuments} />
-                                                        <tbody>
-                                                            {practiceFiles.filter(f => (activeDocFolder === 'All' || f.folderName === activeDocFolder) && applyTableFilters(f, colFiltersDocuments)).map(file => (
-                                                                <tr key={file.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px', color: '#334155' }}>
-                                                                    <td style={{ padding: '14px 8px', fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                        <span>📄</span> <span>{file.name}</span>
-                                                                    </td>
-                                                                    <td style={{ padding: '14px 8px', fontWeight: '600' }}>{file.size}</td>
-                                                                    <td style={{ padding: '14px 8px', color: '#64748B', fontWeight: '500' }}>{file.folderName}</td>
-                                                                    <td style={{ padding: '14px 8px', color: '#64748B', fontWeight: '500' }}>{file.date}</td>
-                                                                    <td style={{ padding: '14px 8px', textAlign: 'right' }}>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                deleteFileMutation.mutate(file.id);
-                                                                            }}
-                                                                            style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', padding: '6px' }}
-                                                                        >
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
+                                                    return (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                            <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Client:</span>
+                                                                    <span style={{ color: '#0F172A', fontWeight: '800' }}>{latest.client_name}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Date:</span>
+                                                                    <span style={{ color: '#0F172A', fontWeight: '800' }}>{latest.audit_date}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Total Duration:</span>
+                                                                    <span style={{ color: '#004aad', fontWeight: '900' }}>{Math.floor(latest.duration_seconds / 60)}m {latest.duration_seconds % 60}s</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Professional Fee (₹100/10m):</span>
+                                                                    <span style={{ color: '#0F172A', fontWeight: '750' }}>₹{fee}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>GST (18%):</span>
+                                                                    <span style={{ color: '#0F172A', fontWeight: '750' }}>₹{gst.toFixed(2)}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', marginTop: '4px', borderTop: '2px solid #F1F5F9', paddingTop: '8px' }}>
+                                                                    <span style={{ color: '#0F172A', fontWeight: '850' }}>Grand Total:</span>
+                                                                    <span style={{ color: '#15803d', fontWeight: '950' }}>₹{total.toFixed(2)}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                onClick={() => generateInvoiceMutation.mutate({
+                                                                    sessionId: latest.id,
+                                                                    clientId: latest.client_id,
+                                                                    amount: fee,
+                                                                    gstAmount: gst,
+                                                                    totalAmount: total,
+                                                                    invoiceDate: new Date().toISOString().split('T')[0]
+                                                                })}
+                                                                style={{ marginTop: '8px', padding: '14px', background: '#004aad', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '850', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 74, 173, 0.2)' }}
+                                                            >
+                                                                Generate Professional Invoice
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>

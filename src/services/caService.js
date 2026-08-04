@@ -59,7 +59,15 @@ export const caService = {
     addTeamRequest: (email, role) => apiClient.post('/ca/team-requests', { email, role }).then(res => res.data.data || res.data),
     acceptTeamRequest: (id) => apiClient.post(`/ca/team-requests/${id}/accept`).then(res => res.data.data || res.data),
     rejectTeamRequest: (id) => apiClient.post(`/ca/team-requests/${id}/reject`).then(res => res.data.data || res.data),
-    cancelTeamRequest: (id) => apiClient.delete(`/ca/team-requests/${id}`).then(res => res.data.data || res.data)
+    cancelTeamRequest: (id) => apiClient.delete(`/ca/team-requests/${id}`).then(res => res.data.data || res.data),
+
+    // Billing & Audit Session Methods
+    addAuditSession: (session) => apiClient.post('/ca/audit-sessions', session).then(res => res.data.data || res.data),
+    getAuditSessions: () => apiClient.get('/ca/audit-sessions').then(res => res.data.data || res.data),
+    generateProfessionalInvoice: (invoice) => apiClient.post('/ca/invoices/generate', invoice).then(res => res.data.data || res.data),
+    getProfessionalInvoices: () => apiClient.get('/ca/invoices').then(res => res.data.data || res.data),
+    getEarningsDashboard: () => apiClient.get('/ca/earnings/dashboard').then(res => res.data.data || res.data),
+    payInvoice: (id) => apiClient.post(`/ca/invoices/${id}/pay`).then(res => res.data.data || res.data)
 };
 
 export default caService;
