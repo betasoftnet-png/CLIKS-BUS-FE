@@ -687,7 +687,8 @@ export default function BusinessCA() {
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
         { id: 'documents', label: 'consult', icon: Wallet },
-        { id: 'reports', label: 'Reports', icon: BarChart }
+        { id: 'reports', label: 'Reports', icon: BarChart },
+        { id: 'senior_ca', label: 'Senior CA', icon: UserCheck }
     ];
 
     // Timer Effect
@@ -4457,6 +4458,46 @@ export default function BusinessCA() {
                                                     )}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                    </div>
+                                </Motion.div>
+                            )}
+
+                            {/* 9. SENIOR CA TAB */}
+                            {personalTab === 'senior_ca' && (
+                                <Motion.div key="senior_ca" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#F0FDF4', color: '#15803d', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <UserCheck size={24} />
+                                                </div>
+                                                <div>
+                                                    <h3 style={{ fontSize: '18px', fontWeight: '850', color: '#0F172A', margin: 0 }}>🛡️ Senior CA Executive Advisory Desk</h3>
+                                                    <p style={{ fontSize: '12.5px', color: '#64748B', margin: '2px 0 0 0', fontWeight: '500' }}>Senior Audit Leadership, Quality Review &amp; Executive Compliance Sign-off</p>
+                                                </div>
+                                            </div>
+                                            <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#15803d', padding: '4px 12px', borderRadius: '20px', fontWeight: '800', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <CheckCircle2 size={12} /> Senior CA Active Clearance
+                                            </span>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                            <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>High Risk Audits</span>
+                                                <span style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A' }}>0 Active</span>
+                                                <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '600' }}>All clear &amp; verified</span>
+                                            </div>
+                                            <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Quality Sign-Offs</span>
+                                                <span style={{ fontSize: '20px', fontWeight: '900', color: '#15803d' }}>100% Passed</span>
+                                                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '600' }}>Compliance standard met</span>
+                                            </div>
+                                            <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Senior Consultant Desk</span>
+                                                <span style={{ fontSize: '20px', fontWeight: '900', color: '#004aad' }}>Ready</span>
+                                                <span style={{ fontSize: '11px', color: '#004aad', fontWeight: '600' }}>Live advisory session active</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </Motion.div>
