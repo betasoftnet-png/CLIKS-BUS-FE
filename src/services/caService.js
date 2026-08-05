@@ -89,7 +89,12 @@ export const caService = {
     getProfessionalInvoicePdf: (id) => apiClient.get(`/ca/invoices/${id}/pdf`, { responseType: 'text' }).then(res => res.data),
     getEarningsDashboard: () => apiClient.get('/ca/earnings/dashboard').then(res => res.data.data || res.data),
     payInvoice: (id, paymentMethod) => apiClient.post(`/ca/invoices/${id}/pay`, { paymentMethod }).then(res => res.data.data || res.data),
-    getPaymentHistory: () => apiClient.get('/ca/payment-history').then(res => res.data.data || res.data)
+    getPaymentHistory: () => apiClient.get('/ca/payment-history').then(res => res.data.data || res.data),
+
+    // Direct Messenger Chat API
+    getChatMessages: (partnerId) => apiClient.get(`/ca/messages/${partnerId}`).then(res => res.data.data || res.data),
+    sendChatMessage: (data) => apiClient.post('/ca/messages', data).then(res => res.data.data || res.data),
+    getUnreadChatCount: () => apiClient.get('/ca/messages/unread-count').then(res => res.data.data || res.data)
 };
 
 export default caService;

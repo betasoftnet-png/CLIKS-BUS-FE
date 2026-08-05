@@ -229,6 +229,7 @@ export default function BusinessCA() {
     // --- Billing & Audit Session States ---
     const [auditStartTime, setAuditStartTime] = useState(null);
     const [auditStopTime, setAuditStopTime] = useState(null);
+    const [timerAuditDescription, setTimerAuditDescription] = useState('');
     const [lastSavedSession, setLastSavedSession] = useState(null);
 
     const { data: auditSessions = [], refetch: refetchAuditSessions } = useQuery({
@@ -249,6 +250,44 @@ export default function BusinessCA() {
         queryFn: () => caService.getEarningsDashboard(),
         enabled: personalTab === 'documents',
         retry: false
+    });
+
+    // Chat & Session Popover States
+    const [showChatWindow, setShowChatWindow] = useState(false);
+    const [showSessionPopover, setShowSessionPopover] = useState(false);
+    const [chatInputText, setChatInputText] = useState('');
+
+    const { data: caPresenceInfo } = useQuery({
+        queryKey: ['caPresenceInfo'],
+        queryFn: () => caService.getPresenceStatus(),
+        refetchInterval: 3000,
+        retry: false
+    });
+
+    const { data: unreadChatData, refetch: refetchUnreadCount } = useQuery({
+        queryKey: ['unreadChatCount'],
+        queryFn: () => caService.getUnreadChatCount(),
+        refetchInterval: 3000,
+        retry: false
+    });
+
+    const connectedCaPartnerId = outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1;
+
+    const { data: chatMessagesList = [], refetch: refetchChatMessages } = useQuery({
+        queryKey: ['chatMessages', connectedCaPartnerId],
+        queryFn: () => connectedCaPartnerId ? caService.getChatMessages(connectedCaPartnerId) : Promise.resolve([]),
+        enabled: !!connectedCaPartnerId && showChatWindow,
+        refetchInterval: 2000,
+        retry: false
+    });
+
+    const sendChatMessageMutation = useMutation({
+        mutationFn: (msg) => caService.sendChatMessage({ receiverId: connectedCaPartnerId, message: msg }),
+        onSuccess: () => {
+            setChatInputText('');
+            refetchChatMessages();
+            refetchUnreadCount();
+        }
     });
 
     const saveAuditSessionMutation = useMutation({
@@ -1755,24 +1794,124 @@ export default function BusinessCA() {
                         <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
                             {/* Accountant Connection Portal */}
                             <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                                    {/* Left: Accountant Connection */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Users size={20} style={{ color: '#004aad' }} />
                                         <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
                                     </div>
-                                    {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
-                                        <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <CheckCircle2 size={12} /> Connected FIN-PRO Active
-                                        </span>
-                                    ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
-                                        <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <Clock size={12} className="animate-pulse" /> Pending Acceptance
-                                        </span>
-                                    ) : (
-                                        <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '3px 10px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
-                                            Not Connected
-                                        </span>
-                                    )}
+
+                                    {/* Center: Connected FIN-PRO Active badge */}
+                                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                                        {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
+                                            <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '4px 12px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <CheckCircle2 size={12} /> Connected FIN-PRO Active
+                                            </span>
+                                        ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
+                                            <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '4px 12px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Clock size={12} className="animate-pulse" /> Pending Acceptance
+                                            </span>
+                                        ) : (
+                                            <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#64748B', padding: '4px 12px', borderRadius: '20px', fontWeight: '750', border: '1px solid #E2E8F0' }}>
+                                                Not Connected
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Far Right: 💬 Chat & ⏱ Live Timer Action Icons */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        {/* Messenger Chat Icon */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowChatWindow(!showChatWindow);
+                                                setShowSessionPopover(false);
+                                            }}
+                                            style={{ position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            title="Direct Chat with Connected CA"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12 2C6.477 2 2 6.145 2 11.258C2 14.17 3.428 16.746 5.666 18.397V22L9.043 20.145C9.996 20.407 10.982 20.548 12 20.548C17.523 20.548 22 16.403 22 11.29C22 6.177 17.523 2 12 2Z" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M7 13.5L10.5 9.5L13.5 12.5L17 8.5" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                            {(unreadChatData?.unreadCount || 0) > 0 && (
+                                                <span style={{ position: 'absolute', top: '0px', right: '0px', background: '#EF4444', color: '#FFFFFF', fontSize: '10px', fontWeight: '900', borderRadius: '50%', minWidth: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #FFFFFF' }}>
+                                                    {unreadChatData?.unreadCount}
+                                                </span>
+                                            )}
+                                        </button>
+
+                                        {/* Stopwatch Session Icon */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowSessionPopover(!showSessionPopover);
+                                                setShowChatWindow(false);
+                                            }}
+                                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            title="CA Availability & Session Status"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="12" cy="14" r="8" stroke="#0F172A" strokeWidth="2"/>
+                                                <path d="M12 10V14L15 16" stroke="#0F172A" strokeWidth="2" strokeLinecap="round"/>
+                                                <path d="M10 2H14" stroke="#0F172A" strokeWidth="2" strokeLinecap="round"/>
+                                                <path d="M12 2V4" stroke="#0F172A" strokeWidth="2" strokeLinecap="round"/>
+                                                <path d="M18.5 6.5L19.5 5.5" stroke="#0F172A" strokeWidth="2" strokeLinecap="round"/>
+                                                <path d="M5.5 6.5L4.5 5.5" stroke="#0F172A" strokeWidth="2" strokeLinecap="round"/>
+                                            </svg>
+                                        </button>
+
+                                        {/* Stopwatch Session Popover Modal */}
+                                        {showSessionPopover && (
+                                            <div style={{ position: 'absolute', top: '44px', right: '0px', width: '320px', background: '#FFFFFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                    <span style={{ fontSize: '13px', fontWeight: '850', color: '#0F172A' }}>CA Availability</span>
+                                                    <span style={{ fontSize: '11px', fontWeight: '800', background: caPresenceInfo?.status === 'Online' ? '#DCFCE7' : '#FEE2E2', color: caPresenceInfo?.status === 'Online' ? '#15803d' : '#DC2626', padding: '3px 10px', borderRadius: '12px', border: `1px solid ${caPresenceInfo?.status === 'Online' ? '#BBF7D0' : '#FCA5A5'}`, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: caPresenceInfo?.status === 'Online' ? '#15803d' : '#DC2626' }}></span>
+                                                        {caPresenceInfo?.status === 'Online' ? '🟢 Online' : '🔴 Offline'}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
+                                                    <div style={{ fontSize: '11.5px', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Today's Schedule</div>
+                                                    
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748B', fontWeight: '600' }}>Working Hours</span>
+                                                        <span style={{ color: '#0F172A', fontWeight: '800' }}>08:00 AM – 06:00 PM</span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748B', fontWeight: '600' }}>Current Status</span>
+                                                        <span style={{ color: '#0F172A', fontWeight: '800' }}>Reviewing GST Returns</span>
+                                                    </div>
+
+                                                    {caPresenceInfo?.status === 'Online' ? (
+                                                        <>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span style={{ color: '#64748B', fontWeight: '600' }}>Last Active</span>
+                                                                <span style={{ color: '#15803d', fontWeight: '800' }}>2 minutes ago</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: '8px' }}>
+                                                                <span style={{ color: '#64748B', fontWeight: '600' }}>Current Audit Time</span>
+                                                                <span style={{ color: '#004aad', fontWeight: '900', fontFamily: 'monospace' }}>01:24:18</span>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span style={{ color: '#64748B', fontWeight: '600' }}>Last Seen</span>
+                                                                <span style={{ color: '#0F172A', fontWeight: '800' }}>Today 05:42 PM</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: '8px' }}>
+                                                                <span style={{ color: '#64748B', fontWeight: '600' }}>Expected Next Login</span>
+                                                                <span style={{ color: '#D97706', fontWeight: '800' }}>Tomorrow 08:00 AM</span>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {outgoingInvitations.length === 0 ? (
@@ -3102,6 +3241,19 @@ export default function BusinessCA() {
                                                         </div>
                                                     </div>
 
+                                                    {/* AUDIT DESCRIPTION FIELD */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>AUDIT DESCRIPTION *</label>
+                                                        <textarea
+                                                            value={timerAuditDescription}
+                                                            onChange={e => setTimerAuditDescription(e.target.value)}
+                                                            disabled={isTimerRunning || timerSeconds > 0}
+                                                            rows={3}
+                                                            placeholder={`Example:\nGST Return Filing (GSTR-1)\nReview Purchase Bills\nTDS Calculation\nIncome Tax Audit`}
+                                                            style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none', background: (isTimerRunning || timerSeconds > 0) ? '#F1F5F9' : '#FFFFFF', resize: 'vertical', fontFamily: 'inherit' }}
+                                                        />
+                                                    </div>
+
                                                     {/* Big Digital Clock */}
                                                     <div style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0', padding: '40px 20px', borderRadius: '20px', margin: '10px 0' }}>
                                                         <div style={{ fontFamily: 'monospace', fontSize: '64px', fontWeight: '950', color: isTimerRunning ? '#15803d' : '#334155', letterSpacing: '2px' }}>
@@ -3161,7 +3313,9 @@ export default function BusinessCA() {
                                                                         startTime: auditStartTime,
                                                                         stopTime: stopTime,
                                                                         durationSeconds: timerSeconds,
-                                                                        auditDate: new Date().toISOString().split('T')[0]
+                                                                        auditDate: new Date().toISOString().split('T')[0],
+                                                                        auditDescription: timerAuditDescription || 'GST Return Filing (GSTR-1) & Audit Review',
+                                                                        hourlyRate: 500
                                                                     });
 
                                                                     // Reset local timer
@@ -3927,6 +4081,7 @@ export default function BusinessCA() {
                                                         <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
                                                             <th style={{ padding: '12px 8px' }}>Invoice #</th>
                                                             <th style={{ padding: '12px 8px' }}>Client</th>
+                                                            <th style={{ padding: '12px 8px' }}>Audit Description</th>
                                                             <th style={{ padding: '12px 8px' }}>Duration</th>
                                                             <th style={{ padding: '12px 8px' }}>Amount</th>
                                                             <th style={{ padding: '12px 8px' }}>Status</th>
@@ -3935,24 +4090,41 @@ export default function BusinessCA() {
                                                     </thead>
                                                     <tbody>
                                                         {proInvoices.length === 0 ? (
-                                                            <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>No billing records found</td></tr>
+                                                            <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>No billing records found</td></tr>
                                                         ) : (
-                                                            proInvoices.map(inv => (
-                                                                <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                                    <td style={{ padding: '12px 8px', fontWeight: '800' }}>{inv.invoice_number}</td>
-                                                                    <td style={{ padding: '12px 8px', fontWeight: '600' }}>{inv.client_name}</td>
-                                                                    <td style={{ padding: '12px 8px' }}>{Math.floor(inv.duration_seconds / 60)}m {inv.duration_seconds % 60}s</td>
-                                                                    <td style={{ padding: '12px 8px', fontWeight: '800' }}>{formatCurrency(inv.total_amount)}</td>
-                                                                    <td style={{ padding: '12px 8px' }}>
-                                                                        <span style={{ fontSize: '10px', fontWeight: '800', background: inv.status === 'Paid' ? '#DCFCE7' : '#FEF3C7', color: inv.status === 'Paid' ? '#15803d' : '#D97706', padding: '3px 8px', borderRadius: '12px' }}>
-                                                                            {inv.status}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td style={{ padding: '12px 8px' }}>
-                                                                        <button style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800' }}>Download</button>
-                                                                    </td>
-                                                                </tr>
-                                                            ))
+                                                            proInvoices.map(inv => {
+                                                                const durationSec = inv.duration_seconds || 0;
+                                                                const mins = Math.ceil(durationSec / 60);
+                                                                const hrs = Math.floor(mins / 60);
+                                                                const remMins = mins % 60;
+                                                                const durationStr = hrs > 0 ? `${hrs}h ${remMins}m` : `${remMins}m`;
+
+                                                                return (
+                                                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '800', fontFamily: 'monospace' }}>{inv.invoice_number}</td>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '600' }}>{inv.client_name || inv.ca_name || 'Client'}</td>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '650', color: '#1E293B', maxWidth: '200px' }}>
+                                                                            {inv.audit_description || inv.auditDescription || 'GST Return Filing (GSTR-1)'}
+                                                                        </td>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '750', color: '#0284C7' }}>{durationStr}</td>
+                                                                        <td style={{ padding: '12px 8px', fontWeight: '800', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</td>
+                                                                        <td style={{ padding: '12px 8px' }}>
+                                                                            <span style={{ fontSize: '10px', fontWeight: '800', background: inv.status === 'Paid' ? '#DCFCE7' : '#FEF3C7', color: inv.status === 'Paid' ? '#15803d' : '#D97706', padding: '3px 8px', borderRadius: '12px' }}>
+                                                                                {inv.status}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td style={{ padding: '12px 8px' }}>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => window.open(`http://localhost:5000/api/v1/ca/invoices/${inv.id}/pdf`, '_blank')}
+                                                                                style={{ border: 'none', background: 'transparent', color: '#15803d', cursor: 'pointer', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                                            >
+                                                                                <Download size={14} /> PDF
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })
                                                         )}
                                                     </tbody>
                                                 </table>
@@ -4922,6 +5094,82 @@ export default function BusinessCA() {
                             title="Invoice Preview"
                         />
                     </div>
+                </div>
+            )}
+
+            {/* 💬 Messenger Floating Direct Chat Window */}
+            {showChatWindow && (
+                <div style={{ position: 'fixed', bottom: '24px', right: '24px', width: '350px', height: '440px', background: '#FFFFFF', borderRadius: '20px', border: '1px solid #CBD5E1', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1)', zIndex: 99999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Header */}
+                    <div style={{ background: 'linear-gradient(135deg, #004aad 0%, #1e3a8a 100%)', padding: '14px 18px', color: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FFFFFF', color: '#004aad', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '14px' }}>
+                                💬
+                            </div>
+                            <div>
+                                <h4 style={{ fontSize: '14px', fontWeight: '850', margin: 0, color: '#FFFFFF' }}>FIN-PRO Direct Messenger</h4>
+                                <span style={{ fontSize: '11px', color: '#93C5FD', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: caPresenceInfo?.status === 'Online' ? '#4ADE80' : '#94A3B8' }}></span>
+                                    {caPresenceInfo?.status === 'Online' ? 'Online' : 'Offline'}
+                                </span>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowChatWindow(false)}
+                            style={{ background: 'transparent', border: 'none', color: '#FFFFFF', fontSize: '18px', cursor: 'pointer', fontWeight: '800' }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    {/* Messages Body */}
+                    <div style={{ flex: 1, padding: '14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', background: '#F8FAFC' }}>
+                        {chatMessagesList.length === 0 ? (
+                            <div style={{ margin: 'auto', textAlign: 'center', color: '#94A3B8', fontSize: '12.5px', fontStyle: 'italic' }}>
+                                Start a direct conversation with your Connected FIN-PRO...
+                            </div>
+                        ) : (
+                            chatMessagesList.map((msg, idx) => {
+                                const isMe = String(msg.sender_id) === String(user?.id);
+                                return (
+                                    <div key={msg.id || idx} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '80%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                                        <div style={{ background: isMe ? '#004aad' : '#FFFFFF', color: isMe ? '#FFFFFF' : '#0F172A', padding: '10px 14px', borderRadius: isMe ? '16px 16px 2px 16px' : '16px 16px 16px 2px', fontSize: '13px', fontWeight: '500', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: isMe ? 'none' : '1px solid #E2E8F0' }}>
+                                            {msg.message}
+                                        </div>
+                                        <span style={{ fontSize: '10px', color: '#94A3B8', marginTop: '3px', padding: '0 4px' }}>
+                                            {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {/* Footer Input */}
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (chatInputText.trim()) {
+                                sendChatMessageMutation.mutate(chatInputText.trim());
+                            }
+                        }}
+                        style={{ padding: '10px 14px', background: '#FFFFFF', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '8px', alignItems: 'center' }}
+                    >
+                        <input
+                            type="text"
+                            placeholder="Type your message..."
+                            value={chatInputText}
+                            onChange={(e) => setChatInputText(e.target.value)}
+                            style={{ flex: 1, padding: '10px 14px', borderRadius: '20px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none' }}
+                        />
+                        <button
+                            type="submit"
+                            style={{ background: '#004aad', color: '#FFFFFF', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: '900', fontSize: '14px' }}
+                        >
+                            ➤
+                        </button>
+                    </form>
                 </div>
             )}
         </div>
