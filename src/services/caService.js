@@ -23,7 +23,7 @@ export const caService = {
     uploadClientPhaseDoc: (clientId, phase, fileName) => apiClient.post(`/ca/clients/${clientId}/upload-phase`, { phase, fileName }).then(res => res.data.data || res.data),
     updateClientDocumentReview: (clientId, review) => apiClient.post(`/ca/clients/${clientId}/documents/review`, review).then(res => res.data.data || res.data),
     getDocumentVersions: (docId) => apiClient.get(`/ca/documents/versions/${docId}`).then(res => res.data.data || res.data),
-    getTdsHistory: () => apiClient.get('/ca/tds/history').then(res => res.data.data || res.data),
+    getTdsHistory: () => apiClient.get('/ca/tds/history').then(res => res.data.data || res.data).catch(() => []),
     saveTdsCalculation: (data) => apiClient.post('/ca/tds/calculate', data).then(res => res.data.data || res.data),
     updateTdsCalculation: (id, data) => apiClient.put(`/ca/tds/history/${id}`, data).then(res => res.data.data || res.data),
     deleteTdsCalculation: (id) => apiClient.delete(`/ca/tds/history/${id}`).then(res => res.data.data || res.data),
@@ -48,7 +48,7 @@ export const caService = {
     uploadTaskDoc: (id, data) => apiClient.post(`/ca/tasks/${id}/upload`, data).then(res => res.data.data || res.data),
 
     // Notifications API
-    getNotifications: () => apiClient.get('/notifications').then(res => res.data.data || res.data),
+    getNotifications: () => apiClient.get('/notifications').then(res => res.data.data || res.data).catch(() => []),
     addNotification: (notif) => apiClient.post('/notifications', notif).then(res => res.data.data || res.data),
     markNotificationRead: (id) => apiClient.put(`/notifications/${id}/read`).then(res => res.data.data || res.data),
     markAllNotificationsRead: () => apiClient.put('/notifications/read-all').then(res => res.data.data || res.data),
@@ -86,11 +86,11 @@ export const caService = {
     addAuditSession: (session) => apiClient.post('/ca/audit-sessions', session).then(res => res.data.data || res.data),
     getAuditSessions: () => apiClient.get('/ca/audit-sessions').then(res => res.data.data || res.data),
     generateProfessionalInvoice: (invoice) => apiClient.post('/ca/invoices/generate', invoice).then(res => res.data.data || res.data),
-    getProfessionalInvoices: () => apiClient.get('/ca/invoices').then(res => res.data.data || res.data),
+    getProfessionalInvoices: () => apiClient.get('/ca/invoices').then(res => res.data.data || res.data).catch(() => []),
     getProfessionalInvoicePdf: (id) => apiClient.get(`/ca/invoices/${id}/pdf`, { responseType: 'text' }).then(res => res.data),
     getEarningsDashboard: () => apiClient.get('/ca/earnings/dashboard').then(res => res.data.data || res.data),
     payInvoice: (id, paymentMethod) => apiClient.post(`/ca/invoices/${id}/pay`, { paymentMethod }).then(res => res.data.data || res.data),
-    getPaymentHistory: () => apiClient.get('/ca/payment-history').then(res => res.data.data || res.data),
+    getPaymentHistory: () => apiClient.get('/ca/payment-history').then(res => res.data.data || res.data).catch(() => []),
 
     // Direct Messenger Chat API
     getChatMessages: (partnerId) => apiClient.get(`/ca/messages/${partnerId}`).then(res => res.data.data || res.data),

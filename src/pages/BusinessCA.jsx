@@ -2097,77 +2097,7 @@ export default function BusinessCA() {
                                                         <UserCheck size={20} />
                                                     </div>
                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
-
-                                                            {/* Presence Indicator */}
-                                                            <div
-                                                                style={{
-                                                                    width: '10px',
-                                                                    height: '10px',
-                                                                    borderRadius: '50%',
-                                                                    background: inv.is_online ? '#22C55E' : '#EF4444',
-                                                                    boxShadow: inv.is_online ? '0 0 10px #22C55E, 0 0 5px rgba(34, 197, 94, 0.5)' : 'none',
-                                                                    border: '2px solid #FFFFFF',
-                                                                    cursor: 'help'
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    const popup = e.currentTarget.nextSibling;
-                                                                    if (popup) popup.style.display = 'block';
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    const popup = e.currentTarget.nextSibling;
-                                                                    if (popup) popup.style.display = 'none';
-                                                                }}
-                                                            ></div>
-
-                                                            {/* Professional Popup */}
-                                                            <div style={{
-                                                                display: 'none',
-                                                                position: 'absolute',
-                                                                top: '100%',
-                                                                left: '50px',
-                                                                zIndex: 50,
-                                                                width: '240px',
-                                                                background: '#FFFFFF',
-                                                                border: '1px solid #E2E8F0',
-                                                                borderRadius: '12px',
-                                                                padding: '14px',
-                                                                boxShadow: '0 10px 25px -3px rgba(0, 0, 0, 0.1)',
-                                                                marginTop: '6px'
-                                                            }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: inv.is_online ? '#22C55E' : '#EF4444', boxShadow: inv.is_online ? '0 0 6px #22C55E' : 'none' }}></div>
-                                                                            <span style={{ fontSize: '12px', fontWeight: '850', color: inv.is_online ? '#16A34A' : '#DC2626' }}>
-                                                                                {inv.is_online ? 'Online' : 'Offline'}
-                                                                            </span>
-                                                                        </div>
-                                                                        <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>Presence Tracking</span>
-                                                                    </div>
-
-                                                                    <div style={{ fontSize: '13px', fontWeight: '850', color: '#0F172A' }}>{inv.receiver_name || inv.receiver_email.split('@')[0]}</div>
-
-                                                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                        {inv.is_online ? (
-                                                                            <>
-                                                                                <div style={{ fontSize: '11.5px', color: '#475569' }}>
-                                                                                    <span style={{ fontWeight: '750' }}>Status:</span> Active Now
-                                                                                </div>
-                                                                                <div style={{ fontSize: '11.5px', color: '#475569' }}>
-                                                                                    <span style={{ fontWeight: '750' }}>Online Since:</span> {inv.login_at ? new Date(inv.login_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
-                                                                                </div>
-                                                                            </>
-                                                                        ) : (
-                                                                            <div style={{ fontSize: '11.5px', color: '#475569' }}>
-                                                                                <span style={{ fontWeight: '750' }}>Last Seen:</span> {inv.last_seen_at ? new Date(inv.last_seen_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        <div style={{ fontSize: '14px', fontWeight: '850', color: '#14532D' }}>{inv.receiver_email}</div>
                                                         <div style={{ fontSize: '11px', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>Authorized Accountant Partner • Connected since {inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Just now'}</div>
                                                     </div>
                                                 </div>
