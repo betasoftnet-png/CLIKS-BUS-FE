@@ -163,8 +163,31 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         }
     };
 
-    // Constants
-    const CONVERSION_RATE = 83.5; // 1 USD = 83.5 INR (Simulated placeholder)
+    // Conversion Rate State
+    const [usdToInr, setUsdToInr] = useState(83.5);
+    const [inrToUsd, setInrToUsd] = useState(0.0119);
+
+    useEffect(() => {
+        const fetchRates = async () => {
+            try {
+                const [resUsdInr, resInrUsd] = await Promise.all([
+                    fetch('https://api.frankfurter.dev/v2/rate/USD/INR'),
+                    fetch('https://api.frankfurter.dev/v2/rate/INR/USD')
+                ]);
+                const dataUsdInr = await resUsdInr.json();
+                const dataInrUsd = await resInrUsd.json();
+                if (dataUsdInr && dataUsdInr.rate) {
+                    setUsdToInr(dataUsdInr.rate);
+                }
+                if (dataInrUsd && dataInrUsd.rate) {
+                    setInrToUsd(dataInrUsd.rate);
+                }
+            } catch (error) {
+                console.error('Failed to fetch conversion rates', error);
+            }
+        };
+        fetchRates();
+    }, []);
 
     // Recalculate entire tape
     const getTapeCalculations = () => {
@@ -476,7 +499,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         text += "-----------------------------\n";
         text += `TOTAL: ₹${finalTotal.toLocaleString('en-IN', {maximumFractionDigits: 2})}\n`;
         if (isConverted) {
-            text += `TOTAL (USD): $${(finalTotal / CONVERSION_RATE).toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+            text += `TOTAL (USD): $${(finalTotal * inrToUsd).toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
         }
         text += "=============================\n";
 
@@ -1214,7 +1237,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                 <h2 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '-0.5px', color: '#10B981', margin: 0 }}>
                                     {isConverted ? '$' : '₹'}{
-                                        (isConverted ? (finalTotal / CONVERSION_RATE) : finalTotal)
+                                        (isConverted ? (finalTotal * inrToUsd) : finalTotal)
                                         .toLocaleString(isConverted ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                     }
                                 </h2>
@@ -1798,7 +1821,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                     <h2 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '-0.5px', color: '#10B981', margin: 0 }}>
                                         {isConverted ? '$' : '₹'}{
-                                            (isConverted ? (finalTotal / CONVERSION_RATE) : finalTotal)
+                                            (isConverted ? (finalTotal * inrToUsd) : finalTotal)
                                             .toLocaleString(isConverted ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                         }
                                     </h2>
