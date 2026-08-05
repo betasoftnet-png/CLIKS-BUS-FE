@@ -85,8 +85,16 @@ export const calculatorService = {
   },
 
   saveHistory: async (data) => {
-    // data contains { tape: [...], total: number, timestamp: string }
+    // data contains { tape: [...], total: number, timestamp: string, previousSessionId?: string }
     try {
+        if (data.previousSessionId) {
+            try {
+                await calcApi.delete(`/sessions/${data.previousSessionId}`);
+            } catch (err) {
+                console.error("Failed to delete previous session snapshot", err);
+            }
+        }
+
         // 1. Create the session
         const sessionRes = await calcApi.post('/sessions', {
           title: `Tape - ${data.timestamp}`,

@@ -20,6 +20,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
     const [activeInput, setActiveInput] = useState("0");
     const [activeOp, setActiveOp] = useState(null); // The pending operator for the active line
     const [activeLabel, setActiveLabel] = useState("");
+    const [currentSessionId, setCurrentSessionId] = useState(null); // Tracks the active session in backend
 
     // Smart Bar UI States
     const [showSmartOptions, setShowSmartOptions] = useState(null);
@@ -272,6 +273,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         setActiveOp(null);
         setActiveLabel("");
         setShowSmartOptions(null);
+        setCurrentSessionId(null);
     }
 
     function handleOperator(op) {
@@ -333,7 +335,14 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         saveMutation.mutate({
             tape: fullyComputedTape,
             total: runningTotal,
+            previousSessionId: currentSessionId,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        }, {
+            onSuccess: (savedSession) => {
+                if (savedSession && savedSession.id) {
+                    setCurrentSessionId(savedSession.id);
+                }
+            }
         });
     }
 
