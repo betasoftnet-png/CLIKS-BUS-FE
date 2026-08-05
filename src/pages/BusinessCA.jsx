@@ -619,7 +619,7 @@ export default function BusinessCA() {
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'documents', label: 'CA', icon: Wallet },
+        { id: 'documents', label: 'consult', icon: Wallet },
         { id: 'reports', label: 'Reports', icon: BarChart }
     ];
 
