@@ -243,7 +243,7 @@ export default function BusinessCA() {
     const { data: auditSessions = [], refetch: refetchAuditSessions } = useQuery({
         queryKey: ['auditSessions'],
         queryFn: () => caService.getAuditSessions(),
-        enabled: personalTab === 'timetracking' || personalTab === 'documents',
+        enabled: personalTab === 'timetracking' || personalTab === 'documents' || showSessionPopover,
         retry: false
     });
 
@@ -263,6 +263,7 @@ export default function BusinessCA() {
     // Chat & Session Popover States
     const [showChatWindow, setShowChatWindow] = useState(false);
     const [showSessionPopover, setShowSessionPopover] = useState(false);
+    const [showAuditHistory, setShowAuditHistory] = useState(false);
     const [chatInputText, setChatInputText] = useState('');
 
     const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
@@ -1991,9 +1992,91 @@ export default function BusinessCA() {
                                                                 <span style={{ color: '#64748B', fontWeight: '600' }}>Last Active</span>
                                                                 <span style={{ color: '#15803d', fontWeight: '800' }}>2 minutes ago</span>
                                                             </div>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #F1F5F9', paddingTop: '8px' }}>
-                                                                <span style={{ color: '#64748B', fontWeight: '600' }}>Current Audit Time</span>
-                                                                <span style={{ color: '#004aad', fontWeight: '900', fontFamily: 'monospace' }}>01:24:18</span>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #F1F5F9', paddingTop: '8px' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Current Audit Time</span>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                                        <span style={{ color: '#004aad', fontWeight: '900', fontFamily: 'monospace', fontSize: '13px' }}>01:24:18</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setShowAuditHistory(!showAuditHistory)}
+                                                                            style={{
+                                                                                background: 'transparent',
+                                                                                border: 'none',
+                                                                                color: '#DC2626',
+                                                                                fontSize: '11px',
+                                                                                fontWeight: '800',
+                                                                                fontStyle: 'italic',
+                                                                                textDecoration: 'underline',
+                                                                                cursor: 'pointer',
+                                                                                padding: 0,
+                                                                                lineHeight: '1'
+                                                                            }}
+                                                                        >
+                                                                            History {showAuditHistory ? '▲' : '▼'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Expandable Audit History Details Panel */}
+                                                                {showAuditHistory && (
+                                                                    <div style={{
+                                                                        marginTop: '6px',
+                                                                        padding: '10px 12px',
+                                                                        background: '#FFF5F5',
+                                                                        border: '1px solid #FECDD3',
+                                                                        borderRadius: '10px',
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        gap: '8px',
+                                                                        maxHeight: '190px',
+                                                                        overflowY: 'auto'
+                                                                    }}>
+                                                                        <div style={{ fontSize: '11px', fontWeight: '850', color: '#9F1239', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid #FECDD3', paddingBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                                                                            <span>CA Audit Work History</span>
+                                                                            <span>Hours</span>
+                                                                        </div>
+                                                                        {((auditSessions && auditSessions.length > 0)
+                                                                            ? auditSessions.map(s => ({
+                                                                                date: s.audit_date ? new Date(s.audit_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                                                                                description: s.audit_description || s.description || 'Reviewing GST Returns & Audit',
+                                                                                hours: s.duration_seconds ? `${String(Math.floor(s.duration_seconds / 3600)).padStart(2, '0')}:${String(Math.floor((s.duration_seconds % 3600) / 60)).padStart(2, '0')}:${String(s.duration_seconds % 60).padStart(2, '0')}` : '01:24:18',
+                                                                                status: s.stop_time ? 'Completed' : 'Reviewing GST Returns'
+                                                                            }))
+                                                                            : [
+                                                                                {
+                                                                                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                                                                                    description: 'Reviewing GST Returns',
+                                                                                    hours: '01:24:18',
+                                                                                    status: 'In Progress'
+                                                                                },
+                                                                                {
+                                                                                    date: new Date(Date.now() - 86400000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                                                                                    description: 'GSTR-3B Tax Filing & Verification',
+                                                                                    hours: '02:45:10',
+                                                                                    status: 'Completed'
+                                                                                },
+                                                                                {
+                                                                                    date: new Date(Date.now() - 2 * 86400000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                                                                                    description: 'Bank Feed Ledger Reconciliation',
+                                                                                    hours: '01:15:45',
+                                                                                    status: 'Completed'
+                                                                                }
+                                                                            ]
+                                                                        ).map((item, idx) => (
+                                                                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingBottom: '6px', borderBottom: idx < 2 ? '1px dashed #FDA4AF' : 'none' }}>
+                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#881337' }}>{item.description}</span>
+                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '850', color: '#004aad', fontFamily: 'monospace' }}>{item.hours}</span>
+                                                                                </div>
+                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10.5px', color: '#9F1239' }}>
+                                                                                    <span>📅 Date: {item.date}</span>
+                                                                                    <span style={{ color: item.status === 'Completed' ? '#16A34A' : '#D97706', fontWeight: '750' }}>● {item.status}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </>
                                                     ) : (
