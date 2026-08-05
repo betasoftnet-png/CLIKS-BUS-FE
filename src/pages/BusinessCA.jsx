@@ -265,6 +265,11 @@ export default function BusinessCA() {
     const [showSessionPopover, setShowSessionPopover] = useState(false);
     const [chatInputText, setChatInputText] = useState('');
 
+    const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
+    const targetChatPartnerId = (user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm')
+        ? (activeClientObj.business_owner_id || activeClientObj.id || timerClient || 1)
+        : (outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1);
+
     const { data: caPresenceInfo, refetch: refetchCaPresence } = useQuery({
         queryKey: ['caPresenceInfo', targetChatPartnerId],
         queryFn: () => caService.getPresenceStatus(targetChatPartnerId),
@@ -278,11 +283,6 @@ export default function BusinessCA() {
         refetchInterval: 3000,
         retry: false
     });
-
-    const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
-    const targetChatPartnerId = (user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm')
-        ? (activeClientObj.business_owner_id || activeClientObj.id || timerClient || 1)
-        : (outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1);
 
     const { data: chatMessagesList = [], refetch: refetchChatMessages } = useQuery({
         queryKey: ['chatMessages', targetChatPartnerId],
