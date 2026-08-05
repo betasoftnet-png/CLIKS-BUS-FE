@@ -7,7 +7,7 @@ import {
     RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock,
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
-    Calculator, History, Info, Save, X, ChevronDown, Check
+    Calculator, History, Info, Save, X, ChevronDown, Check, Download, ExternalLink, Eye
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency, useAuth } from '../context';
@@ -452,6 +452,9 @@ export default function BusinessCA() {
     const [showPhaseModal, setShowPhaseModal] = useState(false);
     const [draggingPhase, setDraggingPhase] = useState(null);
     const [phaseUploadSuccess, setPhaseUploadSuccess] = useState(null);
+    const [phaseDocPreview, setPhaseDocPreview] = useState(null);
+    const [phaseDocNoFileMsg, setPhaseDocNoFileMsg] = useState(null);
+    const [isFetchingPhaseDoc, setIsFetchingPhaseDoc] = useState(false);
 
     // --- TDS Calculator & History States ---
     const [showTdsCalculator, setShowTdsCalculator] = useState(false);
@@ -770,6 +773,36 @@ export default function BusinessCA() {
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to upload phase document')
     });
+
+    const handleInnerFileView = async (phase) => {
+        if (!selectedWorkpaperClientId) {
+            alert('Please select a client first.');
+            return;
+        }
+        setIsFetchingPhaseDoc(true);
+        try {
+            const doc = await caService.getPhaseDocument(selectedWorkpaperClientId, phase);
+            if (doc) {
+                setPhaseDocPreview(doc);
+                setPhaseDocNoFileMsg(null);
+            } else {
+                setPhaseDocPreview(null);
+                setPhaseDocNoFileMsg({
+                    phase,
+                    message: 'No document uploaded by the Business Owner for this phase.'
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch phase document:', err);
+            setPhaseDocPreview(null);
+            setPhaseDocNoFileMsg({
+                phase,
+                message: 'No document uploaded by the Business Owner for this phase.'
+            });
+        } finally {
+            setIsFetchingPhaseDoc(false);
+        }
+    };
 
     const simulateClientUpload = (requestId) => {
         uploadRequestDocMutation.mutate(requestId);
@@ -4722,6 +4755,128 @@ export default function BusinessCA() {
                         </div>
                     )}
 
+                    {/* Business Owner Phase Document Preview Modal */}
+                    {phaseDocPreview && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px' }}>
+                            <div style={{ background: '#FFFFFF', borderRadius: '16px', width: '100%', maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                                
+                                {/* Modal Header */}
+                                <div style={{ padding: '18px 24px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#DCFCE7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <FileText size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>Business Owner Document ({phaseDocPreview.phase})</h3>
+                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>Uploaded by connected Business Owner</div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setPhaseDocPreview(null)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer', padding: '4px' }}><X size={22} /></button>
+                                </div>
+
+                                {/* Document Metadata Details Cards */}
+                                <div style={{ padding: '16px 24px', background: '#F1F5F9', borderBottom: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', fontSize: '12px' }}>
+                                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ color: '#64748B', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '2px' }}>File Name</div>
+                                        <div style={{ fontWeight: '800', color: '#0F172A', wordBreak: 'break-all' }}>{phaseDocPreview.fileName}</div>
+                                    </div>
+                                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ color: '#64748B', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '2px' }}>Uploaded By</div>
+                                        <div style={{ fontWeight: '800', color: '#004aad' }}>{phaseDocPreview.uploadedBy}</div>
+                                    </div>
+                                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ color: '#64748B', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '2px' }}>Upload Date & Time</div>
+                                        <div style={{ fontWeight: '800', color: '#334155' }}>{phaseDocPreview.uploadedAt ? new Date(phaseDocPreview.uploadedAt).toLocaleString() : '-'}</div>
+                                    </div>
+                                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ color: '#64748B', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '2px' }}>File Size</div>
+                                        <div style={{ fontWeight: '800', color: '#15803d' }}>{phaseDocPreview.fileSize}</div>
+                                    </div>
+                                    <div style={{ background: '#FFFFFF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ color: '#64748B', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '2px' }}>Phase</div>
+                                        <div style={{ fontWeight: '800', color: '#0F172A' }}>{phaseDocPreview.phase}</div>
+                                    </div>
+                                </div>
+
+                                {/* Document Viewer / Preview Area */}
+                                <div style={{ flex: 1, minHeight: '380px', maxHeight: '550px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {['PDF'].includes(phaseDocPreview.fileType) ? (
+                                        <iframe src={phaseDocPreview.filePath} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />
+                                    ) : ['PNG', 'JPG', 'JPEG', 'WEBP', 'GIF', 'SVG'].includes(phaseDocPreview.fileType) ? (
+                                        <img src={phaseDocPreview.filePath} alt="Document Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                    ) : (
+                                        <div style={{ color: '#F8FAFC', textAlign: 'center', padding: '40px' }}>
+                                            <FileText size={48} style={{ color: '#94A3B8', marginBottom: '12px' }} />
+                                            <div style={{ fontSize: '15px', fontWeight: '800', marginBottom: '6px' }}>Inline preview not supported for .{phaseDocPreview.fileType?.toLowerCase()} files</div>
+                                            <div style={{ fontSize: '13px', color: '#94A3B8', marginBottom: '20px' }}>Use the Download or Open button below to view this document.</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Action Bar with Download & Open buttons */}
+                                <div style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>
+                                        Verified document stored in database
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        <a
+                                            href={phaseDocPreview.filePath}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ padding: '9px 18px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '8px', color: '#0F172A', fontSize: '12.5px', fontWeight: '800', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <ExternalLink size={15} /> Open
+                                        </a>
+                                        <a
+                                            href={phaseDocPreview.filePath}
+                                            download={phaseDocPreview.fileName}
+                                            style={{ padding: '9px 18px', background: '#15803d', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '800', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <Download size={15} /> Download
+                                        </a>
+                                        <button
+                                            onClick={() => setPhaseDocPreview(null)}
+                                            style={{ padding: '9px 18px', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '8px', color: '#475569', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer' }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Business Owner No Document Modal */}
+                    {phaseDocNoFileMsg && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '24px' }}>
+                            <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', width: '100%', maxWidth: '480px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Info size={20} />
+                                        </div>
+                                        <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0 }}>{phaseDocNoFileMsg.phase} Document</h3>
+                                    </div>
+                                    <button onClick={() => setPhaseDocNoFileMsg(null)} style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
+                                </div>
+
+                                <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #F1F5F9', color: '#475569', fontSize: '13.5px', fontWeight: '650', textAlign: 'center', lineHeight: '1.5' }}>
+                                    {phaseDocNoFileMsg.message}
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button
+                                        onClick={() => setPhaseDocNoFileMsg(null)}
+                                        style={{ padding: '9px 20px', background: '#0F172A', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* TDS Calculator Modal */}
                     {showTdsCalculator && (
                         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
@@ -4979,6 +5134,28 @@ export default function BusinessCA() {
                                                     </label>
                                                 </div>
                                                 <div style={{ fontSize: '10.5px', color: '#94A3B8', fontWeight: '500' }}>Supports: PDF, JPG, PNG, DOCX, XLSX</div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleInnerFileView(phase)}
+                                                    disabled={isFetchingPhaseDoc}
+                                                    style={{
+                                                        padding: '6px 16px',
+                                                        background: '#FFFFFF',
+                                                        border: '1.5px solid #0F172A',
+                                                        borderRadius: '8px',
+                                                        fontSize: '11.5px',
+                                                        fontWeight: '800',
+                                                        color: '#0F172A',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        fontStyle: 'italic'
+                                                    }}
+                                                >
+                                                    {isFetchingPhaseDoc ? 'Loading...' : 'inner file view'}
+                                                </button>
                                             </div>
                                         );
                                     })}
