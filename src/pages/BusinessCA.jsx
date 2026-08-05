@@ -9,12 +9,13 @@ import {
     Calculator, History, Info, Save, X, ChevronDown, Check
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { applyTableFilters } from '../utils/filterUtils';
 
 export default function BusinessCA() {
     const { currency, formatCurrency } = useCurrency();
+    const { user } = useAuth();
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
     // Top-level workspace mode switcher
