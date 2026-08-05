@@ -21,6 +21,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
     const [activeOp, setActiveOp] = useState(null); // The pending operator for the active line
     const [activeLabel, setActiveLabel] = useState("");
     const [currentSessionId, setCurrentSessionId] = useState(null); // Tracks the active session in backend
+    const [currentCompareSessionId, setCurrentCompareSessionId] = useState(null);
 
     // Smart Bar UI States
     const [showSmartOptions, setShowSmartOptions] = useState(null);
@@ -52,6 +53,19 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calculator-history'] })
     });
 
+    const createCmpSessionMut = useMutation({
+        mutationFn: calculatorService.createCompareSession,
+        onSuccess: (data) => setCurrentCompareSessionId(data.id)
+    });
+    
+    const addCmpItemMut = useMutation({
+        mutationFn: ({ sessionId, data }) => calculatorService.addCompareItem(sessionId, data)
+    });
+
+    const removeCmpItemMut = useMutation({
+        mutationFn: ({ sessionId, itemId }) => calculatorService.deleteCompareItem(sessionId, itemId)
+    });
+
     const [sciMode, setSciMode] = useState(false);
 
     // Compare Mode state: unified table with description, side A value, and side B value
@@ -67,29 +81,59 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
     const compareDiff = Math.abs(leftTotal - rightTotal);
     const compareWinner = leftTotal > rightTotal ? 'A' : leftTotal < rightTotal ? 'B' : '=';
 
-    const cmpAddItem = () => {
+    const cmpAddItem = async () => {
         const desc = cmpInputDesc.trim() || `Item ${cmpItems.length + 1}`;
         const valA = parseFloat(cmpInputValA) || 0;
         const valB = parseFloat(cmpInputValB) || 0;
 
-        setCmpItems(prev => [
-            ...prev,
-            {
-                id: String(cmpIdRef.current++),
-                desc,
-                valA,
-                valB
+        try {
+            let sid = currentCompareSessionId;
+            if (!sid) {
+                const newSession = await createCmpSessionMut.mutateAsync({ 
+                    title: `Compare - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+                });
+                sid = newSession.id;
             }
-        ]);
 
-        // Reset inputs
-        setCmpInputDesc("");
-        setCmpInputValA("");
-        setCmpInputValB("");
+            const newItemRes = await addCmpItemMut.mutateAsync({
+                sessionId: sid,
+                data: {
+                    sequence: cmpItems.length + 1,
+                    label: desc,
+                    vendorA_Value: valA,
+                    vendorB_Value: valB
+                }
+            });
+
+            setCmpItems(prev => [
+                ...prev,
+                {
+                    id: newItemRes.id || String(cmpIdRef.current++),
+                    desc,
+                    valA,
+                    valB
+                }
+            ]);
+
+            // Reset inputs
+            setCmpInputDesc("");
+            setCmpInputValA("");
+            setCmpInputValB("");
+        } catch (err) {
+            console.error("Failed to add compare item", err);
+            alert("Failed to save comparison item.");
+        }
     };
 
-    const cmpRemoveItem = (id) => {
-        setCmpItems(prev => prev.filter(item => item.id !== id));
+    const cmpRemoveItem = async (id) => {
+        try {
+            if (currentCompareSessionId && typeof id === 'string' && id.length > 10) { // Check if it's a UUID
+                await removeCmpItemMut.mutateAsync({ sessionId: currentCompareSessionId, itemId: id });
+            }
+            setCmpItems(prev => prev.filter(item => item.id !== id));
+        } catch (err) {
+            console.error("Failed to remove compare item", err);
+        }
     };
 
     const cmpClearAll = () => {
@@ -97,6 +141,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         setCmpInputDesc("");
         setCmpInputValA("");
         setCmpInputValB("");
+        setCurrentCompareSessionId(null);
     };
 
     const cmpHandleKeyDown = (e) => {
