@@ -22,6 +22,12 @@ export default function BusinessCA() {
     const [caMode, setCaMode] = useState('business'); // business | personal
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
 
+    // Timer States
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [timerSeconds, setTimerSeconds] = useState(0);
+    const [timerClient, setTimerClient] = useState('');
+    const [timerTask, setTimerTask] = useState('');
+
     // --- Teams & Team Requests Queries & States ---
     const { data: teamMembers = [], refetch: refetchTeamMembers } = useQuery({
         queryKey: ['teamMembers'],
@@ -452,12 +458,6 @@ export default function BusinessCA() {
             totalPayable: amt - tds
         });
     };
-
-    // Timer States
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [timerSeconds, setTimerSeconds] = useState(0);
-    const [timerClient, setTimerClient] = useState('');
-    const [timerTask, setTimerTask] = useState('');
 
     useEffect(() => {
         if (!timerClient && allPracticeClients.length > 0) {
