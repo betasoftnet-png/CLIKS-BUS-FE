@@ -272,15 +272,16 @@ export default function BusinessCA() {
         retry: false
     });
 
+    const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
     const targetChatPartnerId = (user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm')
-        ? (timerClient || allPracticeClients[0]?.business_owner_id || allPracticeClients[0]?.id || 1)
+        ? (activeClientObj.business_owner_id || activeClientObj.id || timerClient || 1)
         : (outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1);
 
     const { data: chatMessagesList = [], refetch: refetchChatMessages } = useQuery({
         queryKey: ['chatMessages', targetChatPartnerId],
         queryFn: () => targetChatPartnerId ? caService.getChatMessages(targetChatPartnerId) : Promise.resolve([]),
         enabled: !!targetChatPartnerId && showChatWindow,
-        refetchInterval: 2000,
+        refetchInterval: 1000,
         retry: false
     });
 
