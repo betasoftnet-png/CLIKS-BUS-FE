@@ -7,10 +7,14 @@ export const crmService = {
     getCustomers: async (params) => {
         try {
             const res = await apiClient.get('/customers', { params });
-            return res;
+            const raw = res.data?.data ?? res.data;
+            if (Array.isArray(raw)) return raw;
+            if (raw?.customers && Array.isArray(raw.customers)) return raw.customers;
+            if (raw?.data && Array.isArray(raw.data)) return raw.data;
+            return [];
         } catch (error) {
             console.error('[CRM Service Error]', error.message);
-            throw error;
+            return [];
         }
     },
     

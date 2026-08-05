@@ -469,29 +469,55 @@ const BusinessBilling = () => {
         queryKey: ['invoices'],
         queryFn: billingService.getInvoices
     });
-    const invoices = React.useMemo(() => Array.isArray(rawInvoices) ? rawInvoices : (rawInvoices?.data && Array.isArray(rawInvoices.data) ? rawInvoices.data : []), [rawInvoices]);
+    const invoices = React.useMemo(() => {
+        if (Array.isArray(rawInvoices)) return rawInvoices;
+        if (rawInvoices?.invoices && Array.isArray(rawInvoices.invoices)) return rawInvoices.invoices;
+        if (rawInvoices?.data && Array.isArray(rawInvoices.data)) return rawInvoices.data;
+        return [];
+    }, [rawInvoices]);
 
     const { data: rawInventoryItems = [] } = useQuery({
         queryKey: ['inventory'],
         queryFn: inventoryService.getInventory
     });
-    const inventoryItems = React.useMemo(() => Array.isArray(rawInventoryItems) ? rawInventoryItems : (rawInventoryItems?.data && Array.isArray(rawInventoryItems.data) ? rawInventoryItems.data : []), [rawInventoryItems]);
+    const inventoryItems = React.useMemo(() => {
+        if (Array.isArray(rawInventoryItems)) return rawInventoryItems;
+        if (rawInventoryItems?.inventory && Array.isArray(rawInventoryItems.inventory)) return rawInventoryItems.inventory;
+        if (rawInventoryItems?.items && Array.isArray(rawInventoryItems.items)) return rawInventoryItems.items;
+        if (rawInventoryItems?.data && Array.isArray(rawInventoryItems.data)) return rawInventoryItems.data;
+        return [];
+    }, [rawInventoryItems]);
 
     // 📦 FETCH ACTIVE CORE CATALOG
     const { data: rawCatalogProducts = [] } = useQuery({
         queryKey: ['products'],
         queryFn: () => productsService.getProducts()
     });
-    const catalogProducts = React.useMemo(() => Array.isArray(rawCatalogProducts) ? rawCatalogProducts : (rawCatalogProducts?.data && Array.isArray(rawCatalogProducts.data) ? rawCatalogProducts.data : []), [rawCatalogProducts]);
+    const catalogProducts = React.useMemo(() => {
+        if (Array.isArray(rawCatalogProducts)) return rawCatalogProducts;
+        if (rawCatalogProducts?.products && Array.isArray(rawCatalogProducts.products)) return rawCatalogProducts.products;
+        if (rawCatalogProducts?.items && Array.isArray(rawCatalogProducts.items)) return rawCatalogProducts.items;
+        if (rawCatalogProducts?.data && Array.isArray(rawCatalogProducts.data)) return rawCatalogProducts.data;
+        return [];
+    }, [rawCatalogProducts]);
 
     const { data: rawCustomers = [] } = useQuery({
         queryKey: ['business-customers'],
         queryFn: async () => {
             const res = await crmService.getCustomers();
-            return res.data || [];
+            if (Array.isArray(res)) return res;
+            if (res?.customers && Array.isArray(res.customers)) return res.customers;
+            if (res?.data?.customers && Array.isArray(res.data.customers)) return res.data.customers;
+            if (res?.data && Array.isArray(res.data)) return res.data;
+            return [];
         }
     });
-    const customers = React.useMemo(() => Array.isArray(rawCustomers) ? rawCustomers : (rawCustomers?.data && Array.isArray(rawCustomers.data) ? rawCustomers.data : []), [rawCustomers]);
+    const customers = React.useMemo(() => {
+        if (Array.isArray(rawCustomers)) return rawCustomers;
+        if (rawCustomers?.customers && Array.isArray(rawCustomers.customers)) return rawCustomers.customers;
+        if (rawCustomers?.data && Array.isArray(rawCustomers.data)) return rawCustomers.data;
+        return [];
+    }, [rawCustomers]);
 
     const activeSelectedCustomer = React.useMemo(() => {
         if (!selectedCustomerObject) return null;

@@ -3,7 +3,12 @@ import api from './api';
 export const bankAccountService = {
     getBankAccounts: async (params = {}) => {
         const response = await api.get('/bank-accounts', { params });
-        return response.data;
+        const raw = response.data?.data ?? response.data;
+        if (Array.isArray(raw)) return raw;
+        if (raw?.accounts && Array.isArray(raw.accounts)) return raw.accounts;
+        if (raw?.bankAccounts && Array.isArray(raw.bankAccounts)) return raw.bankAccounts;
+        if (raw?.data && Array.isArray(raw.data)) return raw.data;
+        return [];
     },
     getBankAccountById: async (id) => {
         const response = await api.get(`/bank-accounts/${id}`);

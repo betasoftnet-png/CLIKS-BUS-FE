@@ -24,7 +24,14 @@ export const billingService = {
         try {
             const res = await apiClient.get('/billing/invoices', { params: cleanParams });
             const rawData = res.data?.data ?? res.data;
-            const serverData = Array.isArray(rawData) ? rawData : [];
+            let serverData = [];
+            if (Array.isArray(rawData)) {
+                serverData = rawData;
+            } else if (rawData?.invoices && Array.isArray(rawData.invoices)) {
+                serverData = rawData.invoices;
+            } else if (rawData?.data && Array.isArray(rawData.data)) {
+                serverData = rawData.data;
+            }
             const local = getLocalInvoices();
             const safeLocal = Array.isArray(local) ? local : [];
             

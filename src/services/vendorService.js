@@ -3,7 +3,11 @@ import api from './api';
 export const vendorService = {
     getVendors: async (params = {}) => {
         const response = await api.get('/vendors', { params });
-        return response.data;
+        const raw = response.data?.data ?? response.data;
+        if (Array.isArray(raw)) return raw;
+        if (raw?.vendors && Array.isArray(raw.vendors)) return raw.vendors;
+        if (raw?.data && Array.isArray(raw.data)) return raw.data;
+        return [];
     },
     getVendorById: async (id) => {
         const response = await api.get(`/vendors/${id}`);

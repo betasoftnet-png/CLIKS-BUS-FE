@@ -4,7 +4,17 @@ export const productsService = {
     // CRUD Operations (QueryFunctionContext safe)
     getProducts: (params) => {
         const cleanParams = params && !params.queryKey ? params : undefined;
-        return apiClient.get('/products', { params: cleanParams }).then(res => res.data.data || res.data);
+        return apiClient.get('/products', { params: cleanParams }).then(res => {
+            const raw = res.data?.data ?? res.data;
+            if (Array.isArray(raw)) return raw;
+            if (raw?.products && Array.isArray(raw.products)) return raw.products;
+            if (raw?.items && Array.isArray(raw.items)) return raw.items;
+            if (raw?.data && Array.isArray(raw.data)) return raw.data;
+            return [];
+        }).catch(err => {
+            console.error('[Products Service Error]', err);
+            return [];
+        });
     },
 
     createProduct: (data) => apiClient.post('/products', data).then(res => res.data.data || res.data),

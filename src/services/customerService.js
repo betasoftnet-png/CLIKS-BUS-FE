@@ -3,7 +3,11 @@ import api from './api';
 export const customerService = {
     getCustomers: async (params = {}) => {
         const response = await api.get('/customers', { params });
-        return response.data;
+        const raw = response.data?.data ?? response.data;
+        if (Array.isArray(raw)) return raw;
+        if (raw?.customers && Array.isArray(raw.customers)) return raw.customers;
+        if (raw?.data && Array.isArray(raw.data)) return raw.data;
+        return [];
     },
     getCustomerById: async (id) => {
         const response = await api.get(`/customers/${id}`);
