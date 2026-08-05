@@ -4,6 +4,7 @@ import { authService } from '../services/authService';
 import { adminService } from '../services/adminService';
 import { supportService } from '../services/supportService';
 import { profileService } from '../services/profileService';
+import { caService } from '../services/caService';
 import { isFeatureAllowed, getPlanDuration } from '../utils/subscriptionUtils';
 import { AuthContext } from './auth-context';
 
@@ -15,6 +16,7 @@ export const AuthProvider = ({ children }) => {
     const queryClient = useQueryClient();
 
     const logout = React.useCallback(() => {
+        caService.setUserOffline().catch(() => {});
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
         
@@ -88,6 +90,16 @@ export const AuthProvider = ({ children }) => {
             setPlanDaysRemaining(remaining);
         }
     }, [user]);
+
+    useEffect(() => {
+        if (user && token) {
+            caService.setUserOnline().catch(() => {});
+            const heartbeatTimer = setInterval(() => {
+                caService.updatePresenceHeartbeat().catch(() => {});
+            }, 30000);
+            return () => clearInterval(heartbeatTimer);
+        }
+    }, [user, token]);
 
     const changePlan = async (newPlanName) => {
         const duration = getPlanDuration(newPlanName);

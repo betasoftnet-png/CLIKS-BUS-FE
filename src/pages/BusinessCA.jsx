@@ -271,11 +271,26 @@ export default function BusinessCA() {
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to generate invoice')
     });
 
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedInvoiceToPay, setSelectedInvoiceToPay] = useState(null);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('UPI');
+    const [previewInvoiceHtml, setPreviewInvoiceHtml] = useState(null);
+
+    const { data: paymentHistory = [], refetch: refetchPaymentHistory } = useQuery({
+        queryKey: ['paymentHistory'],
+        queryFn: () => caService.getPaymentHistory(),
+        retry: false
+    });
+
     const payInvoiceMutation = useMutation({
-        mutationFn: (id) => caService.payInvoice(id),
+        mutationFn: ({ id, paymentMethod }) => caService.payInvoice(id, paymentMethod),
         onSuccess: () => {
             refetchProInvoices();
-            alert('Payment processed successfully! Receipt is available for download.');
+            refetchPaymentHistory();
+            refetchEarnings();
+            setShowPaymentModal(false);
+            setSelectedInvoiceToPay(null);
+            alert('Payment processed successfully! Transaction recorded in Database.');
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Payment failed')
     });
@@ -1331,13 +1346,31 @@ export default function BusinessCA() {
                                                             </div>
 
                                                             <div style={{ display: 'flex', gap: '12px' }}>
-                                                                <button style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>View Invoice</button>
-                                                                <button style={{ flex: 1, padding: '12px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>Download PDF</button>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            const html = await caService.getProfessionalInvoicePdf(inv.id);
+                                                                            setPreviewInvoiceHtml(html);
+                                                                        } catch (err) {
+                                                                            alert('Failed to load invoice preview');
+                                                                        }
+                                                                    }}
+                                                                    style={{ flex: 1, padding: '12px', background: '#F1F5F9', color: '#475569', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                                >
+                                                                    View Invoice
+                                                                </button>
                                                                 <button
                                                                     onClick={() => {
-                                                                        if(confirm('Proceed to pay professional fee?')) {
-                                                                            payInvoiceMutation.mutate(inv.id);
-                                                                        }
+                                                                        window.open(`/api/v1/ca/invoices/${inv.id}/pdf`, '_blank');
+                                                                    }}
+                                                                    style={{ flex: 1, padding: '12px', background: '#FFFFFF', color: '#004aad', border: '1.5px solid #004aad', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                                >
+                                                                    Download PDF
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedInvoiceToPay(inv);
+                                                                        setShowPaymentModal(true);
                                                                     }}
                                                                     style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
                                                                 >
@@ -4734,6 +4767,86 @@ export default function BusinessCA() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+            {/* 💳 Payment Process Modal (Module 5) */}
+            {showPaymentModal && selectedInvoiceToPay && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+                    <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '20px', border: '1px solid #E2E8F0', width: '95%', maxWidth: '440px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0 }}>💳 Pay Professional Invoice</h3>
+                                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>Invoice: {selectedInvoiceToPay.invoice_number}</div>
+                            </div>
+                            <button onClick={() => setShowPaymentModal(false)} style={{ border: 'none', background: '#F1F5F9', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: '800' }}>✕</button>
+                        </div>
+
+                        <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B' }}>TOTAL PAYABLE</div>
+                                <div style={{ fontSize: '24px', fontWeight: '950', color: '#15803d' }}>{formatCurrency(selectedInvoiceToPay.total_amount)}</div>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#475569', textAlign: 'right', fontWeight: '600' }}>
+                                Fee: {formatCurrency(selectedInvoiceToPay.amount)}<br />
+                                GST (18%): {formatCurrency(selectedInvoiceToPay.gst_amount)}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>SELECT PAYMENT METHOD</label>
+                            {['UPI', 'Card', 'Net Banking', 'Cash', 'Bank Transfer'].map(method => (
+                                <button
+                                    key={method}
+                                    type="button"
+                                    onClick={() => setSelectedPaymentMethod(method)}
+                                    style={{
+                                        padding: '14px',
+                                        borderRadius: '12px',
+                                        border: '2px solid',
+                                        borderColor: selectedPaymentMethod === method ? '#15803d' : '#E2E8F0',
+                                        background: selectedPaymentMethod === method ? '#F0FDF4' : '#FFFFFF',
+                                        color: selectedPaymentMethod === method ? '#15803d' : '#334155',
+                                        fontWeight: '800',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        justify: 'space-between',
+                                        alignItems: 'center',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <span>{method === 'UPI' ? '📱 UPI (GPay/PhonePe/Paytm)' : (method === 'Card' ? '💳 Credit / Debit Card' : (method === 'Net Banking' ? '🏦 Net Banking' : (method === 'Cash' ? '💵 Cash Payment' : '🏛 Direct Bank Transfer')))}</span>
+                                    {selectedPaymentMethod === method && <span style={{ fontSize: '14px' }}>✓</span>}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => payInvoiceMutation.mutate({ id: selectedInvoiceToPay.id, paymentMethod: selectedPaymentMethod })}
+                            disabled={payInvoiceMutation.isLoading}
+                            style={{ padding: '16px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
+                        >
+                            {payInvoiceMutation.isLoading ? 'Processing Payment...' : `Confirm & Pay ${formatCurrency(selectedInvoiceToPay.total_amount)}`}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* 📄 Invoice HTML Preview Modal */}
+            {previewInvoiceHtml && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+                    <div style={{ background: '#FFFFFF', borderRadius: '16px', width: '90%', maxWidth: '800px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                        <div style={{ padding: '16px 24px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>📄 Invoice Preview</h3>
+                            <button onClick={() => setPreviewInvoiceHtml(null)} style={{ border: 'none', background: '#E2E8F0', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: '800' }}>✕</button>
+                        </div>
+                        <iframe
+                            srcDoc={previewInvoiceHtml}
+                            style={{ width: '100%', height: '100%', border: 'none' }}
+                            title="Invoice Preview"
+                        />
+                    </div>
                 </div>
             )}
         </div>

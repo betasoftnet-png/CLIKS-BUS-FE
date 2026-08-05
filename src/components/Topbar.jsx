@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ProfileDropdown } from './ProfileDropdown';
 import { CalcPopover } from './common/CalcPopover';
 import ProductLauncher from './ProductLauncher';
+import { caService } from '../services/caService';
 
 
 
@@ -220,11 +221,26 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     }, [searchQuery]);
 
     const [isNotificationOpen, setIsNotificationOpen] = React.useState(false);
-    const [notifications, setNotifications] = React.useState([
-        { id: 1, text: "New sales invoice generated #INV-2026-004", time: "5 mins ago", read: false },
-        { id: 2, text: "Monthly tax compliance report is ready for audit", time: "2 hours ago", read: false },
-        { id: 3, text: "Welcome to Cliks Business standard dashboard!", time: "1 day ago", read: true }
-    ]);
+    const [notifications, setNotifications] = React.useState([]);
+
+    React.useEffect(() => {
+        let isMounted = true;
+        const fetchNotifs = () => {
+            caService.getNotifications()
+                .then(data => {
+                    if (isMounted && Array.isArray(data)) {
+                        setNotifications(data);
+                    }
+                })
+                .catch(() => {});
+        };
+        fetchNotifs();
+        const interval = setInterval(fetchNotifs, 5000);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+    }, []);
     const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
@@ -694,7 +710,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                         {notifications.filter(n => !n.read).length > 0 && (
                                             <button 
                                                 onClick={() => {
-                                                    setNotifications(notifications.map(n => ({ ...n, read: true })));
+                                                    caService.markAllNotificationsRead().catch(() => {});
+                                                    setNotifications(notifications.map(n => ({ ...n, read: true, isRead: true })));
                                                 }}
                                                 style={{ background: 'none', border: 'none', color: '#1B6B3A', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}
                                             >

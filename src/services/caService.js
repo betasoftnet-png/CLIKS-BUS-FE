@@ -41,8 +41,28 @@ export const caService = {
 
     getTasks: () => apiClient.get('/ca/tasks').then(res => res.data.data || res.data),
     addTask: (task) => apiClient.post('/ca/tasks', task).then(res => res.data.data || res.data),
+    updateTask: (id, task) => apiClient.put(`/ca/tasks/${id}`, task).then(res => res.data.data || res.data),
+    deleteTask: (id) => apiClient.delete(`/ca/tasks/${id}`).then(res => res.data.data || res.data),
     toggleTaskStatus: (id) => apiClient.post(`/ca/tasks/${id}/toggle`).then(res => res.data.data || res.data),
-    uploadTaskDoc: (id) => apiClient.post(`/ca/tasks/${id}/upload`).then(res => res.data.data || res.data),
+    uploadTaskDoc: (id, data) => apiClient.post(`/ca/tasks/${id}/upload`, data).then(res => res.data.data || res.data),
+
+    // Notifications API
+    getNotifications: () => apiClient.get('/notifications').then(res => res.data.data || res.data),
+    addNotification: (notif) => apiClient.post('/notifications', notif).then(res => res.data.data || res.data),
+    markNotificationRead: (id) => apiClient.put(`/notifications/${id}/read`).then(res => res.data.data || res.data),
+    markAllNotificationsRead: () => apiClient.put('/notifications/read-all').then(res => res.data.data || res.data),
+
+    // Presence API
+    getPresenceStatus: (userId) => apiClient.get(`/presence${userId ? `?user_id=${userId}` : ''}`).then(res => res.data.data || res.data),
+    setUserOnline: () => apiClient.post('/presence/login').then(res => res.data.data || res.data),
+    setUserOffline: () => apiClient.post('/presence/logout').then(res => res.data.data || res.data),
+    updatePresenceHeartbeat: () => apiClient.post('/presence/heartbeat').then(res => res.data.data || res.data),
+
+    // GST Credentials API
+    getGstCredentials: () => apiClient.get('/gst-credentials').then(res => res.data.data || res.data),
+    saveGstCredentials: (creds) => apiClient.post('/gst-credentials', creds).then(res => res.data.data || res.data),
+    requestGstCredentials: (data) => apiClient.post('/gst-credentials/request', data).then(res => res.data.data || res.data),
+    revokeGstCredentials: () => apiClient.put('/gst-credentials/revoke').then(res => res.data.data || res.data),
 
     getTimesheets: () => apiClient.get('/ca/timesheets').then(res => res.data.data || res.data),
     addTimesheet: (session) => apiClient.post('/ca/timesheets', session).then(res => res.data.data || res.data),
@@ -66,8 +86,10 @@ export const caService = {
     getAuditSessions: () => apiClient.get('/ca/audit-sessions').then(res => res.data.data || res.data),
     generateProfessionalInvoice: (invoice) => apiClient.post('/ca/invoices/generate', invoice).then(res => res.data.data || res.data),
     getProfessionalInvoices: () => apiClient.get('/ca/invoices').then(res => res.data.data || res.data),
+    getProfessionalInvoicePdf: (id) => apiClient.get(`/ca/invoices/${id}/pdf`, { responseType: 'text' }).then(res => res.data),
     getEarningsDashboard: () => apiClient.get('/ca/earnings/dashboard').then(res => res.data.data || res.data),
-    payInvoice: (id) => apiClient.post(`/ca/invoices/${id}/pay`).then(res => res.data.data || res.data)
+    payInvoice: (id, paymentMethod) => apiClient.post(`/ca/invoices/${id}/pay`, { paymentMethod }).then(res => res.data.data || res.data),
+    getPaymentHistory: () => apiClient.get('/ca/payment-history').then(res => res.data.data || res.data)
 };
 
 export default caService;
