@@ -29,6 +29,10 @@ export const billingService = {
                 serverData = rawData;
             } else if (rawData?.invoices && Array.isArray(rawData.invoices)) {
                 serverData = rawData.invoices;
+            } else if (rawData?.rows && Array.isArray(rawData.rows)) {
+                serverData = rawData.rows;
+            } else if (rawData?.items && Array.isArray(rawData.items)) {
+                serverData = rawData.items;
             } else if (rawData?.data && Array.isArray(rawData.data)) {
                 serverData = rawData.data;
             }
@@ -36,10 +40,12 @@ export const billingService = {
             const safeLocal = Array.isArray(local) ? local : [];
             
             // Merge unique server/local by ID
-            const serverIds = new Set(serverData.map(i => i?.id?.toString()).filter(Boolean));
-            const uniqueLocal = safeLocal.filter(i => !serverIds.has(i?.id?.toString()));
+            console.log("safeLocal =", safeLocal);
+            console.log("Array.isArray(safeLocal) =", Array.isArray(safeLocal));
+            const serverIds = new Set((Array.isArray(serverData) ? serverData : []).map(i => i?.id?.toString()).filter(Boolean));
+            const uniqueLocal = (Array.isArray(safeLocal) ? safeLocal : []).filter(i => !serverIds.has(i?.id?.toString()));
             
-            return [...uniqueLocal, ...serverData];
+            return [...uniqueLocal, ...(Array.isArray(serverData) ? serverData : [])];
         } catch (error) {
             console.warn('[BillingService] Fallback to local storage invoices due to connection issue.', error);
             const local = getLocalInvoices();
@@ -64,13 +70,13 @@ export const billingService = {
             
             // Persist client-side snapshot
             const local = getLocalInvoices();
-            saveLocalInvoices([savedInvoice, ...local]);
+            saveLocalInvoices([savedInvoice, ...(Array.isArray(local) ? local : [])]);
             
             return savedInvoice;
         } catch (error) {
             console.warn('[BillingService] Error storing invoice, creating locally.', error);
             const local = getLocalInvoices();
-            saveLocalInvoices([localInvoice, ...local]);
+            saveLocalInvoices([localInvoice, ...(Array.isArray(local) ? local : [])]);
             return localInvoice;
         }
     },
@@ -82,7 +88,10 @@ export const billingService = {
             await apiClient.delete(`/billing/invoices/${id}`);
         } finally {
             const local = getLocalInvoices();
-            const filtered = local.filter(i => i.id !== id && i.id?.toString() !== id.toString());
+            console.log("local =", local);
+            console.log("Array.isArray(local) =", Array.isArray(local));
+            const safeLocal = Array.isArray(local) ? local : [];
+            const filtered = safeLocal.filter(i => i.id !== id && i.id?.toString() !== id.toString());
             saveLocalInvoices(filtered);
         }
         return { success: true };

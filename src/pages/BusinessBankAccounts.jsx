@@ -45,8 +45,17 @@ const BusinessBankAccounts = () => {
     }, [searchParams, setSearchParams]);
     
     // State managed via paymentsStore
-    const [accounts, setAccounts] = useState(() => paymentsStore.getBankAccounts());
-    const [transactions, setTransactions] = useState(() => paymentsStore.getTransactions());
+    const [accounts, setAccounts] = useState([]);
+    const [transactions, setTransactions] = useState([]);
+
+    const refreshStoreData = React.useCallback(() => {
+        paymentsStore.getBankAccounts().then(res => setAccounts(Array.isArray(res) ? res : []));
+        paymentsStore.getTransactions().then(res => setTransactions(Array.isArray(res) ? res : []));
+    }, []);
+
+    React.useEffect(() => {
+        refreshStoreData();
+    }, [refreshStoreData]);
 
     // Account Form State
     const [accountForm, setAccountForm] = useState({
@@ -68,19 +77,18 @@ const BusinessBankAccounts = () => {
         notes: ''
     });
 
-    const handleCreateAccount = (e) => {
+    const handleCreateAccount = async (e) => {
         e.preventDefault();
-        paymentsStore.addBankAccount(accountForm);
-        setAccounts(paymentsStore.getBankAccounts());
+        await paymentsStore.addBankAccount(accountForm);
+        refreshStoreData();
         setIsAccountModalOpen(false);
         setAccountForm({ bank_name: '', account_name: '', account_number: '', ifsc_code: '', opening_balance: '' });
     };
 
-    const handleCreateTx = (e) => {
+    const handleCreateTx = async (e) => {
         e.preventDefault();
-        paymentsStore.addTransaction(txForm);
-        setTransactions(paymentsStore.getTransactions());
-        setAccounts(paymentsStore.getBankAccounts()); // Refresh balances
+        await paymentsStore.addTransaction(txForm);
+        refreshStoreData();
         setIsTxModalOpen(false);
         setTxForm({ type: 'income', reference_type: 'sales', reference_id: '', bank_account_id: '', amount: '', payment_method: 'bank', notes: '' });
     };

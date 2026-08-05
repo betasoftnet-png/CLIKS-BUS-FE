@@ -5,6 +5,7 @@ export const inventoryService = {
     const raw = res.data?.data ?? res.data;
     if (Array.isArray(raw)) return raw;
     if (raw?.inventory && Array.isArray(raw.inventory)) return raw.inventory;
+    if (raw?.rows && Array.isArray(raw.rows)) return raw.rows;
     if (raw?.items && Array.isArray(raw.items)) return raw.items;
     if (raw?.data && Array.isArray(raw.data)) return raw.data;
     return [];

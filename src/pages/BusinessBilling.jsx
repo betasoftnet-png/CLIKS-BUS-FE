@@ -235,7 +235,6 @@ const BusinessBilling = () => {
         if (type === 'Quotation') return activeConfig.prefixEstimate || 'EST-';
         return activeConfig.prefixSale || 'INV-';
     }, [activeConfig]);
-    const bankAccounts = paymentsStore.getBankAccounts();
     const [formData, setFormData] = useState(() => ({
         invoice_number: `INV-${Date.now().toString().slice(-6)}`,
         client_name: '',
@@ -518,6 +517,18 @@ const BusinessBilling = () => {
         if (rawCustomers?.data && Array.isArray(rawCustomers.data)) return rawCustomers.data;
         return [];
     }, [rawCustomers]);
+
+    const { data: rawBankAccounts = [] } = useQuery({
+        queryKey: ['bank-accounts'],
+        queryFn: paymentsStore.getBankAccounts
+    });
+    const bankAccounts = React.useMemo(() => {
+        if (Array.isArray(rawBankAccounts)) return rawBankAccounts;
+        if (rawBankAccounts?.accounts && Array.isArray(rawBankAccounts.accounts)) return rawBankAccounts.accounts;
+        if (rawBankAccounts?.bankAccounts && Array.isArray(rawBankAccounts.bankAccounts)) return rawBankAccounts.bankAccounts;
+        if (rawBankAccounts?.data && Array.isArray(rawBankAccounts.data)) return rawBankAccounts.data;
+        return [];
+    }, [rawBankAccounts]);
 
     const activeSelectedCustomer = React.useMemo(() => {
         if (!selectedCustomerObject) return null;
@@ -841,7 +852,18 @@ const BusinessBilling = () => {
         }
     };
 
+    console.log("Invoices =", invoices);
+    console.log("IsArray(invoices) =", Array.isArray(invoices));
+    console.log("Customers =", customers);
+    console.log("IsArray(customers) =", Array.isArray(customers));
+    console.log("Products =", catalogProducts);
+    console.log("IsArray(products) =", Array.isArray(catalogProducts));
+    console.log("Bank Accounts =", bankAccounts);
+    console.log("IsArray(bankAccounts) =", Array.isArray(bankAccounts));
+
     const safeInvoices = Array.isArray(invoices) ? invoices : [];
+    console.log("safeInvoices =", safeInvoices);
+    console.log("Array.isArray(safeInvoices) =", Array.isArray(safeInvoices));
 
     const filteredInvoices = safeInvoices.filter(inv => {
         const matchesSearch = 
@@ -855,6 +877,8 @@ const BusinessBilling = () => {
     });
 
     const totalInvoiced = safeInvoices.reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
+    console.log("safeInvoices for paidInvoiced =", safeInvoices);
+    console.log("Array.isArray(safeInvoices) =", Array.isArray(safeInvoices));
     const paidInvoiced = safeInvoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
     const pendingInvoiced = safeInvoices.filter(inv => inv.status !== 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
 
@@ -1051,7 +1075,9 @@ const BusinessBilling = () => {
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredInvoices.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
+                                {(() => {
+                                    const safeFiltered = Array.isArray(filteredInvoices) ? filteredInvoices : [];
+                                    return safeFiltered.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.75rem 1.25rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1100,7 +1126,8 @@ const BusinessBilling = () => {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                    ));
+                                })()}
                             </tbody>
                         </table>
                     )}
@@ -1216,9 +1243,12 @@ const BusinessBilling = () => {
                                         style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
                                     />
                                     <datalist id="customer-suggestions">
-                                        {customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(c => (
+                                        {(() => {
+                                            const safeCust = Array.isArray(customers) ? customers : [];
+                                            return safeCust.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(c => (
                                             <option key={c.id} value={c.name}>{c.company || 'Personal'}</option>
-                                        ))}
+                                        ));
+                                        })()}
                                     </datalist>
                                 </div>
                                 <div>
@@ -1354,18 +1384,23 @@ const BusinessBilling = () => {
                                                     style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
                                                 />
                                                 <datalist id="inventory-suggestions">
-                                                    {catalogProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
+                                                    {(() => {
+                                                        const safeProds = Array.isArray(catalogProducts) ? catalogProducts : [];
+                                                        return safeProds.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
                                                         <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
                                                             📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
                                                             {activeConfig.displayPurchase && ` - Purchase Price: ${formatCurrency(prod.purchase_price || 0)}`}
                                                             {activeConfig.showLast5Sale && ` - Last Sale: ${formatCurrency(prod.price || prod.sale_price || 0)}`}
                                                             {activeConfig.showLast5Purchase && ` - Last Purchase: ${formatCurrency(prod.purchase_price || 0)}`}
                                                         </option>
-                                                    ))}
-                                                    {/* Legacy Generic Inventory items fallback */}
-                                                    {inventoryItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
+                                                    ));
+                                                    })()}
+                                                    {(() => {
+                                                        const safeInv = Array.isArray(inventoryItems) ? inventoryItems : [];
+                                                        return safeInv.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
                                                         <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
-                                                    ))}
+                                                    ));
+                                                    })()}
                                                 </datalist>
                                             </div>
                                             {activeConfig.enableGst !== false && (
@@ -1463,9 +1498,12 @@ const BusinessBilling = () => {
                                                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
                                             >
                                                 <option value="">-- Select Bank Account --</option>
-                                                {bankAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
-                                                    <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
-                                                ))}
+                                                {(() => {
+                                                     const safeBanks = Array.isArray(bankAccounts) ? bankAccounts : [];
+                                                     return safeBanks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
+                                                     <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
+                                                 ));
+                                                 })()}
                                             </select>
                                         </div>
                                     )}

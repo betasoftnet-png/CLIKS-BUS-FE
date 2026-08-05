@@ -38,7 +38,10 @@ import { useCurrency } from '../context';
 
 const BusinessPurchases = () => {
     const { currency, formatCurrency } = useCurrency();
-    const [bankAccounts, setBankAccounts] = useState(() => paymentsStore.getBankAccounts());
+    const [bankAccounts, setBankAccounts] = useState([]);
+    React.useEffect(() => {
+        paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : []));
+    }, []);
     const [activeTab, setActiveTab] = useState('purchase-orders');
     const [colFilters, setColFilters] = React.useState({}); // 'purchase-orders', 'purchase-bills', 'purchase-returns', 'reports'
     const [searchTerm, setSearchTerm] = useState('');
@@ -309,7 +312,7 @@ const BusinessPurchases = () => {
                 payment_method: formHeader.payment_mode ? formHeader.payment_mode.toLowerCase() : 'cash',
                 notes: `${createDocType} Payment for procurement ${formHeader.purchase_number}`
             });
-            setBankAccounts(paymentsStore.getBankAccounts());
+            paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : []));
         }
 
         createMutation.mutate(docPayload);

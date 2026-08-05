@@ -4,7 +4,14 @@ export const paymentsStore = {
     getBankAccounts: async () => {
         try {
             const res = await apiClient.get('/bank-accounts');
-            return res?.data || [];
+            const raw = res.data?.data ?? res.data;
+            if (Array.isArray(raw)) return raw;
+            if (raw?.accounts && Array.isArray(raw.accounts)) return raw.accounts;
+            if (raw?.bankAccounts && Array.isArray(raw.bankAccounts)) return raw.bankAccounts;
+            if (raw?.rows && Array.isArray(raw.rows)) return raw.rows;
+            if (raw?.items && Array.isArray(raw.items)) return raw.items;
+            if (raw?.data && Array.isArray(raw.data)) return raw.data;
+            return [];
         } catch (err) {
             console.error('[PaymentsStore getBankAccounts Error]', err.message);
             return [];
@@ -24,7 +31,13 @@ export const paymentsStore = {
     getTransactions: async () => {
         try {
             const res = await apiClient.get('/transactions');
-            return res?.data || [];
+            const raw = res.data?.data ?? res.data;
+            if (Array.isArray(raw)) return raw;
+            if (raw?.transactions && Array.isArray(raw.transactions)) return raw.transactions;
+            if (raw?.rows && Array.isArray(raw.rows)) return raw.rows;
+            if (raw?.items && Array.isArray(raw.items)) return raw.items;
+            if (raw?.data && Array.isArray(raw.data)) return raw.data;
+            return [];
         } catch (err) {
             console.error('[PaymentsStore getTransactions Error]', err.message);
             return [];

@@ -8,6 +8,7 @@ export const productsService = {
             const raw = res.data?.data ?? res.data;
             if (Array.isArray(raw)) return raw;
             if (raw?.products && Array.isArray(raw.products)) return raw.products;
+            if (raw?.rows && Array.isArray(raw.rows)) return raw.rows;
             if (raw?.items && Array.isArray(raw.items)) return raw.items;
             if (raw?.data && Array.isArray(raw.data)) return raw.data;
             return [];

@@ -235,7 +235,7 @@ const BusinessGST = () => {
     };
 
     // fallbacks mapping
-    const invoices = dbInvoices
+    const invoices = (Array.isArray(dbInvoices) ? dbInvoices : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
         .map(item => ({
         id: item.id,
@@ -270,7 +270,7 @@ const BusinessGST = () => {
         sender_state: item.sender_state || 'N/A'
     }));
 
-    const reconciliations = dbReconciliations
+    const reconciliations = (Array.isArray(dbReconciliations) ? dbReconciliations : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
         .map(item => ({
         id: item.id,
@@ -295,7 +295,7 @@ const BusinessGST = () => {
         queryFn: () => gstService.getEways()
     });
 
-    const eways = dbEways
+    const eways = (Array.isArray(dbEways) ? dbEways : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
         .map(item => ({
         id: item.id,
