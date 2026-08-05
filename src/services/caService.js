@@ -53,7 +53,7 @@ export const caService = {
     markAllNotificationsRead: () => apiClient.put('/notifications/read-all').then(res => res.data.data || res.data),
 
     // Presence API
-    getPresenceStatus: (userId) => apiClient.get(`/presence${userId ? `?user_id=${userId}` : ''}`).then(res => res.data.data || res.data),
+    getPresenceStatus: (userId) => apiClient.get(`/ca/presence${userId ? `?userId=${userId}&user_id=${userId}` : ''}`).then(res => res.data.data || res.data),
     setUserOnline: () => apiClient.post('/presence/login').then(res => res.data.data || res.data),
     setUserOffline: () => apiClient.post('/presence/logout').then(res => res.data.data || res.data),
     updatePresenceHeartbeat: () => apiClient.post('/presence/heartbeat').then(res => res.data.data || res.data),

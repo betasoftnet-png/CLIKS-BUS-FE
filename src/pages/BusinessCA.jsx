@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
@@ -264,9 +265,9 @@ export default function BusinessCA() {
     const [showSessionPopover, setShowSessionPopover] = useState(false);
     const [chatInputText, setChatInputText] = useState('');
 
-    const { data: caPresenceInfo } = useQuery({
-        queryKey: ['caPresenceInfo'],
-        queryFn: () => caService.getPresenceStatus(),
+    const { data: caPresenceInfo, refetch: refetchCaPresence } = useQuery({
+        queryKey: ['caPresenceInfo', targetChatPartnerId],
+        queryFn: () => caService.getPresenceStatus(targetChatPartnerId),
         refetchInterval: 3000,
         retry: false
     });
@@ -299,6 +300,68 @@ export default function BusinessCA() {
             refetchUnreadCount();
         }
     });
+
+    const [socket, setSocket] = useState(null);
+    const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+
+    useEffect(() => {
+        const socketUrl = window.location.origin.includes('localhost')
+            ? 'http://localhost:8000'
+            : window.location.origin;
+
+        const newSocket = io(socketUrl, {
+            transports: ['websocket', 'polling'],
+            autoConnect: true
+        });
+
+        setSocket(newSocket);
+
+        if (user?.id) {
+            newSocket.emit('user-online', { userId: user.id });
+        }
+
+        newSocket.on('user-online', () => {
+            refetchCaPresence();
+        });
+
+        newSocket.on('user-offline', () => {
+            refetchCaPresence();
+        });
+
+        newSocket.on('typing', ({ senderId }) => {
+            if (String(senderId) === String(targetChatPartnerId)) {
+                setIsPartnerTyping(true);
+            }
+        });
+
+        newSocket.on('stop-typing', ({ senderId }) => {
+            if (String(senderId) === String(targetChatPartnerId)) {
+                setIsPartnerTyping(false);
+            }
+        });
+
+        newSocket.on('receive-message', () => {
+            refetchChatMessages();
+            refetchUnreadCount();
+        });
+
+        return () => {
+            if (user?.id) {
+                newSocket.emit('user-offline', { userId: user.id });
+            }
+            newSocket.disconnect();
+        };
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (socket && targetChatPartnerId && user?.id) {
+            socket.emit('join-conversation', { userId: user.id, partnerId: targetChatPartnerId });
+            if (showChatWindow) {
+                socket.emit('mark-read', { userId: user.id, partnerId: targetChatPartnerId });
+                refetchUnreadCount();
+            }
+        }
+    }, [socket, targetChatPartnerId, showChatWindow, user?.id]);
 
     const saveAuditSessionMutation = useMutation({
         mutationFn: (session) => caService.addAuditSession(session),
