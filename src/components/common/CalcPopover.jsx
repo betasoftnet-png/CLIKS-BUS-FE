@@ -307,9 +307,9 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
 
         if (finalTapeState.length === 0) return;
 
-        // Compute the static final total for this snapshot log
+        // Compute the static final total and attach runningAfter for this snapshot log
         let runningTotal = 0;
-        finalTapeState.forEach((step) => {
+        const fullyComputedTape = finalTapeState.map((step) => {
             const v = parseFloat(step.value || 0);
             if (step.type === 'base') {
                 runningTotal = v;
@@ -326,11 +326,12 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
             } else if (step.type === 'discount') {
                 runningTotal -= runningTotal * (v / 100);
             }
+            return { ...step, runningAfter: runningTotal };
         });
 
         // Save to backend history
         saveMutation.mutate({
-            tape: finalTapeState,
+            tape: fullyComputedTape,
             total: runningTotal,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         });
