@@ -465,29 +465,33 @@ const BusinessBilling = () => {
     };
 
     // Queries
-    const { data: invoices = [], isLoading } = useQuery({
+    const { data: rawInvoices = [], isLoading } = useQuery({
         queryKey: ['invoices'],
         queryFn: billingService.getInvoices
     });
+    const invoices = React.useMemo(() => Array.isArray(rawInvoices) ? rawInvoices : (rawInvoices?.data && Array.isArray(rawInvoices.data) ? rawInvoices.data : []), [rawInvoices]);
 
-    const { data: inventoryItems = [] } = useQuery({
+    const { data: rawInventoryItems = [] } = useQuery({
         queryKey: ['inventory'],
         queryFn: inventoryService.getInventory
     });
+    const inventoryItems = React.useMemo(() => Array.isArray(rawInventoryItems) ? rawInventoryItems : (rawInventoryItems?.data && Array.isArray(rawInventoryItems.data) ? rawInventoryItems.data : []), [rawInventoryItems]);
 
     // 📦 FETCH ACTIVE CORE CATALOG
-    const { data: catalogProducts = [] } = useQuery({
+    const { data: rawCatalogProducts = [] } = useQuery({
         queryKey: ['products'],
         queryFn: () => productsService.getProducts()
     });
+    const catalogProducts = React.useMemo(() => Array.isArray(rawCatalogProducts) ? rawCatalogProducts : (rawCatalogProducts?.data && Array.isArray(rawCatalogProducts.data) ? rawCatalogProducts.data : []), [rawCatalogProducts]);
 
-    const { data: customers = [] } = useQuery({
+    const { data: rawCustomers = [] } = useQuery({
         queryKey: ['business-customers'],
         queryFn: async () => {
             const res = await crmService.getCustomers();
             return res.data || [];
         }
     });
+    const customers = React.useMemo(() => Array.isArray(rawCustomers) ? rawCustomers : (rawCustomers?.data && Array.isArray(rawCustomers.data) ? rawCustomers.data : []), [rawCustomers]);
 
     const activeSelectedCustomer = React.useMemo(() => {
         if (!selectedCustomerObject) return null;
@@ -955,7 +959,7 @@ const BusinessBilling = () => {
                     { label: 'Total Invoiced', value: formatCurrency(totalInvoiced), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Paid Revenue', value: formatCurrency(paidInvoiced), icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' },
                     { label: 'Outstanding Balance', value: formatCurrency(pendingInvoiced), icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Active Clients', value: new Set(invoices.map(i => i.client_name)).size, icon: User, color: '#3B82F6', bg: '#EFF6FF' }
+                    { label: 'Active Clients', value: new Set((invoices || []).map(i => i.client_name)).size, icon: User, color: '#3B82F6', bg: '#EFF6FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
