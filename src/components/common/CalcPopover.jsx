@@ -22,6 +22,7 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
     const [activeLabel, setActiveLabel] = useState("");
     const [currentSessionId, setCurrentSessionId] = useState(null); // Tracks the active session in backend
     const [currentCompareSessionId, setCurrentCompareSessionId] = useState(null);
+    const [showCmpHistory, setShowCmpHistory] = useState(false);
 
     // Smart Bar UI States
     const [showSmartOptions, setShowSmartOptions] = useState(null);
@@ -35,6 +36,12 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
         queryKey: ['calculator-history'],
         queryFn: calculatorService.getHistory,
         enabled: open || isInline
+    });
+
+    const { data: compareHistory = [] } = useQuery({
+        queryKey: ['compare-history'],
+        queryFn: calculatorService.getCompareHistory,
+        enabled: (open || isInline) && compareMode
     });
 
     // Mutations
@@ -55,15 +62,20 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
 
     const createCmpSessionMut = useMutation({
         mutationFn: calculatorService.createCompareSession,
-        onSuccess: (data) => setCurrentCompareSessionId(data.id)
+        onSuccess: (data) => {
+            setCurrentCompareSessionId(data.id);
+            queryClient.invalidateQueries({ queryKey: ['compare-history'] });
+        }
     });
     
     const addCmpItemMut = useMutation({
-        mutationFn: ({ sessionId, data }) => calculatorService.addCompareItem(sessionId, data)
+        mutationFn: ({ sessionId, data }) => calculatorService.addCompareItem(sessionId, data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['compare-history'] })
     });
 
     const removeCmpItemMut = useMutation({
-        mutationFn: ({ sessionId, itemId }) => calculatorService.deleteCompareItem(sessionId, itemId)
+        mutationFn: ({ sessionId, itemId }) => calculatorService.deleteCompareItem(sessionId, itemId),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['compare-history'] })
     });
 
     const [sciMode, setSciMode] = useState(false);
@@ -979,6 +991,12 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                         <span style={{ fontSize: '10px', fontWeight: '900', color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.8px' }}>⚖️ Price Comparison</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <button 
+                                                onClick={() => setShowCmpHistory(!showCmpHistory)}
+                                                style={{ background: showCmpHistory ? '#E0E7FF' : 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: showCmpHistory ? '#4338CA' : '#6366F1', fontWeight: '800', padding: '4px 6px', borderRadius: '4px', textTransform: 'uppercase' }}
+                                            >
+                                                HISTORY
+                                            </button>
                                             {hasCompareData && (
                                                 <button onClick={cmpClearAll} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '9px', color: '#EF4444', fontWeight: '800', padding: '2px 4px', textTransform: 'uppercase' }}>CLEAR ALL</button>
                                             )}
@@ -995,7 +1013,40 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                    {showCmpHistory ? (
+                                        <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 0' }} className="custom-scrollbar">
+                                            {compareHistory.length === 0 ? (
+                                                <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: '11px', padding: '20px 0' }}>No comparison history found</div>
+                                            ) : compareHistory.map(hist => {
+                                                const totalA = hist.items?.reduce((s, i) => s + parseFloat(i.vendorA_Value || 0), 0) || 0;
+                                                const totalB = hist.items?.reduce((s, i) => s + parseFloat(i.vendorB_Value || 0), 0) || 0;
+                                                return (
+                                                    <div key={hist.id} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: '10px', fontWeight: '800', color: '#475569', marginBottom: '2px' }}>{hist.title}</div>
+                                                            <div style={{ fontSize: '9px', color: '#64748B' }}>Items: {hist.items?.length || 0} | A: ₹{totalA.toLocaleString('en-IN')} | B: ₹{totalB.toLocaleString('en-IN')}</div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => {
+                                                                setCurrentCompareSessionId(hist.id);
+                                                                setCmpItems((hist.items || []).map(item => ({
+                                                                    id: item.id,
+                                                                    desc: item.label || 'Item',
+                                                                    valA: parseFloat(item.vendorA_Value || 0),
+                                                                    valB: parseFloat(item.vendorB_Value || 0)
+                                                                })));
+                                                                setShowCmpHistory(false);
+                                                            }}
+                                                            style={{ background: '#EEF2FF', color: '#4338CA', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '9px', fontWeight: '800', cursor: 'pointer' }}
+                                                        >
+                                                            RESTORE
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                         <div style={{ display: 'flex', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', padding: '6px 8px', fontSize: '10px', fontWeight: '800', color: '#64748B' }}>
                                             <div style={{ flex: 1.8, minWidth: 0, textAlign: 'left' }}>Description</div>
                                             <div style={{ flex: 1.1, minWidth: 0, textAlign: 'right', color: '#3B82F6' }}>Side A</div>
@@ -1063,8 +1114,9 @@ export function CalcPopover({ isInline = false, onCloseInline } = {}) {
                                             >+</button>
                                         </div>
                                     </div>
+                                    )}
 
-                                    {hasCompareData && (
+                                    {hasCompareData && !showCmpHistory && (
                                         <div style={{ marginTop: '8px', display: 'flex', gap: '4px' }}>
                                             <div style={{ flex: 1, background: 'white', borderRadius: '8px', padding: '4px 8px', fontSize: '9px', fontWeight: '700', color: '#475569', border: '1px solid #E0E7FF', textAlign: 'center', boxShadow: '0 1px 3px rgba(99,102,241,0.06)' }}>
                                                 Diff&nbsp;<span style={{ color: '#6366F1', fontWeight: '900' }}>₹{compareDiff.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>

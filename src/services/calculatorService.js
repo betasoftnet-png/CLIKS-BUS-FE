@@ -153,8 +153,14 @@ export const calculatorService = {
   
   // Compare Mode APIs
   getCompareHistory: async () => {
-      const res = await calcApi.get('/compare/history');
-      return res?.data;
+      try {
+          const res = await calcApi.get('/compare/history');
+          const data = res?.data;
+          return Array.isArray(data) ? data : (data?.rows || []);
+      } catch (err) {
+          console.error("Error fetching compare history:", err);
+          return [];
+      }
   },
   getCompareSession: async (id) => {
       const res = await calcApi.get(`/compare/sessions/${id}`);
