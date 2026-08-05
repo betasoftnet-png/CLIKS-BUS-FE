@@ -234,6 +234,12 @@ export default function BusinessCA() {
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
     const [newTaskAskForDocument, setNewTaskAskForDocument] = useState(false);
 
+    // Chat & Session Popover States
+    const [showChatWindow, setShowChatWindow] = useState(false);
+    const [showSessionPopover, setShowSessionPopover] = useState(false);
+    const [showAuditHistory, setShowAuditHistory] = useState(false);
+    const [chatInputText, setChatInputText] = useState('');
+
     // --- Billing & Audit Session States ---
     const [auditStartTime, setAuditStartTime] = useState(null);
     const [auditStopTime, setAuditStopTime] = useState(null);
@@ -259,12 +265,6 @@ export default function BusinessCA() {
         enabled: personalTab === 'documents',
         retry: false
     });
-
-    // Chat & Session Popover States
-    const [showChatWindow, setShowChatWindow] = useState(false);
-    const [showSessionPopover, setShowSessionPopover] = useState(false);
-    const [showAuditHistory, setShowAuditHistory] = useState(false);
-    const [chatInputText, setChatInputText] = useState('');
 
     const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
     const targetChatPartnerId = (user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm')
