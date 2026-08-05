@@ -23,17 +23,20 @@ export const billingService = {
         const cleanParams = params && !params.queryKey ? params : undefined;
         try {
             const res = await apiClient.get('/billing/invoices', { params: cleanParams });
-            const serverData = res.data?.data || res.data || [];
+            const rawData = res.data?.data ?? res.data;
+            const serverData = Array.isArray(rawData) ? rawData : [];
             const local = getLocalInvoices();
+            const safeLocal = Array.isArray(local) ? local : [];
             
             // Merge unique server/local by ID
-            const serverIds = new Set(serverData.map(i => i.id?.toString()));
-            const uniqueLocal = local.filter(i => !serverIds.has(i.id?.toString()));
+            const serverIds = new Set(serverData.map(i => i?.id?.toString()).filter(Boolean));
+            const uniqueLocal = safeLocal.filter(i => !serverIds.has(i?.id?.toString()));
             
             return [...uniqueLocal, ...serverData];
         } catch (error) {
             console.warn('[BillingService] Fallback to local storage invoices due to connection issue.', error);
-            return getLocalInvoices();
+            const local = getLocalInvoices();
+            return Array.isArray(local) ? local : [];
         }
     },
     

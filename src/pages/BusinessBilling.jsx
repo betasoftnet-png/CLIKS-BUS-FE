@@ -811,7 +811,9 @@ const BusinessBilling = () => {
         }
     };
 
-    const filteredInvoices = invoices.filter(inv => {
+    const safeInvoices = Array.isArray(invoices) ? invoices : [];
+
+    const filteredInvoices = safeInvoices.filter(inv => {
         const matchesSearch = 
             (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -822,9 +824,9 @@ const BusinessBilling = () => {
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    const totalInvoiced = invoices.reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
-    const paidInvoiced = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
-    const pendingInvoiced = invoices.filter(inv => inv.status !== 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
+    const totalInvoiced = safeInvoices.reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
+    const paidInvoiced = safeInvoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
+    const pendingInvoiced = safeInvoices.filter(inv => inv.status !== 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
 
     const handleSendReminder = (invoice) => {
         const message = `Hello ${invoice.client_name},\n\nThis is a friendly reminder regarding your invoice *${invoice.invoice_number}* for *${formatCurrency(invoice.total_amount || invoice.amount)}*.\n\nDue Date: ${invoice.due_date}\nStatus: ${invoice.status.toUpperCase()}\n\nPlease make the payment at your earliest convenience.\n\nThank you,\nCLIKS BUSINESS`;
