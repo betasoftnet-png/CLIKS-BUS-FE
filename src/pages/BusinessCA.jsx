@@ -2998,126 +2998,201 @@ export default function BusinessCA() {
 
                             {/* 6. TIME TRACKING TAB */}
                             {personalTab === 'timetracking' && (
-                                <Motion.div key="timetracking" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <div style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-                                        {/* Professional Timer Widget */}
-                                        <div style={{ background: '#FFFFFF', padding: '32px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'center' }}>
-                                            <div>
-                                                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A', margin: 0 }}>⏱️ Audit Session Timer</h2>
-                                                <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Track your professional audit hours for billing.</p>
-                                            </div>
+                                <Motion.div key="timetracking" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }}>
+                                    {(() => {
+                                        const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
+                                        const clientName = activeClientObj.name || 'uhgk';
+                                        const clientEmail = activeClientObj.email || `${clientName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
+                                        const initialLetter = (clientName[0] || 'U').toUpperCase();
 
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', textAlign: 'left' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
-                                                    <select
-                                                        value={timerClient}
-                                                        onChange={e => setTimerClient(e.target.value)}
-                                                        disabled={isTimerRunning || timerSeconds > 0}
-                                                        style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', outline: 'none', background: (isTimerRunning || timerSeconds > 0) ? '#F1F5F9' : '#FFFFFF' }}
-                                                    >
-                                                        {allPracticeClients.map(c => (
-                                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>AUDIT DATE</label>
-                                                    <div style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '750', color: '#475569', background: '#F8FAFC' }}>
-                                                        {new Date().toLocaleDateString()}
+                                        return (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', width: '100%', alignItems: 'start' }}>
+                                                {/* LEFT COLUMN: Business Owner Details */}
+                                                <div style={{ background: '#FFFFFF', padding: '28px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ color: '#0284C7', fontSize: '18px' }}>👤</span>
+                                                        <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#0F172A', margin: 0 }}>Business Owner Details</h2>
+                                                    </div>
+
+                                                    {/* Profile Banner */}
+                                                    <div style={{ background: '#F0FDF4', padding: '16px 20px', borderRadius: '16px', border: '1px solid #DCFCE7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#DCFCE7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '900', border: '2px solid #BBF7D0' }}>
+                                                                {initialLetter}
+                                                            </div>
+                                                            <div>
+                                                                <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#0F172A', margin: 0 }}>{clientName}</h3>
+                                                                <div style={{ fontSize: '12.5px', color: '#64748B', marginTop: '2px', fontWeight: '600' }}>{clientEmail}</div>
+                                                            </div>
+                                                        </div>
+                                                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#15803d', background: '#DCFCE7', padding: '4px 10px', borderRadius: '12px', border: '1px solid #BBF7D0' }}>
+                                                            Active Client
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Attributes List */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>🏢 Business Name</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800' }}>{activeClientObj.business_name || activeClientObj.company || clientName.toLowerCase()}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>🧾 GSTIN</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800', fontFamily: 'monospace' }}>{activeClientObj.gstin || '07ABCDE1234F1Z5'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>📋 Business Type</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800' }}>{activeClientObj.business_type || 'Proprietorship'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>✉️ Email</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800' }}>{clientEmail}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>📞 Mobile</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800' }}>{activeClientObj.phone || activeClientObj.mobile || '9876543210'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>📍 Address</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800', textAlign: 'right', maxWidth: '240px' }}>{activeClientObj.address || '123 Business Street, New Delhi, Delhi - 110001, India'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>🪪 PAN</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800', fontFamily: 'monospace' }}>{activeClientObj.pan || 'ABCDE1234F'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '10px' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>📅 Date of Onboarding</span>
+                                                            <span style={{ color: '#0F172A', fontWeight: '800' }}>{activeClientObj.created_at ? new Date(activeClientObj.created_at).toLocaleDateString() : '01/08/2026'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span style={{ color: '#64748B', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>🔘 Status</span>
+                                                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#15803d', background: '#DCFCE7', padding: '3px 8px', borderRadius: '12px' }}>
+                                                                {activeClientObj.status || 'Active'}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            {/* Big Digital Clock */}
-                                            <div style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0', padding: '40px 20px', borderRadius: '20px', margin: '10px 0' }}>
-                                                <div style={{ fontFamily: 'monospace', fontSize: '64px', fontWeight: '950', color: isTimerRunning ? '#15803d' : '#334155', letterSpacing: '2px' }}>
-                                                    {formatTime(timerSeconds)}
+                                                {/* RIGHT COLUMN: Audit Session Timer */}
+                                                <div style={{ background: '#FFFFFF', padding: '32px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'center' }}>
+                                                    <div>
+                                                        <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0F172A', margin: 0 }}>⏱️ Audit Session Timer</h2>
+                                                        <p style={{ fontSize: '14px', color: '#64748B', marginTop: '4px' }}>Track your professional audit hours for billing.</p>
+                                                    </div>
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', textAlign: 'left' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                            <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>SELECT CLIENT</label>
+                                                            <select
+                                                                value={timerClient}
+                                                                onChange={e => setTimerClient(e.target.value)}
+                                                                disabled={isTimerRunning || timerSeconds > 0}
+                                                                style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', outline: 'none', background: (isTimerRunning || timerSeconds > 0) ? '#F1F5F9' : '#FFFFFF' }}
+                                                            >
+                                                                {allPracticeClients.map(c => (
+                                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                            <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>AUDIT DATE</label>
+                                                            <div style={{ padding: '12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '750', color: '#475569', background: '#F8FAFC' }}>
+                                                                {new Date().toLocaleDateString()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Big Digital Clock */}
+                                                    <div style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0', padding: '40px 20px', borderRadius: '20px', margin: '10px 0' }}>
+                                                        <div style={{ fontFamily: 'monospace', fontSize: '64px', fontWeight: '950', color: isTimerRunning ? '#15803d' : '#334155', letterSpacing: '2px' }}>
+                                                            {formatTime(timerSeconds)}
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: isTimerRunning ? '#16A34A' : '#94A3B8', fontWeight: '800', marginTop: '12px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isTimerRunning ? '#16A34A' : '#94A3B8', display: 'inline-block' }} className={isTimerRunning ? 'animate-pulse' : ''}></span>
+                                                            {isTimerRunning ? 'Live Audit in Progress' : (timerSeconds > 0 ? 'Audit Paused' : 'Ready to Start')}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Primary Controls */}
+                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                        {!isTimerRunning && timerSeconds === 0 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setIsTimerRunning(true);
+                                                                    setAuditStartTime(new Date().toISOString());
+                                                                }}
+                                                                style={{ flex: 1, padding: '16px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
+                                                            >
+                                                                <Play size={20} fill="currentColor" /> Start Audit Session
+                                                            </button>
+                                                        )}
+
+                                                        {isTimerRunning && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsTimerRunning(false)}
+                                                                style={{ flex: 1, padding: '16px', background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                                            >
+                                                                <Square size={18} fill="currentColor" /> Pause Audit
+                                                            </button>
+                                                        )}
+
+                                                        {!isTimerRunning && timerSeconds > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsTimerRunning(true)}
+                                                                style={{ flex: 1, padding: '16px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                                            >
+                                                                <Play size={20} fill="currentColor" /> Resume Audit
+                                                            </button>
+                                                        )}
+
+                                                        {timerSeconds > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const stopTime = new Date().toISOString();
+                                                                    setAuditStopTime(stopTime);
+                                                                    setIsTimerRunning(false);
+
+                                                                    saveAuditSessionMutation.mutate({
+                                                                        clientId: timerClient,
+                                                                        startTime: auditStartTime,
+                                                                        stopTime: stopTime,
+                                                                        durationSeconds: timerSeconds,
+                                                                        auditDate: new Date().toISOString().split('T')[0]
+                                                                    });
+
+                                                                    // Reset local timer
+                                                                    setTimerSeconds(0);
+                                                                    setAuditStartTime(null);
+                                                                    setPersonalTab('documents'); // Navigate to Professional Billing (CA page)
+                                                                }}
+                                                                style={{ padding: '16px 24px', background: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                            >
+                                                                Stop & Save
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {timerSeconds > 0 && !isTimerRunning && (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Discard this session? All progress will be lost.')) {
+                                                                    setTimerSeconds(0);
+                                                                    setAuditStartTime(null);
+                                                                }
+                                                            }}
+                                                            style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: '750', cursor: 'pointer', textDecoration: 'underline' }}
+                                                        >
+                                                            Discard Session
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                <div style={{ fontSize: '12px', color: isTimerRunning ? '#16A34A' : '#94A3B8', fontWeight: '800', marginTop: '12px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: isTimerRunning ? '#16A34A' : '#94A3B8', display: 'inline-block' }} className={isTimerRunning ? 'animate-pulse' : ''}></span>
-                                                    {isTimerRunning ? 'Live Audit in Progress' : (timerSeconds > 0 ? 'Audit Paused' : 'Ready to Start')}
-                                                </div>
                                             </div>
-
-                                            {/* Primary Controls */}
-                                            <div style={{ display: 'flex', gap: '12px' }}>
-                                                {!isTimerRunning && timerSeconds === 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIsTimerRunning(true);
-                                                            setAuditStartTime(new Date().toISOString());
-                                                        }}
-                                                        style={{ flex: 1, padding: '16px', background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(21, 128, 61, 0.2)' }}
-                                                    >
-                                                        <Play size={20} fill="currentColor" /> Start Audit Session
-                                                    </button>
-                                                )}
-
-                                                {isTimerRunning && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsTimerRunning(false)}
-                                                        style={{ flex: 1, padding: '16px', background: '#D97706', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                                    >
-                                                        <Square size={18} fill="currentColor" /> Pause Audit
-                                                    </button>
-                                                )}
-
-                                                {!isTimerRunning && timerSeconds > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsTimerRunning(true)}
-                                                        style={{ flex: 1, padding: '16px', background: '#0284C7', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                                    >
-                                                        <Play size={20} fill="currentColor" /> Resume Audit
-                                                    </button>
-                                                )}
-
-                                                {timerSeconds > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const stopTime = new Date().toISOString();
-                                                            setAuditStopTime(stopTime);
-                                                            setIsTimerRunning(false);
-
-                                                            saveAuditSessionMutation.mutate({
-                                                                clientId: timerClient,
-                                                                startTime: auditStartTime,
-                                                                stopTime: stopTime,
-                                                                durationSeconds: timerSeconds,
-                                                                auditDate: new Date().toISOString().split('T')[0]
-                                                            });
-
-                                                            // Reset local timer
-                                                            setTimerSeconds(0);
-                                                            setAuditStartTime(null);
-                                                            setPersonalTab('documents'); // Navigate to Professional Billing (CA page)
-                                                        }}
-                                                        style={{ padding: '16px 24px', background: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                    >
-                                                        Stop & Save
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {timerSeconds > 0 && !isTimerRunning && (
-                                                <button
-                                                    onClick={() => {
-                                                        if (confirm('Discard this session? All progress will be lost.')) {
-                                                            setTimerSeconds(0);
-                                                            setAuditStartTime(null);
-                                                        }
-                                                    }}
-                                                    style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: '750', cursor: 'pointer', textDecoration: 'underline' }}
-                                                >
-                                                    Discard Session
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
                                 </Motion.div>
                             )}
 
