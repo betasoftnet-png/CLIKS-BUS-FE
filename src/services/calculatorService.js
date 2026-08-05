@@ -57,19 +57,27 @@ export const calculatorService = {
         const rows = Array.isArray(data) ? data : data?.rows || [];
         
         // Map backend session shape to what CalcPopover expects
-        return rows.map(r => ({
-          ...r,
-          id: r.id,
-          timestamp: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : (r.title || 'Saved'),
-          total: r.total || 0, // Fallback if backend doesn't send total in history
-          tape: (r.items || []).map(item => ({
-            id: item.id,
-            type: item.operator === '=' ? 'base' : item.operator,
-            value: Number(item.value),
-            label: item.label,
-            runningAfter: Number(item.runningTotal)
-          }))
-        }));
+        return rows.map(r => {
+          const tapeItems = r.items || [];
+          // Compute the total from the last item in the tape
+          const computedTotal = tapeItems.length > 0 
+            ? Number(tapeItems[tapeItems.length - 1].runningTotal || tapeItems[tapeItems.length - 1].value) 
+            : 0;
+
+          return {
+            ...r,
+            id: r.id,
+            timestamp: r.createdAt ? new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : (r.title || 'Saved'),
+            total: computedTotal,
+            tape: tapeItems.map(item => ({
+              id: item.id,
+              type: item.operator === '=' ? 'base' : item.operator,
+              value: Number(item.value),
+              label: item.label,
+              runningAfter: Number(item.runningTotal)
+            }))
+          };
+        });
     } catch (err) {
         console.error("Error fetching history:", err);
         return [];
