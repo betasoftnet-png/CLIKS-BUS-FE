@@ -271,18 +271,20 @@ export default function BusinessCA() {
         retry: false
     });
 
-    const connectedCaPartnerId = outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1;
+    const targetChatPartnerId = (user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm')
+        ? (timerClient || allPracticeClients[0]?.business_owner_id || allPracticeClients[0]?.id || 1)
+        : (outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1);
 
     const { data: chatMessagesList = [], refetch: refetchChatMessages } = useQuery({
-        queryKey: ['chatMessages', connectedCaPartnerId],
-        queryFn: () => connectedCaPartnerId ? caService.getChatMessages(connectedCaPartnerId) : Promise.resolve([]),
-        enabled: !!connectedCaPartnerId && showChatWindow,
+        queryKey: ['chatMessages', targetChatPartnerId],
+        queryFn: () => targetChatPartnerId ? caService.getChatMessages(targetChatPartnerId) : Promise.resolve([]),
+        enabled: !!targetChatPartnerId && showChatWindow,
         refetchInterval: 2000,
         retry: false
     });
 
     const sendChatMessageMutation = useMutation({
-        mutationFn: (msg) => caService.sendChatMessage({ receiverId: connectedCaPartnerId, message: msg }),
+        mutationFn: (msg) => caService.sendChatMessage({ receiverId: targetChatPartnerId, message: msg }),
         onSuccess: () => {
             setChatInputText('');
             refetchChatMessages();
@@ -3164,9 +3166,30 @@ export default function BusinessCA() {
                                                                 <div style={{ fontSize: '12.5px', color: '#64748B', marginTop: '2px', fontWeight: '600' }}>{clientEmail}</div>
                                                             </div>
                                                         </div>
-                                                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#15803d', background: '#DCFCE7', padding: '4px 10px', borderRadius: '12px', border: '1px solid #BBF7D0' }}>
-                                                            Active Client
-                                                        </span>
+                                                        {/* Right Section: Active Client Badge & Messenger Chat Symbol */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#15803d', background: '#DCFCE7', padding: '4px 10px', borderRadius: '12px', border: '1px solid #BBF7D0' }}>
+                                                                Active Client
+                                                            </span>
+
+                                                            {/* Messenger Chat Icon */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowChatWindow(!showChatWindow)}
+                                                                style={{ position: 'relative', background: '#FFFFFF', border: '1px solid #BBF7D0', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                                                                title="Direct Chat with Client / CA"
+                                                            >
+                                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M12 2C6.477 2 2 6.145 2 11.258C2 14.17 3.428 16.746 5.666 18.397V22L9.043 20.145C9.996 20.407 10.982 20.548 12 20.548C17.523 20.548 22 16.403 22 11.29C22 6.177 17.523 2 12 2Z" stroke="#004aad" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                    <path d="M7 13.5L10.5 9.5L13.5 12.5L17 8.5" stroke="#004aad" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                </svg>
+                                                                {(unreadChatData?.unreadCount || 0) > 0 && (
+                                                                    <span style={{ position: 'absolute', top: '-2px', right: '-2px', background: '#EF4444', color: '#FFFFFF', fontSize: '10px', fontWeight: '900', borderRadius: '50%', minWidth: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #FFFFFF' }}>
+                                                                        {unreadChatData?.unreadCount}
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     {/* Attributes List */}
@@ -5107,7 +5130,9 @@ export default function BusinessCA() {
                                 💬
                             </div>
                             <div>
-                                <h4 style={{ fontSize: '14px', fontWeight: '850', margin: 0, color: '#FFFFFF' }}>FIN-PRO Direct Messenger</h4>
+                                <h4 style={{ fontSize: '14px', fontWeight: '850', margin: 0, color: '#FFFFFF' }}>
+                                    {user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm' ? 'Direct Messenger (Client Chat)' : 'FIN-PRO Direct Messenger'}
+                                </h4>
                                 <span style={{ fontSize: '11px', color: '#93C5FD', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: caPresenceInfo?.status === 'Online' ? '#4ADE80' : '#94A3B8' }}></span>
                                     {caPresenceInfo?.status === 'Online' ? 'Online' : 'Offline'}
