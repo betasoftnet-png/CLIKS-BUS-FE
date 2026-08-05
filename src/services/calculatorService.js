@@ -162,6 +162,10 @@ export const calculatorService = {
           return [];
       }
   },
+  deleteAllCompareHistory: async () => {
+      const res = await calcApi.delete('/compare/history');
+      return res?.data;
+  },
   getCompareSession: async (id) => {
       const res = await calcApi.get(`/compare/sessions/${id}`);
       return res?.data;
@@ -180,6 +184,10 @@ export const calculatorService = {
   },
   deleteCompareItem: async (sessionId, itemId) => {
       const res = await calcApi.delete(`/compare/sessions/${sessionId}/items/${itemId}`);
+      return res?.data;
+  },
+  deleteCompareSession: async (id) => {
+      const res = await calcApi.delete(`/compare/sessions/${id}`);
       return res?.data;
   }
 };
