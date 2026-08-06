@@ -76,6 +76,7 @@ const BusinessBilling = () => {
     const [selectedHistoryInvoice, setSelectedHistoryInvoice] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [selectedCustomerObject, setSelectedCustomerObject] = useState(null);
+    const [fetchedLoyaltyCustomer, setFetchedLoyaltyCustomer] = useState(null);
     const [activeTemplate, setActiveTemplate] = useState('premium_corporate'); // standard, premium_corporate, modern, minimal
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
@@ -530,10 +531,38 @@ const BusinessBilling = () => {
         return [];
     }, [rawBankAccounts]);
 
+    React.useEffect(() => {
+        const email = formData.client_email ? String(formData.client_email).trim() : '';
+        if (!email || !email.includes('@')) {
+            setFetchedLoyaltyCustomer(null);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            crmService.lookupCustomerByEmail(email).then(res => {
+                if (res && res.exists) {
+                    setFetchedLoyaltyCustomer({
+                        id: res.user_id,
+                        email: res.email,
+                        name: res.customer_name || formData.client_name,
+                        loyalty_points: res.loyalty_points || 0
+                    });
+                } else {
+                    setFetchedLoyaltyCustomer(null);
+                }
+            }).catch(() => {
+                setFetchedLoyaltyCustomer(null);
+            });
+        }, 200);
+
+        return () => clearTimeout(timer);
+    }, [formData.client_email, formData.client_name]);
+
     const activeSelectedCustomer = React.useMemo(() => {
+        if (fetchedLoyaltyCustomer) return fetchedLoyaltyCustomer;
         if (!selectedCustomerObject) return null;
         return customers.find(c => c.id === selectedCustomerObject.id) || selectedCustomerObject;
-    }, [customers, selectedCustomerObject]);
+    }, [customers, selectedCustomerObject, fetchedLoyaltyCustomer]);
 
 
 
@@ -646,6 +675,7 @@ const BusinessBilling = () => {
         setEditingInvoice(null);
         setShowLivePreview(false); // Reset live preview mode
         setSelectedCustomerObject(null);
+        setFetchedLoyaltyCustomer(null);
         const prefix = activeConfig.prefixSale || 'INV-';
         setFormData({
             invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,

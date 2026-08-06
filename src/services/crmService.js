@@ -48,6 +48,17 @@ export const crmService = {
             console.error('[CRM Service Delete Error]', error.message);
             throw error;
         }
+    },
+
+    lookupCustomerByEmail: async (email) => {
+        try {
+            if (!email || !String(email).trim()) return { exists: false, loyalty_points: 0 };
+            const res = await apiClient.get('/customers/lookup', { params: { email: String(email).trim() } });
+            return res.data?.data ?? res.data ?? { exists: false, loyalty_points: 0 };
+        } catch (error) {
+            console.error('[CRM Service Lookup Error]', error.message);
+            return { exists: false, loyalty_points: 0 };
+        }
     }
 };
 
