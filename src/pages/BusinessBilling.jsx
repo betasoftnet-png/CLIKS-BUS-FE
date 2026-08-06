@@ -1482,7 +1482,7 @@ const BusinessBilling = () => {
                                         </div>
                                     </div>
 
-                                    {(formData.payment_mode === 'Bank' || formData.payment_mode === 'UPI') && (
+                                    {formData.payment_mode === 'Bank' && (
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Select Bank Account</label>
                                             <select 
@@ -1499,6 +1499,19 @@ const BusinessBilling = () => {
                                                  ));
                                                  })()}
                                             </select>
+                                        </div>
+                                    )}
+
+                                    {formData.payment_mode === 'UPI' && (
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>UPI ID</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.upi_id || ''}
+                                                onChange={(e) => setFormData({...formData, upi_id: e.target.value})}
+                                                placeholder="Enter your UPI ID"
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
+                                            />
                                         </div>
                                     )}
 
