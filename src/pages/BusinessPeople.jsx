@@ -10,7 +10,7 @@ import {
     Building2, 
     Phone, 
     Mail, 
-    X, 
+    X,
     Trash2, 
     ChevronRight, 
     ArrowLeftRight, 
@@ -204,7 +204,25 @@ const BusinessPeople = () => {
     // ── Mutations ───────────────────────────────────────────────────────────
     const createContactMutation = useMutation({
         mutationFn: (data) => peopleService.createPerson(data),
-        onSuccess: () => {
+        onSuccess: (res, variables) => {
+            const newPerson = res?.data?.data || res?.data || res || {};
+            const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+            if (contactApiBase) {
+                fetch(`${contactApiBase}/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        externalId: newPerson.id || newPerson.person_id ? String(newPerson.id || newPerson.person_id) : undefined,
+                        name: variables.name,
+                        phonenumber: variables.phone,
+                        email: variables.email,
+                        role: variables.role_type || 'network'
+                    })
+                }).catch(err => console.error('Failed to sync network contact to Bit-Tool:', err));
+            }
             queryClient.invalidateQueries(['people-list']);
             setIsContactModalOpen(false);
             setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
@@ -214,7 +232,23 @@ const BusinessPeople = () => {
 
     const updateContactMutation = useMutation({
         mutationFn: (variables) => peopleService.updatePerson(variables.id, variables.data),
-        onSuccess: (_, variables) => {
+        onSuccess: (res, variables) => {
+            const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+            if (contactApiBase) {
+                fetch(`${contactApiBase}/external/${variables.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        name: variables.data.name,
+                        phonenumber: variables.data.phone,
+                        email: variables.data.email,
+                        role: variables.data.role_type || 'network'
+                    })
+                }).catch(err => console.error('Failed to update network contact in Bit-Tool:', err));
+            }
             queryClient.invalidateQueries(['people-list']);
             queryClient.invalidateQueries(['person-detail', variables.id]);
             setIsContactModalOpen(false);
