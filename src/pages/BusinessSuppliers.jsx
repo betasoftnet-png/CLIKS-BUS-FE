@@ -242,7 +242,25 @@ const BusinessSuppliers = () => {
 
     const createMutation = useMutation({
         mutationFn: (data) => suppliersService.createSupplier(data),
-        onSuccess: () => {
+        onSuccess: (res, variables) => {
+            const newSupplier = res?.data?.data || res?.data || res || {};
+            const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+            if (contactApiBase) {
+                fetch(`${contactApiBase}/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        externalId: newSupplier.id || newSupplier.supplier_id ? String(newSupplier.id || newSupplier.supplier_id) : undefined,
+                        name: variables.name,
+                        phonenumber: variables.phone,
+                        email: variables.email,
+                        role: 'Supplier'
+                    })
+                }).catch(err => console.error('Failed to sync supplier to Bit-Tool:', err));
+            }
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
             alert('Supplier registered and master profile initialized!');
             setIsModalOpen(false);
@@ -251,7 +269,23 @@ const BusinessSuppliers = () => {
 
     const updateMutation = useMutation({
         mutationFn: ({ id, data }) => suppliersService.updateSupplier(id, data),
-        onSuccess: () => {
+        onSuccess: (res, variables) => {
+            const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+            if (contactApiBase) {
+                fetch(`${contactApiBase}/external/${variables.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        name: variables.data.name,
+                        phonenumber: variables.data.phone,
+                        email: variables.data.email,
+                        role: 'Supplier'
+                    })
+                }).catch(err => console.error('Failed to update supplier in Bit-Tool:', err));
+            }
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
             alert('Supplier profile details successfully updated!');
             setIsModalOpen(false);
