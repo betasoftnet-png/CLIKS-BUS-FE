@@ -334,13 +334,14 @@ const BusinessCRM = () => {
         try {
             setLoading(true);
             const res = await crmService.getCustomers();
-            if (res && res.success) {
-                const mapped = (res.data || []).map(c => ({
-                    ...c,
-                    current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
-                }));
-                setCustomers(mapped);
-            }
+            const rawList = Array.isArray(res) 
+                ? res 
+                : (res?.data || res?.customers || res?.rows || res?.items || []);
+            const mapped = rawList.map(c => ({
+                ...c,
+                current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
+            }));
+            setCustomers(mapped);
         } catch (error) {
             console.error('Failed to load customers:', error);
         } finally {
