@@ -337,10 +337,18 @@ const BusinessCRM = () => {
             const rawList = Array.isArray(res) 
                 ? res 
                 : (res?.data || res?.customers || res?.rows || res?.items || []);
-            const mapped = rawList.map(c => ({
-                ...c,
-                current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
-            }));
+            const mapped = rawList.map(c => {
+                const phoneVal = c.phone_number || c.phone || c.contact || '';
+                const panVal = c.pan_number || c.pan || '';
+                return {
+                    ...c,
+                    phone: phoneVal,
+                    phone_number: phoneVal,
+                    pan: panVal,
+                    pan_number: panVal,
+                    current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
+                };
+            });
             setCustomers(mapped);
         } catch (error) {
             console.error('Failed to load customers:', error);
@@ -363,11 +371,13 @@ const BusinessCRM = () => {
             contact_person: '',
             email: '', 
             phone_number: '', 
+            phone: '',
             alternate_phone: '',
             website: '',
             customer_type: 'wholesale',
             gstin: '',
             pan_number: '',
+            pan: '',
             tax_type: 'registered',
             place_of_supply: 'Delhi',
             status: 'active', 
@@ -388,8 +398,16 @@ const BusinessCRM = () => {
     };
 
     const handleEdit = (customer) => {
+        const phoneVal = customer.phone_number || customer.phone || '';
+        const panVal = customer.pan_number || customer.pan || '';
         setEditingCustomer(customer);
-        setFormData(customer);
+        setFormData({
+            ...customer,
+            phone_number: phoneVal,
+            phone: phoneVal,
+            pan_number: panVal,
+            pan: panVal
+        });
         setIsModalOpen(true);
         setActiveMenu(null);
     };
@@ -468,10 +486,19 @@ const BusinessCRM = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const phoneVal = formData.phone_number || formData.phone || '';
+            const panVal = formData.pan_number || formData.pan || '';
+            const payload = {
+                ...formData,
+                phone: phoneVal,
+                phone_number: phoneVal,
+                pan: panVal,
+                pan_number: panVal
+            };
             const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
             
             if (editingCustomer) {
-                await crmService.updateCustomer(editingCustomer.id, formData);
+                await crmService.updateCustomer(editingCustomer.id, payload);
                 
                 // Background sync to update Bit-Tool API using externalId
                 if (contactApiBase) {
