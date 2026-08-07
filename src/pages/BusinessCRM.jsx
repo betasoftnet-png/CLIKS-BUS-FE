@@ -468,28 +468,50 @@ const BusinessCRM = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+            
             if (editingCustomer) {
                 await crmService.updateCustomer(editingCustomer.id, formData);
+                
+                // Background sync to update Bit-Tool API using externalId
+                if (contactApiBase) {
+                    fetch(`${contactApiBase}/external/${editingCustomer.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                        },
+                        body: JSON.stringify({
+                            name: formData.name,
+                            phonenumber: formData.phone_number,
+                            email: formData.email,
+                            role: 'customer'
+                        })
+                    }).catch(err => console.error('Failed to update contact in Bit-Tool:', err));
+                }
+
                 alert('Customer Profile updated successfully!');
             } else {
-                await crmService.createCustomer(formData);
+                const createdRes = await crmService.createCustomer(formData);
+                const newCustomer = createdRes?.data?.data || createdRes?.data?.customer || createdRes?.data || {};
                 
                 // Background sync to Bit-Tool API
-                const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
-                console.log(contactApiBase)
-                fetch(`${contactApiBase}/add`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
-                    },
-                    body: JSON.stringify({
-                        name: formData.name,
-                        phonenumber: formData.phone_number,
-                        email: formData.email,
-                        role: 'customer'
-                    })
-                }).catch(err => console.error('Failed to sync contact to Bit-Tool:', err));
+                if (contactApiBase) {
+                    fetch(`${contactApiBase}/add`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                        },
+                        body: JSON.stringify({
+                            externalId: newCustomer.id || undefined, // Attach the CLIKS-BE ID as externalId
+                            name: formData.name,
+                            phonenumber: formData.phone_number,
+                            email: formData.email,
+                            role: 'customer'
+                        })
+                    }).catch(err => console.error('Failed to sync contact to Bit-Tool:', err));
+                }
 
                 alert('New Customer Registered successfully!');
             }
