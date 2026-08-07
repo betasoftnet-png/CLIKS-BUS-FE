@@ -496,6 +496,23 @@ const BusinessCRM = () => {
             const phoneVal = formData.phone_number || formData.phone || '';
             const panVal = formData.pan_number || formData.pan || '';
             const addrVal = formData.billing_address || formData.address || '';
+
+            if (!editingCustomer) {
+                const phoneDigits = phoneVal.replace(/\D/g, '');
+                if (phoneDigits.length !== 10) {
+                    alert('Phone Number: 10 digits required');
+                    return;
+                }
+                if (formData.gstin && formData.gstin.trim().length > 0 && formData.gstin.trim().length !== 15) {
+                    alert('GSTIN: 15 characters required');
+                    return;
+                }
+                if (panVal && panVal.trim().length > 0 && panVal.trim().length !== 10) {
+                    alert('PAN: 10 characters required');
+                    return;
+                }
+            }
+
             const payload = {
                 ...formData,
                 phone: phoneVal,
@@ -1119,7 +1136,27 @@ const BusinessCRM = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Phone Number</label>
-                                    <input required type="text" value={formData.phone_number} onChange={(e) => setFormData({...formData, phone_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="9876543210" />
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={formData.phone_number} 
+                                        maxLength={!editingCustomer ? 10 : undefined}
+                                        onChange={(e) => {
+                                            if (!editingCustomer) {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                setFormData({...formData, phone_number: val});
+                                            } else {
+                                                setFormData({...formData, phone_number: e.target.value});
+                                            }
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="9876543210" 
+                                    />
+                                    {!editingCustomer && formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10 && (
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                            Phone Number: 10 digits required
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
@@ -1139,11 +1176,49 @@ const BusinessCRM = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN</label>
-                                    <input type="text" value={formData.gstin} onChange={(e) => setFormData({...formData, gstin: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="07AAAAA1111A1Z1" />
+                                    <input 
+                                        type="text" 
+                                        value={formData.gstin} 
+                                        maxLength={!editingCustomer ? 15 : undefined}
+                                        onChange={(e) => {
+                                            if (!editingCustomer) {
+                                                const val = e.target.value.toUpperCase().slice(0, 15);
+                                                setFormData({...formData, gstin: val});
+                                            } else {
+                                                setFormData({...formData, gstin: e.target.value.toUpperCase()});
+                                            }
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="07AAAAA1111A1Z1" 
+                                    />
+                                    {!editingCustomer && formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                            GSTIN: 15 characters required
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
-                                    <input type="text" value={formData.pan_number} onChange={(e) => setFormData({...formData, pan_number: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="ABCDE1234F" />
+                                    <input 
+                                        type="text" 
+                                        value={formData.pan_number} 
+                                        maxLength={!editingCustomer ? 10 : undefined}
+                                        onChange={(e) => {
+                                            if (!editingCustomer) {
+                                                const val = e.target.value.toUpperCase().slice(0, 10);
+                                                setFormData({...formData, pan_number: val});
+                                            } else {
+                                                setFormData({...formData, pan_number: e.target.value.toUpperCase()});
+                                            }
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="ABCDE1234F" 
+                                    />
+                                    {!editingCustomer && formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10 && (
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                            PAN: 10 characters required
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tax Type</label>
@@ -1208,7 +1283,38 @@ const BusinessCRM = () => {
                                 {activeConfig.loyalty !== false && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Loyalty Points</label>
-                                        <input type="number" value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} placeholder="0" onChange={(e) => setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                        <input 
+                                            type="number" 
+                                            min={!editingCustomer ? "0" : undefined}
+                                            step={!editingCustomer ? "1" : undefined}
+                                            value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} 
+                                            placeholder="0" 
+                                            onKeyDown={(e) => {
+                                                if (!editingCustomer) {
+                                                    if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                                        e.preventDefault();
+                                                    }
+                                                }
+                                            }}
+                                            onChange={(e) => {
+                                                if (!editingCustomer) {
+                                                    const rawVal = e.target.value;
+                                                    if (rawVal === '') {
+                                                        setFormData({...formData, loyalty_points: 0});
+                                                        return;
+                                                    }
+                                                    const sanitized = rawVal.replace(/[^0-9]/g, '');
+                                                    let parsed = parseInt(sanitized, 10);
+                                                    if (isNaN(parsed) || parsed < 0) {
+                                                        parsed = 0;
+                                                    }
+                                                    setFormData({...formData, loyalty_points: parsed});
+                                                } else {
+                                                    setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0});
+                                                }
+                                            }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                        />
                                     </div>
                                 )}
                             </div>
