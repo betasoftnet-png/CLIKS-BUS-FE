@@ -217,6 +217,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/finance/purchases/register')) return 'Purchase Register';
         if (path.includes('/finance/purchases/vendors')) return 'Vendors';
         if (path.includes('/finance/purchases/bills')) return 'Vendor Bills';
+        if (path.includes('/finance/purchases/details')) return 'Purchase Details';
         if (path.includes('/finance/purchases/reports')) return 'Purchase Reports';
         if (path.includes('/finance/accounting')) return 'Accounting';
         if (path.includes('/payments/transaction')) return 'Transaction';

@@ -309,6 +309,7 @@ function AppContent() {
                     <Route path="/finance/purchases/register" element={<BusinessFinancePurchases />} />
                     <Route path="/finance/purchases/vendors" element={<BusinessFinancePurchases />} />
                     <Route path="/finance/purchases/bills" element={<BusinessFinancePurchases />} />
+                    <Route path="/finance/purchases/details" element={<BusinessFinancePurchases />} />
                     <Route path="/finance/purchases/reports" element={<BusinessFinancePurchases />} />
                     <Route path="/finance/plan" element={<BusinessFinancialPlan />} />
                     <Route path="/finance/compare" element={<BusinessCompare />} />

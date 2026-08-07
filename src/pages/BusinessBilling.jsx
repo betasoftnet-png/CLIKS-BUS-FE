@@ -256,6 +256,7 @@ const BusinessBilling = () => {
         payment_mode: 'Cash',
         invoice_type: 'GST', // GST, Non-GST, Proforma, Quotation, Return, CreditNote, DebitNote, Purchase
         tax_type: 'Exclusive', // Inclusive, Exclusive
+        sendToCustomerHistory: true,
         redeemed_points: 0,
         earned_points: 0,
         items: [{ 
@@ -1309,10 +1310,95 @@ const BusinessBilling = () => {
                                 )}
                             </div>
 
-                            {activeConfig.billingType !== 'lite' && (
+                            {activeConfig.billingType !== 'lite' ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
+                                        <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Send Purchase History to Customer</label>
+                                        <div style={{ display: 'flex', gap: '0.35rem', background: '#F1F5F9', padding: '0.3rem', borderRadius: '8px', width: 'fit-content', border: '1px solid #E2E8F0', marginTop: '0.2rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, sendToCustomerHistory: true })}
+                                                style={{
+                                                    padding: '0.45rem 1.25rem',
+                                                    borderRadius: '6px',
+                                                    fontWeight: '800',
+                                                    fontSize: '0.8rem',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    background: formData.sendToCustomerHistory !== false ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'transparent',
+                                                    color: formData.sendToCustomerHistory !== false ? 'white' : '#64748B',
+                                                    boxShadow: formData.sendToCustomerHistory !== false ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                            >
+                                                YES
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, sendToCustomerHistory: false })}
+                                                style={{
+                                                    padding: '0.45rem 1.25rem',
+                                                    borderRadius: '6px',
+                                                    fontWeight: '800',
+                                                    fontSize: '0.8rem',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    background: formData.sendToCustomerHistory === false ? '#EF4444' : 'transparent',
+                                                    color: formData.sendToCustomerHistory === false ? 'white' : '#64748B',
+                                                    boxShadow: formData.sendToCustomerHistory === false ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                            >
+                                                NO
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
-                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Send Purchase History to Customer</label>
+                                    <div style={{ display: 'flex', gap: '0.35rem', background: '#F1F5F9', padding: '0.3rem', borderRadius: '8px', width: 'fit-content', border: '1px solid #E2E8F0' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, sendToCustomerHistory: true })}
+                                            style={{
+                                                padding: '0.45rem 1.25rem',
+                                                borderRadius: '6px',
+                                                fontWeight: '800',
+                                                fontSize: '0.8rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                background: formData.sendToCustomerHistory !== false ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'transparent',
+                                                color: formData.sendToCustomerHistory !== false ? 'white' : '#64748B',
+                                                boxShadow: formData.sendToCustomerHistory !== false ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            YES
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, sendToCustomerHistory: false })}
+                                            style={{
+                                                padding: '0.45rem 1.25rem',
+                                                borderRadius: '6px',
+                                                fontWeight: '800',
+                                                fontSize: '0.8rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                background: formData.sendToCustomerHistory === false ? '#EF4444' : 'transparent',
+                                                color: formData.sendToCustomerHistory === false ? 'white' : '#64748B',
+                                                boxShadow: formData.sendToCustomerHistory === false ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            NO
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 

@@ -27,8 +27,10 @@ import {
     MapPin,
     Phone,
     Briefcase,
-    Layers
+    Layers,
+    Loader2
 } from 'lucide-react';
+import { apiClient } from '../api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchasesService, suppliersService, productsService, accountingService, settingsService } from '../services';
 import { useCurrency } from '../context';
@@ -50,6 +52,7 @@ const BusinessFinancePurchases = () => {
         if (path.includes('/vendors')) return 'vendors';
         if (path.includes('/bills')) return 'bills';
         if (path.includes('/reports')) return 'reports';
+        if (path.includes('/details') || path.includes('/purchase-details')) return 'details';
         return 'register';
     };
 
@@ -61,7 +64,8 @@ const BusinessFinancePurchases = () => {
             'register': '/finance/purchases/register',
             'vendors': '/finance/purchases/vendors',
             'bills': '/finance/purchases/bills',
-            'reports': '/finance/purchases/reports'
+            'reports': '/finance/purchases/reports',
+            'details': '/finance/purchases/details'
         };
         navigate(pathMap[tab]);
     };
@@ -320,6 +324,7 @@ const BusinessFinancePurchases = () => {
                     { id: 'register', label: 'Purchase Register', icon: Layers },
                     { id: 'vendors', label: 'Vendors', icon: Users },
                     { id: 'bills', label: 'Vendor Bills', icon: Receipt },
+                    { id: 'details', label: 'Purchase Details', icon: ShoppingCart },
                     { id: 'reports', label: 'Reports', icon: BarChart3 }
                 ].map(tab => (
                     <button
@@ -343,6 +348,7 @@ const BusinessFinancePurchases = () => {
                 {activeTab === 'register' && renderRegister()}
                 {activeTab === 'vendors' && renderVendors()}
                 {activeTab === 'bills' && renderVendorBills()}
+                {activeTab === 'details' && renderPurchaseDetails()}
                 {activeTab === 'reports' && renderReports()}
             </div>
 
@@ -653,6 +659,125 @@ const NewPurchaseForm = ({ suppliers, products, bankAccounts, onSubmit, isSubmit
                 </div>
             </div>
         </form>
+    );
+
+    // --- State & Render for Purchase Details view ---
+    const [receiveDataFilter, setReceiveDataFilter] = useState('YES');
+
+    const { data: merchantCards = [], isLoading: isLoadingMerchants } = useQuery({
+        queryKey: ['customer-merchants', receiveDataFilter],
+        queryFn: () => apiClient.get('/customer/merchants', { params: { receiveData: receiveDataFilter } }).then(res => res.data.data || res.data || [])
+    });
+
+    const renderPurchaseDetails = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header & Receive Data Filter */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Customer Purchase Details</h3>
+                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>View synchronized purchase history, merchant cards, loyalty points, and invoice downloads.</p>
+                </div>
+                
+                {/* Receive Data Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#F8FAFC', padding: '0.4rem 0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Receive Data</span>
+                    <div style={{ display: 'flex', gap: '0.25rem', background: '#E2E8F0', padding: '0.25rem', borderRadius: '8px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setReceiveDataFilter('YES')}
+                            style={{
+                                padding: '0.35rem 1rem',
+                                borderRadius: '6px',
+                                fontWeight: '800',
+                                fontSize: '0.75rem',
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: receiveDataFilter === 'YES' ? '#1B6B3A' : 'transparent',
+                                color: receiveDataFilter === 'YES' ? 'white' : '#64748B',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            YES
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setReceiveDataFilter('NO')}
+                            style={{
+                                padding: '0.35rem 1rem',
+                                borderRadius: '6px',
+                                fontWeight: '800',
+                                fontSize: '0.75rem',
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: receiveDataFilter === 'NO' ? '#EF4444' : 'transparent',
+                                color: receiveDataFilter === 'NO' ? 'white' : '#64748B',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            NO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Merchant Cards Grid */}
+            {isLoadingMerchants ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+                    <Loader2 className="animate-spin" size={32} style={{ color: '#1B6B3A' }} />
+                </div>
+            ) : merchantCards.length === 0 ? (
+                <div style={{ background: 'white', padding: '3rem', borderRadius: '20px', textAlign: 'center', border: '1px solid #E2E8F0' }}>
+                    <ShoppingCart size={40} style={{ color: '#94A3B8', marginBottom: '0.75rem' }} />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#1E293B' }}>
+                        {receiveDataFilter === 'YES' ? 'No Synchronized Merchant History' : 'Synchronized History Hidden'}
+                    </h4>
+                    <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                        {receiveDataFilter === 'YES' ? 'Invoices generated with "Send Purchase History to Customer" enabled will appear here.' : 'Select YES under "Receive Data" to display synchronized purchase history.'}
+                    </p>
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                    {merchantCards.map((merchant, idx) => (
+                        <div key={idx} style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#DCF2E4', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '1.1rem' }}>
+                                        {(merchant.merchant_name || 'M')[0].toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>{merchant.merchant_name}</h4>
+                                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{merchant.merchant_email || 'Merchant Store'}</span>
+                                    </div>
+                                </div>
+                                <span style={{ padding: '0.25rem 0.6rem', borderRadius: '20px', background: '#ECFDF5', color: '#047857', fontSize: '0.7rem', fontWeight: '800' }}>
+                                    ⭐ {merchant.net_points || merchant.points_earned || 0} pts
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#F8FAFC', padding: '0.85rem', borderRadius: '12px', fontSize: '0.8rem' }}>
+                                <div>
+                                    <span style={{ color: '#64748B', display: 'block', fontSize: '0.7rem', fontWeight: '700' }}>Purchases</span>
+                                    <strong style={{ color: '#0F172A' }}>{merchant.purchases_count || 0} Invoices</strong>
+                                </div>
+                                <div>
+                                    <span style={{ color: '#64748B', display: 'block', fontSize: '0.7rem', fontWeight: '700' }}>Total Spent</span>
+                                    <strong style={{ color: '#1B6B3A' }}>{formatCurrency(merchant.total_spent || 0)}</strong>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer' }}
+                                >
+                                    Merchant History
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
     );
 };
 
