@@ -340,12 +340,15 @@ const BusinessCRM = () => {
             const mapped = rawList.map(c => {
                 const phoneVal = c.phone_number || c.phone || c.contact || '';
                 const panVal = c.pan_number || c.pan || '';
+                const addrVal = c.billing_address || c.address || '';
                 return {
                     ...c,
                     phone: phoneVal,
                     phone_number: phoneVal,
                     pan: panVal,
                     pan_number: panVal,
+                    address: addrVal,
+                    billing_address: addrVal,
                     current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
                 };
             });
@@ -387,6 +390,7 @@ const BusinessCRM = () => {
             loyalty_points: 0,
             due_days: 30,
             billing_address: '',
+            address: '',
             shipping_address: '',
             city: '',
             state: 'Delhi',
@@ -400,13 +404,16 @@ const BusinessCRM = () => {
     const handleEdit = (customer) => {
         const phoneVal = customer.phone_number || customer.phone || '';
         const panVal = customer.pan_number || customer.pan || '';
+        const addrVal = customer.billing_address || customer.address || '';
         setEditingCustomer(customer);
         setFormData({
             ...customer,
             phone_number: phoneVal,
             phone: phoneVal,
             pan_number: panVal,
-            pan: panVal
+            pan: panVal,
+            billing_address: addrVal,
+            address: addrVal
         });
         setIsModalOpen(true);
         setActiveMenu(null);
@@ -488,12 +495,15 @@ const BusinessCRM = () => {
         try {
             const phoneVal = formData.phone_number || formData.phone || '';
             const panVal = formData.pan_number || formData.pan || '';
+            const addrVal = formData.billing_address || formData.address || '';
             const payload = {
                 ...formData,
                 phone: phoneVal,
                 phone_number: phoneVal,
                 pan: panVal,
-                pan_number: panVal
+                pan_number: panVal,
+                address: addrVal,
+                billing_address: addrVal
             };
             const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
             
