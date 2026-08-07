@@ -476,6 +476,7 @@ const BusinessCRM = () => {
                 
                 // Background sync to Bit-Tool API
                 const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+                console.log(contactApiBase)
                 fetch(`${contactApiBase}/add`, {
                     method: 'POST',
                     headers: {
