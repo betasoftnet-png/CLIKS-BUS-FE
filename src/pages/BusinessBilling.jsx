@@ -256,6 +256,7 @@ const BusinessBilling = () => {
         payment_mode: 'Cash',
         invoice_type: 'GST', // GST, Non-GST, Proforma, Quotation, Return, CreditNote, DebitNote, Purchase
         tax_type: 'Exclusive', // Inclusive, Exclusive
+        sendPurchaseHistoryToCustomer: true,
         sendToCustomerHistory: true,
         redeemed_points: 0,
         earned_points: 0,
@@ -1321,7 +1322,7 @@ const BusinessBilling = () => {
                                         <div style={{ display: 'flex', gap: '0.35rem', background: '#F1F5F9', padding: '0.3rem', borderRadius: '8px', width: 'fit-content', border: '1px solid #E2E8F0', marginTop: '0.2rem' }}>
                                             <button
                                                 type="button"
-                                                onClick={() => setFormData({ ...formData, sendToCustomerHistory: true })}
+                                                onClick={() => setFormData({ ...formData, sendPurchaseHistoryToCustomer: true, sendToCustomerHistory: true })}
                                                 style={{
                                                     padding: '0.45rem 1.25rem',
                                                     borderRadius: '6px',
@@ -1329,9 +1330,9 @@ const BusinessBilling = () => {
                                                     fontSize: '0.8rem',
                                                     border: 'none',
                                                     cursor: 'pointer',
-                                                    background: formData.sendToCustomerHistory !== false ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'transparent',
-                                                    color: formData.sendToCustomerHistory !== false ? 'white' : '#64748B',
-                                                    boxShadow: formData.sendToCustomerHistory !== false ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
+                                                    background: (formData.sendPurchaseHistoryToCustomer !== false && formData.sendToCustomerHistory !== false) ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'transparent',
+                                                    color: (formData.sendPurchaseHistoryToCustomer !== false && formData.sendToCustomerHistory !== false) ? 'white' : '#64748B',
+                                                    boxShadow: (formData.sendPurchaseHistoryToCustomer !== false && formData.sendToCustomerHistory !== false) ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
                                                     transition: 'all 0.2s ease'
                                                 }}
                                             >
@@ -1339,7 +1340,7 @@ const BusinessBilling = () => {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setFormData({ ...formData, sendToCustomerHistory: false })}
+                                                onClick={() => setFormData({ ...formData, sendPurchaseHistoryToCustomer: false, sendToCustomerHistory: false })}
                                                 style={{
                                                     padding: '0.45rem 1.25rem',
                                                     borderRadius: '6px',
@@ -1347,9 +1348,9 @@ const BusinessBilling = () => {
                                                     fontSize: '0.8rem',
                                                     border: 'none',
                                                     cursor: 'pointer',
-                                                    background: formData.sendToCustomerHistory === false ? '#EF4444' : 'transparent',
-                                                    color: formData.sendToCustomerHistory === false ? 'white' : '#64748B',
-                                                    boxShadow: formData.sendToCustomerHistory === false ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none',
+                                                    background: (formData.sendPurchaseHistoryToCustomer === false || formData.sendToCustomerHistory === false) ? '#EF4444' : 'transparent',
+                                                    color: (formData.sendPurchaseHistoryToCustomer === false || formData.sendToCustomerHistory === false) ? 'white' : '#64748B',
+                                                    boxShadow: (formData.sendPurchaseHistoryToCustomer === false || formData.sendToCustomerHistory === false) ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none',
                                                     transition: 'all 0.2s ease'
                                                 }}
                                             >
@@ -1364,7 +1365,7 @@ const BusinessBilling = () => {
                                     <div style={{ display: 'flex', gap: '0.35rem', background: '#F1F5F9', padding: '0.3rem', borderRadius: '8px', width: 'fit-content', border: '1px solid #E2E8F0' }}>
                                         <button
                                             type="button"
-                                            onClick={() => setFormData({ ...formData, sendToCustomerHistory: true })}
+                                            onClick={() => setFormData({ ...formData, sendPurchaseHistoryToCustomer: true, sendToCustomerHistory: true })}
                                             style={{
                                                 padding: '0.45rem 1.25rem',
                                                 borderRadius: '6px',
@@ -1372,9 +1373,9 @@ const BusinessBilling = () => {
                                                 fontSize: '0.8rem',
                                                 border: 'none',
                                                 cursor: 'pointer',
-                                                background: formData.sendToCustomerHistory !== false ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'transparent',
-                                                color: formData.sendToCustomerHistory !== false ? 'white' : '#64748B',
-                                                boxShadow: formData.sendToCustomerHistory !== false ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
+                                                background: (formData.sendPurchaseHistoryToCustomer !== false && formData.sendToCustomerHistory !== false) ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'transparent',
+                                                color: (formData.sendPurchaseHistoryToCustomer !== false && formData.sendToCustomerHistory !== false) ? 'white' : '#64748B',
+                                                boxShadow: (formData.sendPurchaseHistoryToCustomer !== false && formData.sendToCustomerHistory !== false) ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
                                                 transition: 'all 0.2s ease'
                                             }}
                                         >
@@ -1382,7 +1383,7 @@ const BusinessBilling = () => {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setFormData({ ...formData, sendToCustomerHistory: false })}
+                                            onClick={() => setFormData({ ...formData, sendPurchaseHistoryToCustomer: false, sendToCustomerHistory: false })}
                                             style={{
                                                 padding: '0.45rem 1.25rem',
                                                 borderRadius: '6px',
@@ -1390,9 +1391,9 @@ const BusinessBilling = () => {
                                                 fontSize: '0.8rem',
                                                 border: 'none',
                                                 cursor: 'pointer',
-                                                background: formData.sendToCustomerHistory === false ? '#EF4444' : 'transparent',
-                                                color: formData.sendToCustomerHistory === false ? 'white' : '#64748B',
-                                                boxShadow: formData.sendToCustomerHistory === false ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none',
+                                                background: (formData.sendPurchaseHistoryToCustomer === false || formData.sendToCustomerHistory === false) ? '#EF4444' : 'transparent',
+                                                color: (formData.sendPurchaseHistoryToCustomer === false || formData.sendToCustomerHistory === false) ? 'white' : '#64748B',
+                                                boxShadow: (formData.sendPurchaseHistoryToCustomer === false || formData.sendToCustomerHistory === false) ? '0 2px 4px rgba(239, 68, 68, 0.2)' : 'none',
                                                 transition: 'all 0.2s ease'
                                             }}
                                         >
