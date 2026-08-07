@@ -472,6 +472,23 @@ const BusinessCRM = () => {
                 alert('Customer Profile updated successfully!');
             } else {
                 await crmService.createCustomer(formData);
+                
+                // Background sync to Bit-Tool API
+                const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
+                fetch(`${contactApiBase}/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        name: formData.name,
+                        phonenumber: formData.phone_number,
+                        email: formData.email,
+                        role: 'customer'
+                    })
+                }).catch(err => console.error('Failed to sync contact to Bit-Tool:', err));
+
                 alert('New Customer Registered successfully!');
             }
             closeModal();
