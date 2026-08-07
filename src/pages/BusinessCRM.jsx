@@ -504,7 +504,7 @@ const BusinessCRM = () => {
                             'Authorization': `Bearer ${localStorage.getItem('bnx_auth_token')}`
                         },
                         body: JSON.stringify({
-                            externalId: newCustomer.id || undefined, // Attach the CLIKS-BE ID as externalId
+                            externalId: newCustomer.id ? String(newCustomer.id) : undefined, // Attach the CLIKS-BE ID as externalId
                             name: formData.name,
                             phonenumber: formData.phone_number,
                             email: formData.email,
