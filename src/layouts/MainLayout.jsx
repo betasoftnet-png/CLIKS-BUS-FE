@@ -13,6 +13,7 @@ import { X } from 'lucide-react';
 import { CalcPopover } from '../components/common/CalcPopover';
 import ProductLauncher from '../components/ProductLauncher';
 import BusinessPlaceholder from '../pages/BusinessPlaceholder';
+import ContactPanel from '../components/ContactPanel';
 
 const DockedPanelWrapper = ({ title, onClose, children }) => {
     return (
@@ -163,8 +164,8 @@ const MainLayout = ({ children }) => {
                                 </DockedPanelWrapper>
                             )}
                             {activePanel === 'Contact' && (
-                                <DockedPanelWrapper title="Contact / ID Card" onClose={() => setActivePanel(null)}>
-                                    <BusinessPlaceholder title="Contact / ID Card" />
+                                <DockedPanelWrapper title="Global Contacts" onClose={() => setActivePanel(null)}>
+                                    <ContactPanel />
                                 </DockedPanelWrapper>
                             )}
                             {activePanel === 'Beta Trust' && (
