@@ -31,7 +31,9 @@ import {
     Send,
     Tag,
     AlertTriangle,
-    Percent
+    Percent,
+    ChevronDown,
+    Check
 } from 'lucide-react';
 import '../App.css';
 import { crmService } from '../services/crmService';
@@ -39,6 +41,182 @@ import { settingsService } from '../services/settingsService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
+
+const COUNTRIES = [
+    { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳', digits: 10 },
+    { code: 'US', name: 'United States', dialCode: '+1', flag: '🇺🇸', digits: 10 },
+    { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧', digits: 10 },
+    { code: 'AE', name: 'United Arab Emirates', dialCode: '+971', flag: '🇦🇪', digits: 9 },
+    { code: 'SG', name: 'Singapore', dialCode: '+65', flag: '🇸🇬', digits: 8 },
+    { code: 'MY', name: 'Malaysia', dialCode: '+60', flag: '🇲🇾', digits: 10 },
+    { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺', digits: 9 },
+    { code: 'CA', name: 'Canada', dialCode: '+1', flag: '🇨🇦', digits: 10 },
+    { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪', digits: 11 },
+    { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷', digits: 9 },
+    { code: 'JP', name: 'Japan', dialCode: '+81', flag: '🇯🇵', digits: 10 },
+    { code: 'CN', name: 'China', dialCode: '+86', flag: '🇨🇳', digits: 11 },
+    { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', flag: '🇸🇦', digits: 9 },
+    { code: 'QA', name: 'Qatar', dialCode: '+974', flag: '🇶🇦', digits: 8 },
+    { code: 'KW', name: 'Kuwait', dialCode: '+965', flag: '🇰🇼', digits: 8 },
+    { code: 'OM', name: 'Oman', dialCode: '+968', flag: '🇴🇲', digits: 8 },
+    { code: 'BH', name: 'Bahrain', dialCode: '+973', flag: '🇧🇭', digits: 8 },
+    { code: 'LK', name: 'Sri Lanka', dialCode: '+94', flag: '🇱🇰', digits: 9 },
+    { code: 'BD', name: 'Bangladesh', dialCode: '+880', flag: '🇧🇩', digits: 10 },
+    { code: 'NP', name: 'Nepal', dialCode: '+977', flag: '🇳🇵', digits: 10 }
+];
+
+const getPhoneMaxDigits = (dialCode) => {
+    const found = COUNTRIES.find(c => c.dialCode === dialCode);
+    return found ? found.digits : 10;
+};
+
+const parsePhone = (rawPhone) => {
+    if (!rawPhone) return { countryCode: '+91', digits: '' };
+    const str = String(rawPhone).trim();
+    const match = COUNTRIES.find(c => str.startsWith(c.dialCode));
+    if (match) {
+        const remainingDigits = str.slice(match.dialCode.length).replace(/\D/g, '');
+        return { countryCode: match.dialCode, digits: remainingDigits };
+    }
+    if (str.startsWith('+')) {
+        const spaceIdx = str.indexOf(' ');
+        if (spaceIdx !== -1) {
+            const code = str.slice(0, spaceIdx);
+            const remaining = str.slice(spaceIdx + 1).replace(/\D/g, '');
+            return { countryCode: code, digits: remaining };
+        }
+    }
+    return { countryCode: '+91', digits: str.replace(/\D/g, '') };
+};
+
+const CountryCodeSelector = ({ selectedDialCode, onSelect }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = React.useRef(null);
+
+    const selectedCountry = COUNTRIES.find(c => c.dialCode === selectedDialCode) || COUNTRIES[0];
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filteredCountries = COUNTRIES.filter(c => 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        c.dialCode.includes(searchTerm)
+    );
+
+    return (
+        <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.85rem 0.65rem',
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    borderRight: 'none',
+                    borderRadius: '14px 0 0 14px',
+                    fontSize: '0.85rem',
+                    fontWeight: '700',
+                    color: '#1E293B',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                }}
+            >
+                <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{selectedCountry.flag}</span>
+                <span>{selectedCountry.dialCode}</span>
+                <ChevronDown size={14} style={{ color: '#64748B' }} />
+            </button>
+
+            {isOpen && (
+                <div style={{
+                    position: 'absolute',
+                    top: '110%',
+                    left: 0,
+                    zIndex: 1000,
+                    width: '260px',
+                    maxHeight: '300px',
+                    background: '#FFFFFF',
+                    borderRadius: '16px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #E2E8F0',
+                    padding: '0.5rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    <div style={{ padding: '0.25rem 0.25rem 0.5rem 0.25rem' }}>
+                        <input
+                            type="text"
+                            placeholder="Search country..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: '10px',
+                                border: '1px solid #CBD5E1',
+                                fontSize: '0.8rem',
+                                outline: 'none'
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {filteredCountries.map((c, idx) => {
+                            const isSelected = c.dialCode === selectedDialCode;
+                            return (
+                                <button
+                                    key={`${c.code}-${idx}`}
+                                    type="button"
+                                    onClick={() => {
+                                        onSelect(c);
+                                        setIsOpen(false);
+                                        setSearchTerm('');
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justify: 'space-between',
+                                        width: '100%',
+                                        padding: '0.6rem 0.75rem',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        background: isSelected ? '#F0FDF4' : 'transparent',
+                                        cursor: 'pointer',
+                                        textAlign: 'left',
+                                        transition: 'background 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (!isSelected) e.currentTarget.style.background = '#F8FAFC';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!isSelected) e.currentTarget.style.background = 'transparent';
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                        <span style={{ fontSize: '1.1rem' }}>{c.flag}</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B', width: '45px' }}>{c.dialCode}</span>
+                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{c.name}</span>
+                                    </div>
+                                    {isSelected && <Check size={16} style={{ color: '#16A34A' }} />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const AVATAR_COLORS = [
     { bg: '#E0F2FE', text: '#0369A1' }, // Sky / Blue
@@ -306,7 +484,9 @@ const BusinessCRM = () => {
         business_name: '', 
         contact_person: '',
         email: '', 
+        phone_country_code: '+91',
         phone_number: '', 
+        alt_phone_country_code: '+91',
         alternate_phone: '',
         website: '',
         customer_type: 'wholesale', // wholesale / retail
@@ -389,8 +569,10 @@ const BusinessCRM = () => {
             business_name: '', 
             contact_person: '',
             email: '', 
+            phone_country_code: '+91',
             phone_number: '', 
             phone: '',
+            alt_phone_country_code: '+91',
             alternate_phone: '',
             website: '',
             customer_type: 'wholesale',
@@ -418,14 +600,19 @@ const BusinessCRM = () => {
     };
 
     const handleEdit = (customer) => {
-        const phoneVal = customer.phone_number || customer.phone || '';
+        const rawPhone = customer.phone_number || customer.phone || '';
+        const parsedPhone = parsePhone(rawPhone);
+        const parsedAlt = parsePhone(customer.alternate_phone || '');
         const panVal = customer.pan_number || customer.pan || '';
         const addrVal = customer.billing_address || customer.address || '';
         setEditingCustomer(customer);
         setFormData({
             ...customer,
-            phone_number: phoneVal,
-            phone: phoneVal,
+            phone_country_code: parsedPhone.countryCode,
+            phone_number: parsedPhone.digits,
+            phone: parsedPhone.digits,
+            alt_phone_country_code: parsedAlt.countryCode,
+            alternate_phone: parsedAlt.digits,
             pan_number: panVal,
             pan: panVal,
             billing_address: addrVal,
@@ -509,30 +696,43 @@ const BusinessCRM = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const phoneVal = formData.phone_number || formData.phone || '';
-            const panVal = formData.pan_number || formData.pan || '';
-            const addrVal = formData.billing_address || formData.address || '';
+            const rawPhoneDigits = (formData.phone_number || '').replace(/\D/g, '');
+            const rawAltDigits = (formData.alternate_phone || '').replace(/\D/g, '');
+
+            const reqPhoneDigits = getPhoneMaxDigits(formData.phone_country_code || '+91');
+            const reqAltDigits = getPhoneMaxDigits(formData.alt_phone_country_code || '+91');
+
+            if (rawPhoneDigits.length !== reqPhoneDigits) {
+                alert(`Phone Number: ${reqPhoneDigits} digits required`);
+                return;
+            }
+            if (rawAltDigits.length > 0 && rawAltDigits.length !== reqAltDigits) {
+                alert(`Alternate Phone: ${reqAltDigits} digits required`);
+                return;
+            }
 
             if (!editingCustomer) {
-                const phoneDigits = phoneVal.replace(/\D/g, '');
-                if (phoneDigits.length !== 10) {
-                    alert('Phone Number: 10 digits required');
-                    return;
-                }
                 if (formData.gstin && formData.gstin.trim().length > 0 && formData.gstin.trim().length !== 15) {
                     alert('GSTIN: 15 characters required');
                     return;
                 }
-                if (panVal && panVal.trim().length > 0 && panVal.trim().length !== 10) {
+                const panCheck = formData.pan_number || formData.pan || '';
+                if (panCheck && panCheck.trim().length > 0 && panCheck.trim().length !== 10) {
                     alert('PAN: 10 characters required');
                     return;
                 }
             }
 
+            const phoneVal = `${formData.phone_country_code || '+91'} ${rawPhoneDigits}`;
+            const altPhoneVal = rawAltDigits ? `${formData.alt_phone_country_code || '+91'} ${rawAltDigits}` : '';
+            const panVal = formData.pan_number || formData.pan || '';
+            const addrVal = formData.billing_address || formData.address || '';
+
             const payload = {
                 ...formData,
                 phone: phoneVal,
                 phone_number: phoneVal,
+                alternate_phone: altPhoneVal,
                 pan: panVal,
                 pan_number: panVal,
                 address: addrVal,
@@ -1172,31 +1372,80 @@ const BusinessCRM = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Phone Number</label>
-                                    <input 
-                                        required 
-                                        type="text" 
-                                        value={formData.phone_number} 
-                                        maxLength={!editingCustomer ? 10 : undefined}
-                                        onChange={(e) => {
-                                            if (!editingCustomer) {
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <CountryCodeSelector
+                                            selectedDialCode={formData.phone_country_code || '+91'}
+                                            onSelect={(c) => {
+                                                const maxLen = c.digits || 10;
+                                                const sliced = (formData.phone_number || '').slice(0, maxLen);
+                                                setFormData({ ...formData, phone_country_code: c.dialCode, phone_number: sliced });
+                                            }}
+                                        />
+                                        <input 
+                                            required 
+                                            type="text" 
+                                            value={formData.phone_number || ''} 
+                                            maxLength={getPhoneMaxDigits(formData.phone_country_code || '+91')}
+                                            onChange={(e) => {
+                                                const maxLen = getPhoneMaxDigits(formData.phone_country_code || '+91');
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, maxLen);
                                                 setFormData({...formData, phone_number: val});
-                                            } else {
-                                                setFormData({...formData, phone_number: e.target.value});
-                                            }
-                                        }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="9876543210" 
-                                    />
-                                    {!editingCustomer && formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10 && (
+                                            }} 
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.85rem', 
+                                                borderRadius: '0 14px 14px 0', 
+                                                border: '1px solid #E2E8F0', 
+                                                borderLeft: 'none', 
+                                                outline: 'none', 
+                                                background: 'white' 
+                                            }} 
+                                            placeholder="9876543210" 
+                                        />
+                                    </div>
+                                    {formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < getPhoneMaxDigits(formData.phone_country_code || '+91') && (
                                         <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                            Phone Number: 10 digits required
+                                            Phone Number: {getPhoneMaxDigits(formData.phone_country_code || '+91')} digits required
                                         </span>
                                     )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
-                                    <input type="text" value={formData.alternate_phone} onChange={(e) => setFormData({...formData, alternate_phone: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <CountryCodeSelector
+                                            selectedDialCode={formData.alt_phone_country_code || '+91'}
+                                            onSelect={(c) => {
+                                                const maxLen = c.digits || 10;
+                                                const sliced = (formData.alternate_phone || '').slice(0, maxLen);
+                                                setFormData({ ...formData, alt_phone_country_code: c.dialCode, alternate_phone: sliced });
+                                            }}
+                                        />
+                                        <input 
+                                            type="text" 
+                                            value={formData.alternate_phone || ''} 
+                                            maxLength={getPhoneMaxDigits(formData.alt_phone_country_code || '+91')}
+                                            onChange={(e) => {
+                                                const maxLen = getPhoneMaxDigits(formData.alt_phone_country_code || '+91');
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                                                setFormData({...formData, alternate_phone: val});
+                                            }} 
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.85rem', 
+                                                borderRadius: '0 14px 14px 0', 
+                                                border: '1px solid #E2E8F0', 
+                                                borderLeft: 'none', 
+                                                outline: 'none', 
+                                                background: 'white' 
+                                            }} 
+                                            placeholder="9123456780" 
+                                        />
+                                    </div>
+                                    {formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < getPhoneMaxDigits(formData.alt_phone_country_code || '+91') && (
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                            Alternate Phone: {getPhoneMaxDigits(formData.alt_phone_country_code || '+91')} digits required
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address</label>
