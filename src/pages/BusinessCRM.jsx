@@ -1314,7 +1314,7 @@ const BusinessCRM = () => {
                                 <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>Top Customer Sales Contribution</h3>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((cust, i) => (
+                                {[...customers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))].sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0)).map((cust, i) => (
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.25rem', fontWeight: '700' }}>
                                             <span style={{ color: '#1E293B' }}>{cust.name}</span>
