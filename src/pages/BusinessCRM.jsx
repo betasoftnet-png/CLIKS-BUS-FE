@@ -362,6 +362,13 @@ const BusinessCRM = () => {
 
     useEffect(() => {
         loadCustomers();
+        const handleFocus = () => loadCustomers();
+        window.addEventListener('focus', handleFocus);
+        const timer = setInterval(loadCustomers, 5000);
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            clearInterval(timer);
+        };
     }, []);
 
     const closeModal = () => {
@@ -897,7 +904,27 @@ const BusinessCRM = () => {
                                                 })()}
                                                 <div>
                                                     <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0 }}>{row.name}</p>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Code: {row.customer_code}</span>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Code: {row.customer_code}</span>
+                                                    {(() => {
+                                                        const rawSt = String(row.connection_status || row.connectionStatus || '').toLowerCase();
+                                                        let displayStatus = 'unconnected';
+                                                        let statusColor = '#64748B';
+                                                        if (rawSt === 'accepted' || rawSt === 'connected') {
+                                                            displayStatus = 'connected';
+                                                            statusColor = '#10B981';
+                                                        } else if (rawSt === 'pending') {
+                                                            displayStatus = 'pending';
+                                                            statusColor = '#D97706';
+                                                        } else {
+                                                            displayStatus = 'unconnected';
+                                                            statusColor = '#64748B';
+                                                        }
+                                                        return (
+                                                            <span style={{ fontSize: '0.75rem', color: statusColor, display: 'block', fontWeight: '500', marginTop: '1px' }}>
+                                                                {displayStatus}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         </td>
@@ -1533,6 +1560,12 @@ const BusinessCRM = () => {
                                         <div>
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CUSTOMER CODE</p>
                                             <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.customer_code || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>CONNECTION STATUS</p>
+                                            <span style={{ display: 'inline-block', fontSize: '0.75rem', fontWeight: '850', padding: '0.2rem 0.5rem', borderRadius: '6px', marginTop: '3px', textTransform: 'uppercase', background: (selectedProfileCustomer.connection_status === 'CONNECTED' || selectedProfileCustomer.connection_status === 'ACCEPTED') ? '#DCFCE7' : (selectedProfileCustomer.connection_status === 'PENDING' ? '#FEF3C7' : '#F1F5F9'), color: (selectedProfileCustomer.connection_status === 'CONNECTED' || selectedProfileCustomer.connection_status === 'ACCEPTED') ? '#15803D' : (selectedProfileCustomer.connection_status === 'PENDING' ? '#B45309' : '#64748B') }}>
+                                                {selectedProfileCustomer.connection_status || selectedProfileCustomer.connectionStatus || 'UNCONNECTED'}
+                                            </span>
                                         </div>
                                         {activeConfig.partyGroup !== false && (
                                             <div>
