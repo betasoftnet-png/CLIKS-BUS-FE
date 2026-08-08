@@ -732,7 +732,7 @@ const NewPurchaseForm = ({ suppliers, products, bankAccounts, onSubmit, isSubmit
                         {receiveDataFilter === 'YES' ? 'No Synchronized Merchant History' : 'Synchronized History Hidden'}
                     </h4>
                     <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>
-                        {receiveDataFilter === 'YES' ? 'Invoices generated with "Send Purchase History to Customer" enabled will appear here.' : 'Select YES under "Receive Data" to display synchronized purchase history.'}
+                        {receiveDataFilter === 'YES' ? 'Invoices generated for customer purchases will appear here.' : 'Select YES under "Receive Data" to display synchronized purchase history.'}
                     </p>
                 </div>
             ) : (
