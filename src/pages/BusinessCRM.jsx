@@ -330,9 +330,11 @@ const BusinessCRM = () => {
         preferred_contact: 'WhatsApp'
     }));
 
-    const loadCustomers = async () => {
-        try {
+    const loadCustomers = React.useCallback(async (isInitial = false) => {
+        if (isInitial) {
             setLoading(true);
+        }
+        try {
             const res = await crmService.getCustomers();
             const rawList = Array.isArray(res) 
                 ? res 
@@ -352,24 +354,31 @@ const BusinessCRM = () => {
                     current_balance: c.outstanding_balance !== undefined ? c.outstanding_balance : (c.current_balance || 0)
                 };
             });
-            setCustomers(mapped);
+            setCustomers(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(mapped)) {
+                    return prev;
+                }
+                return mapped;
+            });
         } catch (error) {
             console.error('Failed to load customers:', error);
         } finally {
-            setLoading(false);
+            if (isInitial) {
+                setLoading(false);
+            }
         }
-    };
+    }, []);
 
     useEffect(() => {
-        loadCustomers();
-        const handleFocus = () => loadCustomers();
+        loadCustomers(true);
+        const handleFocus = () => loadCustomers(false);
         window.addEventListener('focus', handleFocus);
-        const timer = setInterval(loadCustomers, 5000);
+        const timer = setInterval(() => loadCustomers(false), 3000);
         return () => {
             window.removeEventListener('focus', handleFocus);
             clearInterval(timer);
         };
-    }, []);
+    }, [loadCustomers]);
 
     const closeModal = () => {
         setIsModalOpen(false);
