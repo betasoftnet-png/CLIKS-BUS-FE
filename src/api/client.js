@@ -37,11 +37,11 @@ function buildUrl(endpoint, params = null) {
     let baseUrl = API_BASE_URL;
     if (!baseUrl) {
         if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-            baseUrl = 'http://localhost:5000/api/v1';
+            baseUrl = 'http://localhost:3000/api/v1';
         } else if (typeof window !== 'undefined') {
             baseUrl = `${window.location.origin}/api/v1`;
         } else {
-            baseUrl = 'http://localhost:5000/api/v1';
+            baseUrl = 'http://localhost:3000/api/v1';
         }
     }
 
