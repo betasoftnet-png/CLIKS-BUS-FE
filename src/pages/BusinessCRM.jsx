@@ -603,7 +603,8 @@ const BusinessCRM = () => {
         const rawPhone = customer.phone_number || customer.phone || '';
         const parsedPhone = parsePhone(rawPhone);
         const parsedAlt = parsePhone(customer.alternate_phone || '');
-        const panVal = customer.pan_number || customer.pan || '';
+        const panVal = (customer.pan_number || customer.pan || '').toUpperCase().slice(0, 10);
+        const gstinVal = (customer.gstin || '').toUpperCase().slice(0, 15);
         const addrVal = customer.billing_address || customer.address || '';
         setEditingCustomer(customer);
         setFormData({
@@ -613,6 +614,7 @@ const BusinessCRM = () => {
             phone: parsedPhone.digits,
             alt_phone_country_code: parsedAlt.countryCode,
             alternate_phone: parsedAlt.digits,
+            gstin: gstinVal,
             pan_number: panVal,
             pan: panVal,
             billing_address: addrVal,
@@ -711,16 +713,14 @@ const BusinessCRM = () => {
                 return;
             }
 
-            if (!editingCustomer) {
-                if (formData.gstin && formData.gstin.trim().length > 0 && formData.gstin.trim().length !== 15) {
-                    alert('GSTIN: 15 characters required');
-                    return;
-                }
-                const panCheck = formData.pan_number || formData.pan || '';
-                if (panCheck && panCheck.trim().length > 0 && panCheck.trim().length !== 10) {
-                    alert('PAN: 10 characters required');
-                    return;
-                }
+            if (formData.gstin && formData.gstin.trim().length > 0 && formData.gstin.trim().length !== 15) {
+                alert('GSTIN: 15 characters required');
+                return;
+            }
+            const panCheck = formData.pan_number || formData.pan || '';
+            if (panCheck && panCheck.trim().length > 0 && panCheck.trim().length !== 10) {
+                alert('PAN: 10 characters required');
+                return;
             }
 
             const phoneVal = `${formData.phone_country_code || '+91'} ${rawPhoneDigits}`;
@@ -1463,20 +1463,16 @@ const BusinessCRM = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN</label>
                                     <input 
                                         type="text" 
-                                        value={formData.gstin} 
-                                        maxLength={!editingCustomer ? 15 : undefined}
+                                        value={formData.gstin || ''} 
+                                        maxLength={15}
                                         onChange={(e) => {
-                                            if (!editingCustomer) {
-                                                const val = e.target.value.toUpperCase().slice(0, 15);
-                                                setFormData({...formData, gstin: val});
-                                            } else {
-                                                setFormData({...formData, gstin: e.target.value.toUpperCase()});
-                                            }
+                                            const val = e.target.value.toUpperCase().slice(0, 15);
+                                            setFormData({...formData, gstin: val});
                                         }} 
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
                                         placeholder="07AAAAA1111A1Z1" 
                                     />
-                                    {!editingCustomer && formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
+                                    {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
                                         <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
                                             GSTIN: 15 characters required
                                         </span>
@@ -1486,20 +1482,16 @@ const BusinessCRM = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
                                     <input 
                                         type="text" 
-                                        value={formData.pan_number} 
-                                        maxLength={!editingCustomer ? 10 : undefined}
+                                        value={formData.pan_number || formData.pan || ''} 
+                                        maxLength={10}
                                         onChange={(e) => {
-                                            if (!editingCustomer) {
-                                                const val = e.target.value.toUpperCase().slice(0, 10);
-                                                setFormData({...formData, pan_number: val});
-                                            } else {
-                                                setFormData({...formData, pan_number: e.target.value.toUpperCase()});
-                                            }
+                                            const val = e.target.value.toUpperCase().slice(0, 10);
+                                            setFormData({...formData, pan_number: val, pan: val});
                                         }} 
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
                                         placeholder="ABCDE1234F" 
                                     />
-                                    {!editingCustomer && formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10 && (
+                                    {((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10)) && (
                                         <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
                                             PAN: 10 characters required
                                         </span>
