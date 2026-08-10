@@ -747,8 +747,10 @@ const BusinessSalesOrders = () => {
                                                         }}
                                                         onClick={() => {
                                                             const custName = c.name || c.customer_name || '';
-                                                            const custPhone = c.phone_number || c.phone || c.mobile || '';
-                                                            const custGstin = c.gstin || c.gst_number || '';
+                                                            const rawPhone = c.phone_number || c.phone || c.mobile || '';
+                                                            const custPhone = rawPhone.replace(/\D/g, '').slice(0, 10);
+                                                            const rawGstin = c.gstin || c.gst_number || '';
+                                                            const custGstin = rawGstin.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
                                                             const billAddr = c.billing_address || c.address || '';
                                                             const shipAddr = c.shipping_address || c.address || billAddr;
 
@@ -795,11 +797,31 @@ const BusinessSalesOrders = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Phone</label>
-                                    <input type="text" value={formData.customer_phone} onChange={(e) => setFormData({...formData, customer_phone: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="9876543210" />
+                                    <input 
+                                        type="text" 
+                                        maxLength={10}
+                                        value={formData.customer_phone || ''} 
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            setFormData({...formData, customer_phone: val});
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="9876543210" 
+                                    />
                                 </div>
                                 <div style={{ gridColumn: 'span 2' }}>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer GSTIN (Optional)</label>
-                                    <input type="text" value={formData.customer_gstin} onChange={(e) => setFormData({...formData, customer_gstin: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="07AAAAA1111A1Z1" />
+                                    <input 
+                                        type="text" 
+                                        maxLength={15}
+                                        value={formData.customer_gstin || ''} 
+                                        onChange={(e) => {
+                                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                                            setFormData({...formData, customer_gstin: val});
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="07AAAAA1111A1Z1" 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Billing Address</label>
