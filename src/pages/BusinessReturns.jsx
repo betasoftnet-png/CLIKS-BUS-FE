@@ -161,7 +161,7 @@ const BusinessReturns = () => {
         setFormHeader(prev => ({
             ...prev,
             invoice_id: invoiceId,
-            customer_name: selectedInv ? (selectedInv.customer_name || '') : ''
+            customer_name: selectedInv ? (selectedInv.client_name || selectedInv.customer_name || selectedInv.client_email || '') : ''
         }));
         
         if (selectedInv) {
@@ -580,7 +580,9 @@ const BusinessReturns = () => {
                                             <span style={{ fontWeight: '700', color: '#475569' }}>{sr.invoice_id}</span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{sr.customer_name}</p>
+                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>
+                                                {sr.customer_name || (invoices.find(i => String(i.invoice_number || i.id || '').toLowerCase() === String(sr.invoice_id || '').toLowerCase())?.client_name) || (invoices.find(i => String(i.invoice_number || i.id || '').toLowerCase() === String(sr.invoice_id || '').toLowerCase())?.customer_name) || 'N/A'}
+                                            </p>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             {sr.items.map((item, idx) => (
