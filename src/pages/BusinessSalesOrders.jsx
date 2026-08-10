@@ -84,19 +84,19 @@ const BusinessSalesOrders = () => {
     }, [loadOrders]);
 
     // Load CRM customers for dropdown
-    useEffect(() => {
-        const loadCustomers = async () => {
-            try {
-                const res = await crmService.getCustomers();
-                if (res && res.success) {
-                    setCrmCustomers(res.data || []);
-                }
-            } catch (err) {
-                console.error('Failed to load CRM customers:', err);
-            }
-        };
-        loadCustomers();
+    const fetchCrmCustomers = useCallback(async () => {
+        try {
+            const res = await crmService.getCustomers();
+            const list = Array.isArray(res) ? res : (res?.data || []);
+            setCrmCustomers(list);
+        } catch (err) {
+            console.error('Failed to load CRM customers:', err);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchCrmCustomers();
+    }, [fetchCrmCustomers]);
 
     // Load products for dropdown
     useEffect(() => {
@@ -184,6 +184,8 @@ const BusinessSalesOrders = () => {
     };
 
     const resetForm = useCallback(() => {
+        setCustomerSearch('');
+        setShowCustomerDropdown(false);
         setFormData({
             order_number: `SO-${Date.now().toString().slice(-6)}`,
             customer: '',
@@ -239,6 +241,8 @@ const BusinessSalesOrders = () => {
     const handleEdit = (order) => {
         setEditingOrder(order);
         setFormData(order);
+        setCustomerSearch(order.customer || '');
+        fetchCrmCustomers();
         setIsModalOpen(true);
     };
 
@@ -710,17 +714,20 @@ const BusinessSalesOrders = () => {
                                     <input 
                                         required 
                                         type="text" 
-                                        value={customerSearch || formData.customer} 
+                                        value={customerSearch !== '' ? customerSearch : (formData.customer || '')} 
                                         onChange={(e) => {
                                             setCustomerSearch(e.target.value);
                                             setFormData({...formData, customer: e.target.value});
                                             setShowCustomerDropdown(true);
                                         }}
-                                        onFocus={() => setShowCustomerDropdown(true)}
+                                        onFocus={() => {
+                                            fetchCrmCustomers();
+                                            setShowCustomerDropdown(true);
+                                        }}
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
                                         placeholder="Search or select customer..." 
                                     />
-                                    {showCustomerDropdown && crmCustomers.length > 0 && (
+                                    {showCustomerDropdown && (
                                         <div style={{ 
                                             position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
                                             background: 'white', border: '1px solid #E2E8F0', borderRadius: '14px',
@@ -729,21 +736,31 @@ const BusinessSalesOrders = () => {
                                             {crmCustomers
                                                 .filter(c => {
                                                     const q = (customerSearch || '').toLowerCase();
-                                                    return !q || (c.name || '').toLowerCase().includes(q) || (c.business_name || '').toLowerCase().includes(q) || (c.phone_number || '').includes(q);
+                                                    const phoneStr = c.phone_number || c.phone || '';
+                                                    return !q || (c.name || '').toLowerCase().includes(q) || (c.business_name || '').toLowerCase().includes(q) || phoneStr.includes(q);
                                                 })
-                                                .map(c => (
+                                                .map((c, idx) => (
                                                     <div 
-                                                        key={c.id}
+                                                        key={c.id || idx}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                        }}
                                                         onClick={() => {
+                                                            const custName = c.name || c.customer_name || '';
+                                                            const custPhone = c.phone_number || c.phone || c.mobile || '';
+                                                            const custGstin = c.gstin || c.gst_number || '';
+                                                            const billAddr = c.billing_address || c.address || '';
+                                                            const shipAddr = c.shipping_address || c.address || billAddr;
+
                                                             setFormData({
                                                                 ...formData,
-                                                                customer: c.name,
-                                                                customer_phone: c.phone_number || c.phone || '',
-                                                                customer_gstin: c.gstin || '',
-                                                                billing_address: c.billing_address || '',
-                                                                shipping_address: c.shipping_address || ''
+                                                                customer: custName,
+                                                                customer_phone: custPhone,
+                                                                customer_gstin: custGstin,
+                                                                billing_address: billAddr,
+                                                                shipping_address: shipAddr
                                                             });
-                                                            setCustomerSearch(c.name);
+                                                            setCustomerSearch(custName);
                                                             setShowCustomerDropdown(false);
                                                         }}
                                                         style={{ 
@@ -754,18 +771,24 @@ const BusinessSalesOrders = () => {
                                                         onMouseEnter={(e) => e.currentTarget.style.background = '#F0FDF4'}
                                                         onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
                                                     >
-                                                        <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem', marginBottom: '0.15rem' }}>{c.name}</p>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem', marginBottom: '0.15rem' }}>{c.name}</p>
+                                                            <span style={{ fontSize: '0.7rem', fontWeight: '700', background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: '10px' }}>Saved</span>
+                                                        </div>
                                                         <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                                                            {c.business_name ? `${c.business_name} | ` : ''}{c.phone_number || c.phone || ''}{c.gstin ? ` | ${c.gstin}` : ''}
+                                                            {c.business_name ? `${c.business_name} | ` : ''}{c.phone_number || c.phone || 'No phone'}{c.gstin ? ` | GST: ${c.gstin}` : ''}
                                                         </span>
                                                     </div>
                                                 ))
                                             }
                                             {crmCustomers.filter(c => {
                                                 const q = (customerSearch || '').toLowerCase();
-                                                return !q || (c.name || '').toLowerCase().includes(q) || (c.business_name || '').toLowerCase().includes(q) || (c.phone_number || '').includes(q);
+                                                const phoneStr = c.phone_number || c.phone || '';
+                                                return !q || (c.name || '').toLowerCase().includes(q) || (c.business_name || '').toLowerCase().includes(q) || phoneStr.includes(q);
                                             }).length === 0 && (
-                                                <div style={{ padding: '1rem', color: '#94A3B8', fontSize: '0.85rem', textAlign: 'center' }}>No matching customers found</div>
+                                                <div style={{ padding: '1rem', color: '#94A3B8', fontSize: '0.85rem', textAlign: 'center' }}>
+                                                    {crmCustomers.length === 0 ? 'No saved customers in CRM' : 'No matching saved customers'}
+                                                </div>
                                             )}
                                         </div>
                                     )}
