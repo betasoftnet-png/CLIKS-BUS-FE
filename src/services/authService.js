@@ -12,11 +12,10 @@ export const authService = {
             const res = await apiClient.post('/auth/sso', { bnxToken, appType });
             return res.data || res;
         } catch (err) {
-            // Fallback for Nginx 405 Not Allowed or trailing slash mismatch
+            // Fallback for Nginx 405 Method Not Allowed
             if (err.status === 405 || err.statusCode === 405 || String(err.message).includes('405')) {
-                console.warn('[SSO Warning] Initial POST /auth/sso returned 405, retrying fallback /auth/sso/ endpoint...');
                 try {
-                    const res2 = await apiClient.post('/auth/sso/', { bnxToken, appType });
+                    const res2 = await apiClient.get('/auth/sso', { params: { bnxToken, appType } });
                     return res2.data || res2;
                 } catch (err2) {
                     const res3 = await apiClient.post('/auth/sso-login', { bnxToken, appType });
