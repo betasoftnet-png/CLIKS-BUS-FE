@@ -232,7 +232,26 @@ async function request(endpoint, options = {}) {
         }
     }
 
-    clearTimeout(timeoutId);
+    // Handle 405 Method Not Allowed (Nginx static path restriction for POST)
+    if (response && response.status === 405 && method === 'POST') {
+        try {
+            const fallbackUrlObj = new URL(url);
+            if (body && typeof body === 'object') {
+                Object.entries(body).forEach(([k, v]) => {
+                    if (v !== undefined && v !== null) fallbackUrlObj.searchParams.append(k, String(v));
+                });
+            }
+            const retryRes = await fetch(fallbackUrlObj.toString(), {
+                method: 'GET',
+                headers: requestHeaders,
+                signal: combinedSignal,
+                credentials: 'same-origin'
+            });
+            if (retryRes.ok || retryRes.status === 304) {
+                response = retryRes;
+            }
+        } catch (e) {}
+    }
 
     // Handle error responses (304 is technically not 'ok' but is a success for caching)
     if (!response.ok && response.status !== 304) {
