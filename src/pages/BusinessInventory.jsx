@@ -15,6 +15,7 @@ import {
     CheckCircle2,
     Clock,
     X,
+    Info,
     ArrowUpRight,
     ArrowDownRight,
     Box,
@@ -316,12 +317,69 @@ const BusinessInventory = () => {
     const [hasSearchedHsn, setHasSearchedHsn] = useState(false);
     const [hsnQueryOverride, setHsnQueryOverride] = useState('');
 
+    // HSN Info Description Popover State & Ref
+    const [showHsnInfoPopover, setShowHsnInfoPopover] = useState(false);
+    const [hsnInfoDescription, setHsnInfoDescription] = useState('');
+    const [isHsnInfoLoading, setIsHsnInfoLoading] = useState(false);
+    const hsnInfoRef = React.useRef(null);
+
+    const fetchAndShowHsnDescription = async (codeToFetch) => {
+        const code = (codeToFetch || formData.hsn_code || '').trim();
+        if (!code) {
+            setHsnInfoDescription('No HSN/SAC code entered.');
+            setShowHsnInfoPopover(true);
+            return;
+        }
+
+        // Check if description is already available in current hsnSuggestions
+        const matchedSuggestion = hsnSuggestions.find(s => 
+            String(s.hsnCode).trim() === code || 
+            String(s.hsnCode).trim() === code.replace(/^0+/, '')
+        );
+        if (matchedSuggestion && matchedSuggestion.description) {
+            setHsnInfoDescription(matchedSuggestion.description);
+            setShowHsnInfoPopover(true);
+            return;
+        }
+
+        // Otherwise search HSN master via API
+        setIsHsnInfoLoading(true);
+        setShowHsnInfoPopover(true);
+        try {
+            const results = await hsnService.searchHSN(code);
+            if (results && results.length > 0) {
+                const exactMatch = results.find(r => 
+                    String(r.hsnCode).trim() === code || 
+                    String(r.hsnCode).trim() === code.replace(/^0+/, '')
+                ) || results[0];
+                setHsnInfoDescription(exactMatch.description || 'No HSN/SAC description available for this code.');
+            } else {
+                setHsnInfoDescription('No HSN/SAC description available for this code.');
+            }
+        } catch {
+            setHsnInfoDescription('No HSN/SAC description available for this code.');
+        } finally {
+            setIsHsnInfoLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (hsnInfoRef.current && !hsnInfoRef.current.contains(event.target)) {
+                setShowHsnInfoPopover(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     React.useEffect(() => {
         if (!isModalOpen) {
             setShowHsnDropdown(false);
             setHsnSuggestions([]);
             setHsnQueryOverride('');
             setHasSearchedHsn(false);
+            setShowHsnInfoPopover(false);
             return;
         }
 
@@ -1024,26 +1082,96 @@ const BusinessInventory = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Barcode Number</label>
                                     <input type="text" value={formData.barcode} onChange={(e) => setFormData({...formData, barcode: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter" />
                                 </div>
-                                <div style={{ position: 'relative' }}>
+                                <div style={{ position: 'relative' }} ref={hsnInfoRef}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
                                         {isHsnLoading && <span style={{ fontSize: '0.7rem', color: '#064E3B', fontWeight: '600' }}>Searching...</span>}
                                     </div>
-                                    <input 
-                                        type="text" 
-                                        value={formData.hsn_code} 
-                                        onChange={(e) => {
-                                            setFormData({...formData, hsn_code: e.target.value});
-                                            setHsnQueryOverride(e.target.value);
-                                        }} 
-                                        onFocus={() => {
-                                            if ((formData.hsn_code || formData.name) && ((formData.hsn_code || '').length >= 2 || (formData.name || '').length >= 2)) {
-                                                setShowHsnDropdown(true);
-                                            }
-                                        }}
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="8471" 
-                                    />
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            type="text" 
+                                            value={formData.hsn_code} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData({...formData, hsn_code: val});
+                                                setHsnQueryOverride(val);
+                                                setShowHsnInfoPopover(false);
+                                            }} 
+                                            onFocus={() => {
+                                                if ((formData.hsn_code || formData.name) && ((formData.hsn_code || '').length >= 2 || (formData.name || '').length >= 2)) {
+                                                    setShowHsnDropdown(true);
+                                                }
+                                            }}
+                                            style={{ width: '100%', padding: '0.85rem', paddingRight: '2.5rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                            placeholder="9503" 
+                                        />
+                                        
+                                        {/* Info ⓘ Icon inside input aligned to far right */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (showHsnInfoPopover) {
+                                                    setShowHsnInfoPopover(false);
+                                                } else {
+                                                    fetchAndShowHsnDescription(formData.hsn_code);
+                                                }
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                cursor: 'pointer',
+                                                color: '#064E3B',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: '2px',
+                                                borderRadius: '50%',
+                                                zIndex: 10
+                                            }}
+                                            title="View HSN/SAC Description"
+                                        >
+                                            <Info size={16} color="#064E3B" />
+                                        </button>
+
+                                        {/* HSN Info Popover / Tooltip */}
+                                        {showHsnInfoPopover && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                right: 0,
+                                                width: '300px',
+                                                zIndex: 1200,
+                                                marginTop: '6px',
+                                                background: '#1E293B',
+                                                color: 'white',
+                                                borderRadius: '14px',
+                                                padding: '0.85rem 1rem',
+                                                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.2)',
+                                                fontSize: '0.8rem',
+                                                lineHeight: '1.4'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', borderBottom: '1px solid #334155', paddingBottom: '0.3rem' }}>
+                                                    <span style={{ fontWeight: '800', fontSize: '0.75rem', color: '#38BDF8', textTransform: 'uppercase' }}>
+                                                        HSN {formData.hsn_code ? formData.hsn_code : ''} Details
+                                                    </span>
+                                                    <button type="button" onClick={() => setShowHsnInfoPopover(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}>
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                                {isHsnInfoLoading ? (
+                                                    <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Loading description...</div>
+                                                ) : (
+                                                    <div style={{ maxHeight: '160px', overflowY: 'auto', color: '#F1F5F9', wordBreak: 'break-word' }}>
+                                                        {hsnInfoDescription || 'No HSN/SAC description available for this code.'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {/* HSN Suggestions Dropdown */}
                                     {showHsnDropdown && (
@@ -1081,6 +1209,7 @@ const BusinessInventory = () => {
                                                     onClick={() => {
                                                         setFormData({ ...formData, hsn_code: item.hsnCode });
                                                         setShowHsnDropdown(false);
+                                                        setHsnInfoDescription(item.description);
                                                     }}
                                                     style={{ 
                                                         padding: '0.6rem 0.75rem', 
