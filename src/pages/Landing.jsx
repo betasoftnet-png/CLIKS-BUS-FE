@@ -100,22 +100,33 @@ const Landing = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    grant_type: 'authorization_code',
                     grantType: 'authorization_code',
                     code,
+                    client_id: CLIENT_ID,
                     clientId: CLIENT_ID,
+                    client_secret: 'secure-cliks-biz-secret-2026',
                     clientSecret: 'secure-cliks-biz-secret-2026',
+                    redirect_uri: REDIRECT_URI,
                     redirectUri: REDIRECT_URI
                 })
             });
 
-            const tokenData = await tokenRes.json();
-            console.log(tokenData);
+            const tokenData = await tokenRes.json().catch(() => ({}));
+            console.log('[SSO Token Data]', tokenData);
 
-            if (!tokenData.success) {
-                throw new Error('Failed to get BNX token');
+            let bnxToken = tokenData.access_token || tokenData.data?.access_token || tokenData.token || tokenData.data?.token || (typeof tokenData.data === 'string' ? tokenData.data : null);
+
+            if (!bnxToken) {
+                // If code itself is already a token/JWT from SSO redirect
+                if (typeof code === 'string' && (code.startsWith('eyJ') || code.length > 20)) {
+                    bnxToken = code;
+                }
             }
 
-            const bnxToken = tokenData.data.access_token;
+            if (!bnxToken) {
+                throw new Error(tokenData.message || tokenData.error || 'Failed to obtain access token');
+            }
 
             // 2. Perform SSO Login with backend
             await ssoLogin(bnxToken, 'BUSINESS');
