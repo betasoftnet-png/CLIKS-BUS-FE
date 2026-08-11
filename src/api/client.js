@@ -232,31 +232,7 @@ async function request(endpoint, options = {}) {
         }
     }
 
-    // Handle 405 Method Not Allowed (Nginx static path restriction for POST/PATCH/PUT/DELETE)
-    if (response && response.status === 405 && (method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE')) {
-        try {
-            const fallbackUrlObj = new URL(url);
-            if (body && typeof body === 'object') {
-                Object.entries(body).forEach(([k, v]) => {
-                    if (v !== undefined && v !== null) fallbackUrlObj.searchParams.append(k, String(v));
-                });
-            }
-            if (endpoint.includes('/profile') && !fallbackUrlObj.pathname.endsWith('/update')) {
-                fallbackUrlObj.pathname = fallbackUrlObj.pathname.endsWith('/') 
-                    ? `${fallbackUrlObj.pathname}update` 
-                    : `${fallbackUrlObj.pathname}/update`;
-            }
-            const retryRes = await fetch(fallbackUrlObj.toString(), {
-                method: 'GET',
-                headers: requestHeaders,
-                signal: combinedSignal,
-                credentials: 'same-origin'
-            });
-            if (retryRes.ok || retryRes.status === 304) {
-                response = retryRes;
-            }
-        } catch (e) {}
-    }
+    clearTimeout(timeoutId);
 
     // Handle error responses (304 is technically not 'ok' but is a success for caching)
     if (!response.ok && response.status !== 304) {
