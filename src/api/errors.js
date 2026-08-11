@@ -71,6 +71,7 @@ function getDefaultErrorMessage(status) {
         401: 'Authentication required.',
         403: 'You do not have permission to perform this action.',
         404: 'The requested resource was not found.',
+        405: 'HTTP 405 Method Not Allowed.',
         408: 'Request timeout. Please try again.',
         409: 'Conflict. The resource may already exist.',
         422: 'Validation failed. Please check your input.',
@@ -111,10 +112,14 @@ async function parseErrorResponse(response) {
             return { message, code, details };
         }
 
-        // Non-JSON response
+        // Non-JSON response (e.g. Nginx HTML error pages)
         const text = await response.text();
+        let cleanMessage = getDefaultErrorMessage(response.status);
+        if (text && !text.trim().startsWith('<')) {
+            cleanMessage = text.trim();
+        }
         return {
-            message: text || getDefaultErrorMessage(response.status),
+            message: cleanMessage,
             code: `HTTP_${response.status}`,
             details: null,
         };

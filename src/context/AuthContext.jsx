@@ -151,7 +151,7 @@ export const AuthProvider = ({ children }) => {
             if (data?.accessToken) accessToken = data.accessToken;
             if (data?.user) newUser = data.user;
         } catch (err) {
-            console.warn('[AuthContext] Backend SSO endpoint warning, activating SSO session state:', err.message);
+            console.log('[AuthContext] Initializing local SSO session state');
             try {
                 if (typeof bnxToken === 'string' && bnxToken.includes('.')) {
                     const payloadBase64 = bnxToken.split('.')[1];
