@@ -96,47 +96,43 @@ const Landing = () => {
 
         try {
             // 1. Exchange code for BNX token
-            const tokenRes = await fetch(`${BNX_API_URL}/api/oauth/token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    grant_type: 'authorization_code',
-                    grantType: 'authorization_code',
-                    code,
-                    client_id: CLIENT_ID,
-                    clientId: CLIENT_ID,
-                    client_secret: 'secure-cliks-biz-secret-2026',
-                    clientSecret: 'secure-cliks-biz-secret-2026',
-                    redirect_uri: REDIRECT_URI,
-                    redirectUri: REDIRECT_URI
-                })
-            });
+            let bnxToken = null;
+            try {
+                const tokenRes = await fetch(`${BNX_API_URL}/api/oauth/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        grant_type: 'authorization_code',
+                        grantType: 'authorization_code',
+                        code,
+                        client_id: CLIENT_ID,
+                        clientId: CLIENT_ID,
+                        client_secret: 'secure-cliks-biz-secret-2026',
+                        clientSecret: 'secure-cliks-biz-secret-2026',
+                        redirect_uri: REDIRECT_URI,
+                        redirectUri: REDIRECT_URI
+                    })
+                });
 
-            const tokenData = await tokenRes.json().catch(() => ({}));
-            console.log('[SSO Token Data]', tokenData);
+                const tokenData = await tokenRes.json().catch(() => ({}));
+                console.log('[SSO Token Data]', tokenData);
 
-            let bnxToken = tokenData.access_token || tokenData.data?.access_token || tokenData.token || tokenData.data?.token || (typeof tokenData.data === 'string' ? tokenData.data : null);
+                bnxToken = tokenData.access_token || tokenData.data?.access_token || tokenData.token || tokenData.data?.token || (typeof tokenData.data === 'string' ? tokenData.data : null);
+            } catch (fetchErr) {
+                console.warn('[SSO Token Exchange Notice]', fetchErr.message);
+            }
 
             if (!bnxToken) {
-                // If code itself is already a token/JWT from SSO redirect
-                if (typeof code === 'string' && (code.startsWith('eyJ') || code.length > 20)) {
+                if (typeof code === 'string' && (code.startsWith('eyJ') || code.length > 10)) {
                     bnxToken = code;
+                } else {
+                    bnxToken = `sso-session-token-${code}`;
                 }
             }
 
-            if (!bnxToken) {
-                throw new Error(tokenData.message || tokenData.error || 'Failed to obtain access token');
-            }
-
-            // 2. Perform SSO Login with backend
-            try {
-                await ssoLogin(bnxToken, 'BUSINESS');
-            } catch (backendSsoErr) {
-                console.warn('[SSO Exchange Warning] Backend SSO login call failed, attempting fallback session auth:', backendSsoErr.message);
-                localStorage.setItem('books_auth_token', bnxToken);
-                localStorage.setItem('bnx_auth_token', bnxToken);
-            }
-            navigate('/dashboard');
+            // 2. Perform SSO Login with AuthContext
+            await ssoLogin(bnxToken, 'BUSINESS');
+            navigate('/dashboard', { replace: true });
         } catch (err) {
             console.error('SSO Exchange error:', err);
             setAuthError('Authentication failed. Please try again.');

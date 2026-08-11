@@ -353,7 +353,7 @@ const BusinessDashboard = () => {
 
                             {/* Custom SVG Sales Line/Area Graph */}
                             <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" height="auto" style={{ display: 'block', overflow: 'visible' }}>
+                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" style={{ display: 'block', overflow: 'visible', height: 'auto' }}>
                                     <defs>
                                         <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#1B6B3A" stopOpacity="0.3" />
