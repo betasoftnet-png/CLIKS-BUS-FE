@@ -35,13 +35,13 @@ import { ApiError, normalizeError } from './errors';
  */
 function buildUrl(endpoint, params = null) {
     let baseUrl = API_BASE_URL;
-    if (!baseUrl) {
+    if (!baseUrl || baseUrl.includes('beta-softnet.com')) {
         if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-            baseUrl = 'http://localhost:3000/api/v1';
+            baseUrl = 'http://localhost:8000/api/v1';
         } else if (typeof window !== 'undefined') {
             baseUrl = `${window.location.origin}/api/v1`;
         } else {
-            baseUrl = 'http://localhost:3000/api/v1';
+            baseUrl = 'http://localhost:8000/api/v1';
         }
     }
 
@@ -213,8 +213,23 @@ async function request(endpoint, options = {}) {
         }
         response = await fetch(url, fetchOptions);
     } catch (error) {
-        clearTimeout(timeoutId);
-        throw await normalizeError(error);
+        // Fallback retry if initial fetch failed due to unresolvable domain or network mismatch
+        if (typeof window !== 'undefined' && !url.includes(window.location.origin) && !url.includes('localhost:8000')) {
+            const fallbackBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'http://localhost:8000/api/v1/'
+                : `${window.location.origin}/api/v1/`;
+            const cleanPath = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+            const fallbackUrl = new URL(cleanPath, fallbackBase).toString();
+            try {
+                response = await fetch(fallbackUrl, fetchOptions);
+            } catch (fallbackErr) {
+                clearTimeout(timeoutId);
+                throw await normalizeError(fallbackErr);
+            }
+        } else {
+            clearTimeout(timeoutId);
+            throw await normalizeError(error);
+        }
     }
 
     clearTimeout(timeoutId);

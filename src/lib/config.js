@@ -18,7 +18,9 @@ if (missingVars.length > 0) {
 
 export const config = {
     api: {
-        baseUrl: env.VITE_API_BASE_URL || '', // Fallback to empty (relative) if missing
+        baseUrl: (env.VITE_API_BASE_URL && !env.VITE_API_BASE_URL.includes('beta-softnet.com')) 
+            ? env.VITE_API_BASE_URL 
+            : '',
         timeout: 30000,
     },
     features: {
