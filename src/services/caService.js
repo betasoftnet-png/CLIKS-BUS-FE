@@ -55,9 +55,9 @@ export const caService = {
 
     // Presence API
     getPresenceStatus: (userId) => apiClient.get(`/ca/presence${userId ? `?userId=${userId}&user_id=${userId}` : ''}`).then(res => res.data?.data || res.data).catch(() => null),
-    setUserOnline: () => apiClient.post('/presence/login').catch(() => apiClient.get('/presence/login')).then(res => res?.data?.data || res?.data).catch(() => null),
-    setUserOffline: () => apiClient.post('/presence/logout').catch(() => apiClient.get('/presence/logout')).then(res => res?.data?.data || res?.data).catch(() => null),
-    updatePresenceHeartbeat: () => apiClient.post('/presence/heartbeat').catch(() => apiClient.get('/presence/heartbeat')).then(res => res?.data?.data || res?.data).catch(() => null),
+    setUserOnline: () => apiClient.post('/presence/login').then(res => res.data?.data || res.data).catch(() => null),
+    setUserOffline: () => apiClient.post('/presence/logout').then(res => res.data?.data || res.data).catch(() => null),
+    updatePresenceHeartbeat: () => apiClient.post('/presence/heartbeat').then(res => res.data?.data || res.data).catch(() => null),
 
     // GST Credentials API
     getGstCredentials: () => apiClient.get('/gst-credentials').then(res => res.data.data || res.data),
