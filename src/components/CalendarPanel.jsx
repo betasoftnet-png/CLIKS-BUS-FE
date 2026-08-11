@@ -68,6 +68,24 @@ const CalendarPanel = () => {
                month === selectedDate.getMonth() && 
                year === selectedDate.getFullYear();
     };
+    const selectedDateStr = new Date(year, month, selectedDate.getDate()).toISOString().split('T')[0];
+
+    const { data: selectedDateData, isLoading: isSelectedDateLoading } = useQuery({
+        queryKey: ['calendar-date-data', selectedDateStr],
+        queryFn: async () => {
+            const token = localStorage.getItem('bnx_auth_token');
+            const baseUrl = import.meta.env.VITE_CALENDAR_API_BASE_URL;
+            const response = await fetch(`${baseUrl}/search?date=${selectedDateStr}&allApps=true`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error('Failed to fetch selected date data');
+            const result = await response.json();
+            return result?.data || { events: [], notes: [], reminders: [] };
+        }
+    });
 
     const getItemsForDate = (dateObj) => {
         if (!calendarData) return { events: [], notes: [], reminders: [] };
@@ -150,7 +168,7 @@ const CalendarPanel = () => {
         return days;
     };
 
-    const selectedItems = getItemsForDate(selectedDate);
+    const selectedItems = selectedDateData || { events: [], notes: [], reminders: [] };
     const hasAnyItems = selectedItems.events.length > 0 || selectedItems.notes.length > 0 || selectedItems.reminders.length > 0;
 
     const formatTime = (isoString) => {
@@ -188,7 +206,7 @@ const CalendarPanel = () => {
                     Schedule for {selectedDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                 </h4>
                 
-                {isLoading ? (
+                {isSelectedDateLoading ? (
                     <div style={{ textAlign: 'center', padding: '1rem', color: '#94A3B8', fontSize: '0.85rem' }}>Loading schedule...</div>
                 ) : !hasAnyItems ? (
                     <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94A3B8', fontSize: '0.85rem', background: 'white', borderRadius: '12px', border: '1px dashed #E2E8F0' }}>
