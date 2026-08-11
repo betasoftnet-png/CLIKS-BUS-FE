@@ -232,14 +232,19 @@ async function request(endpoint, options = {}) {
         }
     }
 
-    // Handle 405 Method Not Allowed (Nginx static path restriction for POST)
-    if (response && response.status === 405 && method === 'POST') {
+    // Handle 405 Method Not Allowed (Nginx static path restriction for POST/PATCH/PUT/DELETE)
+    if (response && response.status === 405 && (method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE')) {
         try {
             const fallbackUrlObj = new URL(url);
             if (body && typeof body === 'object') {
                 Object.entries(body).forEach(([k, v]) => {
                     if (v !== undefined && v !== null) fallbackUrlObj.searchParams.append(k, String(v));
                 });
+            }
+            if (endpoint.includes('/profile') && !fallbackUrlObj.pathname.endsWith('/update')) {
+                fallbackUrlObj.pathname = fallbackUrlObj.pathname.endsWith('/') 
+                    ? `${fallbackUrlObj.pathname}update` 
+                    : `${fallbackUrlObj.pathname}/update`;
             }
             const retryRes = await fetch(fallbackUrlObj.toString(), {
                 method: 'GET',
