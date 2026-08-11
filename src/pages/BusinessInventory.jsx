@@ -272,7 +272,44 @@ const BusinessInventory = () => {
         { id: 'M-3', date: '2026-05-04', item_name: 'Ergonomic Mesh Office Chair', type: 'Out (Sales)', quantity: 15, ref: 'Invoice #INV-244', warehouse: 'Shop Front' },
     ]);
 
-    // HSN Intelligent Search State
+    const [formData, setFormData] = useState(() => ({
+        product_code: `PRO-${Date.now().toString().slice(-4)}`,
+        sku: '',
+        barcode: '',
+        qr_code: '',
+        product_type: 'product',
+        name: '',
+        short_name: '',
+        description: '',
+        category: 'Electronics',
+        brand: '',
+        purchase_price: 0,
+        selling_price: 0,
+        wholesale_price: 0,
+        dealer_price: 0,
+        mrp: 0,
+        discount_percentage: 0,
+        gst_percentage: 18,
+        hsn_code: '',
+        tax_type: 'inclusive',
+        opening_stock: 0,
+        quantity: 0,
+        reserved_stock: 0,
+        damaged_stock: 0,
+        min_stock: 5,
+        reorder_level: 8,
+        batch_number: '',
+        manufacturing_date: '',
+        expiry_date: '',
+        serial_number: '',
+        primary_unit: 'pcs',
+        secondary_unit: 'box',
+        conversion_rate: 1,
+        warehouse: 'Main Godown',
+        rack_number: ''
+    }));
+
+    // HSN Intelligent Search State (Placed after formData & isModalOpen declarations)
     const [hsnSuggestions, setHsnSuggestions] = useState([]);
     const [isHsnLoading, setIsHsnLoading] = useState(false);
     const [showHsnDropdown, setShowHsnDropdown] = useState(false);
@@ -314,43 +351,6 @@ const BusinessInventory = () => {
 
         return () => clearTimeout(timer);
     }, [formData.name, hsnQueryOverride, isModalOpen]);
-
-    const [formData, setFormData] = useState(() => ({
-        product_code: `PRO-${Date.now().toString().slice(-4)}`,
-        sku: '',
-        barcode: '',
-        qr_code: '',
-        product_type: 'product',
-        name: '',
-        short_name: '',
-        description: '',
-        category: 'Electronics',
-        brand: '',
-        purchase_price: 0,
-        selling_price: 0,
-        wholesale_price: 0,
-        dealer_price: 0,
-        mrp: 0,
-        discount_percentage: 0,
-        gst_percentage: 18,
-        hsn_code: '',
-        tax_type: 'inclusive',
-        opening_stock: 0,
-        quantity: 0,
-        reserved_stock: 0,
-        damaged_stock: 0,
-        min_stock: 5,
-        reorder_level: 8,
-        batch_number: '',
-        manufacturing_date: '',
-        expiry_date: '',
-        serial_number: '',
-        primary_unit: 'pcs',
-        secondary_unit: 'box',
-        conversion_rate: 1,
-        warehouse: 'Main Godown',
-        rack_number: ''
-    }));
 
     const closeModal = () => {
         setIsModalOpen(false);
