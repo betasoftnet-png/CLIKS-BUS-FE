@@ -14,6 +14,7 @@ import { CalcPopover } from '../components/common/CalcPopover';
 import ProductLauncher from '../components/ProductLauncher';
 import BusinessPlaceholder from '../pages/BusinessPlaceholder';
 import ContactPanel from '../components/ContactPanel';
+import CalendarPanel from '../components/CalendarPanel';
 
 const DockedPanelWrapper = ({ title, onClose, children }) => {
     return (
@@ -160,7 +161,7 @@ const MainLayout = ({ children }) => {
                             )}
                             {activePanel === 'Calendar' && (
                                 <DockedPanelWrapper title="Calendar" onClose={() => setActivePanel(null)}>
-                                    <BusinessPlaceholder title="Calendar" />
+                                    <CalendarPanel />
                                 </DockedPanelWrapper>
                             )}
                             {activePanel === 'Contact' && (
