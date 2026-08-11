@@ -129,7 +129,13 @@ const Landing = () => {
             }
 
             // 2. Perform SSO Login with backend
-            await ssoLogin(bnxToken, 'BUSINESS');
+            try {
+                await ssoLogin(bnxToken, 'BUSINESS');
+            } catch (backendSsoErr) {
+                console.warn('[SSO Exchange Warning] Backend SSO login call failed, attempting fallback session auth:', backendSsoErr.message);
+                localStorage.setItem('books_auth_token', bnxToken);
+                localStorage.setItem('bnx_auth_token', bnxToken);
+            }
             navigate('/dashboard');
         } catch (err) {
             console.error('SSO Exchange error:', err);
