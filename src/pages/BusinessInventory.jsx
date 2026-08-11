@@ -355,6 +355,10 @@ const BusinessInventory = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingItem(null);
+        setShowHsnDropdown(false);
+        setHsnSuggestions([]);
+        setHsnQueryOverride('');
+        setHasSearchedHsn(false);
         setFormData({
             product_code: `PRO-${Date.now().toString().slice(-4)}`,
             sku: '',
@@ -976,7 +980,25 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Item Name</label>
-                                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="e.g. MacBook Pro M3" />
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={formData.name} 
+                                        onChange={(e) => {
+                                            const newName = e.target.value;
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                name: newName,
+                                                hsn_code: '' // Instantly clear stale HSN code when product name changes
+                                            }));
+                                            setHsnQueryOverride('');
+                                            setHsnSuggestions([]);
+                                            setShowHsnDropdown(false);
+                                            setHasSearchedHsn(false);
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="e.g. MacBook Pro M3" 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Short Display Name</label>
