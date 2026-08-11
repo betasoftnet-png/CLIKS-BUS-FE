@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { productsService } from '../services';
+import { productsService, hsnService } from '../services';
 import { 
     Package, 
     Plus, 
@@ -272,6 +272,49 @@ const BusinessInventory = () => {
         { id: 'M-3', date: '2026-05-04', item_name: 'Ergonomic Mesh Office Chair', type: 'Out (Sales)', quantity: 15, ref: 'Invoice #INV-244', warehouse: 'Shop Front' },
     ]);
 
+    // HSN Intelligent Search State
+    const [hsnSuggestions, setHsnSuggestions] = useState([]);
+    const [isHsnLoading, setIsHsnLoading] = useState(false);
+    const [showHsnDropdown, setShowHsnDropdown] = useState(false);
+    const [hasSearchedHsn, setHasSearchedHsn] = useState(false);
+    const [hsnQueryOverride, setHsnQueryOverride] = useState('');
+
+    React.useEffect(() => {
+        if (!isModalOpen) {
+            setShowHsnDropdown(false);
+            setHsnSuggestions([]);
+            setHsnQueryOverride('');
+            setHasSearchedHsn(false);
+            return;
+        }
+
+        const query = (hsnQueryOverride || formData.name || '').trim();
+        if (query.length < 2) {
+            setHsnSuggestions([]);
+            setShowHsnDropdown(false);
+            setHasSearchedHsn(false);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setIsHsnLoading(true);
+            setHasSearchedHsn(true);
+            hsnService.searchHSN(query)
+                .then(results => {
+                    setHsnSuggestions(results || []);
+                    setShowHsnDropdown(true);
+                })
+                .catch(() => {
+                    setHsnSuggestions([]);
+                })
+                .finally(() => {
+                    setIsHsnLoading(false);
+                });
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [formData.name, hsnQueryOverride, isModalOpen]);
+
     const [formData, setFormData] = useState(() => ({
         product_code: `PRO-${Date.now().toString().slice(-4)}`,
         sku: '',
@@ -427,7 +470,8 @@ const BusinessInventory = () => {
             batch_number: formData.batch_number,
             expiry_date: formData.expiry_date,
             tax_percentage: parseFloat(formData.gst_percentage) || 18,
-            warehouse_id: formData.warehouse
+            warehouse_id: formData.warehouse,
+            hsn_code: formData.hsn_code
         };
 
         if (editingItem) {
@@ -958,9 +1002,101 @@ const BusinessInventory = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Barcode Number</label>
                                     <input type="text" value={formData.barcode} onChange={(e) => setFormData({...formData, barcode: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter" />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>HSN / SAC Code</label>
-                                    <input type="text" value={formData.hsn_code} onChange={(e) => setFormData({...formData, hsn_code: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="8471" />
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
+                                        {isHsnLoading && <span style={{ fontSize: '0.7rem', color: '#064E3B', fontWeight: '600' }}>Searching...</span>}
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={formData.hsn_code} 
+                                        onChange={(e) => {
+                                            setFormData({...formData, hsn_code: e.target.value});
+                                            setHsnQueryOverride(e.target.value);
+                                        }} 
+                                        onFocus={() => {
+                                            if ((formData.hsn_code || formData.name) && ((formData.hsn_code || '').length >= 2 || (formData.name || '').length >= 2)) {
+                                                setShowHsnDropdown(true);
+                                            }
+                                        }}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="8471" 
+                                    />
+
+                                    {/* HSN Suggestions Dropdown */}
+                                    {showHsnDropdown && (
+                                        <div style={{ 
+                                            position: 'absolute', 
+                                            top: '100%', 
+                                            left: 0, 
+                                            right: 0, 
+                                            zIndex: 1100, 
+                                            marginTop: '6px', 
+                                            background: 'white', 
+                                            borderRadius: '16px', 
+                                            border: '1px solid #E2E8F0', 
+                                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', 
+                                            maxHeight: '220px', 
+                                            overflowY: 'auto',
+                                            padding: '0.5rem'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', borderBottom: '1px solid #F1F5F9' }}>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#064E3B', textTransform: 'uppercase' }}>HSN/SAC Suggestions</span>
+                                                <button type="button" onClick={() => setShowHsnDropdown(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}><X size={14} /></button>
+                                            </div>
+
+                                            {isHsnLoading && (
+                                                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>Searching master catalog...</div>
+                                            )}
+
+                                            {!isHsnLoading && hsnSuggestions.length === 0 && hasSearchedHsn && (
+                                                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8' }}>No matching HSN found</div>
+                                            )}
+
+                                            {!isHsnLoading && hsnSuggestions.map((item, idx) => (
+                                                <div 
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, hsn_code: item.hsnCode });
+                                                        setShowHsnDropdown(false);
+                                                    }}
+                                                    style={{ 
+                                                        padding: '0.6rem 0.75rem', 
+                                                        borderRadius: '10px', 
+                                                        cursor: 'pointer', 
+                                                        display: 'flex', 
+                                                        justify: 'space-between', 
+                                                        alignItems: 'center',
+                                                        transition: 'background 0.15s ease',
+                                                        borderBottom: idx < hsnSuggestions.length - 1 ? '1px solid #F8FAFC' : 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#F0FDF4'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <div style={{ flex: 1, paddingRight: '0.5rem', overflow: 'hidden' }}>
+                                                        <div style={{ fontWeight: '800', fontSize: '0.85rem', color: '#064E3B' }}>{item.hsnCode}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.description}</div>
+                                                    </div>
+                                                    <button 
+                                                        type="button" 
+                                                        style={{ 
+                                                            border: 'none', 
+                                                            background: '#DCFCE7', 
+                                                            color: '#15803D', 
+                                                            fontWeight: '700', 
+                                                            fontSize: '0.75rem', 
+                                                            padding: '0.35rem 0.65rem', 
+                                                            borderRadius: '8px', 
+                                                            cursor: 'pointer',
+                                                            flexShrink: 0
+                                                        }}
+                                                    >
+                                                        Select
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

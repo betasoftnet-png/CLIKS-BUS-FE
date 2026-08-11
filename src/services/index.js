@@ -41,4 +41,5 @@ export * from './marketingService';
 export * from './supportService';
 export * from './contactsService';
 export * from './caService';
+export * from './hsnService';
 
