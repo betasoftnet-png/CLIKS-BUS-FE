@@ -513,7 +513,8 @@ const BusinessGST = () => {
             vehicle_number: ewayForm.transport_mode === 'Road' ? ewayForm.vehicle_number : '',
             transport_distance: parseInt(ewayForm.transport_distance),
             dispatch_location: ewayForm.dispatch_location,
-            delivery_location: ewayForm.delivery_location
+            delivery_location: ewayForm.delivery_location,
+            client_name: ewayForm.client_name || ewayForm.customer_name || ewayForm.delivery_location || 'General Customer'
         };
 
         if (ewayForm.is_invoice_selected) {
