@@ -206,11 +206,52 @@ const BusinessPOS = () => {
         billing_address: ''
     });
     const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+    const [customerErrors, setCustomerErrors] = useState({ phone: '', email: '', gstin: '' });
+    const [touchedCustomerFields, setTouchedCustomerFields] = useState({ phone: false, email: false, gstin: false });
+
+    const validateCustomerPhone = (val) => {
+        if (!val || !val.trim()) return '';
+        const clean = val.trim();
+        if (!/^\d{10}$/.test(clean)) {
+            return 'Phone number must be exactly 10 digits.';
+        }
+        return '';
+    };
+
+    const validateCustomerEmail = (val) => {
+        if (!val || !val.trim()) return '';
+        const clean = val.trim().toLowerCase();
+        if (!clean.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(clean)) {
+            return 'Email must use the @bnxmail.com domain.';
+        }
+        return '';
+    };
+
+    const validateCustomerGstin = (val) => {
+        if (!val || !val.trim()) return '';
+        const clean = val.trim().toUpperCase();
+        if (clean.length !== 15 || !/^[0-9A-Z]{15}$/.test(clean)) {
+            return 'GSTIN must be exactly 15 characters.';
+        }
+        return '';
+    };
 
     const handleCreateCustomer = async (e) => {
         e.preventDefault();
+
+        const phoneErr = validateCustomerPhone(newCustomerData.phone_number);
+        const emailErr = validateCustomerEmail(newCustomerData.email);
+        const gstinErr = validateCustomerGstin(newCustomerData.gstin);
+
+        setTouchedCustomerFields({ phone: true, email: true, gstin: true });
+        setCustomerErrors({ phone: phoneErr, email: emailErr, gstin: gstinErr });
+
         if (!newCustomerData.name || !newCustomerData.name.trim()) {
             alert('Customer Name is required');
+            return;
+        }
+
+        if (phoneErr || emailErr || gstinErr) {
             return;
         }
 
@@ -237,6 +278,8 @@ const BusinessPOS = () => {
 
             // Reset form & close modal
             setNewCustomerData({ name: '', phone_number: '', email: '', gstin: '', billing_address: '' });
+            setCustomerErrors({ phone: '', email: '', gstin: '' });
+            setTouchedCustomerFields({ phone: false, email: false, gstin: false });
             setIsAddCustomerModalOpen(false);
             alert('New Customer registered and assigned successfully!');
         } catch (err) {
@@ -2261,20 +2304,50 @@ const BusinessPOS = () => {
                                     <input 
                                         type="text" 
                                         value={newCustomerData.phone_number} 
-                                        onChange={(e) => setNewCustomerData({ ...newCustomerData, phone_number: e.target.value })} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                        placeholder="+91 9876543210" 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setNewCustomerData({ ...newCustomerData, phone_number: val });
+                                            if (touchedCustomerFields.phone) {
+                                                setCustomerErrors(prev => ({ ...prev, phone: validateCustomerPhone(val) }));
+                                            }
+                                        }} 
+                                        onBlur={() => {
+                                            setTouchedCustomerFields(prev => ({ ...prev, phone: true }));
+                                            setCustomerErrors(prev => ({ ...prev, phone: validateCustomerPhone(newCustomerData.phone_number) }));
+                                        }}
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.phone ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                        placeholder="9876543210" 
                                     />
+                                    {customerErrors.phone && (
+                                        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
+                                            {customerErrors.phone}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Email Address</label>
                                     <input 
-                                        type="email" 
+                                        type="text" 
                                         value={newCustomerData.email} 
-                                        onChange={(e) => setNewCustomerData({ ...newCustomerData, email: e.target.value })} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                        placeholder="customer@email.com" 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setNewCustomerData({ ...newCustomerData, email: val });
+                                            if (touchedCustomerFields.email) {
+                                                setCustomerErrors(prev => ({ ...prev, email: validateCustomerEmail(val) }));
+                                            }
+                                        }} 
+                                        onBlur={() => {
+                                            setTouchedCustomerFields(prev => ({ ...prev, email: true }));
+                                            setCustomerErrors(prev => ({ ...prev, email: validateCustomerEmail(newCustomerData.email) }));
+                                        }}
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.email ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                        placeholder="customer@bnxmail.com" 
                                     />
+                                    {customerErrors.email && (
+                                        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
+                                            {customerErrors.email}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
@@ -2283,10 +2356,25 @@ const BusinessPOS = () => {
                                 <input 
                                     type="text" 
                                     value={newCustomerData.gstin} 
-                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, gstin: e.target.value.toUpperCase() })} 
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
+                                    onChange={(e) => {
+                                        const val = e.target.value.toUpperCase();
+                                        setNewCustomerData({ ...newCustomerData, gstin: val });
+                                        if (touchedCustomerFields.gstin) {
+                                            setCustomerErrors(prev => ({ ...prev, gstin: validateCustomerGstin(val) }));
+                                        }
+                                    }} 
+                                    onBlur={() => {
+                                        setTouchedCustomerFields(prev => ({ ...prev, gstin: true }));
+                                        setCustomerErrors(prev => ({ ...prev, gstin: validateCustomerGstin(newCustomerData.gstin) }));
+                                    }}
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.gstin ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
                                     placeholder="27AAAAA0000A1Z5" 
                                 />
+                                {customerErrors.gstin && (
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
+                                        {customerErrors.gstin}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
