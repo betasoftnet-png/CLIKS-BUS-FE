@@ -957,14 +957,51 @@ const BusinessPOS = () => {
                             background: 'white',
                             width: '380px',
                             borderRadius: '20px',
-                            overflow: 'hidden',
+                            position: 'relative',
                             boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                             display: 'flex',
                             flexDirection: 'column'
                         }}
                     >
+                        {/* Close (X) Icon Button */}
+                        <button
+                            onClick={() => setShowReceiptModal(false)}
+                            aria-label="Close receipt modal"
+                            title="Close"
+                            style={{
+                                position: 'absolute',
+                                top: '-12px',
+                                right: '-12px',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: '#FFFFFF',
+                                border: '1px solid #E2E8F0',
+                                color: '#334155',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                zIndex: 10,
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#F8FAFC';
+                                e.currentTarget.style.color = '#0F172A';
+                                e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#FFFFFF';
+                                e.currentTarget.style.color = '#334155';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            <X size={18} strokeWidth={2.5} />
+                        </button>
+
                         {/* Modal Header */}
-                        <div style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.5rem', color: 'white', textAlign: 'center', position: 'relative' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
                             <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
                                 <Check size={24} strokeWidth={3} />
                             </div>
@@ -1040,7 +1077,7 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Action Footer */}
-                        <div style={{ padding: '1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ padding: '1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', borderRadius: '0 0 20px 20px' }}>
                             <button 
                                 onClick={printReceipt}
                                 style={{ 
