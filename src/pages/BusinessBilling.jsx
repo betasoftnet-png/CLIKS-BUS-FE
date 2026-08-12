@@ -29,7 +29,14 @@ import {
     LayoutTemplate,
     Settings,
     Check,
-    Eye
+    Eye,
+    ShoppingCart,
+    RotateCcw,
+    Truck,
+    ShieldCheck,
+    FileSpreadsheet,
+    Package,
+    Wrench
 } from 'lucide-react';
 import { 
     billingService, 
@@ -37,7 +44,9 @@ import {
     crmService, 
     profileService, 
     productsService,
-    settingsService
+    settingsService,
+    returnsService,
+    purchasesService
 } from '../services';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
@@ -82,6 +91,55 @@ const BusinessBilling = () => {
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
     const barcodeInputRef = React.useRef(null);
+
+    // Tab Navigation State (Orders List, Sales Returns, Purchase Returns, Warranty Claims)
+    const [activeMainTab, setActiveMainTab] = useState('orders'); // 'orders', 'sales_returns', 'purchase_returns', 'warranty'
+    const [isOrderReportsModalOpen, setIsOrderReportsModalOpen] = useState(false);
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [returnFormType, setReturnFormType] = useState('sales'); // 'sales', 'purchase', 'warranty'
+    const [newReturnData, setNewReturnData] = useState({
+        client_name: '',
+        invoice_number: '',
+        total_amount: '',
+        reason: 'Defective / Customer Return',
+        return_type: 'sales'
+    });
+
+    // Fetch Returns & Claims
+    const { data: allReturns = [], isLoading: isReturnsLoading } = useQuery({
+        queryKey: ['returns'],
+        queryFn: () => returnsService.getReturns().catch(() => []),
+        refetchOnWindowFocus: false
+    });
+
+    const createReturnMutation = useMutation({
+        mutationFn: (data) => returnsService.createReturn(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['returns'] });
+            alert('Return / Claim record created successfully!');
+            setIsReturnModalOpen(false);
+            setNewReturnData({ client_name: '', invoice_number: '', total_amount: '', reason: 'Defective / Customer Return', return_type: 'sales' });
+        },
+        onError: (err) => {
+            console.error('Failed to create return:', err);
+            alert('Could not record return transaction.');
+        }
+    });
+
+    const salesReturnsList = React.useMemo(() => {
+        return (allReturns || []).filter(r => (r.return_type === 'sales' || r.type === 'sales' || !r.return_type) &&
+            ((r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.invoice_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase())));
+    }, [allReturns, searchTerm]);
+
+    const purchaseReturnsList = React.useMemo(() => {
+        return (allReturns || []).filter(r => (r.return_type === 'purchase' || r.type === 'purchase') &&
+            ((r.supplier_name || r.vendor_name || r.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.bill_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase())));
+    }, [allReturns, searchTerm]);
+
+    const warrantyClaimsList = React.useMemo(() => {
+        return (allReturns || []).filter(r => (r.return_type === 'warranty' || r.type === 'warranty' || r.claim_type === 'warranty') &&
+            ((r.product_name || r.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())));
+    }, [allReturns, searchTerm]);
 
     // Fetch actual business profile for production-grade invoices
     const { data: businessProfile } = useQuery({
@@ -1059,28 +1117,161 @@ const BusinessBilling = () => {
 
             {/* Invoices List */}
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                    <div style={{ position: 'relative', width: '320px' }}>
-                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                        <input 
-                            type="text" 
-                            placeholder="Search client or invoice #..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}
-                        />
+                {/* Search & Navigation Tab Bar */}
+                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {/* Search Input + Navigation Bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0, overflowX: 'auto', paddingBottom: '2px' }}>
+                        <div style={{ position: 'relative', width: '220px', flexShrink: 0 }}>
+                            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <input 
+                                type="text" 
+                                placeholder="Search client or invoice #..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem' }}
+                            />
+                        </div>
+
+                        {/* Navigation Tabs (Orders List, Order Reports, Sales Returns, Purchase Returns, Warranty Claims) */}
+                        <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexShrink: 0 }}>
+                            {/* 1. Orders List */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveMainTab('orders')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    border: activeMainTab === 'orders' ? 'none' : '1px solid #E2E8F0',
+                                    background: activeMainTab === 'orders' ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
+                                    color: activeMainTab === 'orders' ? '#FFFFFF' : '#475569',
+                                    boxShadow: activeMainTab === 'orders' ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <ShoppingCart size={15} />
+                                <span>Orders List</span>
+                            </button>
+
+                            {/* Order Reports */}
+                            <button
+                                type="button"
+                                onClick={() => setIsOrderReportsModalOpen(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    border: '1px solid #E2E8F0',
+                                    background: '#FFFFFF',
+                                    color: '#475569',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <FileSpreadsheet size={14} color="#6366F1" />
+                                <span>Order Reports 📊</span>
+                            </button>
+
+                            {/* 2. Sales Returns (Customers) */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveMainTab('sales_returns')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    border: activeMainTab === 'sales_returns' ? 'none' : '1px solid #E2E8F0',
+                                    background: activeMainTab === 'sales_returns' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
+                                    color: activeMainTab === 'sales_returns' ? '#FFFFFF' : '#475569',
+                                    boxShadow: activeMainTab === 'sales_returns' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <RotateCcw size={15} />
+                                <span>Sales Returns (Customers)</span>
+                            </button>
+
+                            {/* 3. Purchase Returns (Suppliers) */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveMainTab('purchase_returns')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    border: activeMainTab === 'purchase_returns' ? 'none' : '1px solid #E2E8F0',
+                                    background: activeMainTab === 'purchase_returns' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : '#FFFFFF',
+                                    color: activeMainTab === 'purchase_returns' ? '#FFFFFF' : '#475569',
+                                    boxShadow: activeMainTab === 'purchase_returns' ? '0 4px 12px rgba(59, 130, 246, 0.25)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Truck size={15} />
+                                <span>Purchase Returns (Suppliers)</span>
+                            </button>
+
+                            {/* 4. Warranty & Replacement Claims */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveMainTab('warranty')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    border: activeMainTab === 'warranty' ? 'none' : '1px solid #E2E8F0',
+                                    background: activeMainTab === 'warranty' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
+                                    color: activeMainTab === 'warranty' ? '#FFFFFF' : '#475569',
+                                    boxShadow: activeMainTab === 'warranty' ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <ShieldCheck size={15} />
+                                <span>Warranty & Replacement Claims</span>
+                            </button>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+
+                    {/* Right Side: Filters */}
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
                         <input 
                             type="date" 
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
-                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                            style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem', color: '#64748B' }}
                         />
                         <select 
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                            style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem', color: '#64748B' }}
                         >
                             <option value="All">All Status</option>
                             <option value="Paid">Paid</option>
@@ -1090,15 +1281,15 @@ const BusinessBilling = () => {
                             <option value="Draft">Draft</option>
                         </select>
                         <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                            <Filter size={16} />
+                            <Filter size={15} />
                         </button>
                     </div>
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
-                    {isLoading ? (
+                    {isLoading || isReturnsLoading ? (
                         <div style={{ padding: '4rem', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={32} color="#BE185D" /></div>
-                    ) : (
+                    ) : activeMainTab === 'orders' ? (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
         { key: 'invoice_number', label: 'Invoice', placeholder: 'e.g. INV-001' },
@@ -1162,6 +1353,159 @@ const BusinessBilling = () => {
                                     </tr>
                                     ));
                                 })()}
+                            </tbody>
+                        </table>
+                    ) : activeMainTab === 'sales_returns' ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Ref #</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Customer / Client</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Original Invoice</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Date</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Amount</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {salesReturnsList.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                                <RotateCcw size={32} opacity={0.4} />
+                                                <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Customer Sales Returns Found</p>
+                                                <span style={{ fontSize: '0.8rem' }}>Log sales returns and customer refund requests directly from invoices.</span>
+                                                <button 
+                                                    onClick={() => { setReturnFormType('sales'); setIsReturnModalOpen(true); }} 
+                                                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
+                                                >
+                                                    + Create Sales Return
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    salesReturnsList.map((ret) => (
+                                        <tr key={ret.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#BE185D' }}>{ret.return_number || `RET-${ret.id}`}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{ret.client_name || ret.customer_name || 'Customer'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace' }}>{ret.invoice_number || 'POS / Direct'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{ret.created_at ? new Date(ret.created_at).toLocaleDateString() : 'Today'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(ret.total_amount || ret.amount || 0)}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: ret.status === 'Approved' ? '#D1FAE5' : '#FEF3C7', color: ret.status === 'Approved' ? '#065F46' : '#92400E' }}>
+                                                    {(ret.status || 'Processed').toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                                <button onClick={() => alert(`Sales Return #${ret.return_number || ret.id}\nClient: ${ret.client_name || 'Customer'}\nAmount: ₹${ret.total_amount || 0}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>View Details</button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    ) : activeMainTab === 'purchase_returns' ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Ref #</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Supplier Name</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Purchase Bill #</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Date</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Amount</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {purchaseReturnsList.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                                <Truck size={32} opacity={0.4} />
+                                                <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Supplier Purchase Returns Found</p>
+                                                <span style={{ fontSize: '0.8rem' }}>Log purchase returns to suppliers and debit note transactions.</span>
+                                                <button 
+                                                    onClick={() => { setReturnFormType('purchase'); setIsReturnModalOpen(true); }} 
+                                                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
+                                                >
+                                                    + Create Purchase Return
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    purchaseReturnsList.map((ret) => (
+                                        <tr key={ret.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#2563EB' }}>{ret.return_number || `PRET-${ret.id}`}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{ret.supplier_name || ret.vendor_name || ret.client_name || 'Supplier'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace' }}>{ret.bill_number || ret.purchase_number || 'BILL-001'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{ret.created_at ? new Date(ret.created_at).toLocaleDateString() : 'Today'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(ret.total_amount || ret.amount || 0)}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: '#DBEAFE', color: '#1E40AF' }}>
+                                                    {(ret.status || 'Dispatched').toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                                <button onClick={() => alert(`Purchase Return #${ret.return_number || ret.id}\nSupplier: ${ret.supplier_name || 'Supplier'}\nAmount: ₹${ret.total_amount || 0}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>View Details</button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Claim Ref #</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Product / Item</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Customer / Supplier</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Serial / IMEI</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Claim Type</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {warrantyClaimsList.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                                <ShieldCheck size={32} opacity={0.4} />
+                                                <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Warranty & Replacement Claims Found</p>
+                                                <span style={{ fontSize: '0.8rem' }}>Log product replacement claims, repairs, and vendor warranty tickets.</span>
+                                                <button 
+                                                    onClick={() => { setReturnFormType('warranty'); setIsReturnModalOpen(true); }} 
+                                                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
+                                                >
+                                                    + Log Warranty Claim
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    warrantyClaimsList.map((claim) => (
+                                        <tr key={claim.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#059669' }}>{claim.claim_number || `CLM-${claim.id}`}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{claim.product_name || claim.item_name || 'Product'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B' }}>{claim.client_name || claim.customer_name || claim.supplier_name || 'Customer'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace', fontSize: '0.8rem' }}>{claim.serial_number || claim.imei || 'N/A'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569' }}>{claim.claim_type || 'Replacement'}</td>
+                                            <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: '#D1FAE5', color: '#047857' }}>
+                                                    {(claim.status || 'Active').toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                                <button onClick={() => alert(`Warranty Claim #${claim.claim_number || claim.id}\nProduct: ${claim.product_name}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Manage Claim</button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     )}
@@ -2325,6 +2669,135 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* ORDER REPORTS SUMMARY MODAL */}
+            {isOrderReportsModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '20px', padding: '1.75rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366F1' }}>
+                                    <FileSpreadsheet size={18} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>Order Reports 📊</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>Sales & Orders summary overview</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsOrderReportsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Invoices</span>
+                                <p style={{ margin: '4px 0 0', fontSize: '1.2rem', fontWeight: '900', color: '#0F172A' }}>{invoices.length}</p>
+                            </div>
+                            <div style={{ background: '#ECFDF5', padding: '0.85rem', borderRadius: '12px', border: '1px solid #A7F3D0' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Total Revenue</span>
+                                <p style={{ margin: '4px 0 0', fontSize: '1.2rem', fontWeight: '900', color: '#047857' }}>{formatCurrency(totalInvoiced)}</p>
+                            </div>
+                            <div style={{ background: '#FDF2F8', padding: '0.85rem', borderRadius: '12px', border: '1px solid #FBCFE8' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#BE185D', textTransform: 'uppercase' }}>Customer Returns</span>
+                                <p style={{ margin: '4px 0 0', fontSize: '1.2rem', fontWeight: '900', color: '#BE185D' }}>{salesReturnsList.length}</p>
+                            </div>
+                            <div style={{ background: '#EFF6FF', padding: '0.85rem', borderRadius: '12px', border: '1px solid #BFDBFE' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#1D4ED8', textTransform: 'uppercase' }}>Supplier Returns</span>
+                                <p style={{ margin: '4px 0 0', fontSize: '1.2rem', fontWeight: '900', color: '#1D4ED8' }}>{purchaseReturnsList.length}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => window.print()} style={{ width: '100%', padding: '0.75rem', background: '#0F172A', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Printer size={16} /> Print Full Analytics Report
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* CREATE RETURN / LOG CLAIM MODAL */}
+            {isReturnModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '20px', padding: '1.75rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: returnFormType === 'sales' ? '#FCE7F3' : (returnFormType === 'purchase' ? '#DBEAFE' : '#D1FAE5'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: returnFormType === 'sales' ? '#BE185D' : (returnFormType === 'purchase' ? '#1E40AF' : '#047857') }}>
+                                    {returnFormType === 'sales' ? <RotateCcw size={18} /> : (returnFormType === 'purchase' ? <Truck size={18} /> : <ShieldCheck size={18} />)}
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>
+                                        {returnFormType === 'sales' ? 'Create Sales Return' : (returnFormType === 'purchase' ? 'Create Purchase Return' : 'Log Warranty Claim')}
+                                    </h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>Enter return or claim transaction details</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsReturnModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
+                        </div>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            createReturnMutation.mutate({
+                                ...newReturnData,
+                                return_type: returnFormType,
+                                amount: parseFloat(newReturnData.total_amount) || 0,
+                                total_amount: parseFloat(newReturnData.total_amount) || 0
+                            });
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                    {returnFormType === 'purchase' ? 'Supplier Name *' : 'Customer Name *'}
+                                </label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    value={newReturnData.client_name} 
+                                    onChange={(e) => setNewReturnData({ ...newReturnData, client_name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                    placeholder="Name" 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                    {returnFormType === 'warranty' ? 'Serial / IMEI Number' : 'Invoice / Bill Number'}
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={newReturnData.invoice_number} 
+                                    onChange={(e) => setNewReturnData({ ...newReturnData, invoice_number: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
+                                    placeholder="e.g. POS-123456 / BILL-001" 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Return Amount (₹) *</label>
+                                <input 
+                                    required 
+                                    type="number" 
+                                    step="any" 
+                                    value={newReturnData.total_amount} 
+                                    onChange={(e) => setNewReturnData({ ...newReturnData, total_amount: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }} 
+                                    placeholder="0.00" 
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Reason / Notes</label>
+                                <textarea 
+                                    value={newReturnData.reason} 
+                                    onChange={(e) => setNewReturnData({ ...newReturnData, reason: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', height: '60px', resize: 'none' }} 
+                                    placeholder="Reason for return..." 
+                                />
+                            </div>
+                            <button 
+                                type="submit" 
+                                disabled={createReturnMutation.isPending} 
+                                style={{ 
+                                    marginTop: '0.5rem', padding: '0.75rem', 
+                                    background: returnFormType === 'sales' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : (returnFormType === 'purchase' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : 'linear-gradient(135deg, #10B981 0%, #047857 100%)'), 
+                                    color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' 
+                                }}
+                            >
+                                {createReturnMutation.isPending ? 'Saving...' : 'Submit & Save Record'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}
