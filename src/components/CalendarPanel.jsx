@@ -7,7 +7,7 @@ const fetchCalendarData = async ({ queryKey }) => {
     const token = localStorage.getItem('bnx_auth_token');
     const baseUrl = import.meta.env.VITE_CALENDAR_API_BASE_URL;
     
-    const response = await fetch(`${baseUrl}/search?startDate=${startDate}&endDate=${endDate}`, {
+    const response = await fetch(`${baseUrl}/search?startDate=${startDate}&endDate=${endDate}&allApps=true`, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
