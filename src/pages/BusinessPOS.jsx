@@ -25,7 +25,8 @@ import {
     CircleAlert,
     History,
     Info,
-    UserPlus
+    UserPlus,
+    MoreVertical
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,6 +67,20 @@ const BusinessPOS = () => {
     const [lastOrderData, setLastOrderData] = useState(null);
     
     const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState(null);
+    const [activeProductMenuId, setActiveProductMenuId] = useState(null);
+    const [isIncreaseStockModalOpen, setIsIncreaseStockModalOpen] = useState(false);
+    const [stockTargetProduct, setStockTargetProduct] = useState(null);
+    const [addedStockQty, setAddedStockQty] = useState('');
+
+    React.useEffect(() => {
+        const handleGlobalClick = () => {
+            setActiveProductMenuId(null);
+        };
+        window.addEventListener('click', handleGlobalClick);
+        return () => window.removeEventListener('click', handleGlobalClick);
+    }, []);
+
     const [newProductData, setNewProductData] = useState(() => ({
         name: '',
         sku: `SKU-${Date.now().toString().slice(-4)}`,
@@ -360,6 +375,135 @@ const BusinessPOS = () => {
             alert('Could not add product. Please check input fields.');
         }
     });
+
+    // 6. Update Product Mutation
+    const updateProductMutation = useMutation({
+        mutationFn: async ({ id, data, source }) => {
+            if (source === 'inventory') {
+                try {
+                    return await inventoryService.updateItem(id, data);
+                } catch (e) {
+                    return await productsService.updateProduct(id, data);
+                }
+            } else {
+                try {
+                    return await productsService.updateProduct(id, data);
+                } catch (e) {
+                    return await inventoryService.updateItem(id, data);
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            setIsAddProductModalOpen(false);
+            setEditingProduct(null);
+            setNewProductData({
+                name: '',
+                sku: `SKU-${Date.now().toString().slice(-4)}`,
+                category: 'General',
+                selling_price: '',
+                quantity: '',
+                tax_percentage: 18,
+                hsn_code: ''
+            });
+            setHsnQueryOverride('');
+            setHsnSuggestions([]);
+            setShowHsnDropdown(false);
+            setShowHsnInfoPopover(false);
+        },
+        onError: (err) => {
+            console.error('Error updating product:', err);
+            alert('Could not update product. Please check input fields.');
+        }
+    });
+
+    // 7. Increase Stock Mutation
+    const increaseStockMutation = useMutation({
+        mutationFn: async ({ id, newStock, source }) => {
+            if (source === 'inventory') {
+                try {
+                    return await inventoryService.updateItem(id, { quantity: newStock });
+                } catch (e) {
+                    return await productsService.updateProduct(id, { stock: newStock, quantity: newStock });
+                }
+            } else {
+                try {
+                    return await productsService.updateProduct(id, { stock: newStock, quantity: newStock });
+                } catch (e) {
+                    return await inventoryService.updateItem(id, { quantity: newStock });
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            setIsIncreaseStockModalOpen(false);
+            setStockTargetProduct(null);
+            setAddedStockQty('');
+        },
+        onError: (err) => {
+            console.error('Error updating stock:', err);
+            alert('Failed to update stock quantity.');
+        }
+    });
+
+    // 8. Delete Product Mutation
+    const deleteProductMutation = useMutation({
+        mutationFn: async ({ id, source }) => {
+            if (source === 'inventory') {
+                try {
+                    return await inventoryService.deleteItem(id);
+                } catch (e) {
+                    return await productsService.deleteProduct(id);
+                }
+            } else {
+                try {
+                    return await productsService.deleteProduct(id);
+                } catch (e) {
+                    return await inventoryService.deleteItem(id);
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+        },
+        onError: (err) => {
+            console.error('Error deleting product:', err);
+            alert('Could not delete product.');
+        }
+    });
+
+    const handleOpenEditProduct = (prod) => {
+        setEditingProduct(prod);
+        setNewProductData({
+            name: prod.name || '',
+            sku: prod.sku || '',
+            category: prod.category || 'General',
+            selling_price: prod.price ? String(prod.price) : '',
+            quantity: prod.quantity ? String(prod.quantity) : '',
+            tax_percentage: prod.tax_percentage || 18,
+            hsn_code: prod.hsn_code || ''
+        });
+        setHsnQueryOverride(prod.hsn_code || '');
+        setIsAddProductModalOpen(true);
+    };
+
+    const handleOpenIncreaseStock = (prod) => {
+        setStockTargetProduct(prod);
+        setAddedStockQty('');
+        setIsIncreaseStockModalOpen(true);
+    };
+
+    const handleDeleteProduct = (prod) => {
+        if (window.confirm(`Delete Item?\n\nAre you sure you want to delete "${prod.name}"?`)) {
+            deleteProductMutation.mutate({ id: prod.id, source: prod.source });
+        }
+    };
 
     // Derived Categories
     const categories = ['All', ...new Set(inventory.map(i => i.category).filter(Boolean))];
@@ -785,8 +929,152 @@ const BusinessPOS = () => {
                                                 transition: 'border 0.2s'
                                             }}
                                         >
-                                            {/* Visual Tag for Category */}
-                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{prod.category || 'General'}</span>
+                                            {/* Top Row: Visual Tag for Category + Three-Dot Menu */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{prod.category || 'General'}</span>
+
+                                                {/* Three-Dot Option Icon */}
+                                                <div style={{ position: 'relative' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveProductMenuId(activeProductMenuId === prod.id ? null : prod.id);
+                                                        }}
+                                                        style={{
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            cursor: 'pointer',
+                                                            padding: '2px 4px',
+                                                            borderRadius: '4px',
+                                                            color: '#64748B',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            transition: 'background 0.15s ease'
+                                                        }}
+                                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
+                                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                        title="Options"
+                                                    >
+                                                        <MoreVertical size={15} />
+                                                    </button>
+
+                                                    {/* Dropdown Menu */}
+                                                    {activeProductMenuId === prod.id && (
+                                                        <div
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '100%',
+                                                                right: 0,
+                                                                marginTop: '4px',
+                                                                background: '#FFFFFF',
+                                                                border: '1px solid #E2E8F0',
+                                                                borderRadius: '10px',
+                                                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
+                                                                zIndex: 50,
+                                                                minWidth: '150px',
+                                                                padding: '0.35rem 0',
+                                                                overflow: 'hidden'
+                                                            }}
+                                                        >
+                                                            {/* 1. Edit Item */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveProductMenuId(null);
+                                                                    handleOpenEditProduct(prod);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    textAlign: 'left',
+                                                                    padding: '0.5rem 0.85rem',
+                                                                    background: 'transparent',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: '700',
+                                                                    color: '#1E293B',
+                                                                    transition: 'background 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            >
+                                                                <Edit size={14} color="#3B82F6" />
+                                                                <span>Edit Item</span>
+                                                            </button>
+
+                                                            {/* 2. Increase Stock */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveProductMenuId(null);
+                                                                    handleOpenIncreaseStock(prod);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    textAlign: 'left',
+                                                                    padding: '0.5rem 0.85rem',
+                                                                    background: 'transparent',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: '700',
+                                                                    color: '#1E293B',
+                                                                    transition: 'background 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            >
+                                                                <TrendingUp size={14} color="#10B981" />
+                                                                <span>Increase Stock</span>
+                                                            </button>
+
+                                                            {/* Divider */}
+                                                            <div style={{ height: '1px', background: '#F1F5F9', margin: '0.25rem 0' }} />
+
+                                                            {/* 3. Delete Item */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveProductMenuId(null);
+                                                                    handleDeleteProduct(prod);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    textAlign: 'left',
+                                                                    padding: '0.5rem 0.85rem',
+                                                                    background: 'transparent',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: '700',
+                                                                    color: '#EF4444',
+                                                                    transition: 'background 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            >
+                                                                <Trash2 size={14} color="#EF4444" />
+                                                                <span>Delete Item</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                             
                                             <div style={{ height: '40px' }}>
                                                 <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
@@ -1399,26 +1687,34 @@ const BusinessPOS = () => {
                                     <Plus size={20} strokeWidth={3} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>Quick Register Item</h3>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Instantly list new products in POS catalog</p>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>{editingProduct ? 'Edit Product' : 'Quick Register Item'}</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>{editingProduct ? 'Update product details in POS catalog' : 'Instantly list new products in POS catalog'}</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsAddProductModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
+                            <button onClick={() => { setIsAddProductModalOpen(false); setEditingProduct(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
                         </div>
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
                             const payload = {
                                 name: newProductData.name,
+                                product_name: newProductData.name,
                                 sku: newProductData.sku || `SKU-${Date.now().toString().slice(-4)}`,
                                 category: newProductData.category || 'General',
+                                category_name: newProductData.category || 'General',
                                 quantity: parseFloat(newProductData.quantity) || 0,
-                                purchase_price: parseFloat(newProductData.selling_price) * 0.7, // Default estimated proxy cost
+                                stock: parseFloat(newProductData.quantity) || 0,
+                                purchase_price: parseFloat(newProductData.selling_price) * 0.7,
                                 selling_price: parseFloat(newProductData.selling_price) || 0,
+                                price: parseFloat(newProductData.selling_price) || 0,
                                 tax_percentage: parseFloat(newProductData.tax_percentage) || 18,
                                 hsn_code: newProductData.hsn_code || ''
                             };
-                            createProductMutation.mutate(payload);
+                            if (editingProduct) {
+                                updateProductMutation.mutate({ id: editingProduct.id, data: payload, source: editingProduct.source });
+                            } else {
+                                createProductMutation.mutate(payload);
+                            }
                         }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             
                             <div>
@@ -2015,6 +2311,87 @@ const BusinessPOS = () => {
                                 </button>
                             </div>
                         </form>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* INCREASE STOCK MODAL */}
+            {isIncreaseStockModalOpen && stockTargetProduct && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '1rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', width: '100%', maxWidth: '380px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>Increase Stock</h3>
+                            <button 
+                                type="button" 
+                                onClick={() => { setIsIncreaseStockModalOpen(false); setStockTargetProduct(null); }}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ color: '#64748B', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase' }}>Product</div>
+                                <div style={{ color: '#0F172A', fontWeight: '850', fontSize: '0.95rem' }}>{stockTargetProduct.name}</div>
+                                <div style={{ color: '#64748B', fontSize: '0.78rem', marginTop: '4px' }}>
+                                    Current Stock: <strong style={{ color: '#047857' }}>{stockTargetProduct.quantity}</strong>
+                                </div>
+                            </div>
+
+                            <label style={{ fontWeight: '750', color: '#334155', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                                Quantity to Add *
+                            </label>
+                            <input 
+                                type="number"
+                                min="1"
+                                placeholder="e.g. 20"
+                                value={addedStockQty}
+                                onChange={(e) => setAddedStockQty(e.target.value)}
+                                style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem', fontWeight: '700' }}
+                                autoFocus
+                            />
+
+                            {addedStockQty && parseFloat(addedStockQty) > 0 && (
+                                <div style={{ fontSize: '0.78rem', color: '#047857', fontWeight: '700', background: '#ECFDF5', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
+                                    New Stock: {stockTargetProduct.quantity} + {parseFloat(addedStockQty)} = <strong>{stockTargetProduct.quantity + parseFloat(addedStockQty)}</strong>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => { setIsIncreaseStockModalOpen(false); setStockTargetProduct(null); }}
+                                style={{ padding: '0.55rem 1rem', borderRadius: '10px', border: '1px solid #CBD5E1', background: '#FFF', color: '#475569', fontWeight: '700', cursor: 'pointer', fontSize: '0.82rem' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={increaseStockMutation.isPending}
+                                onClick={() => {
+                                    const qtyToAdd = parseFloat(addedStockQty) || 0;
+                                    if (qtyToAdd <= 0) {
+                                        alert('Please enter a valid positive quantity to add.');
+                                        return;
+                                    }
+                                    const newStock = stockTargetProduct.quantity + qtyToAdd;
+                                    increaseStockMutation.mutate({
+                                        id: stockTargetProduct.id,
+                                        newStock,
+                                        source: stockTargetProduct.source
+                                    });
+                                }}
+                                style={{ padding: '0.55rem 1.1rem', borderRadius: '10px', border: 'none', background: '#10B981', color: '#FFF', fontWeight: '750', cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 2px 6px rgba(16,185,129,0.3)', opacity: increaseStockMutation.isPending ? 0.7 : 1 }}
+                            >
+                                {increaseStockMutation.isPending ? 'Updating...' : 'Add Stock'}
+                            </button>
+                        </div>
                     </motion.div>
                 </div>
             )}
