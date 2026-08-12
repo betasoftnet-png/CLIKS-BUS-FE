@@ -51,6 +51,7 @@ const BusinessPOS = () => {
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState([]);
     const [holdCounter, setHoldCounter] = useState(1);
+    const [activeHeldCartInfo, setActiveHeldCartInfo] = useState(null);
     
     const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(0);
@@ -163,6 +164,7 @@ const BusinessPOS = () => {
             setCustomerEmail('');
             setSelectedCustomerObj(null);
             setDiscountVal(0);
+            setActiveHeldCartInfo(null);
             
             // Refetch to reflect updated inventory & stats
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
@@ -338,20 +340,30 @@ const BusinessPOS = () => {
             setCustomerEmail('');
             setSelectedCustomerObj(null);
             setDiscountVal(0);
+            setActiveHeldCartInfo(null);
         }
     };
 
     const holdCart = async () => {
         if (cart.length === 0) return;
         
-        const suggestedName = customerName ? `Cart - ${customerName}` : `Cart #${holdCounter}`;
+        const isEditingHeld = Boolean(activeHeldCartInfo);
+        const defaultDisplayId = isEditingHeld ? activeHeldCartInfo.displayId : holdCounter;
+        const defaultId = isEditingHeld ? activeHeldCartInfo.id : Date.now();
+
+        const suggestedName = customerName 
+            ? `Cart - ${customerName}` 
+            : (isEditingHeld && activeHeldCartInfo.customName 
+                ? activeHeldCartInfo.customName 
+                : `Cart #${defaultDisplayId}`);
+        
         const customName = await customPrompt('Assign a name/label to identify this held cart:', suggestedName);
         
         if (customName === null) return;
 
-        setHeldCarts(prev => [...prev, {
-            id: Date.now(),
-            displayId: holdCounter,
+        const cartEntry = {
+            id: defaultId,
+            displayId: defaultDisplayId,
             customName: customName.trim() || suggestedName,
             cart: [...cart],
             customerName,
@@ -359,9 +371,16 @@ const BusinessPOS = () => {
             discountVal,
             discountType,
             taxRate
-        }]);
-        setHoldCounter(prev => prev + 1);
-        // Clear current workspace
+        };
+
+        setHeldCarts(prev => [...prev.filter(h => h.id !== defaultId), cartEntry].sort((a, b) => a.displayId - b.displayId));
+
+        if (!isEditingHeld) {
+            setHoldCounter(prev => prev + 1);
+        }
+
+        // Reset workspace & active held cart tracker
+        setActiveHeldCartInfo(null);
         setCart([]);
         setCustomerName('');
         setCustomerEmail('');
@@ -375,13 +394,20 @@ const BusinessPOS = () => {
         const defaultName = held.customName || held.customerName || `Cart #${held.displayId}`;
         const newName = await customPrompt('Enter a new name/label for this held cart:', defaultName);
         if (newName && newName.trim() !== '') {
-            setHeldCarts(prev => prev.map(h => h.id === holdId ? { ...h, customName: newName.trim() } : h));
+            const trimmedName = newName.trim();
+            setHeldCarts(prev => prev.map(h => h.id === holdId ? { ...h, customName: trimmedName } : h));
+            if (activeHeldCartInfo && activeHeldCartInfo.id === holdId) {
+                setActiveHeldCartInfo(prev => prev ? { ...prev, customName: trimmedName } : null);
+            }
         }
     };
 
     const deleteHeldCart = async (holdId) => {
         if (await customConfirm('Discard this held cart entirely?')) {
             setHeldCarts(prev => prev.filter(h => h.id !== holdId));
+            if (activeHeldCartInfo && activeHeldCartInfo.id === holdId) {
+                setActiveHeldCartInfo(null);
+            }
         }
     };
 
@@ -393,13 +419,20 @@ const BusinessPOS = () => {
         if (!held) return;
         
         setCart(held.cart);
-        setCustomerName(held.customerName);
-        setCustomerEmail(held.customerEmail);
-        setDiscountVal(held.discountVal);
-        setDiscountType(held.discountType);
-        setTaxRate(held.taxRate);
+        setCustomerName(held.customerName || '');
+        setCustomerEmail(held.customerEmail || '');
+        setDiscountVal(held.discountVal || 0);
+        setDiscountType(held.discountType || 'percentage');
+        setTaxRate(held.taxRate || 18);
         
-        // Remove from held
+        // Track the restored held cart's identity
+        setActiveHeldCartInfo({
+            id: held.id,
+            displayId: held.displayId,
+            customName: held.customName
+        });
+
+        // Remove from held list while active in workspace
         setHeldCarts(prev => prev.filter(h => h.id !== holdId));
     };
 
