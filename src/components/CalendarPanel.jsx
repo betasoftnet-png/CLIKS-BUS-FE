@@ -99,10 +99,15 @@ const CalendarPanel = () => {
         
         const dateStr = getLocalYYYYMMDD(dateObj);
         
+        const checkDate = (isoString) => {
+            if (!isoString) return false;
+            return getLocalYYYYMMDD(new Date(isoString)) === dateStr;
+        };
+        
         return {
-            events: (calendarData.events || []).filter(e => e.startTime?.startsWith(dateStr) || e.endTime?.startsWith(dateStr)),
-            notes: (calendarData.notes || []).filter(n => n.date?.startsWith(dateStr)),
-            reminders: (calendarData.reminders || []).filter(r => r.date?.startsWith(dateStr))
+            events: (calendarData.events || []).filter(e => checkDate(e.startTime) || checkDate(e.endTime)),
+            notes: (calendarData.notes || []).filter(n => checkDate(n.date)),
+            reminders: (calendarData.reminders || []).filter(r => checkDate(r.date))
         };
     };
 
