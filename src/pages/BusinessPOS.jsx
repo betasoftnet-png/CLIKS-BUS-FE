@@ -86,6 +86,7 @@ const BusinessPOS = () => {
         name: '',
         sku: `SKU-${Date.now().toString().slice(-4)}`,
         category: 'General',
+        unit: 'PCS',
         selling_price: '',
         quantity: '',
         tax_percentage: 18,
@@ -415,6 +416,7 @@ const BusinessPOS = () => {
                 name: '',
                 sku: `SKU-${Date.now().toString().slice(-4)}`,
                 category: 'General',
+                unit: 'PCS',
                 selling_price: '',
                 quantity: '',
                 tax_percentage: 18,
@@ -540,6 +542,7 @@ const BusinessPOS = () => {
             name: prod.name || '',
             sku: prod.sku || '',
             category: prod.category || 'General',
+            unit: prod.unit || 'PCS',
             selling_price: prod.price ? String(prod.price) : '',
             quantity: prod.quantity ? String(prod.quantity) : '',
             tax_percentage: prod.tax_percentage || 18,
@@ -578,26 +581,41 @@ const BusinessPOS = () => {
             (prod.price || 0).toString().includes(lowerSearch);
         
         const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
-        
+
         return matchesSearch && matchesCategory;
     });
 
     // Handlers
+    const isDecimalUnit = (unit) => {
+        const u = String(unit || 'PCS').toUpperCase();
+        return ['KG', 'KGS', 'GRAM', 'GRAMS', 'G', 'LITRE', 'LITRES', 'L', 'ML'].includes(u);
+    };
+
     const addToCart = (prod) => {
         if (prod.quantity <= 0) {
-            alert('Product is out of stock!');
+            alert('This item is out of stock!');
             return;
         }
+
+        const prodUnit = prod.unit || 'PCS';
+        const isDec = isDecimalUnit(prodUnit);
+
         setCart(prevCart => {
             const existing = prevCart.find(item => item.id === prod.id);
             if (existing) {
-                if (existing.quantity >= prod.quantity) {
-                    alert('Cannot exceed available stock!');
+                const addStep = isDec ? 0.25 : 1;
+                const newQty = isDec 
+                    ? Math.round((existing.quantity + addStep) * 1000) / 1000
+                    : existing.quantity + 1;
+
+                if (newQty > prod.quantity) {
+                    alert('Cannot add more than available stock!');
                     return prevCart;
                 }
-                return prevCart.map(item => 
-                    item.id === prod.id 
-                        ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * (prod.price || 0) }
+
+                return prevCart.map(item =>
+                    item.id === prod.id
+                        ? { ...item, quantity: newQty, total: Math.round(newQty * (item.price || 0) * 100) / 100 }
                         : item
                 );
             }
@@ -608,35 +626,80 @@ const BusinessPOS = () => {
                 price: prod.price || 0,
                 quantity: 1,
                 tax_rate: taxRate,
-                unit: 'Pcs',
+                unit: prodUnit,
                 total: prod.price || 0,
                 source: prod.source
             }];
         });
     };
 
-    const updateCartQty = (id, amount) => {
+    const updateCartQty = (id, delta) => {
         setCart(prevCart => {
             const existing = prevCart.find(item => item.id === id);
+            if (!existing) return prevCart;
+
             const invProd = inventory.find(p => p.id === id);
             const maxStock = invProd ? invProd.quantity : Infinity;
+            const isDec = isDecimalUnit(existing.unit);
 
-            if (existing) {
-                const newQty = existing.quantity + amount;
-                if (newQty > maxStock) {
-                    alert('Cannot add more than available stock!');
-                    return prevCart;
-                }
-                if (newQty <= 0) {
-                    return prevCart.filter(item => item.id !== id);
-                }
-                return prevCart.map(item => 
-                    item.id === id 
-                        ? { ...item, quantity: newQty, total: newQty * item.price }
-                        : item
-                );
+            let newQty = (parseFloat(existing.quantity) || 0) + delta;
+            if (isDec) {
+                newQty = Math.round(newQty * 1000) / 1000;
+            } else {
+                newQty = Math.round(newQty);
             }
-            return prevCart;
+
+            if (newQty <= 0) {
+                return prevCart.filter(item => item.id !== id);
+            }
+
+            if (newQty > maxStock) {
+                alert('Cannot add more than available stock!');
+                return prevCart;
+            }
+
+            const newTotal = Math.round(newQty * (existing.price || 0) * 100) / 100;
+            return prevCart.map(item =>
+                item.id === id
+                    ? { ...item, quantity: newQty, total: newTotal }
+                    : item
+            );
+        });
+    };
+
+    const updateCartDirectQty = (id, rawVal) => {
+        setCart(prevCart => {
+            const existing = prevCart.find(item => item.id === id);
+            if (!existing) return prevCart;
+
+            if (rawVal === '' || rawVal === undefined) {
+                return prevCart.map(item => item.id === id ? { ...item, quantity: '', total: 0 } : item);
+            }
+
+            const invProd = inventory.find(p => p.id === id);
+            const maxStock = invProd ? invProd.quantity : Infinity;
+            const isDec = isDecimalUnit(existing.unit);
+
+            let parsed = parseFloat(rawVal);
+            if (isNaN(parsed) || parsed <= 0) {
+                return prevCart.map(item => item.id === id ? { ...item, quantity: rawVal, total: 0 } : item);
+            }
+
+            if (!isDec) {
+                parsed = Math.floor(parsed);
+            }
+
+            if (parsed > maxStock) {
+                alert('Cannot add more than available stock!');
+                return prevCart;
+            }
+
+            const newTotal = Math.round(parsed * (existing.price || 0) * 100) / 100;
+            return prevCart.map(item =>
+                item.id === id
+                    ? { ...item, quantity: parsed, total: newTotal }
+                    : item
+            );
         });
     };
 
@@ -689,6 +752,7 @@ const BusinessPOS = () => {
                 id: item.id,
                 description: item.name,
                 quantity: item.quantity,
+                unit: item.unit,
                 price: item.price,
                 tax_rate: taxRate,
                 total: item.total,
@@ -1143,7 +1207,9 @@ const BusinessPOS = () => {
                                             </div>
                                             
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
-                                                <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(prod.price || 0)}</span>
+                                                <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#0F172A' }}>
+                                                    {formatCurrency(prod.price || 0)} <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700' }}>/ {prod.unit || 'PCS'}</span>
+                                                </span>
                                                 <div style={{ 
                                                     padding: '0.15rem 0.4rem', 
                                                     borderRadius: '6px', 
@@ -1152,7 +1218,7 @@ const BusinessPOS = () => {
                                                     background: isOutOfStock ? '#FEE2E2' : (isLowStock ? '#FFFBEB' : '#ECFDF5'),
                                                     color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
                                                 }}>
-                                                    {isOutOfStock ? 'OUT' : `${prod.quantity} left`}
+                                                    {isOutOfStock ? 'OUT' : `${prod.quantity} ${prod.unit || 'PCS'} left`}
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -1395,20 +1461,47 @@ const BusinessPOS = () => {
                                         <div style={{ flex: 1 }}>
                                             <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B' }}>{item.name}</p>
                                             <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>
-                                                <span>{formatCurrency(item.price)}</span>
-                                                <span>x</span>
-                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{item.quantity}</span>
+                                                <span>{formatCurrency(item.price)} / {item.unit || 'PCS'}</span>
                                             </div>
                                         </div>
 
                                         {/* Quantity Selectors */}
                                         <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px' }}>
-                                            <button onClick={() => updateCartQty(item.id, -1)} style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
-                                                <Minus size={14} />
+                                            <button 
+                                                type="button"
+                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)} 
+                                                style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                            >
+                                                <Minus size={13} />
                                             </button>
-                                            <span style={{ width: '26px', textAlign: 'center', fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{item.quantity}</span>
-                                            <button onClick={() => updateCartQty(item.id, 1)} style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
-                                                <Plus size={14} />
+                                            
+                                            <input 
+                                                type="number"
+                                                step={isDecimalUnit(item.unit) ? "any" : "1"}
+                                                min="0.001"
+                                                value={item.quantity}
+                                                onChange={(e) => updateCartDirectQty(item.id, e.target.value)}
+                                                style={{
+                                                    width: isDecimalUnit(item.unit) ? '54px' : '32px',
+                                                    textAlign: 'center',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: '800',
+                                                    color: '#1E293B',
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    outline: 'none'
+                                                }}
+                                            />
+                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', paddingRight: '4px' }}>
+                                                {item.unit || 'PCS'}
+                                            </span>
+
+                                            <button 
+                                                type="button"
+                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? 0.25 : 1)} 
+                                                style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                            >
+                                                <Plus size={13} />
                                             </button>
                                         </div>
 
@@ -1676,16 +1769,20 @@ const BusinessPOS = () => {
 
                                 {/* Items Table */}
                                 <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', fontFamily: 'monospace' }}>
-                                    <FilterableTableHead columns={[
-        { key: 'item', label: 'Item', placeholder: 'Name/SKU' },
-        { key: 'qty', label: 'Qty', placeholder: 'e.g. 2' },
-        { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
-    ]} onFilterChange={setColFilters} />
+                                    <thead>
+                                        <tr style={{ borderBottom: '1px solid #000' }}>
+                                            <th style={{ textAlign: 'left', padding: '4px 0' }}>ITEM</th>
+                                            <th style={{ textAlign: 'center', padding: '4px 0' }}>QTY</th>
+                                            <th style={{ textAlign: 'right', padding: '4px 0' }}>RATE</th>
+                                            <th style={{ textAlign: 'right', padding: '4px 0' }}>AMOUNT</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {((lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || []).map((item, i) => (
                                             <tr key={i}>
-                                                <td style={{ padding: '4px 0', maxWidth: '140px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0}</td>
+                                                <td style={{ padding: '4px 0', maxWidth: '120px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
+                                                <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0} {item?.unit || 'PCS'}</td>
+                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item?.price || item?.unit_price || 0}/{item?.unit || 'PCS'}</td>
                                                 <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item?.total || item?.amount || (item?.price && item?.quantity ? item.price * item.quantity : 0))}</td>
                                             </tr>
                                         ))}
@@ -1777,6 +1874,7 @@ const BusinessPOS = () => {
                                 sku: newProductData.sku || `SKU-${Date.now().toString().slice(-4)}`,
                                 category: newProductData.category || 'General',
                                 category_name: newProductData.category || 'General',
+                                unit: newProductData.unit || 'PCS',
                                 quantity: parseFloat(newProductData.quantity) || 0,
                                 stock: parseFloat(newProductData.quantity) || 0,
                                 purchase_price: parseFloat(newProductData.selling_price) * 0.7,
@@ -1798,24 +1896,13 @@ const BusinessPOS = () => {
                                     required 
                                     type="text" 
                                     value={newProductData.name} 
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setNewProductData(prev => ({
-                                            ...prev,
-                                            name: val,
-                                            hsn_code: ''
-                                        }));
-                                        setHsnQueryOverride('');
-                                        setHsnSuggestions([]);
-                                        setShowHsnDropdown(false);
-                                        setHasSearchedHsn(false);
-                                    }} 
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 650 }} 
-                                    placeholder="e.g. Coca-Cola 250ml" 
+                                    onChange={(e) => setNewProductData({...newProductData, name: e.target.value})} 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                    placeholder="e.g. Tomato / Rice / Milk" 
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price ({currency.symbol}) *</label>
                                     <input 
@@ -1830,11 +1917,30 @@ const BusinessPOS = () => {
                                     />
                                 </div>
                                 <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Unit *</label>
+                                    <select 
+                                        value={newProductData.unit || 'PCS'} 
+                                        onChange={(e) => setNewProductData({...newProductData, unit: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }}
+                                    >
+                                        <option value="PCS">PCS (Pieces)</option>
+                                        <option value="GRAM">GRAM (g)</option>
+                                        <option value="KG">KG (Kilogram)</option>
+                                        <option value="LITRE">LITRE (L)</option>
+                                        <option value="ML">ML (Millilitre)</option>
+                                        <option value="DOZEN">DOZEN</option>
+                                        <option value="BOX">BOX</option>
+                                        <option value="PACK">PACK</option>
+                                        <option value="QUANTITY">QUANTITY</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Opening Stock *</label>
                                     <input 
                                         required 
                                         type="number" 
                                         min="0"
+                                        step="any"
                                         value={newProductData.quantity} 
                                         onChange={(e) => setNewProductData({...newProductData, quantity: e.target.value})} 
                                         style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
