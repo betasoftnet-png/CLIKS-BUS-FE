@@ -61,6 +61,7 @@ const BusinessPOS = () => {
     const [discountVal, setDiscountVal] = useState(0);
     const [taxRate, setTaxRate] = useState(18); // Default GST
     const [paymentMode] = useState('Cash');
+    const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
     
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -332,13 +333,24 @@ const BusinessPOS = () => {
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
-            setSelectedCustomerObj(null);
+            setLoyaltyPointsEarned(0);
+
+            if (selectedCustomerObj) {
+                const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
+                setSelectedCustomerObj(prev => prev ? ({
+                    ...prev,
+                    loyalty_points: (prev.loyalty_points || 0) + ptsEarned,
+                    points: (prev.points || 0) + ptsEarned
+                }) : null);
+            }
+
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
             
-            // Refetch to reflect updated inventory & stats
+            // Refetch to reflect updated inventory, customers & stats
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            queryClient.invalidateQueries({ queryKey: ['business-customers'] });
             refetchSummary();
         },
         onError: (error) => {
@@ -612,11 +624,15 @@ const BusinessPOS = () => {
         if (cart.length === 0) return;
         setIsCheckingOut(true);
         
+        const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
+
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
             client_name: customerName || 'Walk-in Customer',
-            client_email: customerEmail || null,
+            client_email: customerEmail || selectedCustomerObj?.email || null,
             client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
+            loyalty_points_earned: ptsEarned,
+            loyaltyPointsEarned: ptsEarned,
             amount: subtotal,
             tax_amount: calculatedTax,
             total_amount: finalTotal,
@@ -645,6 +661,7 @@ const BusinessPOS = () => {
             setCustomerName('');
             setCustomerEmail('');
             setSelectedCustomerObj(null);
+            setLoyaltyPointsEarned(0);
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
         }
@@ -1368,8 +1385,8 @@ const BusinessPOS = () => {
                 {/* Dynamic Totals Panel footer */}
                 <div style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flexShrink: 0 }}>
                     
-                    {/* Discount & Tax Quick adjustment Row */}
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    {/* Discount, Tax & Loyalty Points Quick adjustment Row */}
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
                         <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
                                 <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
@@ -1387,6 +1404,7 @@ const BusinessPOS = () => {
                                 style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', outline: 'none' }}
                             />
                         </div>
+
                         <div style={{ flex: 1 }}>
                             <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>GST Tax (%)</span>
                             <select 
@@ -1399,6 +1417,19 @@ const BusinessPOS = () => {
                                 <option value={18}>18%</option>
                                 <option value={28}>28%</option>
                             </select>
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Earned</span>
+                            <input 
+                                type="number"
+                                step="any"
+                                min="0"
+                                placeholder="0"
+                                value={loyaltyPointsEarned}
+                                onChange={(e) => setLoyaltyPointsEarned(e.target.value)}
+                                style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #FCD34D', background: '#FFFBEB', fontSize: '0.85rem', fontWeight: '800', color: '#B45309', outline: 'none' }}
+                            />
                         </div>
                     </div>
 
