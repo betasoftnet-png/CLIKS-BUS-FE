@@ -293,7 +293,9 @@ const BusinessPOS = () => {
         queryKey: ['business-customers'],
         queryFn: async () => {
             const res = await crmService.getCustomers();
-            return res.data || [];
+            if (Array.isArray(res)) return res;
+            const raw = res?.data?.data ?? res?.data ?? res?.customers ?? [];
+            return Array.isArray(raw) ? raw : [];
         }
     });
     
@@ -874,10 +876,11 @@ const BusinessPOS = () => {
                                 {(() => {
                                     const query = customerName.toLowerCase().trim();
                                     const matches = customers.filter(c => {
-                                        const nameMatch = (c.name || '').toLowerCase().includes(query);
-                                        const phoneMatch = String(c.phone_number || c.phone || c.contact || '').toLowerCase().includes(query);
+                                        const nameMatch = (c.name || c.customer_name || c.contact_person || c.business_name || '').toLowerCase().includes(query);
+                                        const codeMatch = (c.code || c.customer_code || c.customer_id || '').toLowerCase().includes(query);
+                                        const phoneMatch = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').toLowerCase().includes(query);
                                         const emailMatch = (c.email || '').toLowerCase().includes(query);
-                                        return nameMatch || phoneMatch || emailMatch;
+                                        return nameMatch || codeMatch || phoneMatch || emailMatch;
                                     });
 
                                     if (matches.length === 0) {
@@ -897,10 +900,17 @@ const BusinessPOS = () => {
                                             onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', paddingRight: '0.5rem' }}>
-                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
+                                                    {(cust.code || cust.customer_code) && (
+                                                        <span style={{ fontSize: '0.68rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace' }}>
+                                                            {cust.code || cust.customer_code}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.72rem', color: '#64748B', flexWrap: 'wrap' }}>
-                                                    {(cust.phone_number || cust.phone) && <span>📞 {cust.phone_number || cust.phone}</span>}
-                                                    {cust.email && <span>✉️ {cust.email}</span>}
+                                                    {(cust.phone_number || cust.phone) && <span>Phone: {cust.phone_number || cust.phone}</span>}
+                                                    {cust.email && <span>Email: {cust.email}</span>}
                                                 </div>
                                             </div>
                                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
