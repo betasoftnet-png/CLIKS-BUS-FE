@@ -49,7 +49,7 @@ const BusinessPOS = () => {
     const [customerName, setCustomerName] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
-    const [, setSelectedCustomerObj] = useState(null);
+    const [selectedCustomerObj, setSelectedCustomerObj] = useState(null);
     
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState([]);
