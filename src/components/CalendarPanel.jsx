@@ -212,7 +212,7 @@ const CalendarPanel = () => {
     };
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#F8FAFC', padding: '1.25rem', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', background: '#F8FAFC', padding: '1.25rem', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
             {/* Header / Month Navigation */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', flexShrink: 0 }}>
@@ -250,48 +250,120 @@ const CalendarPanel = () => {
 
             {/* Content Area */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto' }}>
-                
-                {showAddForm ? (
-                    <div style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                {isSelectedDateLoading ? (
+                    <div style={{ textAlign: 'center', padding: '1rem', color: '#94A3B8', fontSize: '0.85rem' }}>Loading schedule...</div>
+                ) : !hasAnyItems ? (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94A3B8', fontSize: '0.85rem', background: 'white', borderRadius: '12px', border: '1px dashed #E2E8F0' }}>
+                        No events, notes, or reminders for this day.
+                    </div>
+                ) : (
+                    <>
+                        {selectedItems.events.map((event, idx) => (
+                            <div key={`event-${event.id || idx}`} style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                                <div style={{ background: '#EFF6FF', color: '#3B82F6', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <CalendarIcon size={18} />
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{event.title}</div>
+                                    <div style={{ color: '#64748B', fontSize: '0.8rem', marginTop: '4px' }}>
+                                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                                    </div>
+                                    {event.description && <div style={{ color: '#475569', fontSize: '0.85rem', marginTop: '6px' }}>{event.description}</div>}
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {selectedItems.reminders.map((reminder, idx) => (
+                            <div key={`rem-${reminder.id || idx}`} style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                                <div style={{ background: '#FEF2F2', color: '#EF4444', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Bell size={18} />
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{reminder.title}</div>
+                                    <div style={{ color: '#64748B', fontSize: '0.8rem', marginTop: '4px' }}>
+                                        {formatTime(reminder.date)}
+                                    </div>
+                                    {reminder.description && <div style={{ color: '#475569', fontSize: '0.85rem', marginTop: '6px' }}>{reminder.description}</div>}
+                                </div>
+                            </div>
+                        ))}
+
+                        {selectedItems.notes.map((note, idx) => (
+                            <div key={`note-${note.id || idx}`} style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                                <div style={{ background: '#FEF9C3', color: '#CA8A04', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <StickyNote size={18} />
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{note.title}</div>
+                                    {note.content && <div style={{ color: '#475569', fontSize: '0.85rem', marginTop: '6px', whiteSpace: 'pre-wrap' }}>{note.content}</div>}
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                )}
+            </div>
+
+            {/* Modal Overlay for Add Form */}
+            {showAddForm && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(2px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 50, padding: '1.25rem'
+                }}>
+                    <div style={{ 
+                        background: 'white', padding: '1.5rem', borderRadius: '16px', 
+                        width: '100%', maxWidth: '340px', position: 'relative',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
+                    }}>
+                        <button 
+                            onClick={() => setShowAddForm(false)}
+                            style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94A3B8' }}
+                        >
+                            <X size={18} />
+                        </button>
+                        
+                        <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.1rem', color: '#1E293B' }}>Add New</h3>
+                        
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
                             {['event', 'note', 'reminder'].map(t => (
                                 <button key={t} onClick={() => setAddType(t)} type="button" style={{
-                                    flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'capitalize', cursor: 'pointer', border: 'none',
-                                    background: addType === t ? '#1E293B' : '#F1F5F9', color: addType === t ? 'white' : '#64748B'
+                                    flex: 1, padding: '0.5rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'capitalize', cursor: 'pointer', border: 'none',
+                                    background: addType === t ? '#1E293B' : '#F1F5F9', color: addType === t ? 'white' : '#64748B', transition: 'all 0.2s'
                                 }}>
                                     {t}
                                 </button>
                             ))}
                         </div>
-                        <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>Title *</label>
-                                <input required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>Title *</label>
+                                <input required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} type="text" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', outline: 'none' }} />
                             </div>
                             
                             {(addType === 'event' || addType === 'reminder') && (
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>Description</label>
-                                    <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} type="text" style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>Description</label>
+                                    <input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} type="text" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', outline: 'none' }} />
                                 </div>
                             )}
 
                             {addType === 'note' && (
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>Content</label>
-                                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box', minHeight: '60px', fontFamily: 'inherit' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>Content</label>
+                                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', minHeight: '80px', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
                                 </div>
                             )}
 
                             {addType === 'event' && (
                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                                     <div style={{ flex: 1 }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>Start Time</label>
-                                        <input required value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} type="time" style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box' }} />
+                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>Start Time</label>
+                                        <input required value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} type="time" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', outline: 'none' }} />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>End Time</label>
-                                        <input required value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} type="time" style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box' }} />
+                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>End Time</label>
+                                        <input required value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} type="time" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', outline: 'none' }} />
                                     </div>
                                 </div>
                             )}
@@ -299,77 +371,23 @@ const CalendarPanel = () => {
                             {addType === 'reminder' && (
                                 <>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>Time</label>
-                                        <input required value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} type="time" style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box' }} />
+                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>Time</label>
+                                        <input required value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} type="time" style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', outline: 'none' }} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.25rem' }}>Notification Email (optional)</label>
-                                        <input type="email" value={formData.notificationEmail} onChange={e => setFormData({...formData, notificationEmail: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', boxSizing: 'border-box' }} />
+                                        <label style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontWeight: 'bold', marginBottom: '0.35rem' }}>Notification Email (optional)</label>
+                                        <input type="email" value={formData.notificationEmail} onChange={e => setFormData({...formData, notificationEmail: e.target.value})} style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', boxSizing: 'border-box', outline: 'none' }} />
                                     </div>
                                 </>
                             )}
 
-                            <button disabled={isSubmitting} type="submit" style={{ width: '100%', padding: '0.75rem', background: '#3B82F6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isSubmitting ? 'not-allowed' : 'pointer', marginTop: '0.5rem' }}>
+                            <button disabled={isSubmitting} type="submit" style={{ width: '100%', padding: '0.85rem', background: '#3B82F6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isSubmitting ? 'not-allowed' : 'pointer', marginTop: '0.5rem', transition: 'all 0.2s' }}>
                                 {isSubmitting ? 'Saving...' : `Save ${addType}`}
                             </button>
                         </form>
                     </div>
-                ) : (
-                    <>
-                        {isSelectedDateLoading ? (
-                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94A3B8', fontSize: '0.85rem' }}>Loading schedule...</div>
-                        ) : !hasAnyItems ? (
-                            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94A3B8', fontSize: '0.85rem', background: 'white', borderRadius: '12px', border: '1px dashed #E2E8F0' }}>
-                                No events, notes, or reminders for this day.
-                            </div>
-                        ) : (
-                            <>
-                                {selectedItems.events.map((event, idx) => (
-                                    <div key={`event-${event.id || idx}`} style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                                        <div style={{ background: '#EFF6FF', color: '#3B82F6', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <CalendarIcon size={18} />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{event.title}</div>
-                                            <div style={{ color: '#64748B', fontSize: '0.8rem', marginTop: '4px' }}>
-                                                {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                                            </div>
-                                            {event.description && <div style={{ color: '#475569', fontSize: '0.85rem', marginTop: '6px' }}>{event.description}</div>}
-                                        </div>
-                                    </div>
-                                ))}
-                                
-                                {selectedItems.reminders.map((reminder, idx) => (
-                                    <div key={`rem-${reminder.id || idx}`} style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                                        <div style={{ background: '#FEF2F2', color: '#EF4444', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <Bell size={18} />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{reminder.title}</div>
-                                            <div style={{ color: '#64748B', fontSize: '0.8rem', marginTop: '4px' }}>
-                                                {formatTime(reminder.date)}
-                                            </div>
-                                            {reminder.description && <div style={{ color: '#475569', fontSize: '0.85rem', marginTop: '6px' }}>{reminder.description}</div>}
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {selectedItems.notes.map((note, idx) => (
-                                    <div key={`note-${note.id || idx}`} style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                                        <div style={{ background: '#FEF9C3', color: '#CA8A04', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <StickyNote size={18} />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{note.title}</div>
-                                            {note.content && <div style={{ color: '#475569', fontSize: '0.85rem', marginTop: '6px', whiteSpace: 'pre-wrap' }}>{note.content}</div>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </>
-                        )}
-                    </>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
