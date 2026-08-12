@@ -321,9 +321,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 icon: ShoppingCart,
                 children: [
                     { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice' },
-                    { label: 'Orders', icon: ShoppingCart, path: '/sales/orders' },
-                    { label: 'Customers', icon: Users, path: '/sales/customers' },
-                    { label: 'Returns', icon: ArrowDownRight, path: '/sales/returns' }
+                    { label: 'Customers', icon: Users, path: '/sales/customers' }
                 ]
             },
             {
