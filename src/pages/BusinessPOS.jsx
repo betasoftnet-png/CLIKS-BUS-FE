@@ -949,7 +949,7 @@ const BusinessPOS = () => {
 
             {/* SUCCESS RECEIPT POPUP MODAL */}
             {showReceiptModal && lastOrderData && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -1040,7 +1040,7 @@ const BusinessPOS = () => {
                                             <tr key={i}>
                                                 <td style={{ padding: '4px 0', maxWidth: '140px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
                                                 <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item?.total || item?.amount || 0)}</td>
+                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item?.total || item?.amount || (item?.price && item?.quantity ? item.price * item.quantity : 0))}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -1052,7 +1052,7 @@ const BusinessPOS = () => {
                                 <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>SUBTOTAL:</span>
-                                        <span>{formatCurrency(lastOrderData?.amount || 0)}</span>
+                                        <span>{formatCurrency(lastOrderData?.amount || (lastOrderData?.total_amount ? (lastOrderData.total_amount - (lastOrderData.tax_amount || 0) + (lastOrderData.discount_amount || 0)) : 0))}</span>
                                     </div>
                                     {lastOrderData?.discount_amount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1349,9 +1349,42 @@ const BusinessPOS = () => {
                                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={12} /> {order.payment_mode}</span>
                                                     </div>
                                                 </div>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(order.total_amount || 0)}</span>
-                                                    <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(order.total_amount || 0)}</span>
+                                                        <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setLastOrderData(order);
+                                                            setShowReceiptModal(true);
+                                                        }}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            padding: '0.45rem 0.85rem',
+                                                            borderRadius: '8px',
+                                                            border: '1px solid #10B981',
+                                                            background: '#ECFDF5',
+                                                            color: '#047857',
+                                                            fontWeight: '750',
+                                                            fontSize: '0.75rem',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#10B981';
+                                                            e.currentTarget.style.color = '#FFFFFF';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#ECFDF5';
+                                                            e.currentTarget.style.color = '#047857';
+                                                        }}
+                                                    >
+                                                        <Receipt size={14} /> Show Bill
+                                                    </button>
                                                 </div>
                                             </div>
 
