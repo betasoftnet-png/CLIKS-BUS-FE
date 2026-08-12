@@ -921,14 +921,27 @@ const BusinessPOS = () => {
 
                         {/* Selected Customer Details Banner */}
                         {selectedCustomerObj && (
-                            <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', color: '#047857', fontWeight: '650', flexWrap: 'wrap' }}>
-                                    <span style={{ fontWeight: '800', color: '#065F46' }}>{selectedCustomerObj.name}</span>
-                                    {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && <span>📞 {selectedCustomerObj.phone_number || selectedCustomerObj.phone}</span>}
-                                    {selectedCustomerObj.email && <span>✉️ {selectedCustomerObj.email}</span>}
+                            <div style={{ marginTop: '0.6rem', padding: '0.75rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer:</span>
+                                        <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.9rem' }}>{selectedCustomerObj.name}</span>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                        style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750' }}
+                                        title="Change or Remove Customer"
+                                    >
+                                        Change / Remove
+                                    </button>
                                 </div>
-                                <div style={{ fontWeight: '800', color: '#B45309', background: '#FFFBEB', padding: '0.2rem 0.55rem', borderRadius: '6px', fontSize: '0.73rem', border: '1px solid #FCD34D', flexShrink: 0 }}>
-                                    ⭐ Loyalty Points: {selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', color: '#334155', fontWeight: '600', fontSize: '0.78rem', paddingTop: '4px', borderTop: '1px dashed #A7F3D0' }}>
+                                    {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && <span>Phone: <strong>{selectedCustomerObj.phone_number || selectedCustomerObj.phone}</strong></span>}
+                                    {selectedCustomerObj.email && <span>Email: <strong>{selectedCustomerObj.email}</strong></span>}
+                                    <div style={{ marginLeft: 'auto', fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem' }}>
+                                        Loyalty Points: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
+                                    </div>
                                 </div>
                             </div>
                         )}
