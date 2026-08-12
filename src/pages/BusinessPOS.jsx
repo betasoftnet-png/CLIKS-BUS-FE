@@ -20,6 +20,7 @@ import {
     Check,
     Printer,
     TrendingUp,
+    TrendingDown,
     Calendar,
     Sparkles,
     CircleAlert,
@@ -71,8 +72,10 @@ const BusinessPOS = () => {
     const [editingProduct, setEditingProduct] = useState(null);
     const [activeProductMenuId, setActiveProductMenuId] = useState(null);
     const [isIncreaseStockModalOpen, setIsIncreaseStockModalOpen] = useState(false);
+    const [isDecreaseStockModalOpen, setIsDecreaseStockModalOpen] = useState(false);
     const [stockTargetProduct, setStockTargetProduct] = useState(null);
     const [addedStockQty, setAddedStockQty] = useState('');
+    const [decreasedStockQty, setDecreasedStockQty] = useState('');
 
     React.useEffect(() => {
         const handleGlobalClick = () => {
@@ -508,6 +511,38 @@ const BusinessPOS = () => {
         }
     });
 
+    // 7b. Decrease Stock Mutation
+    const decreaseStockMutation = useMutation({
+        mutationFn: async ({ id, newStock, source }) => {
+            const payload = { name: stockTargetProduct?.name, stock: newStock, quantity: newStock };
+            if (source === 'inventory') {
+                try {
+                    return await inventoryService.updateItem(id, payload);
+                } catch (e) {
+                    return await productsService.updateProduct(id, payload);
+                }
+            } else {
+                try {
+                    return await productsService.updateProduct(id, payload);
+                } catch (e) {
+                    return await inventoryService.updateItem(id, payload);
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            setIsDecreaseStockModalOpen(false);
+            setStockTargetProduct(null);
+            setDecreasedStockQty('');
+        },
+        onError: (err) => {
+            console.error('Error updating stock:', err);
+            alert('Failed to update stock quantity.');
+        }
+    });
+
     // 8. Delete Product Mutation
     const deleteProductMutation = useMutation({
         mutationFn: async ({ id, source }) => {
@@ -556,6 +591,12 @@ const BusinessPOS = () => {
         setStockTargetProduct(prod);
         setAddedStockQty('');
         setIsIncreaseStockModalOpen(true);
+    };
+
+    const handleOpenDecreaseStock = (prod) => {
+        setStockTargetProduct(prod);
+        setDecreasedStockQty('');
+        setIsDecreaseStockModalOpen(true);
     };
 
     const handleDeleteProduct = (prod) => {
@@ -1164,10 +1205,40 @@ const BusinessPOS = () => {
                                                                 <span>Increase Stock</span>
                                                             </button>
 
+                                                            {/* 3. Decrease Stock */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveProductMenuId(null);
+                                                                    handleOpenDecreaseStock(prod);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    textAlign: 'left',
+                                                                    padding: '0.5rem 0.85rem',
+                                                                    background: 'transparent',
+                                                                    border: 'none',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: '700',
+                                                                    color: '#1E293B',
+                                                                    transition: 'background 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            >
+                                                                <TrendingDown size={14} color="#F59E0B" />
+                                                                <span>Decrease Stock</span>
+                                                            </button>
+
                                                             {/* Divider */}
                                                             <div style={{ height: '1px', background: '#F1F5F9', margin: '0.25rem 0' }} />
 
-                                                            {/* 3. Delete Item */}
+                                                            {/* 4. Delete Item */}
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => {
@@ -2616,6 +2687,97 @@ const BusinessPOS = () => {
                                 style={{ padding: '0.55rem 1.1rem', borderRadius: '10px', border: 'none', background: '#10B981', color: '#FFF', fontWeight: '750', cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 2px 6px rgba(16,185,129,0.3)', opacity: increaseStockMutation.isPending ? 0.7 : 1 }}
                             >
                                 {increaseStockMutation.isPending ? 'Updating...' : 'Add Stock'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+            {/* DECREASE STOCK MODAL */}
+            {isDecreaseStockModalOpen && stockTargetProduct && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '1rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.2)', width: '100%', maxWidth: '380px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>Decrease Stock</h3>
+                            <button 
+                                type="button" 
+                                onClick={() => { setIsDecreaseStockModalOpen(false); setStockTargetProduct(null); }}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ color: '#64748B', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase' }}>Product</div>
+                                <div style={{ color: '#0F172A', fontWeight: '850', fontSize: '0.95rem' }}>{stockTargetProduct.name}</div>
+                                <div style={{ color: '#64748B', fontSize: '0.78rem', marginTop: '4px' }}>
+                                    Current Stock: <strong style={{ color: '#047857' }}>{stockTargetProduct.quantity} {stockTargetProduct.unit || 'PCS'}</strong>
+                                </div>
+                            </div>
+
+                            <label style={{ fontWeight: '750', color: '#334155', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                                Quantity to Decrease *
+                            </label>
+                            <input 
+                                type="number"
+                                min="0.001"
+                                step="any"
+                                placeholder="e.g. 5"
+                                value={decreasedStockQty}
+                                onChange={(e) => setDecreasedStockQty(e.target.value)}
+                                style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem', fontWeight: '700' }}
+                                autoFocus
+                            />
+
+                            {decreasedStockQty && parseFloat(decreasedStockQty) > 0 && parseFloat(decreasedStockQty) <= stockTargetProduct.quantity && (
+                                <div style={{ fontSize: '0.78rem', color: '#D97706', fontWeight: '700', background: '#FFFBEB', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #FDE68A' }}>
+                                    New Stock: {stockTargetProduct.quantity} - {parseFloat(decreasedStockQty)} = <strong>{parseFloat((stockTargetProduct.quantity - parseFloat(decreasedStockQty)).toFixed(3))} {stockTargetProduct.unit || 'PCS'}</strong>
+                                </div>
+                            )}
+
+                            {decreasedStockQty && parseFloat(decreasedStockQty) > stockTargetProduct.quantity && (
+                                <div style={{ fontSize: '0.78rem', color: '#DC2626', fontWeight: '700', background: '#FEF2F2', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #FCA5A5' }}>
+                                    Cannot decrease more than current stock ({stockTargetProduct.quantity} {stockTargetProduct.unit || 'PCS'}).
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => { setIsDecreaseStockModalOpen(false); setStockTargetProduct(null); }}
+                                style={{ padding: '0.55rem 1rem', borderRadius: '10px', border: '1px solid #CBD5E1', background: '#FFF', color: '#475569', fontWeight: '700', cursor: 'pointer', fontSize: '0.82rem' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={decreaseStockMutation.isPending}
+                                onClick={() => {
+                                    const qtyToSub = parseFloat(decreasedStockQty) || 0;
+                                    if (qtyToSub <= 0) {
+                                        alert('Please enter a valid positive quantity to decrease.');
+                                        return;
+                                    }
+                                    if (qtyToSub > stockTargetProduct.quantity) {
+                                        alert(`Cannot decrease more stock than currently available!\n\nCurrent stock: ${stockTargetProduct.quantity} ${stockTargetProduct.unit || 'PCS'}\nEntered reduction: ${qtyToSub}`);
+                                        return;
+                                    }
+                                    const newStock = parseFloat((stockTargetProduct.quantity - qtyToSub).toFixed(3));
+                                    decreaseStockMutation.mutate({
+                                        id: stockTargetProduct.id,
+                                        newStock,
+                                        source: stockTargetProduct.source
+                                    });
+                                }}
+                                style={{ padding: '0.55rem 1.1rem', borderRadius: '10px', border: 'none', background: '#F59E0B', color: '#FFF', fontWeight: '750', cursor: 'pointer', fontSize: '0.82rem', boxShadow: '0 2px 6px rgba(245,158,11,0.3)', opacity: decreaseStockMutation.isPending ? 0.7 : 1 }}
+                            >
+                                {decreaseStockMutation.isPending ? 'Updating...' : 'Decrease Stock'}
                             </button>
                         </div>
                     </motion.div>

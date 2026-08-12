@@ -693,54 +693,10 @@ const BusinessInventory = () => {
                 ))}
             </div>
 
-            {/* Tab Switcher */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <button 
-                    onClick={() => setActiveTab('list')}
-                    style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'list' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white', 
-                        color: activeTab === 'list' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'list' ? '0 4px 10px rgba(236, 72, 153, 0.15)' : 'none'
-                    }}
-                >
-                    <Package size={16} /> Products & Services List
-                </button>
-                <button 
-                    onClick={() => setActiveTab('movement')}
-                    style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'movement' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : 'white', 
-                        color: activeTab === 'movement' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'movement' ? '0 4px 10px rgba(59, 130, 246, 0.15)' : 'none'
-                    }}
-                >
-                    <History size={16} /> Movement History & Logs
-                </button>
-                <button 
-                    onClick={() => setActiveTab('reports')}
-                    style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'reports' ? 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)' : 'white', 
-                        color: activeTab === 'reports' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'reports' ? '0 4px 10px rgba(139, 92, 246, 0.15)' : 'none'
-                    }}
-                >
-                    <BarChart3 size={16} /> Advanced Profit & Expiry
-                </button>
-            </div>
-            
             {/* Central Auto-Scrolling Frame */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
-            {/* Tab 1: Products & Services Catalog List */}
-            {activeTab === 'list' && (
+                {/* Products & Services Catalog List */}
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ position: 'relative', width: '400px' }}>
@@ -861,55 +817,8 @@ const BusinessInventory = () => {
                         </table>
                     </div>
                 </div>
-            )}
 
-            {/* Tab 2: Stock Movement Logs */}
-            {activeTab === 'movement' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>Product Movement & Stock Audits</h2>
-                            <p style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '600' }}>Full ledger recording additions, sales deductions, and opening inductions.</p>
-                        </div>
-                    </div>
 
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ background: '#F8FAFC' }}>
-                                <tr>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Timestamp</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Product Name</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Movement Type</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref / Reason</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Warehouse Location</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Quantity shifted</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {movementHistory.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((tx) => (
-                                    <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{tx.date}</td>
-                                        <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{tx.item_name}</td>
-                                        <td style={{ padding: '1.25rem' }}>
-                                            <span style={{ 
-                                                display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
-                                                background: tx.type.includes('In') ? '#F0FDF4' : '#FEF2F2',
-                                                color: tx.type.includes('In') ? '#15803D' : '#B91C1C',
-                                                fontSize: '0.75rem', fontWeight: '800'
-                                            }}>{tx.type.toUpperCase()}</span>
-                                        </td>
-                                        <td style={{ padding: '1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{tx.ref}</td>
-                                        <td style={{ padding: '1.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>{tx.warehouse || 'Main Godown'}</td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: tx.type.includes('In') ? '#15803D' : '#B91C1C' }}>
-                                            {tx.type.includes('In') ? `+ ${tx.quantity}` : `- ${tx.quantity}`} Units
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
 
             {/* Tab 3: Expiry & Profitability Valuation Reports */}
             {activeTab === 'reports' && (
