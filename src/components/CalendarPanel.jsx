@@ -35,9 +35,14 @@ const CalendarPanel = () => {
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"];
 
-    // Format dates for API query (e.g. 2026-08-01 to 2026-08-31)
-    const startDateStr = new Date(year, month, 1).toISOString().split('T')[0];
-    const endDateStr = new Date(year, month, daysInMonth).toISOString().split('T')[0];
+    // Helper to format date as local YYYY-MM-DD without UTC shift
+    const getLocalYYYYMMDD = (d) => {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    // Format dates for API query
+    const startDateStr = getLocalYYYYMMDD(new Date(year, month, 1));
+    const endDateStr = getLocalYYYYMMDD(new Date(year, month, daysInMonth));
 
     const { data: calendarData, isLoading } = useQuery({
         queryKey: ['calendar-data', startDateStr, endDateStr],
@@ -68,14 +73,16 @@ const CalendarPanel = () => {
                month === selectedDate.getMonth() && 
                year === selectedDate.getFullYear();
     };
-    const selectedDateStr = new Date(year, month, selectedDate.getDate()).toISOString().split('T')[0];
+
+    const localStart = new Date(year, month, selectedDate.getDate(), 0, 0, 0);
+    const localEnd = new Date(year, month, selectedDate.getDate(), 23, 59, 59, 999);
 
     const { data: selectedDateData, isLoading: isSelectedDateLoading } = useQuery({
-        queryKey: ['calendar-date-data', selectedDateStr],
+        queryKey: ['calendar-date-data', localStart.toISOString()],
         queryFn: async () => {
             const token = localStorage.getItem('bnx_auth_token');
             const baseUrl = import.meta.env.VITE_CALENDAR_API_BASE_URL;
-            const response = await fetch(`${baseUrl}/search?date=${selectedDateStr}&allApps=true`, {
+            const response = await fetch(`${baseUrl}/search?startDate=${localStart.toISOString()}&endDate=${localEnd.toISOString()}&allApps=true`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -90,7 +97,7 @@ const CalendarPanel = () => {
     const getItemsForDate = (dateObj) => {
         if (!calendarData) return { events: [], notes: [], reminders: [] };
         
-        const dateStr = dateObj.toISOString().split('T')[0];
+        const dateStr = getLocalYYYYMMDD(dateObj);
         
         return {
             events: (calendarData.events || []).filter(e => e.startTime?.startsWith(dateStr) || e.endTime?.startsWith(dateStr)),
