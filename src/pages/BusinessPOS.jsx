@@ -23,7 +23,8 @@ import {
     Calendar,
     Sparkles,
     CircleAlert,
-    History
+    History,
+    Info
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +32,7 @@ import { inventoryService } from '../services/inventoryService';
 import { productsService } from '../services/productsService';
 import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
+import { hsnService } from '../services/hsnService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -69,8 +71,107 @@ const BusinessPOS = () => {
         category: 'General',
         selling_price: '',
         quantity: '',
-        tax_percentage: 18
+        tax_percentage: 18,
+        hsn_code: ''
     }));
+
+    // HSN Intelligent Search State for Quick Register Item
+    const [hsnSuggestions, setHsnSuggestions] = useState([]);
+    const [isHsnLoading, setIsHsnLoading] = useState(false);
+    const [showHsnDropdown, setShowHsnDropdown] = useState(false);
+    const [hasSearchedHsn, setHasSearchedHsn] = useState(false);
+    const [hsnQueryOverride, setHsnQueryOverride] = useState('');
+
+    // HSN Info Description Popover State & Ref
+    const [showHsnInfoPopover, setShowHsnInfoPopover] = useState(false);
+    const [hsnInfoDescription, setHsnInfoDescription] = useState('');
+    const [isHsnInfoLoading, setIsHsnInfoLoading] = useState(false);
+    const hsnInfoRef = useRef(null);
+
+    const fetchAndShowHsnDescription = async (codeToFetch) => {
+        const code = (codeToFetch || newProductData.hsn_code || '').trim();
+        if (!code) {
+            setHsnInfoDescription('No HSN/SAC code entered.');
+            setShowHsnInfoPopover(true);
+            return;
+        }
+
+        const matchedSuggestion = hsnSuggestions.find(s => 
+            String(s.hsnCode).trim() === code || 
+            String(s.hsnCode).trim() === code.replace(/^0+/, '')
+        );
+        if (matchedSuggestion && matchedSuggestion.description) {
+            setHsnInfoDescription(matchedSuggestion.description);
+            setShowHsnInfoPopover(true);
+            return;
+        }
+
+        setIsHsnInfoLoading(true);
+        setShowHsnInfoPopover(true);
+        try {
+            const results = await hsnService.searchHSN(code);
+            if (results && results.length > 0) {
+                const exactMatch = results.find(r => 
+                    String(r.hsnCode).trim() === code || 
+                    String(r.hsnCode).trim() === code.replace(/^0+/, '')
+                ) || results[0];
+                setHsnInfoDescription(exactMatch.description || 'No HSN/SAC description available for this code.');
+            } else {
+                setHsnInfoDescription('No HSN/SAC description available for this code.');
+            }
+        } catch {
+            setHsnInfoDescription('No HSN/SAC description available for this code.');
+        } finally {
+            setIsHsnInfoLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (hsnInfoRef.current && !hsnInfoRef.current.contains(event.target)) {
+                setShowHsnInfoPopover(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    React.useEffect(() => {
+        if (!isAddProductModalOpen) {
+            setShowHsnDropdown(false);
+            setHsnSuggestions([]);
+            setHsnQueryOverride('');
+            setHasSearchedHsn(false);
+            setShowHsnInfoPopover(false);
+            return;
+        }
+
+        const query = (hsnQueryOverride || newProductData.name || '').trim();
+        if (query.length < 2) {
+            setHsnSuggestions([]);
+            setShowHsnDropdown(false);
+            setHasSearchedHsn(false);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setIsHsnLoading(true);
+            setHasSearchedHsn(true);
+            hsnService.searchHSN(query)
+                .then(results => {
+                    setHsnSuggestions(results || []);
+                    setShowHsnDropdown(true);
+                })
+                .catch(() => {
+                    setHsnSuggestions([]);
+                })
+                .finally(() => {
+                    setIsHsnLoading(false);
+                });
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [isAddProductModalOpen, newProductData.name, hsnQueryOverride]);
     
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historySearch, setHistorySearch] = useState('');
@@ -192,8 +293,13 @@ const BusinessPOS = () => {
                 category: 'General',
                 selling_price: '',
                 quantity: '',
-                tax_percentage: 18
+                tax_percentage: 18,
+                hsn_code: ''
             });
+            setHsnQueryOverride('');
+            setHsnSuggestions([]);
+            setShowHsnDropdown(false);
+            setShowHsnInfoPopover(false);
         },
         onError: (err) => {
             console.error('Product addition error:', err);
@@ -1165,7 +1271,8 @@ const BusinessPOS = () => {
                                 quantity: parseFloat(newProductData.quantity) || 0,
                                 purchase_price: parseFloat(newProductData.selling_price) * 0.7, // Default estimated proxy cost
                                 selling_price: parseFloat(newProductData.selling_price) || 0,
-                                tax_percentage: parseFloat(newProductData.tax_percentage) || 18
+                                tax_percentage: parseFloat(newProductData.tax_percentage) || 18,
+                                hsn_code: newProductData.hsn_code || ''
                             };
                             createProductMutation.mutate(payload);
                         }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1176,7 +1283,18 @@ const BusinessPOS = () => {
                                     required 
                                     type="text" 
                                     value={newProductData.name} 
-                                    onChange={(e) => setNewProductData({...newProductData, name: e.target.value})} 
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setNewProductData(prev => ({
+                                            ...prev,
+                                            name: val,
+                                            hsn_code: ''
+                                        }));
+                                        setHsnQueryOverride('');
+                                        setHsnSuggestions([]);
+                                        setShowHsnDropdown(false);
+                                        setHasSearchedHsn(false);
+                                    }} 
                                     style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 650 }} 
                                     placeholder="e.g. Coca-Cola 250ml" 
                                 />
@@ -1237,14 +1355,183 @@ const BusinessPOS = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Barcode / SKU</label>
-                                <input 
-                                    type="text" 
-                                    value={newProductData.sku} 
-                                    onChange={(e) => setNewProductData({...newProductData, sku: e.target.value})} 
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
-                                />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Barcode / SKU</label>
+                                    <input 
+                                        type="text" 
+                                        value={newProductData.sku} 
+                                        onChange={(e) => setNewProductData({...newProductData, sku: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
+                                    />
+                                </div>
+                                <div style={{ position: 'relative' }} ref={hsnInfoRef}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
+                                        {isHsnLoading && <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '600' }}>Searching...</span>}
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            type="text" 
+                                            value={newProductData.hsn_code || ''} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setNewProductData(prev => ({ ...prev, hsn_code: val }));
+                                                setHsnQueryOverride(val);
+                                                setShowHsnInfoPopover(false);
+                                            }} 
+                                            onFocus={() => {
+                                                if ((newProductData.hsn_code || newProductData.name) && ((newProductData.hsn_code || '').length >= 2 || (newProductData.name || '').length >= 2)) {
+                                                    setShowHsnDropdown(true);
+                                                }
+                                            }}
+                                            style={{ width: '100%', padding: '0.75rem', paddingRight: '2.25rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                            placeholder="e.g. 1006" 
+                                        />
+                                        
+                                        {/* Info ⓘ Icon inside input aligned to far right */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (showHsnInfoPopover) {
+                                                    setShowHsnInfoPopover(false);
+                                                } else {
+                                                    fetchAndShowHsnDescription(newProductData.hsn_code);
+                                                }
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '10px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                cursor: 'pointer',
+                                                color: '#047857',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: '2px',
+                                                borderRadius: '50%',
+                                                zIndex: 10
+                                            }}
+                                            title="View HSN/SAC Description"
+                                        >
+                                            <Info size={16} color="#047857" />
+                                        </button>
+
+                                        {/* HSN Info Popover / Tooltip */}
+                                        {showHsnInfoPopover && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                bottom: '100%',
+                                                right: 0,
+                                                width: '280px',
+                                                zIndex: 1300,
+                                                marginBottom: '6px',
+                                                background: '#1E293B',
+                                                color: 'white',
+                                                borderRadius: '14px',
+                                                padding: '0.85rem 1rem',
+                                                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.2)',
+                                                fontSize: '0.8rem',
+                                                lineHeight: '1.4'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', borderBottom: '1px solid #334155', paddingBottom: '0.3rem' }}>
+                                                    <span style={{ fontWeight: '800', fontSize: '0.75rem', color: '#38BDF8', textTransform: 'uppercase' }}>
+                                                        HSN {newProductData.hsn_code ? newProductData.hsn_code : ''} Details
+                                                    </span>
+                                                    <button type="button" onClick={() => setShowHsnInfoPopover(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}>
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                                {isHsnInfoLoading ? (
+                                                    <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Loading description...</div>
+                                                ) : (
+                                                    <div style={{ maxHeight: '140px', overflowY: 'auto', color: '#F1F5F9', wordBreak: 'break-word' }}>
+                                                        {hsnInfoDescription || 'No HSN/SAC description available for this code.'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* HSN Suggestions Dropdown */}
+                                    {showHsnDropdown && (
+                                        <div style={{ 
+                                            position: 'absolute', 
+                                            top: '100%', 
+                                            left: 0, 
+                                            right: 0, 
+                                            zIndex: 1300, 
+                                            marginTop: '6px', 
+                                            background: 'white', 
+                                            borderRadius: '16px', 
+                                            border: '1px solid #E2E8F0', 
+                                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', 
+                                            maxHeight: '200px', 
+                                            overflowY: 'auto',
+                                            padding: '0.5rem'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', borderBottom: '1px solid #F1F5F9' }}>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>HSN/SAC Suggestions</span>
+                                                <button type="button" onClick={() => setShowHsnDropdown(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}><X size={14} /></button>
+                                            </div>
+
+                                            {isHsnLoading && (
+                                                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>Searching master catalog...</div>
+                                            )}
+
+                                            {!isHsnLoading && hsnSuggestions.length === 0 && hasSearchedHsn && (
+                                                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8' }}>No matching HSN found</div>
+                                            )}
+
+                                            {!isHsnLoading && hsnSuggestions.map((item, idx) => (
+                                                <div 
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setNewProductData(prev => ({ ...prev, hsn_code: item.hsnCode }));
+                                                        setShowHsnDropdown(false);
+                                                        setHsnInfoDescription(item.description);
+                                                    }}
+                                                    style={{ 
+                                                        padding: '0.6rem 0.75rem', 
+                                                        borderRadius: '10px', 
+                                                        cursor: 'pointer', 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        transition: 'background 0.15s ease',
+                                                        borderBottom: idx < hsnSuggestions.length - 1 ? '1px solid #F8FAFC' : 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#ECFDF5'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <div style={{ flex: 1, paddingRight: '0.5rem', overflow: 'hidden' }}>
+                                                        <div style={{ fontWeight: '850', fontSize: '0.85rem', color: '#047857' }}>{item.hsnCode}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.description}</div>
+                                                    </div>
+                                                    <button 
+                                                        type="button" 
+                                                        style={{ 
+                                                            border: 'none', 
+                                                            background: '#ECFDF5', 
+                                                            color: '#047857', 
+                                                            fontWeight: '700', 
+                                                            fontSize: '0.75rem', 
+                                                            padding: '0.35rem 0.65rem', 
+                                                            borderRadius: '8px', 
+                                                            cursor: 'pointer',
+                                                            flexShrink: 0
+                                                        }}
+                                                    >
+                                                        Select
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <button
