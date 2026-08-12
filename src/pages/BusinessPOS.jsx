@@ -434,17 +434,18 @@ const BusinessPOS = () => {
     // 7. Increase Stock Mutation
     const increaseStockMutation = useMutation({
         mutationFn: async ({ id, newStock, source }) => {
+            const payload = { name: stockTargetProduct?.name, stock: newStock, quantity: newStock };
             if (source === 'inventory') {
                 try {
-                    return await inventoryService.updateItem(id, { quantity: newStock });
+                    return await inventoryService.updateItem(id, payload);
                 } catch (e) {
-                    return await productsService.updateProduct(id, { stock: newStock, quantity: newStock });
+                    return await productsService.updateProduct(id, payload);
                 }
             } else {
                 try {
-                    return await productsService.updateProduct(id, { stock: newStock, quantity: newStock });
+                    return await productsService.updateProduct(id, payload);
                 } catch (e) {
-                    return await inventoryService.updateItem(id, { quantity: newStock });
+                    return await inventoryService.updateItem(id, payload);
                 }
             }
         },
