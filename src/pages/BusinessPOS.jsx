@@ -24,7 +24,8 @@ import {
     Sparkles,
     CircleAlert,
     History,
-    Info
+    Info,
+    UserPlus
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -178,6 +179,57 @@ const BusinessPOS = () => {
     const [historyDate, setHistoryDate] = useState('');
     const [historyPaymentMode, setHistoryPaymentMode] = useState('All');
     const customerInputRef = useRef(null);
+
+    // Add Customer State & Handler
+    const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+    const [newCustomerData, setNewCustomerData] = useState({
+        name: '',
+        phone_number: '',
+        email: '',
+        gstin: '',
+        billing_address: ''
+    });
+    const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+
+    const handleCreateCustomer = async (e) => {
+        e.preventDefault();
+        if (!newCustomerData.name || !newCustomerData.name.trim()) {
+            alert('Customer Name is required');
+            return;
+        }
+
+        setIsSavingCustomer(true);
+        try {
+            const res = await crmService.createCustomer({
+                name: newCustomerData.name.trim(),
+                phone_number: newCustomerData.phone_number?.trim() || '',
+                email: newCustomerData.email?.trim() || '',
+                gstin: newCustomerData.gstin?.trim() || '',
+                billing_address: newCustomerData.billing_address?.trim() || ''
+            });
+
+            const createdCust = res?.data?.data || res?.data?.customer || res?.data || { name: newCustomerData.name, email: newCustomerData.email };
+            
+            // Refresh customer list
+            await queryClient.invalidateQueries({ queryKey: ['business-customers'] });
+
+            // Auto-assign created customer to POS cart
+            setSelectedCustomerObj(createdCust);
+            setCustomerName(createdCust.name || newCustomerData.name);
+            setCustomerEmail(createdCust.email || newCustomerData.email || '');
+            setIsCustomerDropdownOpen(false);
+
+            // Reset form & close modal
+            setNewCustomerData({ name: '', phone_number: '', email: '', gstin: '', billing_address: '' });
+            setIsAddCustomerModalOpen(false);
+            alert('New Customer registered and assigned successfully!');
+        } catch (err) {
+            console.error('Failed to create customer:', err);
+            alert('Failed to register customer. Please try again.');
+        } finally {
+            setIsSavingCustomer(false);
+        }
+    };
 
     // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products)
     const { data: inventory = [], isLoading: isInventoryLoading } = useQuery({
@@ -415,8 +467,10 @@ const BusinessPOS = () => {
         setIsCheckingOut(true);
         
         const payload = {
+            customer_id: selectedCustomerObj?.id || null,
             client_name: customerName || 'Walk-in Customer',
             client_email: customerEmail || null,
+            client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
             amount: subtotal,
             tax_amount: calculatedTax,
             total_amount: finalTotal,
@@ -787,27 +841,94 @@ const BusinessPOS = () => {
                                     <X size={14} />
                                 </button>
                             )}
+
+                            {/* Add Customer Button on Right Side */}
+                            <button
+                                type="button"
+                                onClick={() => setIsAddCustomerModalOpen(true)}
+                                title="Add New Customer"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: '#ECFDF5',
+                                    color: '#047857',
+                                    fontWeight: '750',
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <UserPlus size={14} />
+                                <span>Add Customer</span>
+                            </button>
                         </div>
 
                         {/* Dropdown autocomplete for Customers */}
                         {isCustomerDropdownOpen && customerName.length > 0 && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '10px', marginTop: '4px', zIndex: 20, boxShadow: '0 10px 20px rgba(0,0,0,0.1)', maxHeight: '160px', overflowY: 'auto' }}>
-                                {customers.filter(c => c.name.toLowerCase().includes(customerName.toLowerCase())).slice(0, 5).map(cust => (
-                                    <div
-                                        key={cust.id}
-                                        onClick={() => handleCustomerSelect(cust)}
-                                        style={{ padding: '0.65rem 1rem', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}
-                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        <span style={{ fontWeight: '750', color: '#1E293B' }}>{cust.name}</span>
-                                        {cust.phone && <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{cust.phone}</span>}
-                                    </div>
-                                ))}
+                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '4px', zIndex: 30, boxShadow: '0 12px 24px -4px rgba(0,0,0,0.12)', maxHeight: '220px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                                {(() => {
+                                    const query = customerName.toLowerCase().trim();
+                                    const matches = customers.filter(c => {
+                                        const nameMatch = (c.name || '').toLowerCase().includes(query);
+                                        const phoneMatch = String(c.phone_number || c.phone || c.contact || '').toLowerCase().includes(query);
+                                        const emailMatch = (c.email || '').toLowerCase().includes(query);
+                                        return nameMatch || phoneMatch || emailMatch;
+                                    });
+
+                                    if (matches.length === 0) {
+                                        return (
+                                            <div style={{ padding: '0.85rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', fontWeight: '600' }}>
+                                                No customer found
+                                            </div>
+                                        );
+                                    }
+
+                                    return matches.slice(0, 6).map(cust => (
+                                        <div
+                                            key={cust.id}
+                                            onClick={() => handleCustomerSelect(cust)}
+                                            style={{ padding: '0.65rem 0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F8FAFC', transition: 'background 0.15s ease' }}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ECFDF5'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', paddingRight: '0.5rem' }}>
+                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
+                                                <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.72rem', color: '#64748B', flexWrap: 'wrap' }}>
+                                                    {(cust.phone_number || cust.phone) && <span>📞 {cust.phone_number || cust.phone}</span>}
+                                                    {cust.email && <span>✉️ {cust.email}</span>}
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                    ⭐ Loyalty Points: {cust.loyalty_points || cust.points || 0}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ));
+                                })()}
                                 <div 
                                     onClick={() => setIsCustomerDropdownOpen(false)}
-                                    style={{ padding: '0.5rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer' }}>
+                                    style={{ padding: '0.4rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer', fontWeight: '700' }}>
                                     Close List
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Selected Customer Details Banner */}
+                        {selectedCustomerObj && (
+                            <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', color: '#047857', fontWeight: '650', flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: '800', color: '#065F46' }}>{selectedCustomerObj.name}</span>
+                                    {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && <span>📞 {selectedCustomerObj.phone_number || selectedCustomerObj.phone}</span>}
+                                    {selectedCustomerObj.email && <span>✉️ {selectedCustomerObj.email}</span>}
+                                </div>
+                                <div style={{ fontWeight: '800', color: '#B45309', background: '#FFFBEB', padding: '0.2rem 0.55rem', borderRadius: '6px', fontSize: '0.73rem', border: '1px solid #FCD34D', flexShrink: 0 }}>
+                                    ⭐ Loyalty Points: {selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}
                                 </div>
                             </div>
                         )}
@@ -1746,6 +1867,131 @@ const BusinessPOS = () => {
                                 Close History
                             </button>
                         </div>
+                    </motion.div>
+                </div>
+            )}
+            {/* ADD CUSTOMER MODAL */}
+            {isAddCustomerModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ padding: '8px', borderRadius: '10px', background: '#ECFDF5', color: '#10B981' }}>
+                                    <UserPlus size={20} strokeWidth={2.5} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>Add New Customer</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Create profile and assign to current order</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsAddCustomerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={handleCreateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Customer Name *</label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    value={newCustomerData.name} 
+                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 650 }} 
+                                    placeholder="e.g. John Doe / Acme Corp" 
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Phone Number</label>
+                                    <input 
+                                        type="text" 
+                                        value={newCustomerData.phone_number} 
+                                        onChange={(e) => setNewCustomerData({ ...newCustomerData, phone_number: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                        placeholder="+91 9876543210" 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Email Address</label>
+                                    <input 
+                                        type="email" 
+                                        value={newCustomerData.email} 
+                                        onChange={(e) => setNewCustomerData({ ...newCustomerData, email: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
+                                        placeholder="customer@email.com" 
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>GSTIN (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    value={newCustomerData.gstin} 
+                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, gstin: e.target.value.toUpperCase() })} 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
+                                    placeholder="27AAAAA0000A1Z5" 
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Billing Address</label>
+                                <textarea 
+                                    rows={2}
+                                    value={newCustomerData.billing_address} 
+                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, billing_address: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, resize: 'none' }} 
+                                    placeholder="Street address, City, Pincode" 
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddCustomerModalOpen(false)}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.8rem',
+                                        borderRadius: '12px',
+                                        border: '1px solid #E2E8F0',
+                                        background: 'white',
+                                        color: '#64748B',
+                                        fontWeight: '750',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSavingCustomer}
+                                    style={{
+                                        flex: 1.5,
+                                        padding: '0.8rem',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: '#10B981',
+                                        color: 'white',
+                                        fontWeight: '800',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        opacity: isSavingCustomer ? 0.7 : 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <UserPlus size={16} />
+                                    {isSavingCustomer ? 'Saving...' : 'Register & Assign'}
+                                </button>
+                            </div>
+                        </form>
                     </motion.div>
                 </div>
             )}
