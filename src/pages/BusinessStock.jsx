@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { stockService, warehouseService } from '../services';
+import { stockService, warehouseService, productsService } from '../services';
 import { apiClient } from '../api/client';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { 
@@ -39,6 +39,12 @@ const BusinessStock = () => {
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedHistoryProductId, setSelectedHistoryProductId] = useState('');
     const [selectedStock, setSelectedStock] = useState(null);
+
+    // Fetch Live Registered Products Catalog (Inventory -> Products)
+    const { data: dbProducts = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts()
+    });
 
     // Fetch Live Stocks
     const { data: dbStocks = [] } = useQuery({
@@ -172,16 +178,71 @@ const BusinessStock = () => {
         reference: 'MIG-TRF-12'
     });
 
-    // Initialize forms when stock items and warehouses are available
+    // Map registered catalog products (Inventory -> Products) & dbStocks into a unified list for Stock Transfer
+    const transferProductsList = React.useMemo(() => {
+        const list = [];
+        const seenIds = new Set();
+
+        const safeProducts = Array.isArray(dbProducts) ? dbProducts : [];
+        safeProducts.forEach(p => {
+            if (p && p.id && !seenIds.has(String(p.id))) {
+                seenIds.add(String(p.id));
+                list.push({
+                    id: p.id,
+                    product_id: p.sku || `PROD-${p.id}`,
+                    name: p.name || p.product_name || `Product #${p.id}`,
+                    sku: p.sku || 'N/A',
+                    quantity: parseFloat(p.quantity) || 0,
+                    available_stock: parseFloat(p.quantity) || 0,
+                    purchase_price: parseFloat(p.purchase_price || p.unit_price || p.price || 0),
+                    unit: p.unit || 'pcs',
+                    warehouse_name: p.warehouse_name || p.location || 'Main Godown'
+                });
+            }
+        });
+
+        const safeStocks = Array.isArray(stocks) ? stocks : [];
+        safeStocks.forEach(s => {
+            if (s && s.id && !seenIds.has(String(s.id))) {
+                seenIds.add(String(s.id));
+                list.push({
+                    id: s.id,
+                    product_id: s.product_id || `PROD-${s.id}`,
+                    name: s.product_name || `Stock Item #${s.id}`,
+                    sku: s.product_id || 'N/A',
+                    quantity: parseFloat(s.available_stock) || 0,
+                    available_stock: parseFloat(s.available_stock) || 0,
+                    purchase_price: parseFloat(s.average_cost) || 0,
+                    unit: 'pcs',
+                    warehouse_name: s.warehouse_name || 'Main Godown'
+                });
+            }
+        });
+
+        return list;
+    }, [dbProducts, stocks]);
+
+    // Initialize forms when product list and warehouses are available
     useEffect(() => {
         if (stocks.length > 0) {
             const timer = setTimeout(() => {
                 setAdjustmentForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
-                setTransferForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
             }, 0);
             return () => clearTimeout(timer);
         }
     }, [stocks]);
+
+    useEffect(() => {
+        if (transferProductsList.length > 0) {
+            setTransferForm(prev => {
+                const exists = transferProductsList.some(p => String(p.id) === String(prev.product_id));
+                if (!exists) {
+                    return { ...prev, product_id: transferProductsList[0].id.toString() };
+                }
+                return prev;
+            });
+        }
+    }, [transferProductsList]);
 
     useEffect(() => {
         if (dbWarehouses.length > 1) {
@@ -200,6 +261,7 @@ const BusinessStock = () => {
         mutationFn: ({ id, delta }) => stockService.adjustQuantity(id, delta),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['stockStats'] });
             queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
             alert('Stock Adjustment audited & running ledger counts revalued successfully!');
@@ -216,8 +278,10 @@ const BusinessStock = () => {
                 quantity: qty
             }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             alert('Stock successfully moved between warehouse logs!');
             setIsTransferModalOpen(false);
         }
@@ -236,23 +300,36 @@ const BusinessStock = () => {
 
     const handleSaveTransfer = (e) => {
         e.preventDefault();
-        const stockId = parseInt(transferForm.product_id);
-        const transQty = parseInt(transferForm.qty) || 0;
-        const fromWhId = parseInt(transferForm.from_warehouse_id);
-        const toWhId = parseInt(transferForm.to_warehouse_id);
+        const productIdStr = String(transferForm.product_id);
+        const transQty = parseFloat(transferForm.qty) || 0;
+        const fromWhId = String(transferForm.from_warehouse_id);
+        const toWhId = String(transferForm.to_warehouse_id);
 
-        const selectedProd = stocks.find(s => s.id === stockId);
-
-        if (transQty > (selectedProd?.available_stock || 0)) {
-            alert('Cannot transfer quantity higher than current available stock!');
+        // 1. Warehouse Validation: From Warehouse != To Warehouse
+        if (fromWhId && toWhId && fromWhId === toWhId) {
+            alert('Source (From) and Destination (To) warehouses must be different. Please select a different destination warehouse.');
             return;
         }
 
-        if (fromWhId && toWhId && stockId) {
+        // 2. Stock Validation: Cannot transfer > available stock
+        const selectedProd = transferProductsList.find(p => String(p.id) === productIdStr);
+        const availableQty = selectedProd ? (parseFloat(selectedProd.quantity) || 0) : 0;
+
+        if (transQty <= 0) {
+            alert('Please enter a valid transfer quantity greater than 0.');
+            return;
+        }
+
+        if (transQty > availableQty) {
+            alert(`Insufficient stock! Cannot transfer ${transQty} units because only ${availableQty} ${selectedProd?.unit || 'units'} are available for "${selectedProd?.name || 'this product'}".`);
+            return;
+        }
+
+        if (fromWhId && toWhId && productIdStr) {
             transferMutation.mutate({
-                from_warehouse_id: fromWhId,
-                to_warehouse_id: toWhId,
-                stock_id: stockId,
+                from_warehouse_id: parseInt(fromWhId),
+                to_warehouse_id: parseInt(toWhId),
+                stock_id: parseInt(productIdStr),
                 qty: transQty
             });
         }
@@ -609,25 +686,25 @@ const BusinessStock = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
                                 <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name} (Avail: {s.available_stock} pcs)</option>)}
+                                    {transferProductsList.map(p => <option key={p.id} value={p.id}>{p.name} (Avail: {p.quantity} {p.unit})</option>)}
                                 </select>
 
                                 {(() => {
-                                    const selectedProd = stocks.find(s => String(s.id) === String(transferForm.product_id));
+                                    const selectedProd = transferProductsList.find(p => String(p.id) === String(transferForm.product_id));
                                     if (!selectedProd) return null;
                                     return (
                                         <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem', marginTop: '0.5rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.product_name}</span>
-                                                <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>{selectedProd.available_stock} pcs available</span>
+                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.name}</span>
+                                                <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>{selectedProd.quantity} {selectedProd.unit} available</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
-                                                <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.product_id}</strong></span>
-                                                <span>Unit Cost: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.average_cost)}</strong></span>
+                                                <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.sku}</strong></span>
+                                                <span>Unit Price: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.purchase_price)}</strong></span>
                                             </div>
                                             {selectedProd.warehouse_name && (
                                                 <div style={{ color: '#64748B' }}>
-                                                    Current Location: <strong style={{ color: '#334155' }}>{selectedProd.warehouse_name} ({selectedProd.rack_number})</strong>
+                                                    Current Location: <strong style={{ color: '#334155' }}>{selectedProd.warehouse_name}</strong>
                                                 </div>
                                             )}
                                         </div>
