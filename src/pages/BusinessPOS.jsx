@@ -63,6 +63,8 @@ const BusinessPOS = () => {
     const [taxRate, setTaxRate] = useState(18); // Default GST
     const [paymentMode] = useState('Cash');
     const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
+    const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState(0);
+    const [isPtsEarnedManuallyEdited, setIsPtsEarnedManuallyEdited] = useState(false);
     
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -383,13 +385,17 @@ const BusinessPOS = () => {
             setCustomerName('');
             setCustomerEmail('');
             setLoyaltyPointsEarned(0);
+            setLoyaltyPointsRedeemed(0);
+            setIsPtsEarnedManuallyEdited(false);
 
             if (selectedCustomerObj) {
                 const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
+                const ptsRedeemed = parseFloat(loyaltyPointsRedeemed) || 0;
+                const netPts = ptsEarned - ptsRedeemed;
                 setSelectedCustomerObj(prev => prev ? ({
                     ...prev,
-                    loyalty_points: (prev.loyalty_points || 0) + ptsEarned,
-                    points: (prev.points || 0) + ptsEarned
+                    loyalty_points: Math.max(0, (prev.loyalty_points || prev.points || 0) + netPts),
+                    points: Math.max(0, (prev.points || prev.loyalty_points || 0) + netPts)
                 }) : null);
             }
 
@@ -775,14 +781,21 @@ const BusinessPOS = () => {
         setIsCheckingOut(true);
         
         const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
+        const ptsRedeemed = parseFloat(loyaltyPointsRedeemed) || 0;
+        const existingPts = selectedCustomerObj ? (parseFloat(selectedCustomerObj.loyalty_points || selectedCustomerObj.points) || 0) : 0;
+        const finalPts = Math.max(0, existingPts - ptsRedeemed + ptsEarned);
 
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
             client_name: customerName || 'Walk-in Customer',
             client_email: customerEmail || selectedCustomerObj?.email || null,
             client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
+            existing_loyalty_points: existingPts,
             loyalty_points_earned: ptsEarned,
             loyaltyPointsEarned: ptsEarned,
+            loyalty_points_redeemed: ptsRedeemed,
+            loyaltyPointsRedeemed: ptsRedeemed,
+            final_loyalty_points: finalPts,
             amount: subtotal,
             tax_amount: calculatedTax,
             total_amount: finalTotal,
@@ -813,6 +826,8 @@ const BusinessPOS = () => {
             setCustomerEmail('');
             setSelectedCustomerObj(null);
             setLoyaltyPointsEarned(0);
+            setLoyaltyPointsRedeemed(0);
+            setIsPtsEarnedManuallyEdited(false);
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
         }
@@ -1630,14 +1645,53 @@ const BusinessPOS = () => {
                         </div>
 
                         <div style={{ flex: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Redeemed</span>
+                            <input 
+                                type="number"
+                                step="any"
+                                min="0"
+                                max={selectedCustomerObj ? (selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0) : 0}
+                                placeholder="0"
+                                disabled={!selectedCustomerObj || (selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0) <= 0}
+                                value={loyaltyPointsRedeemed || ''}
+                                onChange={(e) => {
+                                    const avail = selectedCustomerObj ? (parseFloat(selectedCustomerObj.loyalty_points || selectedCustomerObj.points) || 0) : 0;
+                                    const val = parseFloat(e.target.value) || 0;
+                                    if (val > avail) {
+                                        alert(`Cannot redeem more than available balance (${avail} pts)`);
+                                        setLoyaltyPointsRedeemed(avail);
+                                    } else {
+                                        setLoyaltyPointsRedeemed(Math.max(0, val));
+                                    }
+                                }}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '0.4rem 0.75rem', 
+                                    boxSizing: 'border-box', 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #FCA5A5', 
+                                    background: !selectedCustomerObj ? '#F8FAFC' : '#FEF2F2', 
+                                    fontSize: '0.85rem', 
+                                    fontWeight: '800', 
+                                    color: '#DC2626', 
+                                    outline: 'none',
+                                    opacity: !selectedCustomerObj ? 0.6 : 1 
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ flex: 1 }}>
                             <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Earned</span>
                             <input 
                                 type="number"
                                 step="any"
                                 min="0"
                                 placeholder="0"
-                                value={loyaltyPointsEarned}
-                                onChange={(e) => setLoyaltyPointsEarned(e.target.value)}
+                                value={loyaltyPointsEarned || ''}
+                                onChange={(e) => {
+                                    setLoyaltyPointsEarned(e.target.value);
+                                    setIsPtsEarnedManuallyEdited(true);
+                                }}
                                 style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #FCD34D', background: '#FFFBEB', fontSize: '0.85rem', fontWeight: '800', color: '#B45309', outline: 'none' }}
                             />
                         </div>
@@ -1887,6 +1941,31 @@ const BusinessPOS = () => {
                                 </div>
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
+                                
+                                {/* Loyalty Points Summary on Receipt */}
+                                {(lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
+                                    <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
+                                        <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS SUMMARY</p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>Existing Loyalty Points:</span>
+                                            <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>Points Redeemed:</span>
+                                            <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>Points Earned:</span>
+                                            <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                            <span>Final Loyalty Points:</span>
+                                            <span>{lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
+                                        </div>
+                                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0 4px' }} />
+                                    </div>
+                                )}
+
                                 <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
                                 <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>Thank you for your business!</p>
                             </div>
