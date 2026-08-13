@@ -480,7 +480,7 @@ const BusinessPurchases = () => {
     const totalOutwardPayments = purchaseBills.reduce((acc, bill) => acc + (parseFloat(bill.grand_total) || 0), 0);
     const activePurchaseOrdersCount = purchaseOrders.filter(po => po.status !== 'Completed').length;
     const inputGstCreditSum = purchaseBills.reduce((acc, b) => acc + (parseFloat(b.total_tax) || 0), 0);
-    const totalReturnedRefundsSum = purchaseReturns.reduce((acc, r) => acc + r.returned_items.reduce((sum, item) => sum + (parseFloat(item.refund_amount) || 0), 0), 0);
+    const totalReturnedRefundsSum = purchaseReturns.reduce((acc, r) => acc + (r.returned_items || []).reduce((sum, item) => sum + (parseFloat(item.refund_amount) || 0), 0), 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
