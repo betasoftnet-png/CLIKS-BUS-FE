@@ -26,7 +26,11 @@ import {
     PercentCircle,
     Info,
     ChevronRight,
-    MapPin
+    MapPin,
+    MessageCircle,
+    Send,
+    Globe,
+    ShieldCheck
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -52,6 +56,17 @@ const BusinessPurchases = () => {
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [pendingReceiveBill, setPendingReceiveBill] = useState(null);
+
+    // Supplier Confirmation View & Chat states
+    const [isSupplierViewModalOpen, setIsSupplierViewModalOpen] = useState(false);
+    const [supplierViewPO, setSupplierViewPO] = useState(null);
+    const [isConfirmingPO, setIsConfirmingPO] = useState(false);
+
+    const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+    const [chatSupplier, setChatSupplier] = useState(null);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
 
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings } = useQuery({
@@ -82,6 +97,57 @@ const BusinessPurchases = () => {
             setSearchParams(newParams, { replace: true });
         }
     }, [searchParams, setSearchParams]);
+
+    // Helper handlers for Supplier confirmation & Chat
+    const handleOpenSupplierView = (po) => {
+        setSupplierViewPO(po);
+        setIsSupplierViewModalOpen(true);
+    };
+
+    const handleConfirmPOBySupplier = async (poId) => {
+        setIsConfirmingPO(true);
+        try {
+            await purchasesService.confirmSupplierPurchase(poId);
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            alert('Purchase Order successfully CONFIRMED! Dealer notification has been generated.');
+            setIsSupplierViewModalOpen(false);
+        } catch(err) {
+            alert(err.message || 'Failed to confirm purchase order');
+        } finally {
+            setIsConfirmingPO(false);
+        }
+    };
+
+    const handleOpenChat = async (po) => {
+        const foundSup = (suppliersList || []).find(s => (s.name || s.supplier_name || '').toLowerCase() === (po.supplier_name || '').toLowerCase()) || { id: po.supplier_id || 1, name: po.supplier_name };
+        setChatSupplier(foundSup);
+        setIsChatModalOpen(true);
+        try {
+            const msgs = await suppliersService.getChats(foundSup.id || 1, po.id || po.purchase_id);
+            setChatMessages(Array.isArray(msgs) ? msgs : []);
+        } catch(e) {
+            setChatMessages([]);
+        }
+    };
+
+    const handleSendChatMessage = async (e) => {
+        e.preventDefault();
+        if (!chatInput.trim() || !chatSupplier) return;
+        setIsSendingMessage(true);
+        try {
+            const sent = await suppliersService.sendChatMessage(chatSupplier.id || 1, {
+                message: chatInput,
+                purchase_id: supplierViewPO ? (supplierViewPO.id || supplierViewPO.purchase_id) : null,
+                sender_type: 'dealer'
+            });
+            setChatMessages(prev => [...prev, sent]);
+            setChatInput('');
+        } catch(err) {
+            alert(err.message || 'Failed to send message');
+        } finally {
+            setIsSendingMessage(false);
+        }
+    };
 
     const queryClient = useQueryClient();
 
@@ -598,26 +664,52 @@ const BusinessPurchases = () => {
                                             })()}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ 
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.4rem 0.8rem', borderRadius: '10px',
-                                                background: po.status === 'Completed' ? '#F0FDF4' : (po.status === 'Partial Received' ? '#FFFBEB' : '#EFF6FF'),
-                                                color: po.status === 'Completed' ? '#15803D' : (po.status === 'Partial Received' ? '#B45309' : '#1D4ED8'),
-                                                fontSize: '0.8rem', fontWeight: '800'
-                                            }}>
-                                                {po.status === 'Completed' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                                                {po.status.toUpperCase()}
-                                            </div>
+                                            {(() => {
+                                                const isConfirmed = po.status === 'CONFIRMED' || po.supplier_confirmation_status === 'CONFIRMED';
+                                                return (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                        <div style={{ 
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                                                            padding: '0.35rem 0.75rem', borderRadius: '10px',
+                                                            background: isConfirmed ? '#F0FDF4' : '#FFFBEB',
+                                                            color: isConfirmed ? '#15803D' : '#B45309',
+                                                            fontSize: '0.78rem', fontWeight: '800', width: 'fit-content'
+                                                        }}>
+                                                            {isConfirmed ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+                                                            {isConfirmed ? 'CONFIRMED BY SUPPLIER' : 'SENT TO SUPPLIER (PENDING)'}
+                                                        </div>
+                                                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
+                                                            {isConfirmed ? 'Order Confirmed on Website' : 'Awaiting Supplier Confirmation'}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            {po.status !== 'Completed' && (
-                                                <button 
-                                                    onClick={() => handleOpenReceiveModal(po)}
-                                                    style={{ padding: '0.5rem 1rem', borderRadius: '10px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                                <button
+                                                    onClick={() => handleOpenSupplierView(po)}
+                                                    title="Supplier Portal View (Confirm Order)"
+                                                    style={{ padding: '0.45rem 0.75rem', borderRadius: '10px', border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                                                 >
-                                                    <PackageOpen size={14} /> Receive Goods
+                                                    <Globe size={14} /> Supplier View
                                                 </button>
-                                            )}
+                                                <button
+                                                    onClick={() => handleOpenChat(po)}
+                                                    title="Dealer-Supplier Chat"
+                                                    style={{ padding: '0.45rem 0.75rem', borderRadius: '10px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                                                >
+                                                    <MessageCircle size={14} /> Chat
+                                                </button>
+                                                {po.status !== 'Completed' && (
+                                                    <button 
+                                                        onClick={() => handleOpenReceiveModal(po)}
+                                                        style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                                    >
+                                                        <PackageOpen size={14} /> Receive Goods
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -1201,6 +1293,201 @@ const BusinessPurchases = () => {
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
                                 Save & Complete Purchase Document
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Supplier Portal View (Confirm Order) Modal */}
+            {isSupplierViewModalOpen && supplierViewPO && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '750px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                        {/* Header Banner */}
+                        <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Globe size={24} />
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800' }}>Cliks Website — Supplier Order Confirmation</h3>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9 }}>Supplier View for Purchase Request #{supplierViewPO.purchase_number}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsSupplierViewModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Order Body */}
+                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* Alert Banner */}
+                            <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '16px', padding: '1rem 1.25rem', color: '#1E40AF', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Info size={20} color="#1D4ED8" />
+                                <span>THIS DEALER HAS REQUESTED THESE PRODUCTS FROM YOU.</span>
+                            </div>
+
+                            {/* Order Demographics */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Dealer / Business Name</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{supplierViewPO.dealer_name || 'CLIKS Dealer Store'}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Supplier Name</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{supplierViewPO.supplier_name}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Order Date</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{supplierViewPO.purchase_date}</strong>
+                                </div>
+                            </div>
+
+                            {/* Requested Product List */}
+                            <div>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Requested Products & Quantities</h4>
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                        <thead>
+                                            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Product Name</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Requested Qty</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Unit</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Unit Price</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'center' }}>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {supplierViewPO.items && supplierViewPO.items.length > 0 ? (
+                                                supplierViewPO.items.map((item, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: idx < supplierViewPO.items.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#1E293B' }}>{item.product_name}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: '#1D4ED8' }}>{item.quantity}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#475569' }}>{item.primary_unit || item.unit || 'PCS'}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{formatCurrency(item.purchase_price || item.price || 0)}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#F0FDF4', color: '#15803D' }}>
+                                                                Confirm
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8' }}>No specific item details listed</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Action */}
+                        <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>
+                                Status: <strong style={{ color: (supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? '#15803D' : '#B45309' }}>
+                                    {(supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? 'CONFIRMED' : 'PENDING SUPPLIER CONFIRMATION'}
+                                </strong>
+                            </span>
+
+                            {(supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? (
+                                <span style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#F0FDF4', color: '#15803D', fontWeight: '800', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <CheckCircle2 size={18} /> Order Confirmed by Supplier
+                                </span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled={isConfirmingPO}
+                                    onClick={() => handleConfirmPOBySupplier(supplierViewPO.id || supplierViewPO.purchase_id)}
+                                    style={{
+                                        padding: '0.75rem 1.75rem', borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                        color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer',
+                                        boxShadow: '0 8px 16px rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                                    }}
+                                >
+                                    <CheckCircle2 size={18} />
+                                    {isConfirmingPO ? 'Confirming...' : 'CONFIRM ORDER'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Dealer <-> Supplier Chat Modal */}
+            {isChatModalOpen && chatSupplier && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(4px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '550px', borderRadius: '24px', display: 'flex', flexDirection: 'column', height: '600px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        {/* Header */}
+                        <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <MessageCircle size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800' }}>Dealer ↔ Supplier Chat</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>Supplier: {chatSupplier.name || chatSupplier.supplier_name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsChatModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Messages body */}
+                        <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', background: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {chatMessages.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: '#94A3B8', margin: 'auto', fontSize: '0.85rem' }}>
+                                    <MessageCircle size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                                    <p style={{ margin: '0 0 0.5rem', fontWeight: '700' }}>No messages yet.</p>
+                                    <p style={{ margin: 0, fontSize: '0.75rem' }}>Type below to discuss purchase requests, availability, delivery, and orders with this supplier.</p>
+                                </div>
+                            ) : (
+                                chatMessages.map((msg, idx) => {
+                                    const isDealer = msg.sender_type === 'dealer';
+                                    return (
+                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: isDealer ? 'flex-end' : 'flex-start' }}>
+                                            <span style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px', fontWeight: '600' }}>
+                                                {isDealer ? 'Dealer (You)' : (chatSupplier.name || 'Supplier')}
+                                            </span>
+                                            <div style={{
+                                                maxWidth: '80%',
+                                                padding: '0.65rem 1rem',
+                                                borderRadius: isDealer ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
+                                                background: isDealer ? '#10B981' : '#FFFFFF',
+                                                color: isDealer ? '#FFFFFF' : '#1E293B',
+                                                fontSize: '0.85rem',
+                                                fontWeight: '500',
+                                                border: isDealer ? 'none' : '1px solid #E2E8F0',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                                            }}>
+                                                {msg.message}
+                                            </div>
+                                            <span style={{ fontSize: '0.6rem', color: '#CBD5E1', marginTop: '2px' }}>
+                                                {new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Input area */}
+                        <form onSubmit={handleSendChatMessage} style={{ padding: '1rem', background: 'white', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                type="text"
+                                placeholder="Type purchase message..."
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }}
+                            />
+                            <button
+                                type="submit"
+                                disabled={isSendingMessage || !chatInput.trim()}
+                                style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#10B981', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: (!chatInput.trim() || isSendingMessage) ? 0.6 : 1 }}
+                            >
+                                <Send size={16} />
+                                <span>Send</span>
                             </button>
                         </form>
                     </div>

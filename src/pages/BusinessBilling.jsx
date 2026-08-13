@@ -1115,149 +1115,147 @@ const BusinessBilling = () => {
                 ))}
             </div>
 
+            {/* Navigation Tab Bar (Placed ABOVE content box) */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '2px' }}>
+                {/* 1. Orders List */}
+                <button
+                    type="button"
+                    onClick={() => setActiveMainTab('orders')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: activeMainTab === 'orders' ? 'none' : '1px solid #E2E8F0',
+                        background: activeMainTab === 'orders' ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
+                        color: activeMainTab === 'orders' ? '#FFFFFF' : '#475569',
+                        boxShadow: activeMainTab === 'orders' ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <ShoppingCart size={15} />
+                    <span>Orders List</span>
+                </button>
+
+                {/* Order Reports */}
+                <button
+                    type="button"
+                    onClick={() => setIsOrderReportsModalOpen(true)}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: '1px solid #E2E8F0',
+                        background: '#FFFFFF',
+                        color: '#475569',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <FileSpreadsheet size={14} color="#6366F1" />
+                    <span>Order Reports 📊</span>
+                </button>
+
+                {/* 2. Sales Returns (Customers) */}
+                <button
+                    type="button"
+                    onClick={() => setActiveMainTab('sales_returns')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: activeMainTab === 'sales_returns' ? 'none' : '1px solid #E2E8F0',
+                        background: activeMainTab === 'sales_returns' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
+                        color: activeMainTab === 'sales_returns' ? '#FFFFFF' : '#475569',
+                        boxShadow: activeMainTab === 'sales_returns' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <RotateCcw size={15} />
+                    <span>Sales Returns (Customers)</span>
+                </button>
+
+                {/* 3. Purchase Returns (Suppliers) */}
+                <button
+                    type="button"
+                    onClick={() => setActiveMainTab('purchase_returns')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: activeMainTab === 'purchase_returns' ? 'none' : '1px solid #E2E8F0',
+                        background: activeMainTab === 'purchase_returns' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : '#FFFFFF',
+                        color: activeMainTab === 'purchase_returns' ? '#FFFFFF' : '#475569',
+                        boxShadow: activeMainTab === 'purchase_returns' ? '0 4px 12px rgba(59, 130, 246, 0.25)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <Truck size={15} />
+                    <span>Purchase Returns (Suppliers)</span>
+                </button>
+
+                {/* 4. Warranty & Replacement Claims */}
+                <button
+                    type="button"
+                    onClick={() => setActiveMainTab('warranty')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: activeMainTab === 'warranty' ? 'none' : '1px solid #E2E8F0',
+                        background: activeMainTab === 'warranty' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
+                        color: activeMainTab === 'warranty' ? '#FFFFFF' : '#475569',
+                        boxShadow: activeMainTab === 'warranty' ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <ShieldCheck size={15} />
+                    <span>Warranty & Replacement Claims</span>
+                </button>
+            </div>
+
             {/* Invoices List */}
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                {/* Search & Navigation Tab Bar */}
-                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '0.75rem', flexWrap: 'nowrap' }}>
-                    {/* Search Input + Navigation Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0, overflowX: 'auto', paddingBottom: '2px' }}>
-                        <div style={{ position: 'relative', width: '220px', flexShrink: 0 }}>
-                            <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                            <input 
-                                type="text" 
-                                placeholder="Search client or invoice #..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem' }}
-                            />
-                        </div>
-
-                        {/* Navigation Tabs (Orders List, Order Reports, Sales Returns, Purchase Returns, Warranty Claims) */}
-                        <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexShrink: 0 }}>
-                            {/* 1. Orders List */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveMainTab('orders')}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '10px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '800',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    border: activeMainTab === 'orders' ? 'none' : '1px solid #E2E8F0',
-                                    background: activeMainTab === 'orders' ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
-                                    color: activeMainTab === 'orders' ? '#FFFFFF' : '#475569',
-                                    boxShadow: activeMainTab === 'orders' ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <ShoppingCart size={15} />
-                                <span>Orders List</span>
-                            </button>
-
-                            {/* Order Reports */}
-                            <button
-                                type="button"
-                                onClick={() => setIsOrderReportsModalOpen(true)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '10px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    border: '1px solid #E2E8F0',
-                                    background: '#FFFFFF',
-                                    color: '#475569',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <FileSpreadsheet size={14} color="#6366F1" />
-                                <span>Order Reports 📊</span>
-                            </button>
-
-                            {/* 2. Sales Returns (Customers) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveMainTab('sales_returns')}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '10px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '800',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    border: activeMainTab === 'sales_returns' ? 'none' : '1px solid #E2E8F0',
-                                    background: activeMainTab === 'sales_returns' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
-                                    color: activeMainTab === 'sales_returns' ? '#FFFFFF' : '#475569',
-                                    boxShadow: activeMainTab === 'sales_returns' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <RotateCcw size={15} />
-                                <span>Sales Returns (Customers)</span>
-                            </button>
-
-                            {/* 3. Purchase Returns (Suppliers) */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveMainTab('purchase_returns')}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '10px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '800',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    border: activeMainTab === 'purchase_returns' ? 'none' : '1px solid #E2E8F0',
-                                    background: activeMainTab === 'purchase_returns' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : '#FFFFFF',
-                                    color: activeMainTab === 'purchase_returns' ? '#FFFFFF' : '#475569',
-                                    boxShadow: activeMainTab === 'purchase_returns' ? '0 4px 12px rgba(59, 130, 246, 0.25)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <Truck size={15} />
-                                <span>Purchase Returns (Suppliers)</span>
-                            </button>
-
-                            {/* 4. Warranty & Replacement Claims */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveMainTab('warranty')}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '10px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: '800',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    border: activeMainTab === 'warranty' ? 'none' : '1px solid #E2E8F0',
-                                    background: activeMainTab === 'warranty' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
-                                    color: activeMainTab === 'warranty' ? '#FFFFFF' : '#475569',
-                                    boxShadow: activeMainTab === 'warranty' ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <ShieldCheck size={15} />
-                                <span>Warranty & Replacement Claims</span>
-                            </button>
-                        </div>
+                {/* Search & Filter Bar */}
+                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '0.75rem' }}>
+                    {/* Search Input */}
+                    <div style={{ position: 'relative', width: '260px', flexShrink: 0 }}>
+                        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <input 
+                            type="text" 
+                            placeholder="Search client or invoice #..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem' }}
+                        />
                     </div>
 
                     {/* Right Side: Filters */}

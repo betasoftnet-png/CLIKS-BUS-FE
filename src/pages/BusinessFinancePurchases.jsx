@@ -183,32 +183,47 @@ const BusinessFinancePurchases = () => {
         return (
             <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>Vendor Directory</h3>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>Supplier & Vendor Directory (Finance)</h3>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <FilterableTableHead
                             columns={[
-                                { key: 'name', label: 'Vendor Name', placeholder: 'Name' },
+                                { key: 'name', label: 'Supplier Name', placeholder: 'Name' },
+                                { key: 'status', label: 'Connection Status', placeholder: 'Status' },
                                 { key: 'gstin', label: 'GSTIN', placeholder: 'GSTIN' },
-                                { key: 'phone', label: 'Contact', placeholder: 'Phone' },
-                                { key: 'city', label: 'Location', placeholder: 'City' },
+                                { key: 'phone', label: 'Contact Phone', placeholder: 'Phone' },
+                                { key: 'city', label: 'City', placeholder: 'City' },
                                 { key: 'outstanding_balance', label: 'Payable Balance', placeholder: 'e.g. 5000' }
                             ]}
                             onFilterChange={setColFilters}
                         />
                         <tbody>
-                            {suppliers.filter(item => applyTableFilters(item, colFilters)).map((vendor) => (
-                                <tr key={vendor.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem 1.5rem', fontWeight: '800', color: '#1E293B' }}>{vendor.name}</td>
-                                    <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{vendor.gstin || 'Unregistered'}</td>
-                                    <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B' }}>{vendor.phone || vendor.email || 'N/A'}</td>
-                                    <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B' }}>{vendor.city || 'N/A'}</td>
-                                    <td style={{ padding: '1rem 1.5rem', fontWeight: '900', color: vendor.outstanding_balance > 0 ? '#EF4444' : '#15803D' }}>
-                                        {formatCurrency(vendor.outstanding_balance)}
-                                    </td>
-                                </tr>
-                            ))}
+                            {suppliers.filter(item => applyTableFilters(item, colFilters)).map((vendor) => {
+                                const st = String(vendor.status || vendor.connection_status || 'PENDING').toUpperCase();
+                                const isConn = st === 'CONNECTED' || st === 'ACCEPTED';
+                                return (
+                                    <tr key={vendor.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem 1.5rem', fontWeight: '800', color: '#1E293B' }}>{vendor.name}</td>
+                                        <td style={{ padding: '1rem 1.5rem' }}>
+                                            <span style={{ 
+                                                display: 'inline-flex', padding: '0.25rem 0.6rem', borderRadius: '6px',
+                                                background: isConn ? '#F0FDF4' : '#FFFBEB',
+                                                color: isConn ? '#15803D' : '#B45309',
+                                                fontSize: '0.75rem', fontWeight: '800'
+                                            }}>
+                                                {isConn ? 'CONNECTED' : 'PENDING'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{vendor.gstin || 'Unregistered'}</td>
+                                        <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B' }}>{vendor.phone || vendor.email || 'N/A'}</td>
+                                        <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B' }}>{vendor.city || 'N/A'}</td>
+                                        <td style={{ padding: '1rem 1.5rem', fontWeight: '900', color: vendor.outstanding_balance > 0 ? '#EF4444' : '#15803D' }}>
+                                            {formatCurrency(vendor.outstanding_balance)}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -247,6 +262,69 @@ const BusinessFinancePurchases = () => {
                                         <td style={{ padding: '1rem 1.5rem', fontWeight: '800' }}>{formatCurrency(bill.grand_total)}</td>
                                         <td style={{ padding: '1rem 1.5rem', color: '#15803D', fontWeight: '700' }}>{formatCurrency(bill.paid_amount)}</td>
                                         <td style={{ padding: '1rem 1.5rem', fontWeight: '950', color: '#B91C1C' }}>{formatCurrency(balance)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    const renderPurchaseDetails = () => {
+        return (
+            <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>Supplier & Purchase Details (Finance Module)</h3>
+                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Real-time synchronization between Cliks Business & Cliks Website Supplier Portal</p>
+                    </div>
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <FilterableTableHead
+                            columns={[
+                                { key: 'purchase_number', label: 'Purchase Ref #', placeholder: 'Ref #' },
+                                { key: 'supplier_name', label: 'Supplier Name', placeholder: 'Supplier' },
+                                { key: 'items', label: 'Requested Products & Quantities', placeholder: 'Items' },
+                                { key: 'grand_total', label: 'Total Amount', placeholder: 'Amount' },
+                                { key: 'status', label: 'Order Status', placeholder: 'Status' },
+                                { key: 'supplier_confirmation_status', label: 'Supplier Confirmation', placeholder: 'Confirmation' },
+                                { key: 'purchase_date', label: 'Order Date', placeholder: 'Date' }
+                            ]}
+                            onFilterChange={setColFilters}
+                        />
+                        <tbody>
+                            {purchases.filter(item => applyTableFilters(item, colFilters)).map((pur) => {
+                                const isConfirmed = pur.status === 'CONFIRMED' || pur.supplier_confirmation_status === 'CONFIRMED';
+                                return (
+                                    <tr key={pur.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1.2rem 1.5rem', fontWeight: '800', color: '#1B6B3A' }}>{pur.purchase_number}</td>
+                                        <td style={{ padding: '1.2rem 1.5rem', fontWeight: '750', color: '#1E293B' }}>{pur.supplier_name}</td>
+                                        <td style={{ padding: '1.2rem 1.5rem' }}>
+                                            {pur.items && pur.items.length > 0 ? (
+                                                pur.items.map((it, idx) => (
+                                                    <div key={idx} style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569' }}>
+                                                        {it.product_name || it.name}: <span style={{ color: '#1D4ED8' }}>{it.quantity} {it.primary_unit || it.unit || 'PCS'}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <span style={{ fontSize: '0.82rem', color: '#94A3B8' }}>Standard Purchase Order</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '1.2rem 1.5rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(pur.grand_total)}</td>
+                                        <td style={{ padding: '1.2rem 1.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: isConfirmed ? '#F0FDF4' : '#EFF6FF', color: isConfirmed ? '#15803D' : '#1D4ED8' }}>
+                                                {pur.status || 'SENT TO SUPPLIER'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1.2rem 1.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: isConfirmed ? '#F0FDF4' : '#FFFBEB', color: isConfirmed ? '#15803D' : '#B45309' }}>
+                                                {isConfirmed ? 'CONFIRMED' : 'PENDING'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1.2rem 1.5rem', fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{pur.purchase_date}</td>
                                     </tr>
                                 );
                             })}

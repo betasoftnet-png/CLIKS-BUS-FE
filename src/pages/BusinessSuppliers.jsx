@@ -31,7 +31,11 @@ import {
     Globe,
     FileText,
     Share2,
-    Smartphone
+    Smartphone,
+    MessageCircle,
+    Send,
+    ExternalLink,
+    ShieldCheck
 } from 'lucide-react';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
@@ -49,6 +53,17 @@ const BusinessSuppliers = () => {
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
     const [filterType, setFilterType] = useState('All');
+
+    // Dealer <-> Supplier Chat states
+    const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+    const [chatSupplier, setChatSupplier] = useState(null);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+    // Website Supplier Portal Simulation
+    const [isPortalModalOpen, setIsPortalModalOpen] = useState(false);
+    const [portalIntegrations, setPortalIntegrations] = useState([]);
 
     // Supplier Bulk Import CSV states
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -399,6 +414,58 @@ const BusinessSuppliers = () => {
         setIsModalOpen(true);
     };
 
+    const handleOpenChat = async (supplier) => {
+        setSelectedSupplier(supplier);
+        setChatSupplier(supplier);
+        setIsChatModalOpen(true);
+        try {
+            const msgs = await suppliersService.getChats(supplier.id || supplier.supplier_id);
+            setChatMessages(Array.isArray(msgs) ? msgs : []);
+        } catch(e) {
+            setChatMessages([]);
+        }
+    };
+
+    const handleSendChatMessage = async (e) => {
+        e.preventDefault();
+        if (!chatInput.trim() || !chatSupplier) return;
+        setIsSendingMessage(true);
+        try {
+            const sent = await suppliersService.sendChatMessage(chatSupplier.id || chatSupplier.supplier_id, {
+                message: chatInput,
+                sender_type: 'dealer'
+            });
+            setChatMessages(prev => [...prev, sent]);
+            setChatInput('');
+        } catch(err) {
+            alert(err.message || 'Failed to send message');
+        } finally {
+            setIsSendingMessage(false);
+        }
+    };
+
+    const handleOpenPortalSim = async () => {
+        setIsPortalModalOpen(true);
+        try {
+            const list = await suppliersService.getPortalIntegrations();
+            setPortalIntegrations(Array.isArray(list) ? list : []);
+        } catch(e) {
+            setPortalIntegrations([]);
+        }
+    };
+
+    const handleRespondPortal = async (connId, action) => {
+        try {
+            await suppliersService.respondPortalIntegration(connId, action);
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            const list = await suppliersService.getPortalIntegrations();
+            setPortalIntegrations(Array.isArray(list) ? list : []);
+            alert(`Supplier connection request ${action}ed successfully!`);
+        } catch(err) {
+            alert(err.message || 'Failed to respond');
+        }
+    };
+
     const handleDelete = async (id) => {
         if (await customConfirm('Are you sure you want to completely remove this vendor/supplier profile? All ledger records will be deleted.')) {
             deleteMutation.mutate(id);
@@ -506,6 +573,19 @@ const BusinessSuppliers = () => {
                     >
                         <Download size={18} style={{ transform: 'rotate(180deg)' }} />
                         Bulk Import (CSV)
+                    </button>
+                    <button 
+                        onClick={handleOpenPortalSim}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                            padding: '0.65rem 1.25rem', borderRadius: '10px', 
+                            background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', 
+                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                        }}
+                    >
+                        <Globe size={18} />
+                        Cliks Website Supplier Portal
                     </button>
                     <button 
                         onClick={handleOpenCreateModal}
@@ -677,23 +757,45 @@ const BusinessSuppliers = () => {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
-                                                <span style={{ 
-                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
-                                                    background: supStatus === 'active' ? '#F0FDF4' : '#F1F5F9',
-                                                    color: supStatus === 'active' ? '#15803D' : '#475569',
-                                                    fontSize: '0.75rem', fontWeight: '800'
-                                                }}>{supStatus.toUpperCase()}</span>
+                                                {(() => {
+                                                    const rawSt = String(supStatus).toUpperCase();
+                                                    const isConn = rawSt === 'CONNECTED' || rawSt === 'ACCEPTED';
+                                                    const isPend = rawSt === 'PENDING';
+                                                    return (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                            <span style={{ 
+                                                                display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
+                                                                background: isConn ? '#F0FDF4' : (isPend ? '#FFFBEB' : '#FEF2F2'),
+                                                                color: isConn ? '#15803D' : (isPend ? '#B45309' : '#DC2626'),
+                                                                fontSize: '0.75rem', fontWeight: '800', width: 'fit-content'
+                                                            }}>
+                                                                {isConn ? 'CONNECTED' : (isPend ? 'PENDING' : 'UNCONNECTED')}
+                                                            </span>
+                                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
+                                                                {isConn ? 'Connected on Website' : (isPend ? 'Sent to Cliks Website' : 'Not Connected')}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                                    <button 
+                                                        onClick={() => handleOpenChat(sup)} 
+                                                        title="Dealer-Supplier Chat"
+                                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                                    >
+                                                        <MessageCircle size={15} />
+                                                        Chat
+                                                    </button>
                                                     {supBal > 0 && (
                                                         <button 
                                                             onClick={() => handleOpenPaymentModal(sup)}
                                                             style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
                                                         >Record Pay</button>
                                                     )}
-                                                    <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                                                    <button onClick={() => handleDelete(supId)} title="Delete product" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                                    <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '34px', height: '34px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
+                                                    <button onClick={() => handleDelete(supId)} title="Delete profile" style={{ width: '34px', height: '34px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1187,6 +1289,149 @@ const BusinessSuppliers = () => {
                             </div>
                         )}
 
+                    </div>
+                </div>
+            )}
+
+            {/* Dealer <-> Supplier Chat Modal */}
+            {isChatModalOpen && chatSupplier && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(4px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '550px', borderRadius: '24px', display: 'flex', flexDirection: 'column', height: '600px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        {/* Header */}
+                        <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <MessageCircle size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800' }}>Dealer ↔ Supplier Chat</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>Supplier: {chatSupplier.name || chatSupplier.supplier_name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsChatModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Messages body */}
+                        <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto', background: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {chatMessages.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: '#94A3B8', margin: 'auto', fontSize: '0.85rem' }}>
+                                    <MessageCircle size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                                    <p style={{ margin: '0 0 0.5rem', fontWeight: '700' }}>No messages yet.</p>
+                                    <p style={{ margin: 0, fontSize: '0.75rem' }}>Type below to discuss purchase requests, availability, delivery, and orders with this supplier.</p>
+                                </div>
+                            ) : (
+                                chatMessages.map((msg, idx) => {
+                                    const isDealer = msg.sender_type === 'dealer';
+                                    return (
+                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: isDealer ? 'flex-end' : 'flex-start' }}>
+                                            <span style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px', fontWeight: '600' }}>
+                                                {isDealer ? 'Dealer (You)' : (chatSupplier.name || 'Supplier')}
+                                            </span>
+                                            <div style={{
+                                                maxWidth: '80%',
+                                                padding: '0.65rem 1rem',
+                                                borderRadius: isDealer ? '16px 16px 2px 16px' : '16px 16px 16px 2px',
+                                                background: isDealer ? '#10B981' : '#FFFFFF',
+                                                color: isDealer ? '#FFFFFF' : '#1E293B',
+                                                fontSize: '0.85rem',
+                                                fontWeight: '500',
+                                                border: isDealer ? 'none' : '1px solid #E2E8F0',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                                            }}>
+                                                {msg.message}
+                                            </div>
+                                            <span style={{ fontSize: '0.6rem', color: '#CBD5E1', marginTop: '2px' }}>
+                                                {new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Input area */}
+                        <form onSubmit={handleSendChatMessage} style={{ padding: '1rem', background: 'white', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                type="text"
+                                placeholder="Type purchase message..."
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }}
+                            />
+                            <button
+                                type="submit"
+                                disabled={isSendingMessage || !chatInput.trim()}
+                                style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#10B981', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: (!chatInput.trim() || isSendingMessage) ? 0.6 : 1 }}
+                            >
+                                <Send size={16} />
+                                <span>Send</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Cliks Website Supplier Portal Simulation Modal */}
+            {isPortalModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '700px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Globe size={22} />
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Cliks Website — Supplier Confirmation Portal</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>Incoming dealer connection & purchase order requests</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsPortalModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: '800', color: '#1E293B' }}>Pending Connection Requests from Dealers</h4>
+                            {portalIntegrations.length === 0 ? (
+                                <div style={{ padding: '2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '16px', color: '#64748B', fontSize: '0.85rem' }}>
+                                    No pending supplier connection requests found on Cliks Website.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                    {portalIntegrations.map((item) => (
+                                        <div key={item.id} style={{ padding: '1.25rem', border: '1px solid #E2E8F0', borderRadius: '16px', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <p style={{ fontWeight: '800', color: '#1E293B', margin: '0 0 0.25rem 0', fontSize: '0.95rem' }}>{item.dealer_business_name}</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Supplier: {item.supplier_name} ({item.supplier_email})</span>
+                                                <div style={{ marginTop: '0.35rem' }}>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '6px', background: item.status === 'CONNECTED' ? '#F0FDF4' : '#FFFBEB', color: item.status === 'CONNECTED' ? '#15803D' : '#B45309' }}>
+                                                        STATUS: {item.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {item.status === 'PENDING' ? (
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button
+                                                        onClick={() => handleRespondPortal(item.id, 'accept')}
+                                                        style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#10B981', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                    >
+                                                        Accept Request
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRespondPortal(item.id, 'reject')}
+                                                        style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#EF4444', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '800' }}>✓ Accepted</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

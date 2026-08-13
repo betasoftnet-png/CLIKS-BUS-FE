@@ -21,6 +21,8 @@ export const purchasesService = {
     deletePurchaseItem: (id, itemId) => apiClient.delete(`/purchases/${id}/items/${itemId}`).then(res => res.data.data || res.data),
 
     updatePurchaseStatus: (id, status) => apiClient.patch(`/purchases/${id}/status`, { status }).then(res => res.data.data || res.data),
+    confirmSupplierPurchase: (id) => apiClient.post(`/purchases/${id}/supplier-confirm`).then(res => res.data.data || res.data),
+    getSupplierPortalOrders: () => apiClient.get('/purchases/portal/orders').then(res => res.data.data || res.data),
 
     // Payments
     processPurchasePayments: (id, data) => apiClient.post(`/purchases/${id}/payments`, data).then(res => res.data.data || res.data),

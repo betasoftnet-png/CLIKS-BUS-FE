@@ -54,6 +54,12 @@ export const suppliersService = {
     getTopSuppliersReport: () => apiClient.get('/suppliers/reports/top-suppliers').then(res => res.data.data || res.data),
     getPaymentsReport: () => apiClient.get('/suppliers/reports/payment').then(res => res.data.data || res.data),
 
+    // Dealer <-> Supplier Chat & Portal Integrations
+    getChats: (id, purchase_id) => apiClient.get(`/suppliers/${id}/chats${purchase_id ? `?purchase_id=${purchase_id}` : ''}`).then(res => res.data.data || res.data),
+    sendChatMessage: (id, data) => apiClient.post(`/suppliers/${id}/chats`, data).then(res => res.data.data || res.data),
+    getPortalIntegrations: () => apiClient.get('/suppliers/portal/integrations').then(res => res.data.data || res.data),
+    respondPortalIntegration: (id, action) => apiClient.post(`/suppliers/portal/integrations/${id}/respond`, { action }).then(res => res.data.data || res.data),
+
     // Import / Export
     importSuppliers: (data) => apiClient.post('/suppliers/import', data).then(res => res.data.data || res.data),
     exportSuppliers: () => apiClient.get('/suppliers/export').then(res => res.data.data || res.data),
