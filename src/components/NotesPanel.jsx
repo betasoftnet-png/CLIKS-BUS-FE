@@ -92,6 +92,8 @@ const NotesPanel = () => {
         onSuccess: () => {
             queryClient.invalidateQueries(['global-notes']);
             setEditingNoteId(null);
+            setIsAdding(false);
+            setFormData({ title: '', content: '', color: '#ffffff', isPinned: false });
         }
     });
 
