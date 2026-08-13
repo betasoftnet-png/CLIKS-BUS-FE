@@ -772,7 +772,14 @@ const BusinessPOS = () => {
     
     const discountedTotal = Math.max(0, subtotal - discountAmount);
     const calculatedTax = discountedTotal * (taxRate / 100);
-    const totalBeforeRound = discountedTotal + calculatedTax;
+    
+    // Loyalty Point Redemption calculation: 1 loyalty point = ₹1 discount
+    const availableCustomerPoints = selectedCustomerObj ? (parseFloat(selectedCustomerObj.loyalty_points || selectedCustomerObj.points) || 0) : 0;
+    const maxRedeemablePoints = Math.min(availableCustomerPoints, Math.floor(discountedTotal + calculatedTax));
+    const effectivePointsRedeemed = selectedCustomerObj ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
+    const loyaltyDiscountAmount = effectivePointsRedeemed; // 1 pt = ₹1
+
+    const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount);
     const finalTotal = Math.round(totalBeforeRound);
     const roundOff = finalTotal - totalBeforeRound;
 
@@ -781,9 +788,9 @@ const BusinessPOS = () => {
         setIsCheckingOut(true);
         
         const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
-        const ptsRedeemed = parseFloat(loyaltyPointsRedeemed) || 0;
-        const existingPts = selectedCustomerObj ? (parseFloat(selectedCustomerObj.loyalty_points || selectedCustomerObj.points) || 0) : 0;
-        const finalPts = Math.max(0, existingPts - ptsRedeemed + ptsEarned);
+        const ptsRedeemed = effectivePointsRedeemed;
+        const existingPts = availableCustomerPoints;
+        const remainingPts = Math.max(0, existingPts - ptsRedeemed + ptsEarned);
 
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
@@ -795,7 +802,10 @@ const BusinessPOS = () => {
             loyaltyPointsEarned: ptsEarned,
             loyalty_points_redeemed: ptsRedeemed,
             loyaltyPointsRedeemed: ptsRedeemed,
-            final_loyalty_points: finalPts,
+            loyalty_discount_amount: loyaltyDiscountAmount,
+            loyaltyDiscount: loyaltyDiscountAmount,
+            remaining_loyalty_points: remainingPts,
+            final_loyalty_points: remainingPts,
             amount: subtotal,
             tax_amount: calculatedTax,
             total_amount: finalTotal,
@@ -1650,18 +1660,25 @@ const BusinessPOS = () => {
                                 type="number"
                                 step="any"
                                 min="0"
-                                max={selectedCustomerObj ? (selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0) : 0}
+                                max={maxRedeemablePoints}
                                 placeholder="0"
-                                disabled={!selectedCustomerObj || (selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0) <= 0}
-                                value={loyaltyPointsRedeemed || ''}
+                                disabled={!selectedCustomerObj || availableCustomerPoints <= 0}
+                                value={selectedCustomerObj ? (loyaltyPointsRedeemed || '') : ''}
                                 onChange={(e) => {
-                                    const avail = selectedCustomerObj ? (parseFloat(selectedCustomerObj.loyalty_points || selectedCustomerObj.points) || 0) : 0;
-                                    const val = parseFloat(e.target.value) || 0;
-                                    if (val > avail) {
-                                        alert(`Cannot redeem more than available balance (${avail} pts)`);
-                                        setLoyaltyPointsRedeemed(avail);
+                                    if (!selectedCustomerObj) {
+                                        setLoyaltyPointsRedeemed(0);
+                                        return;
+                                    }
+                                    const rawVal = parseFloat(e.target.value);
+                                    if (isNaN(rawVal) || rawVal <= 0) {
+                                        setLoyaltyPointsRedeemed(0);
+                                        return;
+                                    }
+                                    if (rawVal > availableCustomerPoints) {
+                                        alert(`Cannot redeem more than available balance (${availableCustomerPoints} pts)`);
+                                        setLoyaltyPointsRedeemed(availableCustomerPoints);
                                     } else {
-                                        setLoyaltyPointsRedeemed(Math.max(0, val));
+                                        setLoyaltyPointsRedeemed(rawVal);
                                     }
                                 }}
                                 style={{ 
@@ -1713,6 +1730,12 @@ const BusinessPOS = () => {
                             <span>GST ({taxRate}%)</span>
                             <span>{formatCurrency(calculatedTax)}</span>
                         </div>
+                        {loyaltyDiscountAmount > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#DC2626', fontWeight: '600' }}>
+                                <span>Loyalty Discount ({effectivePointsRedeemed} pts)</span>
+                                <span>- {formatCurrency(loyaltyDiscountAmount)}</span>
+                            </div>
+                        )}
                         {Math.abs(roundOff) > 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94A3B8' }}>
                                 <span>Round Off</span>
@@ -1922,7 +1945,7 @@ const BusinessPOS = () => {
                                 <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>SUBTOTAL:</span>
-                                        <span>{formatCurrency(lastOrderData?.amount || (lastOrderData?.total_amount ? (lastOrderData.total_amount - (lastOrderData.tax_amount || 0) + (lastOrderData.discount_amount || 0)) : 0))}</span>
+                                        <span>{formatCurrency(lastOrderData?.amount || 0)}</span>
                                     </div>
                                     {lastOrderData?.discount_amount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1934,6 +1957,18 @@ const BusinessPOS = () => {
                                         <span>TAX (GST):</span>
                                         <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
                                     </div>
+                                    {(lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                            <span>LOYALTY DISCOUNT:</span>
+                                            <span>- {formatCurrency(lastOrderData?.loyalty_discount_amount || lastOrderData?.loyalty_points_redeemed || 0)}</span>
+                                        </div>
+                                    )}
+                                    {Math.abs(lastOrderData?.round_off || 0) > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>ROUND OFF:</span>
+                                            <span>{lastOrderData.round_off > 0 ? '+' : ''}{formatCurrency(lastOrderData.round_off)}</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
                                         <span>GRAND TOTAL:</span>
                                         <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
@@ -1945,9 +1980,9 @@ const BusinessPOS = () => {
                                 {/* Loyalty Points Summary on Receipt */}
                                 {(lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                                     <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
-                                        <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS SUMMARY</p>
+                                        <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS:</p>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>Existing Loyalty Points:</span>
+                                            <span>Existing Points:</span>
                                             <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1959,8 +1994,8 @@ const BusinessPOS = () => {
                                             <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
-                                            <span>Final Loyalty Points:</span>
-                                            <span>{lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
+                                            <span>Remaining Points:</span>
+                                            <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
                                         </div>
                                         <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0 4px' }} />
                                     </div>
