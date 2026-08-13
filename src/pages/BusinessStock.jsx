@@ -233,13 +233,17 @@ const BusinessStock = () => {
 
     // Initialize forms when product list and warehouses are available
     useEffect(() => {
-        if (stocks.length > 0) {
-            const timer = setTimeout(() => {
-                setAdjustmentForm(prev => prev.product_id ? prev : { ...prev, product_id: stocks[0].id.toString() });
-            }, 0);
-            return () => clearTimeout(timer);
+        if (transferProductsList.length > 0) {
+            setAdjustmentForm(prev => {
+                if (!prev.product_id) return prev;
+                const exists = transferProductsList.some(p => String(p.id) === String(prev.product_id));
+                if (!exists) {
+                    return { ...prev, product_id: '' };
+                }
+                return prev;
+            });
         }
-    }, [stocks]);
+    }, [transferProductsList]);
 
     useEffect(() => {
         if (transferProductsList.length > 0) {
@@ -299,9 +303,29 @@ const BusinessStock = () => {
 
     const handleSaveAdjustment = (e) => {
         e.preventDefault();
-        const stockId = parseInt(adjustmentForm.product_id);
-        const adjustQty = parseInt(adjustmentForm.qty) || 0;
+        const productIdStr = String(adjustmentForm.product_id || '');
+        const adjustQty = parseFloat(adjustmentForm.qty) || 0;
+
+        if (!productIdStr) {
+            alert('Please select a product from the list to adjust stock counts.');
+            return;
+        }
+
+        if (adjustQty <= 0) {
+            alert('Please enter a valid adjustment quantity greater than 0.');
+            return;
+        }
+
+        const selectedProd = transferProductsList.find(p => String(p.id) === productIdStr);
+        const currentQty = selectedProd ? (parseFloat(selectedProd.quantity) || 0) : 0;
+
+        if (adjustmentForm.adjustment_type === 'reduce' && adjustQty > currentQty) {
+            alert(`Cannot reduce stock by ${adjustQty} ${selectedProd?.unit || 'units'} because only ${currentQty} ${selectedProd?.unit || 'units'} are available for "${selectedProd?.name || 'this product'}".`);
+            return;
+        }
+
         const delta = adjustmentForm.adjustment_type === 'add' ? adjustQty : -adjustQty;
+        const stockId = parseInt(productIdStr);
 
         if (stockId) {
             adjustMutation.mutate({ id: stockId, delta });
@@ -645,21 +669,22 @@ const BusinessStock = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
                                 <select value={adjustmentForm.product_id} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name} (Qty: {s.current_stock})</option>)}
+                                    <option value="">-- Select Product --</option>
+                                    {transferProductsList.map(p => <option key={p.id} value={p.id}>{p.name} (Avail: {p.quantity} {p.unit})</option>)}
                                 </select>
 
                                 {(() => {
-                                    const selectedProd = stocks.find(s => String(s.id) === String(adjustmentForm.product_id));
+                                    const selectedProd = transferProductsList.find(p => String(p.id) === String(adjustmentForm.product_id));
                                     if (!selectedProd) return null;
                                     return (
                                         <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem', marginTop: '0.5rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.product_name}</span>
-                                                <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>Current Stock: {selectedProd.current_stock} pcs</span>
+                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.name}</span>
+                                                <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>Current Stock: {selectedProd.quantity} {selectedProd.unit}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
-                                                <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.product_id}</strong></span>
-                                                <span>Unit Price: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.average_cost)}</strong></span>
+                                                <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.sku}</strong></span>
+                                                <span>Unit Price: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.purchase_price)}</strong></span>
                                             </div>
                                         </div>
                                     );
