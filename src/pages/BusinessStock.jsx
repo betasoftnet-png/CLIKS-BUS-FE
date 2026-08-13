@@ -554,6 +554,23 @@ const BusinessStock = () => {
                                 <select value={adjustmentForm.product_id} onChange={(e) => setAdjustmentForm({ ...adjustmentForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
                                     {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name} (Qty: {s.current_stock})</option>)}
                                 </select>
+
+                                {(() => {
+                                    const selectedProd = stocks.find(s => String(s.id) === String(adjustmentForm.product_id));
+                                    if (!selectedProd) return null;
+                                    return (
+                                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem', marginTop: '0.5rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.product_name}</span>
+                                                <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>Current Stock: {selectedProd.current_stock} pcs</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
+                                                <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.product_id}</strong></span>
+                                                <span>Unit Price: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.average_cost)}</strong></span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Adjustment Type</label>
@@ -594,6 +611,28 @@ const BusinessStock = () => {
                                 <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
                                     {stocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.product_name} (Avail: {s.available_stock} pcs)</option>)}
                                 </select>
+
+                                {(() => {
+                                    const selectedProd = stocks.find(s => String(s.id) === String(transferForm.product_id));
+                                    if (!selectedProd) return null;
+                                    return (
+                                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem', marginTop: '0.5rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: '800', color: '#1E293B' }}>{selectedProd.product_name}</span>
+                                                <span style={{ fontWeight: '800', color: '#064E3B', background: '#ECFDF5', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>{selectedProd.available_stock} pcs available</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
+                                                <span>SKU: <strong style={{ color: '#334155' }}>{selectedProd.product_id}</strong></span>
+                                                <span>Unit Cost: <strong style={{ color: '#334155' }}>{formatCurrency(selectedProd.average_cost)}</strong></span>
+                                            </div>
+                                            {selectedProd.warehouse_name && (
+                                                <div style={{ color: '#64748B' }}>
+                                                    Current Location: <strong style={{ color: '#334155' }}>{selectedProd.warehouse_name} ({selectedProd.rack_number})</strong>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
