@@ -31,6 +31,7 @@ import FilterableTableHead from '../components/FilterableTableHead';
 import { applyTableFilters } from '../utils/filterUtils';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
+import { validatePhone, validateEmail } from '../utils/validationRules';
 import { useCurrency } from '../context';
 
 const BusinessPeople = () => {
@@ -342,6 +343,14 @@ const BusinessPeople = () => {
     // ── Handlers ────────────────────────────────────────────────────────────
     const handleSaveContact = (e) => {
         e.preventDefault();
+        const phoneErr = validatePhone(contactForm.phone, true);
+        if (phoneErr) return alert(phoneErr);
+
+        if (contactForm.email) {
+            const emailErr = validateEmail(contactForm.email, false);
+            if (emailErr) return alert(emailErr);
+        }
+
         const meta = getContactMeta(contactForm.contact_info);
         const payload = {
             ...contactForm,
@@ -1022,11 +1031,11 @@ const BusinessPeople = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Phone Contact <span style={{ color: '#EF4444' }}>*</span></label>
-                                        <input required placeholder="+91 ..." type="text" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value.replace(/[^0-9+]/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                        <input required maxLength={10} placeholder="10 digits (e.g. 9876543210)" type="text" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>E-Mail Address</label>
-                                        <input placeholder="name@example.com" type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                        <input placeholder="user@bnxmail.com" type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value.trim() })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                     </div>
                                 </div>
 
