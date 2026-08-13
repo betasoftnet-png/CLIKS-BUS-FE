@@ -1142,29 +1142,6 @@ const BusinessBilling = () => {
                     <span>Orders List</span>
                 </button>
 
-                {/* Order Reports */}
-                <button
-                    type="button"
-                    onClick={() => setIsOrderReportsModalOpen(true)}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: '1px solid #E2E8F0',
-                        background: '#FFFFFF',
-                        color: '#475569',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <FileSpreadsheet size={14} color="#6366F1" />
-                    <span>Order Reports 📊</span>
-                </button>
 
                 {/* 2. Sales Returns (Customers) */}
                 <button
