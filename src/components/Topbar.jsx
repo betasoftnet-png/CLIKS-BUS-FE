@@ -5,7 +5,8 @@ import {
     Minus, Check, ChevronRight, SlidersHorizontal, Palette, Bell, User, Lock, Info,
     LayoutDashboard, PercentCircle, Receipt, Package, Layers, TrendingUp, BarChart3,
     UsersRound, LineChart, FileText, ShoppingCart, MapPin, Truck, Monitor, Barcode,
-    HelpCircle, Gift, Target, Split, Wallet, CreditCard
+    HelpCircle, Gift, Target, Split, Wallet, CreditCard,
+    StickyNote
 } from 'lucide-react';
 
 import '../App.css';
@@ -864,10 +865,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                         { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => setActivePanel(activePanel === 'Contact' ? null : 'Contact') },
                                         { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => setActivePanel(activePanel === 'Beta Trust' ? null : 'Beta Trust') },
                                         { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => setActivePanel(activePanel === 'Keyboard' ? null : 'Keyboard') },
-                                        { name: 'Translator', icon: Languages, color: '#EC4899', bg: '#FDF2F8', action: () => setActivePanel(activePanel === 'Translator' ? null : 'Translator') },
-                                        { name: 'Lens', icon: Scan, color: '#06B6D4', bg: '#ECFEFF', action: () => setActivePanel(activePanel === 'Lens' ? null : 'Lens') },
-                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => setActivePanel(activePanel === 'Weather' ? null : 'Weather') },
-                                        { name: 'News', icon: Newspaper, color: '#6366F1', bg: '#EEF2FF', action: () => setActivePanel(activePanel === 'News' ? null : 'News') }
+                                        { name: 'Notes', icon: StickyNote, color: '#EC4899', bg: '#FDF2F8', action: () => setActivePanel(activePanel === 'Notes' ? null : 'Notes') },
+                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => setActivePanel(activePanel === 'Weather' ? null : 'Weather') }
                                     ];
 
                                     const toggleToolPin = (toolName) => {

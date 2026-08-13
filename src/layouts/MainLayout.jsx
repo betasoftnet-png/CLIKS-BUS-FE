@@ -15,6 +15,7 @@ import ProductLauncher from '../components/ProductLauncher';
 import BusinessPlaceholder from '../pages/BusinessPlaceholder';
 import ContactPanel from '../components/ContactPanel';
 import CalendarPanel from '../components/CalendarPanel';
+import NotesPanel from '../components/NotesPanel';
 
 const DockedPanelWrapper = ({ title, onClose, children }) => {
     return (
@@ -169,12 +170,17 @@ const MainLayout = ({ children }) => {
                                     <ContactPanel />
                                 </DockedPanelWrapper>
                             )}
+                            {activePanel === 'Notes' && (
+                                <DockedPanelWrapper title="Notes" onClose={() => setActivePanel(null)}>
+                                    <NotesPanel />
+                                </DockedPanelWrapper>
+                            )}
                             {activePanel === 'Beta Trust' && (
                                 <DockedPanelWrapper title="Beta Trust" onClose={() => setActivePanel(null)}>
                                     <BusinessPlaceholder title="Beta Trust" />
                                 </DockedPanelWrapper>
                             )}
-                            {!['Calculator', 'Beta Products', 'Calendar', 'Contact', 'Beta Trust'].includes(activePanel) && (
+                            {!['Calculator', 'Beta Products', 'Calendar', 'Contact', 'Beta Trust', 'Notes'].includes(activePanel) && (
                                 <DockedPanelWrapper title={activePanel} onClose={() => setActivePanel(null)}>
                                     <BusinessPlaceholder title={activePanel} />
                                 </DockedPanelWrapper>
