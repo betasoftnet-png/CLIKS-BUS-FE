@@ -1118,7 +1118,7 @@ const BusinessBilling = () => {
             {/* Invoices List */}
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                 {/* Search & Navigation Tab Bar */}
-                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '0.75rem', flexWrap: 'nowrap' }}>
                     {/* Search Input + Navigation Bar */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0, overflowX: 'auto', paddingBottom: '2px' }}>
                         <div style={{ position: 'relative', width: '220px', flexShrink: 0 }}>
