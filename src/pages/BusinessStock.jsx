@@ -185,37 +185,46 @@ const BusinessStock = () => {
 
         const safeProducts = Array.isArray(dbProducts) ? dbProducts : [];
         safeProducts.forEach(p => {
-            if (p && p.id && !seenIds.has(String(p.id))) {
-                seenIds.add(String(p.id));
-                list.push({
-                    id: p.id,
-                    product_id: p.sku || `PROD-${p.id}`,
-                    name: p.name || p.product_name || `Product #${p.id}`,
-                    sku: p.sku || 'N/A',
-                    quantity: parseFloat(p.quantity) || 0,
-                    available_stock: parseFloat(p.quantity) || 0,
-                    purchase_price: parseFloat(p.purchase_price || p.unit_price || p.price || 0),
-                    unit: p.unit || 'pcs',
-                    warehouse_name: p.warehouse_name || p.location || 'Main Godown'
-                });
+            if (p && p.id != null) {
+                const idKey = `prod_${p.id}`;
+                if (!seenIds.has(idKey)) {
+                    seenIds.add(idKey);
+                    list.push({
+                        id: p.id,
+                        unique_id: idKey,
+                        product_id: p.sku || `PROD-${p.id}`,
+                        name: p.name || p.product_name || `Product #${p.id}`,
+                        sku: p.sku || 'N/A',
+                        quantity: parseFloat(p.quantity) || 0,
+                        available_stock: parseFloat(p.quantity) || 0,
+                        purchase_price: parseFloat(p.purchase_price || p.unit_price || p.price || 0),
+                        unit: p.unit || 'PCS',
+                        warehouse_name: p.warehouse_id || p.warehouse_name || p.location || 'Main Godown'
+                    });
+                }
             }
         });
 
         const safeStocks = Array.isArray(stocks) ? stocks : [];
         safeStocks.forEach(s => {
-            if (s && s.id && !seenIds.has(String(s.id))) {
-                seenIds.add(String(s.id));
-                list.push({
-                    id: s.id,
-                    product_id: s.product_id || `PROD-${s.id}`,
-                    name: s.product_name || `Stock Item #${s.id}`,
-                    sku: s.product_id || 'N/A',
-                    quantity: parseFloat(s.available_stock) || 0,
-                    available_stock: parseFloat(s.available_stock) || 0,
-                    purchase_price: parseFloat(s.average_cost) || 0,
-                    unit: 'pcs',
-                    warehouse_name: s.warehouse_name || 'Main Godown'
-                });
+            if (s && s.id != null) {
+                const idKey = `stk_${s.id}`;
+                const nameMatches = list.some(item => item.name.toLowerCase() === (s.product_name || '').toLowerCase());
+                if (!nameMatches && !seenIds.has(idKey)) {
+                    seenIds.add(idKey);
+                    list.push({
+                        id: s.id,
+                        unique_id: idKey,
+                        product_id: s.product_id || `PROD-${s.id}`,
+                        name: s.product_name || `Stock Item #${s.id}`,
+                        sku: s.product_id || 'N/A',
+                        quantity: parseFloat(s.available_stock) || 0,
+                        available_stock: parseFloat(s.available_stock) || 0,
+                        purchase_price: parseFloat(s.average_cost) || 0,
+                        unit: 'PCS',
+                        warehouse_name: s.warehouse_name || 'Main Godown'
+                    });
+                }
             }
         });
 
@@ -235,9 +244,10 @@ const BusinessStock = () => {
     useEffect(() => {
         if (transferProductsList.length > 0) {
             setTransferForm(prev => {
+                if (!prev.product_id) return prev;
                 const exists = transferProductsList.some(p => String(p.id) === String(prev.product_id));
                 if (!exists) {
-                    return { ...prev, product_id: transferProductsList[0].id.toString() };
+                    return { ...prev, product_id: '' };
                 }
                 return prev;
             });
@@ -300,10 +310,16 @@ const BusinessStock = () => {
 
     const handleSaveTransfer = (e) => {
         e.preventDefault();
-        const productIdStr = String(transferForm.product_id);
+        const productIdStr = String(transferForm.product_id || '');
         const transQty = parseFloat(transferForm.qty) || 0;
-        const fromWhId = String(transferForm.from_warehouse_id);
-        const toWhId = String(transferForm.to_warehouse_id);
+        const fromWhId = String(transferForm.from_warehouse_id || '');
+        const toWhId = String(transferForm.to_warehouse_id || '');
+
+        // 0. Product Selection Validation
+        if (!productIdStr) {
+            alert('Please select a product from the list to initiate stock transfer.');
+            return;
+        }
 
         // 1. Warehouse Validation: From Warehouse != To Warehouse
         if (fromWhId && toWhId && fromWhId === toWhId) {
@@ -321,7 +337,7 @@ const BusinessStock = () => {
         }
 
         if (transQty > availableQty) {
-            alert(`Insufficient stock! Cannot transfer ${transQty} units because only ${availableQty} ${selectedProd?.unit || 'units'} are available for "${selectedProd?.name || 'this product'}".`);
+            alert(`Insufficient stock! Cannot transfer ${transQty} ${selectedProd?.unit || 'units'} because only ${availableQty} ${selectedProd?.unit || 'units'} are available for "${selectedProd?.name || 'this product'}".`);
             return;
         }
 
@@ -686,6 +702,7 @@ const BusinessStock = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
                                 <select value={transferForm.product_id} onChange={(e) => setTransferForm({ ...transferForm, product_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                    <option value="">-- Select Product --</option>
                                     {transferProductsList.map(p => <option key={p.id} value={p.id}>{p.name} (Avail: {p.quantity} {p.unit})</option>)}
                                 </select>
 
