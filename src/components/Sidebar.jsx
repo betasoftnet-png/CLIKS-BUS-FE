@@ -51,6 +51,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/auth-context';
 import '../App.css';
 import logoPng from '../assets/cliks6.png';
+import inventoryIconPng from '../assets/image.png';
+import hrIconPng from '../assets/image copy.png';
 
 const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false }) => {
     const IconComp = item.icon;
@@ -116,7 +118,13 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                     }}
                 >
                     <div className="flex items-center gap-3">
-                        <IconComp size={20} style={{ color: primaryColor }} />
+                        {item.label === 'Inventory' ? (
+                            <img src={inventoryIconPng} alt="Inventory" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block' }} />
+                        ) : item.label === 'HR' ? (
+                            <img src={hrIconPng} alt="HR" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block' }} />
+                        ) : (
+                            <IconComp size={20} style={{ color: primaryColor }} />
+                        )}
                         <span className="sidebar-label" style={{ fontWeight: '750', color: darkTextColor }}>{item.label}</span>
                     </div>
                     <motion.div
@@ -174,7 +182,13 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             }}
         >
             <div className="flex items-center gap-3">
-                <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
+                {item.label === 'Inventory' ? (
+                    <img src={inventoryIconPng} alt="Inventory" style={{ width: isChild ? '18px' : '20px', height: isChild ? '18px' : '20px', objectFit: 'contain', display: 'block' }} />
+                ) : item.label === 'HR' ? (
+                    <img src={hrIconPng} alt="HR" style={{ width: isChild ? '18px' : '20px', height: isChild ? '18px' : '20px', objectFit: 'contain', display: 'block' }} />
+                ) : (
+                    <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
+                )}
                 <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{item.label}</span>
             </div>
         </button>
