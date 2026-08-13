@@ -857,7 +857,7 @@ const BusinessPurchases = () => {
                                         <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{ret.supplier_name}</td>
                                         <td style={{ padding: '1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{ret.return_reason}</td>
                                         <td style={{ padding: '1.25rem' }}>
-                                            {ret.returned_items.map((item, idx) => (
+                                            {(ret.returned_items || []).map((item, idx) => (
                                                 <div key={idx} style={{ fontSize: '0.85rem' }}>
                                                     <p style={{ fontWeight: '700' }}>{item.product_name}</p>
                                                     <span style={{ color: '#94A3B8' }}>Returned: {item.quantity} Units</span>
@@ -865,7 +865,7 @@ const BusinessPurchases = () => {
                                             ))}
                                         </td>
                                         <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
-                                            {formatCurrency(ret.returned_items.reduce((sum, i) => sum + i.refund_amount, 0))}
+                                            {formatCurrency((ret.returned_items || []).reduce((sum, i) => sum + (i.refund_amount || 0), 0))}
                                         </td>
                                     </tr>
                                 ))}
