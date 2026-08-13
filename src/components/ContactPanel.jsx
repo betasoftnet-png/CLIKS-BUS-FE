@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Mail, Phone, Search } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Mail, Phone, Search, Plus, X } from 'lucide-react';
 
 const fetchContacts = async () => {
     const token = localStorage.getItem('bnx_auth_token');
@@ -17,13 +17,59 @@ const fetchContacts = async () => {
     return result?.data?.rows || [];
 };
 
+const createContact = async (data) => {
+    const token = localStorage.getItem('bnx_auth_token');
+    const baseUrl = import.meta.env.VITE_CONTACT_API_BASE_URL;
+    const response = await fetch(`${baseUrl}/add`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create contact');
+    }
+    return response.json();
+};
+
 const ContactPanel = () => {
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+    const [formData, setFormData] = useState({ name: '', email: '', phonenumber: '', role: '', externalId: '' });
 
     const { data: contacts, isLoading, error } = useQuery({
         queryKey: ['global-contacts'],
         queryFn: fetchContacts,
     });
+
+    const createMutation = useMutation({
+        mutationFn: createContact,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['global-contacts']);
+            setIsAdding(false);
+            setFormData({ name: '', email: '', phonenumber: '', role: '', externalId: '' });
+        }
+    });
+
+    const handleSave = () => {
+        if (!formData.name.trim()) return;
+        
+        const payload = {
+            name: formData.name,
+            email: formData.email,
+            phonenumber: formData.phonenumber,
+            role: formData.role
+        };
+        
+        if (formData.externalId.trim()) {
+            payload.externalId = formData.externalId;
+        }
+        
+        createMutation.mutate(payload);
+    };
 
     const filteredContacts = contacts?.filter(contact => 
         (contact.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -39,23 +85,35 @@ const ContactPanel = () => {
 
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#F8FAFC', padding: '1.25rem', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
-            {/* Search Bar */}
-            <div style={{ 
-                display: 'flex', alignItems: 'center', background: 'white', padding: '0.75rem 1rem', 
-                borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1.25rem', flexShrink: 0,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-            }}>
-                <Search size={18} color="#64748B" />
-                <input 
-                    type="text"
-                    placeholder="Search global contacts..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                        border: 'none', outline: 'none', width: '100%', marginLeft: '0.75rem', 
-                        fontSize: '0.9rem', color: '#1E293B', background: 'transparent'
-                    }}
-                />
+            {/* Header & Search */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem', flexShrink: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1E293B', fontWeight: '800' }}>Global Contacts</h3>
+                    <button 
+                        onClick={() => setIsAdding(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3B82F6', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                        <Plus size={16} /> Add Contact
+                    </button>
+                </div>
+                
+                <div style={{ 
+                    display: 'flex', alignItems: 'center', background: 'white', padding: '0.75rem 1rem', 
+                    borderRadius: '12px', border: '1px solid #E2E8F0',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                }}>
+                    <Search size={18} color="#64748B" />
+                    <input 
+                        type="text"
+                        placeholder="Search global contacts..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            border: 'none', outline: 'none', width: '100%', marginLeft: '0.75rem', 
+                            fontSize: '0.9rem', color: '#1E293B', background: 'transparent'
+                        }}
+                    />
+                </div>
             </div>
 
             {/* List */}
@@ -117,6 +175,71 @@ const ContactPanel = () => {
                     </div>
                 )}
             </div>
+
+            {/* Add Contact Modal */}
+            {isAdding && (
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1E293B', fontWeight: '800' }}>New Contact</h3>
+                            <button onClick={() => setIsAdding(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748B', padding: '0.25rem' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                            <input 
+                                type="text" 
+                                placeholder="Full Name *" 
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                            />
+                            
+                            <input 
+                                type="email" 
+                                placeholder="Email Address" 
+                                value={formData.email}
+                                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                            />
+                            
+                            <input 
+                                type="text" 
+                                placeholder="Phone Number" 
+                                value={formData.phonenumber}
+                                onChange={(e) => setFormData({...formData, phonenumber: e.target.value})}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                            />
+                            
+                            <input 
+                                type="text" 
+                                placeholder="Role (e.g. Software Engineer)" 
+                                value={formData.role}
+                                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                            />
+
+                            <input 
+                                type="text" 
+                                placeholder="External ID (e.g. from Cliks CRM/Suppliers)" 
+                                value={formData.externalId}
+                                onChange={(e) => setFormData({...formData, externalId: e.target.value})}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', background: '#F8FAFC' }}
+                            />
+                        </div>
+
+                        <button 
+                            onClick={handleSave}
+                            disabled={createMutation.isLoading || !formData.name.trim()}
+                            style={{ width: '100%', padding: '0.75rem', background: '#3B82F6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', marginTop: '0.5rem', cursor: 'pointer', opacity: (createMutation.isLoading || !formData.name.trim()) ? 0.7 : 1 }}
+                        >
+                            {createMutation.isLoading ? 'Saving...' : 'Save Contact'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
