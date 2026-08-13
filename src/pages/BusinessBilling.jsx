@@ -38,6 +38,7 @@ import {
     Package,
     Wrench
 } from 'lucide-react';
+import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
 import { 
     billingService, 
     inventoryService, 
@@ -844,6 +845,19 @@ const BusinessBilling = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // ── Global Field Validations ──
+        const emailErr = validateEmail(formData.client_email, activeConfig.billingType !== 'lite');
+        if (emailErr) {
+            alert(emailErr);
+            return;
+        }
+
+        const gstinErr = validateGstin(formData.client_gstin, false);
+        if (gstinErr) {
+            alert(gstinErr);
+            return;
+        }
         
         // ── Validation Checks from master customization configurations ──
         if (activeConfig.negativeStock) {

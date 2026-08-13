@@ -40,6 +40,7 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import { validatePhone, validateEmail, validateGstin, validatePan } from '../utils/validationRules';
 import { useCurrency } from '../context';
 
 const BusinessSuppliers = () => {
@@ -466,6 +467,8 @@ const BusinessSuppliers = () => {
         }
     };
 
+    const [formErrors, setFormErrors] = useState({});
+
     const handleDelete = async (id) => {
         if (await customConfirm('Are you sure you want to completely remove this vendor/supplier profile? All ledger records will be deleted.')) {
             deleteMutation.mutate(id);
@@ -474,6 +477,25 @@ const BusinessSuppliers = () => {
 
     const handleSubmitSupplier = (e) => {
         e.preventDefault();
+        const errors = {};
+        const phoneErr = validatePhone(formData.phone_number, true);
+        if (phoneErr) errors.phone_number = phoneErr;
+
+        const emailErr = validateEmail(formData.email, true);
+        if (emailErr) errors.email = emailErr;
+
+        const gstinErr = validateGstin(formData.gstin, false);
+        if (gstinErr) errors.gstin = gstinErr;
+
+        const panErr = validatePan(formData.pan_number, false);
+        if (panErr) errors.pan_number = panErr;
+
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            return;
+        }
+        setFormErrors({});
+
         const payload = {
             name: formData.supplier_name,
             email: formData.email,
@@ -990,16 +1012,18 @@ const BusinessSuppliers = () => {
                             {/* Contact Demographics */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Mobile Number</label>
-                                    <input required type="text" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="+91 9988..." />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Mobile Number <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input required type="text" value={formData.phone_number} onChange={(e) => { setFormData({ ...formData, phone_number: e.target.value }); if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.phone_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="10 digits (e.g. 9876543210)" />
+                                    {formErrors.phone_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.phone_number}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
                                     <input type="text" value={formData.alternate_phone} onChange={(e) => setFormData({ ...formData, alternate_phone: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address</label>
-                                    <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="procurement@brand.com" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input required type="email" value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); if (formErrors.email) setFormErrors({ ...formErrors, email: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.email ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="user@bnxmail.com" />
+                                    {formErrors.email && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.email}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Website Link</label>
@@ -1011,11 +1035,13 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN ID</label>
-                                    <input type="text" value={formData.gstin} onChange={(e) => setFormData({ ...formData, gstin: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.gstin} onChange={(e) => { setFormData({ ...formData, gstin: e.target.value }); if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="15 chars" />
+                                    {formErrors.gstin && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.gstin}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
-                                    <input type="text" value={formData.pan_number} onChange={(e) => setFormData({ ...formData, pan_number: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.pan_number} onChange={(e) => { setFormData({ ...formData, pan_number: e.target.value }); if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.pan_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="10 chars" />
+                                    {formErrors.pan_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.pan_number}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tax Registration</label>
