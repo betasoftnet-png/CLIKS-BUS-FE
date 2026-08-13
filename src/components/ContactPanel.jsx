@@ -38,7 +38,7 @@ const ContactPanel = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdding, setIsAdding] = useState(false);
-    const [formData, setFormData] = useState({ name: '', email: '', phonenumber: '', role: '', externalId: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', phonenumber: '', role: '' });
 
     const { data: contacts, isLoading, error } = useQuery({
         queryKey: ['global-contacts'],
@@ -50,7 +50,7 @@ const ContactPanel = () => {
         onSuccess: () => {
             queryClient.invalidateQueries(['global-contacts']);
             setIsAdding(false);
-            setFormData({ name: '', email: '', phonenumber: '', role: '', externalId: '' });
+            setFormData({ name: '', email: '', phonenumber: '', role: '' });
         }
     });
 
@@ -63,11 +63,6 @@ const ContactPanel = () => {
             phonenumber: formData.phonenumber,
             role: formData.role
         };
-        
-        if (formData.externalId.trim()) {
-            payload.externalId = formData.externalId;
-        }
-        
         createMutation.mutate(payload);
     };
 
@@ -219,14 +214,6 @@ const ContactPanel = () => {
                                 value={formData.role}
                                 onChange={(e) => setFormData({...formData, role: e.target.value})}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-                            />
-
-                            <input 
-                                type="text" 
-                                placeholder="External ID (e.g. from Cliks CRM/Suppliers)" 
-                                value={formData.externalId}
-                                onChange={(e) => setFormData({...formData, externalId: e.target.value})}
-                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box', background: '#F8FAFC' }}
                             />
                         </div>
 
