@@ -36,8 +36,8 @@ export const validateEmail = (email, isRequired = true) => {
         return null;
     }
     const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!basicEmailRegex.test(clean) || !clean.endsWith('@bnxmail.com')) {
-        return 'Email must end with @bnxmail.com.';
+    if (!basicEmailRegex.test(clean)) {
+        return 'Please enter a valid email address.';
     }
     return null;
 };

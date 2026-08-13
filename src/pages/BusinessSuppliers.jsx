@@ -35,7 +35,14 @@ import {
     MessageCircle,
     Send,
     ExternalLink,
-    ShieldCheck
+    ShieldCheck,
+    CreditCard,
+    QrCode,
+    File,
+    Paperclip,
+    Upload,
+    Check,
+    Bell
 } from 'lucide-react';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
@@ -54,6 +61,35 @@ const BusinessSuppliers = () => {
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
     const [filterType, setFilterType] = useState('All');
+
+    // Advanced Sorting & Status Filtering
+    const [sortBy, setSortBy] = useState('newest');
+    const [supplierStatusFilter, setSupplierStatusFilter] = useState('All');
+
+    // Instant Pay Now Gateway Modal states
+    const [isPayNowModalOpen, setIsPayNowModalOpen] = useState(false);
+    const [payNowSupplier, setPayNowSupplier] = useState(null);
+
+    // Automated Payment Reminders Scheduling Modal states
+    const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+    const [reminderSupplier, setReminderSupplier] = useState(null);
+    const [reminderForm, setReminderForm] = useState({
+        channel: 'Both',
+        frequency: 'Weekly',
+        time: '10:00 AM',
+        date: new Date().toISOString().split('T')[0],
+        message: ''
+    });
+
+    // Vendor Document Vault Modal states
+    const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
+    const [docsSupplier, setDocsSupplier] = useState(null);
+    const [docForm, setDocForm] = useState({
+        category: 'MSME Certificate / Udyam Registration',
+        title: '',
+        file_name: '',
+        file_data: ''
+    });
 
     // Dealer <-> Supplier Chat states
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
@@ -352,7 +388,10 @@ const BusinessSuppliers = () => {
         country: 'India',
         opening_balance: 0,
         credit_limit: 200000,
-        payment_terms: 'Net 30'
+        payment_terms: 'Net 30',
+        bank_account_number: '',
+        ifsc_code: '',
+        upi_id: ''
     }));
 
     const handleOpenCreateModal = () => {
@@ -380,7 +419,10 @@ const BusinessSuppliers = () => {
             country: 'India',
             opening_balance: 0,
             credit_limit: 200000,
-            payment_terms: 'Net 30'
+            payment_terms: 'Net 30',
+            bank_account_number: '',
+            ifsc_code: '',
+            upi_id: ''
         });
         setIsModalOpen(true);
     };
@@ -410,7 +452,10 @@ const BusinessSuppliers = () => {
             country: supplier.country || 'India',
             opening_balance: supplier.opening_balance || 0,
             credit_limit: supplier.credit_limit || 200000,
-            payment_terms: supplier.payment_terms || 'Net 30'
+            payment_terms: supplier.payment_terms || 'Net 30',
+            bank_account_number: supplier.bank_account_number || '',
+            ifsc_code: supplier.ifsc_code || '',
+            upi_id: supplier.upi_id || ''
         });
         setIsModalOpen(true);
     };
@@ -507,7 +552,10 @@ const BusinessSuppliers = () => {
             status: formData.supplier_status,
             city: formData.city,
             outstanding_balance: formData.opening_balance,
-            total_purchased: 0
+            total_purchased: 0,
+            bank_account_number: formData.bank_account_number,
+            ifsc_code: formData.ifsc_code,
+            upi_id: formData.upi_id
         };
 
         if (editingSupplier) {
@@ -554,14 +602,148 @@ const BusinessSuppliers = () => {
         window.open(`https://api.whatsapp.com/send?phone=${phoneNo.replace(/\D/g, '')}&text=${encodeURIComponent(text)}`, '_blank');
     };
 
-    const filteredSuppliers = suppliers.filter(s => {
-        const sName = s.name || s.supplier_name || '';
-        const sComp = s.company || s.company_name || '';
-        const matchesSearch = sName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            sComp.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = filterType === 'All' || (s.supplier_type || 'local') === filterType.toLowerCase();
-        return matchesSearch && matchesType;
-    });
+    const handleOpenPayNowModal = (supplier) => {
+        setPayNowSupplier(supplier);
+        const bal = supplier.outstanding_balance || supplier.current_balance || 0;
+        setPaymentForm({
+            amount: Math.max(0, bal),
+            mode: 'UPI',
+            reference: `UPI-INST-${Date.now().toString().slice(-6)}`,
+            date: new Date().toISOString().split('T')[0]
+        });
+        setIsPayNowModalOpen(true);
+    };
+
+    const handleOpenReminderModal = (supplier) => {
+        setReminderSupplier(supplier);
+        let sched = null;
+        try {
+            sched = typeof supplier.reminder_schedule === 'string' ? JSON.parse(supplier.reminder_schedule) : supplier.reminder_schedule;
+        } catch(e) {}
+
+        const bal = supplier.outstanding_balance || supplier.current_balance || 0;
+        setReminderForm({
+            channel: sched?.channel || 'Both',
+            frequency: sched?.frequency || 'Weekly',
+            time: sched?.time || '10:00 AM',
+            date: sched?.date || new Date().toISOString().split('T')[0],
+            message: sched?.message || `Payment Reminder: Dear ${supplier.name || supplier.supplier_name}, your balance of ${formatCurrency(bal)} is due. Please settle at your earliest convenience.`
+        });
+        setIsReminderModalOpen(true);
+    };
+
+    const handleSaveReminderSchedule = (e) => {
+        e.preventDefault();
+        if (!reminderSupplier) return;
+        updateMutation.mutate({
+            id: reminderSupplier.id || reminderSupplier.supplier_id,
+            data: {
+                ...reminderSupplier,
+                reminder_schedule: JSON.stringify(reminderForm)
+            }
+        });
+        setIsReminderModalOpen(false);
+        alert(`Automated payment reminder schedule saved for ${reminderSupplier.name || reminderSupplier.supplier_name}!`);
+    };
+
+    const handleOpenDocsModal = (supplier) => {
+        setDocsSupplier(supplier);
+        setDocForm({
+            category: 'MSME Certificate / Udyam Registration',
+            title: '',
+            file_name: '',
+            file_data: ''
+        });
+        setIsDocsModalOpen(true);
+    };
+
+    const handleUploadDocument = (e) => {
+        e.preventDefault();
+        if (!docsSupplier || !docForm.file_data) {
+            alert('Please select a file to upload.');
+            return;
+        }
+        let existingDocs = [];
+        try {
+            existingDocs = typeof docsSupplier.documents === 'string' ? JSON.parse(docsSupplier.documents) : (docsSupplier.documents || []);
+            if (!Array.isArray(existingDocs)) existingDocs = [];
+        } catch(e) { existingDocs = []; }
+
+        const newDoc = {
+            id: `doc_${Date.now()}`,
+            category: docForm.category,
+            title: docForm.title || docForm.file_name || 'Vendor Certificate',
+            file_name: docForm.file_name,
+            file_data: docForm.file_data,
+            uploaded_at: new Date().toLocaleDateString()
+        };
+
+        const updatedDocs = [newDoc, ...existingDocs];
+        updateMutation.mutate({
+            id: docsSupplier.id || docsSupplier.supplier_id,
+            data: {
+                ...docsSupplier,
+                documents: JSON.stringify(updatedDocs)
+            }
+        });
+
+        setDocsSupplier(prev => ({ ...prev, documents: JSON.stringify(updatedDocs) }));
+        setDocForm({ category: 'MSME Certificate / Udyam Registration', title: '', file_name: '', file_data: '' });
+        alert('Vendor document uploaded & attached successfully!');
+    };
+
+    const handleDeleteDocument = (docId) => {
+        if (!docsSupplier) return;
+        let existingDocs = [];
+        try {
+            existingDocs = typeof docsSupplier.documents === 'string' ? JSON.parse(docsSupplier.documents) : (docsSupplier.documents || []);
+            if (!Array.isArray(existingDocs)) existingDocs = [];
+        } catch(e) { existingDocs = []; }
+
+        const updatedDocs = existingDocs.filter(d => d.id !== docId);
+        updateMutation.mutate({
+            id: docsSupplier.id || docsSupplier.supplier_id,
+            data: {
+                ...docsSupplier,
+                documents: JSON.stringify(updatedDocs)
+            }
+        });
+        setDocsSupplier(prev => ({ ...prev, documents: JSON.stringify(updatedDocs) }));
+    };
+
+    const filteredSuppliers = React.useMemo(() => {
+        let list = suppliers.filter(s => {
+            const sName = s.name || s.supplier_name || '';
+            const sComp = s.company || s.company_name || '';
+            const matchesSearch = sName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                sComp.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = filterType === 'All' || (s.supplier_type || 'local') === filterType.toLowerCase();
+            
+            const rawSt = (s.status || s.supplier_status || 'active').toLowerCase();
+            const matchesStatus = supplierStatusFilter === 'All' || 
+                                 (supplierStatusFilter === 'active' && rawSt !== 'inactive') ||
+                                 (supplierStatusFilter === 'inactive' && rawSt === 'inactive');
+
+            return matchesSearch && matchesType && matchesStatus;
+        });
+
+        return list.sort((a, b) => {
+            const nameA = (a.name || a.supplier_name || '').toLowerCase();
+            const nameB = (b.name || b.supplier_name || '').toLowerCase();
+            const balA = parseFloat(a.outstanding_balance || a.current_balance || 0);
+            const balB = parseFloat(b.outstanding_balance || b.current_balance || 0);
+            const limitA = parseFloat(a.credit_limit || 0);
+            const limitB = parseFloat(b.credit_limit || 0);
+
+            if (sortBy === 'name_asc') return nameA.localeCompare(nameB);
+            if (sortBy === 'name_desc') return nameB.localeCompare(nameA);
+            if (sortBy === 'bal_desc') return balB - balA;
+            if (sortBy === 'bal_asc') return balA - balB;
+            if (sortBy === 'limit_desc') return limitB - limitA;
+            if (sortBy === 'limit_asc') return limitA - limitB;
+            return (b.id || 0) - (a.id || 0); // Default 'newest'
+        });
+    }, [suppliers, searchTerm, filterType, supplierStatusFilter, sortBy]);
 
     // Report computations
     const totalPayablesSum = suppliers.reduce((acc, s) => acc + (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0 ? parseFloat(s.outstanding_balance || s.current_balance || 0) : 0), 0);
@@ -696,8 +878,8 @@ const BusinessSuppliers = () => {
             {/* Tab 1: Suppliers Master List */}
             {activeTab === 'list' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
+                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div style={{ position: 'relative', width: '340px' }}>
                             <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
@@ -707,15 +889,45 @@ const BusinessSuppliers = () => {
                                 style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
                             />
                         </div>
-                        <select 
-                            value={filterType} 
-                            onChange={(e) => setFilterType(e.target.value)}
-                            style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
-                        >
-                            <option>All</option>
-                            <option>Local</option>
-                            <option>Import</option>
-                        </select>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            {/* Sort Option */}
+                            <select 
+                                value={sortBy} 
+                                onChange={(e) => setSortBy(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}
+                            >
+                                <option value="newest">Sort: Newest First</option>
+                                <option value="name_asc">Sort: Supplier Name (A - Z)</option>
+                                <option value="name_desc">Sort: Supplier Name (Z - A)</option>
+                                <option value="bal_desc">Sort: Highest Payable Balance</option>
+                                <option value="bal_asc">Sort: Lowest Payable Balance</option>
+                                <option value="limit_desc">Sort: Highest Credit Limit</option>
+                                <option value="limit_asc">Sort: Lowest Credit Limit</option>
+                            </select>
+
+                            {/* Status Filter */}
+                            <select 
+                                value={supplierStatusFilter} 
+                                onChange={(e) => setSupplierStatusFilter(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}
+                            >
+                                <option value="All">Status: All</option>
+                                <option value="active">Status: Active</option>
+                                <option value="inactive">Status: Inactive</option>
+                            </select>
+
+                            {/* Type Filter */}
+                            <select 
+                                value={filterType} 
+                                onChange={(e) => setFilterType(e.target.value)}
+                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}
+                            >
+                                <option value="All">Type: All</option>
+                                <option value="Local">Local</option>
+                                <option value="Import">Import</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
@@ -803,23 +1015,42 @@ const BusinessSuppliers = () => {
                                                 })()}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                    <button 
+                                                        onClick={() => handleOpenDocsModal(sup)} 
+                                                        title="Vendor Document Attachment Center"
+                                                        style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: '1px solid #DBEAFE', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                    >
+                                                        <Paperclip size={14} />
+                                                        Vault
+                                                    </button>
                                                     <button 
                                                         onClick={() => handleOpenChat(sup)} 
                                                         title="Dealer-Supplier Chat"
-                                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                                        style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                                                     >
-                                                        <MessageCircle size={15} />
+                                                        <MessageCircle size={14} />
                                                         Chat
                                                     </button>
                                                     {supBal > 0 && (
-                                                        <button 
-                                                            onClick={() => handleOpenPaymentModal(sup)}
-                                                            style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
-                                                        >Record Pay</button>
+                                                        <>
+                                                            <button 
+                                                                onClick={() => handleOpenPayNowModal(sup)}
+                                                                title="Instant Pay Gateway"
+                                                                style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                            >
+                                                                <CreditCard size={14} />
+                                                                Pay Now
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleOpenPaymentModal(sup)}
+                                                                title="Record Offline Payment"
+                                                                style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                            >Record Pay</button>
+                                                        </>
                                                     )}
-                                                    <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '34px', height: '34px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                                                    <button onClick={() => handleDelete(supId)} title="Delete profile" style={{ width: '34px', height: '34px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                                    <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={15} /></button>
+                                                    <button onClick={() => handleDelete(supId)} title="Delete profile" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={15} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -879,20 +1110,20 @@ const BusinessSuppliers = () => {
                                 </div>
 
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                    <FilterableTableHead columns={[
-        { key: 'supplier_name', label: 'Supplier Details', placeholder: 'Name' },
-        { key: 'city', label: 'Demographics', placeholder: 'City' },
-        { key: 'gstin', label: 'GST & HSN', placeholder: 'GSTIN' },
-        { key: 'credit_limit', label: 'Credit Limits', placeholder: 'e.g. 50000' },
-        { key: 'payable_balance', label: 'Running Payable', placeholder: 'e.g. 5000' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
-        { key: '_actions', label: 'Actions', noFilter: true }
-    ]} onFilterChange={setColFilters} />
+                                    <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                                        <tr>
+                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Date</th>
+                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Description / Ref No.</th>
+                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Debit ({currency.symbol})</th>
+                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Credit ({currency.symbol})</th>
+                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem', textAlign: 'right' }}>Running Balance ({currency.symbol})</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {(selectedSupplier.ledger || []).map((row, idx) => (
                                             <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                 <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date}</td>
-                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.reference_id}</td>
+                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.reference_id || row.description}</td>
                                                 <td style={{ padding: '1rem 1.25rem', color: '#EF4444', fontWeight: '700' }}>
                                                     {row.debit > 0 ? formatCurrency(row.debit) : '-'}
                                                 </td>
@@ -900,7 +1131,7 @@ const BusinessSuppliers = () => {
                                                     {row.credit > 0 ? formatCurrency(row.credit) : '-'}
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#1E293B' }}>
-                                                    {formatCurrency(row.running_balance)}
+                                                    {formatCurrency(row.running_balance || row.balance || 0)}
                                                 </td>
                                             </tr>
                                         ))}
@@ -960,19 +1191,39 @@ const BusinessSuppliers = () => {
                     </div>
 
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Payment Follow-up Log</h3>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Payment Follow-up & Automated Reminders Log</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {suppliers.filter(s => s.current_balance > 0).map((s, idx) => (
-                                <div key={idx} style={{ border: '1px solid #E2E8F0', padding: '1rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.9rem' }}>{s.supplier_name}</p>
-                                        <span style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '700' }}>Balance Due: {formatCurrency(s.current_balance)}</span>
+                            {suppliers.filter(s => (parseFloat(s.outstanding_balance || s.current_balance || 0) > 0)).map((s, idx) => {
+                                const bal = parseFloat(s.outstanding_balance || s.current_balance || 0);
+                                const hasSchedule = !!s.reminder_schedule;
+                                let schedObj = null;
+                                try { schedObj = typeof s.reminder_schedule === 'string' ? JSON.parse(s.reminder_schedule) : s.reminder_schedule; } catch(e) {}
+
+                                return (
+                                    <div key={idx} style={{ border: '1px solid #E2E8F0', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                                        <div>
+                                            <p style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.95rem', margin: '0 0 4px 0' }}>{s.name || s.supplier_name}</p>
+                                            <span style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: '800' }}>Balance Due: {formatCurrency(bal)}</span>
+                                            {schedObj && (
+                                                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#047857', background: '#ECFDF5', padding: '0.2rem 0.5rem', borderRadius: '6px', width: 'fit-content', fontWeight: '700' }}>
+                                                    🔔 Auto-Schedule: {schedObj.frequency} via {schedObj.channel} ({schedObj.time || '10:00 AM'})
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button onClick={() => handleShareLedgerWhatsApp(s)} style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <Smartphone size={14} /> Send Instant WhatsApp
+                                            </button>
+                                            <button 
+                                                onClick={() => handleOpenReminderModal(s)}
+                                                style={{ padding: '0.45rem 0.85rem', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                            >
+                                                <Clock size={14} /> {hasSchedule ? 'Edit Schedule' : 'Schedule Auto-Reminder'}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button onClick={() => handleShareLedgerWhatsApp(s)} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#F0FDF4', color: '#15803D', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                        <Smartphone size={14} /> Send Alert
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -995,12 +1246,12 @@ const BusinessSuppliers = () => {
                             {/* General */}
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Supplier / Business Name</label>
-                                    <input required type="text" value={formData.supplier_name} onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="e.g. TechCorp India Pvt Ltd" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Supplier / Business Name <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input required type="text" value={formData.supplier_name} onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : TechCorp India Pvt Ltd" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Contact Person</label>
-                                    <input required type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Harish Mehta" />
+                                    <input required type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Harish Mehta" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Supplier Type</label>
@@ -1015,21 +1266,21 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Mobile Number <span style={{ color: '#EF4444' }}>*</span></label>
-                                    <input required type="text" maxLength={10} value={formData.phone_number} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, phone_number: val }); if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.phone_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="10 digits (e.g. 9876543210)" />
+                                    <input required type="text" maxLength={10} value={formData.phone_number} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, phone_number: val }); if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.phone_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9876543210" />
                                     {formErrors.phone_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.phone_number}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
-                                    <input type="text" maxLength={10} value={formData.alternate_phone} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, alternate_phone: val }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="10 digits" />
+                                    <input type="text" maxLength={10} value={formData.alternate_phone} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, alternate_phone: val }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9876543210" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address <span style={{ color: '#EF4444' }}>*</span></label>
-                                    <input required type="email" value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value.trim() }); if (formErrors.email) setFormErrors({ ...formErrors, email: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.email ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="user@bnxmail.com" />
+                                    <input required type="email" value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value.trim() }); if (formErrors.email) setFormErrors({ ...formErrors, email: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.email ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : supplier@bnxmail.com" />
                                     {formErrors.email && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.email}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Website Link</label>
-                                    <input type="text" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="www.brand.com" />
+                                    <input type="text" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : www.brand.com" />
                                 </div>
                             </div>
 
@@ -1037,12 +1288,12 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN ID</label>
-                                    <input type="text" maxLength={15} value={formData.gstin} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); setFormData({ ...formData, gstin: val }); if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="15 alphanumeric chars" />
+                                    <input type="text" maxLength={15} value={formData.gstin} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); setFormData({ ...formData, gstin: val }); if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 27AAAAA0000A1Z5" />
                                     {formErrors.gstin && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.gstin}</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
-                                    <input type="text" maxLength={10} value={formData.pan_number} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10); setFormData({ ...formData, pan_number: val }); if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.pan_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="10 alphanumeric chars" />
+                                    <input type="text" maxLength={10} value={formData.pan_number} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10); setFormData({ ...formData, pan_number: val }); if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.pan_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : ABCDE1234F" />
                                     {formErrors.pan_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.pan_number}</span>}
                                 </div>
                                 <div>
@@ -1054,7 +1305,7 @@ const BusinessSuppliers = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>State of Supply</label>
-                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Maharashtra" />
                                 </div>
                             </div>
 
@@ -1062,19 +1313,35 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Billing Headquarters Address</label>
-                                    <input type="text" value={formData.billing_address} onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.billing_address} onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 101 Corporate Park" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shipping Warehouse Address</label>
-                                    <input type="text" value={formData.shipping_address} onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.shipping_address} onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Plot 45 Godown Hub" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>City</label>
-                                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Mumbai" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Postal Code (Pincode)</label>
-                                    <input type="text" value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="400013" />
+                                    <input type="text" value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 400013" />
+                                </div>
+                            </div>
+
+                            {/* Bank Details */}
+                            <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Bank Account Number</label>
+                                    <input type="text" value={formData.bank_account_number || ''} onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value.replace(/\D/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 912345678901" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>IFSC Code</label>
+                                    <input type="text" maxLength={11} value={formData.ifsc_code || ''} onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : SBIN0001234" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>UPI ID</label>
+                                    <input type="text" value={formData.upi_id || ''} onChange={(e) => setFormData({ ...formData, upi_id: e.target.value.trim() })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : vendor@upi" />
                                 </div>
                             </div>
 
@@ -1082,16 +1349,24 @@ const BusinessSuppliers = () => {
                             <div style={{ background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', border: '1px solid #DCF2E4' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Payable Balance ({currency.symbol})</label>
-                                    <input type="number" disabled={!!editingSupplier} value={formData.opening_balance} onChange={(e) => setFormData({ ...formData, opening_balance: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="number" disabled={!!editingSupplier} value={formData.opening_balance} onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (/^0\d+/.test(val)) val = val.replace(/^0+/, '');
+                                        setFormData({ ...formData, opening_balance: parseFloat(val) || 0 });
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                     <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Keep positive if you owe them, negative for advance payment.</span>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit limit allowance ({currency.symbol})</label>
-                                    <input type="number" value={formData.credit_limit} onChange={(e) => setFormData({ ...formData, credit_limit: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="number" value={formData.credit_limit} onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (/^0\d+/.test(val)) val = val.replace(/^0+/, '');
+                                        setFormData({ ...formData, credit_limit: parseFloat(val) || 0 });
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Payment Terms (Days)</label>
-                                    <input type="text" value={formData.payment_terms} onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Net 30 / Net 15" />
+                                    <input type="text" value={formData.payment_terms} onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Example : Net 30" />
                                 </div>
                             </div>
 
@@ -1460,6 +1735,215 @@ const BusinessSuppliers = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Direct Pay Now Instant Gateway Modal */}
+            {isPayNowModalOpen && payNowSupplier && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.3rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Instant Pay Gateway</h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '2px 0 0 0' }}>Pay Vendor: {payNowSupplier.name || payNowSupplier.supplier_name}</p>
+                            </div>
+                            <button onClick={() => setIsPayNowModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ background: '#F0FDF4', padding: '1.25rem', borderRadius: '20px', border: '1px solid #DCF2E4', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#166534', fontWeight: '700' }}>Amount to Pay:</span>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: '900', color: '#15803D' }}>{formatCurrency(payNowSupplier.outstanding_balance || payNowSupplier.current_balance || 0)}</span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#475569', borderTop: '1px solid #DCF2E4', paddingTop: '0.5rem' }}>
+                                    <div>Acc No: <strong>{payNowSupplier.bank_account_number || 'N/A'}</strong></div>
+                                    <div>IFSC: <strong>{payNowSupplier.ifsc_code || 'N/A'}</strong> | UPI ID: <strong>{payNowSupplier.upi_id || `${(payNowSupplier.name || 'vendor').toLowerCase().replace(/\s+/g,'')}@upi`}</strong></div>
+                                </div>
+                            </div>
+
+                            <div style={{ textAlign: 'center', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                                <QrCode size={120} style={{ margin: '0 auto 0.75rem', color: '#0F172A' }} />
+                                <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', fontWeight: '600' }}>Scan with GPay / PhonePe / Paytm to Pay Instantly</p>
+                            </div>
+
+                            <button 
+                                onClick={(e) => {
+                                    handleRecordPayment(e);
+                                    setIsPayNowModalOpen(false);
+                                }}
+                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '900', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.25)' }}
+                            >
+                                Confirm & Process Instant Digital Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Vendor Document Vault Modal */}
+            {isDocsModalOpen && docsSupplier && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '680px', borderRadius: '32px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '88vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                                    <Paperclip size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>Vendor Document Vault</h3>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Supplier: {docsSupplier.name || docsSupplier.supplier_name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsDocsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.55rem', borderRadius: '12px', cursor: 'pointer' }}><X size={18} /></button>
+                        </div>
+
+                        {/* Upload form */}
+                        <form onSubmit={handleUploadDocument} style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B' }}>Upload New Vendor Certificate / Contract</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Document Category</label>
+                                    <select value={docForm.category} onChange={(e) => setDocForm({ ...docForm, category: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600', fontSize: '0.82rem' }}>
+                                        <option value="MSME Certificate / Udyam Registration">MSME / Udyam Certificate</option>
+                                        <option value="Vendor Contract">Vendor Contract</option>
+                                        <option value="Cancelled Cheque">Cancelled Cheque</option>
+                                        <option value="Tax Certificate">Tax / GST Certificate</option>
+                                        <option value="Other Registration">Other Registration Certificate</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Document Label / Title</label>
+                                    <input type="text" value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem' }} placeholder="e.g. Udyam Registration 2026" />
+                                </div>
+                            </div>
+
+                            <div style={{ border: '2px dashed #CBD5E1', borderRadius: '14px', padding: '1.25rem', textAlign: 'center', background: 'white', cursor: 'pointer', position: 'relative' }}>
+                                <input 
+                                    type="file" 
+                                    accept=".pdf,.jpg,.png,.jpeg"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onload = (ev) => {
+                                                setDocForm(prev => ({ ...prev, file_name: file.name, file_data: ev.target.result }));
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                                />
+                                <Upload size={24} style={{ color: '#3B82F6', marginBottom: '0.35rem' }} />
+                                <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: '750', color: '#1E293B' }}>{docForm.file_name ? docForm.file_name : 'Click or Drag PDF/Image to Attach'}</p>
+                            </div>
+
+                            <button type="submit" style={{ padding: '0.75rem', borderRadius: '12px', background: '#1D4ED8', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                Attach Document to Supplier Profile
+                            </button>
+                        </form>
+
+                        {/* List of uploaded documents */}
+                        <div>
+                            <h4 style={{ margin: '0 0 0.85rem 0', fontSize: '0.9rem', fontWeight: '800', color: '#1E293B' }}>Stored Vendor Documents</h4>
+                            {(() => {
+                                let docs = [];
+                                try {
+                                    docs = typeof docsSupplier.documents === 'string' ? JSON.parse(docsSupplier.documents) : (docsSupplier.documents || []);
+                                    if (!Array.isArray(docs)) docs = [];
+                                } catch(e) { docs = []; }
+
+                                if (docs.length === 0) {
+                                    return (
+                                        <div style={{ padding: '2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '16px', color: '#94A3B8', fontSize: '0.82rem' }}>
+                                            No vendor registration documents uploaded yet. Use the form above to upload MSME/Udyam certificate or cancelled cheque.
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                        {docs.map(doc => (
+                                            <div key={doc.id} style={{ padding: '0.85rem 1.25rem', border: '1px solid #E2E8F0', borderRadius: '14px', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <FileText size={20} style={{ color: '#1D4ED8' }} />
+                                                    <div>
+                                                        <p style={{ margin: 0, fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{doc.title || doc.file_name}</p>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Category: <strong>{doc.category}</strong> | Uploaded: {doc.uploaded_at}</span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                    <a href={doc.file_data} download={doc.file_name || 'vendor_document'} style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#EFF6FF', color: '#1D4ED8', textDecoration: 'none', fontWeight: '700', fontSize: '0.78rem' }}>View / Download</a>
+                                                    <button onClick={() => handleDeleteDocument(doc.id)} style={{ padding: '0.35rem 0.65rem', borderRadius: '8px', border: 'none', background: '#FEF2F2', color: '#EF4444', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}>Delete</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Automated Payment Reminder Scheduling Modal */}
+            {isReminderModalOpen && reminderSupplier && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '32px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
+                                    <Bell size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>Schedule Auto Payment Reminder</h3>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Vendor: {reminderSupplier.name || reminderSupplier.supplier_name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsReminderModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.55rem', borderRadius: '12px', cursor: 'pointer' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={handleSaveReminderSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Reminder Channel</label>
+                                    <select value={reminderForm.channel} onChange={(e) => setReminderForm({ ...reminderForm, channel: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.85rem' }}>
+                                        <option value="WhatsApp">WhatsApp Only</option>
+                                        <option value="Email">Email Only</option>
+                                        <option value="Both">WhatsApp + Email</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Frequency Schedule</label>
+                                    <select value={reminderForm.frequency} onChange={(e) => setReminderForm({ ...reminderForm, frequency: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.85rem' }}>
+                                        <option value="Daily">Daily Follow-up</option>
+                                        <option value="Weekly">Weekly Digest</option>
+                                        <option value="3 Days Before Due Date">3 Days Before Due Date</option>
+                                        <option value="On Due Date">On Due Date</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Notification Time</label>
+                                    <input type="text" value={reminderForm.time} onChange={(e) => setReminderForm({ ...reminderForm, time: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700', fontSize: '0.85rem' }} placeholder="e.g. 10:00 AM" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Target Date</label>
+                                    <input type="date" value={reminderForm.date} onChange={(e) => setReminderForm({ ...reminderForm, date: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700', fontSize: '0.85rem' }} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Template Message</label>
+                                <textarea rows={3} value={reminderForm.message} onChange={(e) => setReminderForm({ ...reminderForm, message: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontFamily: 'inherit', fontSize: '0.82rem' }} />
+                            </div>
+
+                            <button type="submit" style={{ padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(139, 92, 246, 0.2)' }}>
+                                Activate Automated Reminder Schedule
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

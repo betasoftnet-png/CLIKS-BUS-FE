@@ -81,7 +81,7 @@ function buildHeaders(customHeaders = {}) {
     };
 
     // Inject token from localStorage
-    const token = localStorage.getItem('books_auth_token');
+    const token = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
@@ -223,6 +223,9 @@ async function request(endpoint, options = {}) {
 
     // Handle error responses (304 is technically not 'ok' but is a success for caching)
     if (!response.ok && response.status !== 304) {
+        if (response.status === 401 && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: 401 } }));
+        }
         throw await normalizeError(null, response);
     }
 

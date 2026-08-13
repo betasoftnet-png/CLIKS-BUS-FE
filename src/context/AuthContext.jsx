@@ -70,6 +70,16 @@ export const AuthProvider = ({ children }) => {
     }, [token, logout, user]);
 
     useEffect(() => {
+        const handleUnauthorized = () => {
+            console.warn('[AuthContext] Session expired / 401 Unauthorized received. Clearing session.');
+            logout();
+        };
+
+        window.addEventListener('auth:unauthorized', handleUnauthorized);
+        return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    }, [logout]);
+
+    useEffect(() => {
         if (user) {
             let totalDays = getPlanDuration(user.tier || 'Free Plan');
             let remaining = totalDays;
