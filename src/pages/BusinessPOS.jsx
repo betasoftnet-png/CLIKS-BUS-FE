@@ -87,28 +87,7 @@ const BusinessPOS = () => {
         return () => window.removeEventListener('click', handleGlobalClick);
     }, []);
 
-    React.useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'F1') {
-                e.preventDefault();
-                if (cart.length > 0 && !isCheckingOut) {
-                    handleCheckout('Cash');
-                }
-            } else if (e.key === 'F2') {
-                e.preventDefault();
-                if (cart.length > 0 && !isCheckingOut) {
-                    handleCheckout('UPI');
-                }
-            } else if (e.key === 'F3') {
-                e.preventDefault();
-                if (cart.length > 0 && !isCheckingOut) {
-                    handleCheckout('Card');
-                }
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [cart, isCheckingOut, inventory, customerName, customerEmail, selectedCustomerObj, loyaltyPointsEarned, loyaltyPointsRedeemed, discountVal, discountType, taxRate]);
+
 
     const [newProductData, setNewProductData] = useState(() => ({
         name: '',
@@ -869,6 +848,29 @@ const BusinessPOS = () => {
 
         checkoutMutation.mutate(payload);
     };
+
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                if (cart.length > 0 && !isCheckingOut) {
+                    handleCheckout('Cash');
+                }
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                if (cart.length > 0 && !isCheckingOut) {
+                    handleCheckout('UPI');
+                }
+            } else if (e.key === 'F3') {
+                e.preventDefault();
+                if (cart.length > 0 && !isCheckingOut) {
+                    handleCheckout('Card');
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [cart, isCheckingOut, inventory, customerName, customerEmail, selectedCustomerObj, loyaltyPointsEarned, loyaltyPointsRedeemed, discountVal, discountType, taxRate]);
 
     const clearCart = async () => {
         if (await customConfirm('Are you sure you want to clear the current cart?')) {
