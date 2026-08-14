@@ -646,9 +646,9 @@ const ProductLauncher = ({ onClose }) => {
                     width: 70px;
                     height: 70px;
                     border-radius: 16px;
-                    background: #ffffff;
+                    background: transparent;
                     border: 1px solid transparent;
-                    transition: border-color 0.15s ease, border 0.15s ease;
+                    transition: all 0.15s ease;
                     user-select: none;
                     box-shadow: none;
                     padding: 0.5rem 0.25rem;
@@ -656,13 +656,14 @@ const ProductLauncher = ({ onClose }) => {
                 .launcher-mini-item-wrapper:hover .launcher-mini-card,
                 .launcher-mini-item-wrapper:focus .launcher-mini-card,
                 .launcher-mini-item-wrapper:active .launcher-mini-card {
-                    background: #ffffff;
-                    border: 1px solid #E5E7EB;
+                    background: #F1F5F9;
+                    border: 1px solid transparent;
                     box-shadow: none;
                     transform: none;
                 }
                 .launcher-mini-item-wrapper:active .launcher-mini-card {
-                    transform: scale(0.98);
+                    transform: scale(0.96);
+                    background: #E2E8F0;
                 }
                 .launcher-mini-card.edit-mode {
                     animation: launcher-shake 0.3s ease-in-out infinite alternate;
