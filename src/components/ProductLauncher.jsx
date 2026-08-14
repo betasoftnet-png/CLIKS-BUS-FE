@@ -641,22 +641,22 @@ const ProductLauncher = ({ onClose }) => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 70px;
-                    height: 70px;
+                    width: 55px;
+                    height: 55px;
                     border-radius: 16px;
-                    background: #F0FDF4;
-                    border: 1px solid #DCFCE7;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
                     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                     user-select: none;
-                    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.05);
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
                 }
                 .launcher-mini-item-wrapper:hover .launcher-mini-card,
                 .launcher-mini-item-wrapper:focus .launcher-mini-card,
                 .launcher-mini-item-wrapper:active .launcher-mini-card {
-                    background: #DCFCE7;
-                    border-color: #86EFAC;
+                    background: #ffffff;
+                    border-color: #cbd5e1;
                     transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
                 }
                 .launcher-mini-item-wrapper:active .launcher-mini-card {
                     transform: scale(0.96);
