@@ -261,8 +261,42 @@ const BusinessWarehouse = () => {
         return () => clearTimeout(timer);
     }, [dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
 
+    // Fetch Live Registered Products for Goods Inward Receipt selection
+    const { data: dbProducts = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts()
+    });
+
+    const inwardProductsList = React.useMemo(() => {
+        const list = [];
+        const seen = new Set();
+        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
+        safeProds.forEach(p => {
+            if (p && p.id != null) {
+                seen.add(String(p.id));
+                list.push({ id: p.id, name: p.name || `Product #${p.id}`, sku: p.sku || 'N/A', quantity: p.quantity || 0 });
+            }
+        });
+        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
+        safeStocks.forEach(s => {
+            if (s && s.id != null && !seen.has(String(s.id))) {
+                seen.add(String(s.id));
+                list.push({ id: s.id, name: s.name || `Stock #${s.id}`, sku: s.sku || 'N/A', quantity: s.quantity || 0 });
+            }
+        });
+        return list;
+    }, [dbProducts, dbStocks]);
+
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
+
+        // Enforce 10-digit mobile number formatting rule
+        const cleanPhone = (newWarehouse.phone_number || '').trim();
+        if (cleanPhone && !/^\d{10}$/.test(cleanPhone)) {
+            alert("Contact Mobile No must strictly be a valid 10-digit phone number.");
+            return;
+        }
+
         const payload = {
             name: newWarehouse.warehouse_name,
             code: newWarehouse.warehouse_code,
@@ -272,7 +306,7 @@ const BusinessWarehouse = () => {
             state: newWarehouse.state,
             pincode: newWarehouse.pincode,
             contact_person: newWarehouse.contact_person,
-            phone_number: newWarehouse.phone_number,
+            phone_number: cleanPhone,
             email: newWarehouse.email
         };
         createWarehouseMutation.mutate(payload);
@@ -683,7 +717,7 @@ const BusinessWarehouse = () => {
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name</label>
                                 <select value={newInward.stock_id} onChange={(e) => setNewInward({ ...newInward, stock_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {dbStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.name} (Current: {s.quantity} pcs)</option>)}
+                                    {inwardProductsList.map(s => <option key={s.id} value={s.id}>{s.name} ({s.sku}) — Current Stock: {s.quantity} pcs</option>)}
                                 </select>
                             </div>
                             <div>
@@ -876,26 +910,61 @@ const BusinessWarehouse = () => {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                                 <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pincode</label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={newWarehouse.pincode} 
+                                        onChange={(e) => {
+                                            const pin = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                            let autoCity = newWarehouse.city;
+                                            let autoState = newWarehouse.state;
+                                            if (pin === '602001' || pin === '602002') { autoCity = 'Tiruvallur'; autoState = 'Tamil Nadu'; }
+                                            else if (pin.startsWith('600')) { autoCity = 'Chennai'; autoState = 'Tamil Nadu'; }
+                                            else if (pin.startsWith('110')) { autoCity = 'Delhi'; autoState = 'Delhi'; }
+                                            else if (pin.startsWith('560')) { autoCity = 'Bengaluru'; autoState = 'Karnataka'; }
+                                            else if (pin.startsWith('400')) { autoCity = 'Mumbai'; autoState = 'Maharashtra'; }
+                                            setNewWarehouse({ ...newWarehouse, pincode: pin, city: autoCity, state: autoState });
+                                        }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="e.g. 602001" 
+                                    />
+                                </div>
+                                <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>City</label>
-                                    <input required type="text" value={newWarehouse.city} onChange={(e) => setNewWarehouse({ ...newWarehouse, city: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="text" value={newWarehouse.city} onChange={(e) => setNewWarehouse({ ...newWarehouse, city: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Tiruvallur / Chennai" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State</label>
-                                    <input required type="text" value={newWarehouse.state} onChange={(e) => setNewWarehouse({ ...newWarehouse, state: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pincode</label>
-                                    <input required type="text" value={newWarehouse.pincode} onChange={(e) => setNewWarehouse({ ...newWarehouse, pincode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="text" value={newWarehouse.state} onChange={(e) => setNewWarehouse({ ...newWarehouse, state: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Tamil Nadu" />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Manager Name</label>
-                                    <input required type="text" value={newWarehouse.contact_person} onChange={(e) => setNewWarehouse({ ...newWarehouse, contact_person: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="text" value={newWarehouse.contact_person} onChange={(e) => setNewWarehouse({ ...newWarehouse, contact_person: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ashwin" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Mobile No</label>
-                                    <input required type="text" value={newWarehouse.phone_number} onChange={(e) => setNewWarehouse({ ...newWarehouse, phone_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Mobile (10 Digits)</label>
+                                    <input 
+                                        required 
+                                        type="tel" 
+                                        value={newWarehouse.phone_number} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="9876543210" 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Email Address</label>
+                                    <input 
+                                        required 
+                                        type="email" 
+                                        value={newWarehouse.email} 
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, email: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        placeholder="godown@company.com" 
+                                    />
                                 </div>
                             </div>
 

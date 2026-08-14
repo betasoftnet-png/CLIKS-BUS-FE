@@ -520,6 +520,13 @@ const BusinessInventory = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Enforce GST law: HSN/SAC code must strictly be numeric (4, 6, or 8 digits)
+        const cleanHsn = (formData.hsn_code || '').trim();
+        if (cleanHsn && !/^\d{4,8}$/.test(cleanHsn)) {
+            alert("Malformed HSN Code blocked: HSN / SAC Code must strictly be numeric (4, 6, or 8 digits) under GST regulations.");
+            return;
+        }
         const payload = {
             name: formData.name,
             sku: formData.sku,
@@ -593,6 +600,12 @@ const BusinessInventory = () => {
         alert('Real-time inventory levels adjusted and committed!');
     };
 
+    // Live warehouses database for initial storage facility selection
+    const { data: dbWarehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses()
+    });
+
     const filteredItems = items.filter(i => {
         const matchesSearch = (i.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                             (i.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -600,19 +613,40 @@ const BusinessInventory = () => {
                             (i.category || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'All' || i.category === filterCategory;
         
-        const isLowStock = i.product_type === 'product' && i.quantity < i.min_stock;
+        const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
+        const minStock = parseFloat(i.min_stock ?? 5) || 5;
+        const isLowStock = i.product_type === 'product' && qty < minStock;
         const matchesStockStatus = stockStatusFilter === 'All' || 
                                  (stockStatusFilter === 'Low Stock' && isLowStock) || 
                                  (stockStatusFilter === 'In Stock' && !isLowStock);
         
         return matchesSearch && matchesCategory && matchesStockStatus;
-    });
+    }).sort((a, b) => (b.id || 0) - (a.id || 0)); // Recently added products shown on the very top!
 
-    // Dynamic Report Computations
-    const totalInventoryValue = items.filter(i => i.product_type === 'product').reduce((acc, i) => acc + (parseFloat(i.purchase_price || 0) * parseInt(i.quantity || 0)), 0);
-    const potentialRevenue = items.filter(i => i.product_type === 'product').reduce((acc, i) => acc + (parseFloat(i.selling_price || 0) * parseInt(i.quantity || 0)), 0);
-    const lowStockCount = items.filter(i => i.product_type === 'product' && i.quantity < i.min_stock).length;
-    const totalPhysicalUnits = items.filter(i => i.product_type === 'product').reduce((acc, i) => acc + parseInt(i.quantity || 0), 0);
+    // Dynamic Report Computations (Excluding Damaged Godowns & parsing valid stock metrics)
+    const totalInventoryValue = items.reduce((acc, i) => {
+        const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
+        const price = parseFloat(i.purchase_price ?? i.unit_price ?? i.cost_price ?? 0) || 0;
+        return acc + (price * qty);
+    }, 0);
+
+    const potentialRevenue = items.reduce((acc, i) => {
+        const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
+        const price = parseFloat(i.selling_price ?? i.price ?? (i.purchase_price * 1.2) ?? 0) || 0;
+        return acc + (price * qty);
+    }, 0);
+
+    const lowStockCount = items.filter(i => {
+        const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
+        const minStock = parseFloat(i.min_stock ?? 5) || 5;
+        return i.product_type !== 'service' && qty < minStock;
+    }).length;
+
+    // Total Physical Units computed accurately across all inventory items
+    const totalPhysicalUnits = items.reduce((acc, i) => {
+        const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
+        return acc + qty;
+    }, 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -766,14 +800,25 @@ const BusinessInventory = () => {
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             {row.product_type === 'service' ? (
                                                 <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '700' }}>NO STOCK TRACKING</span>
-                                            ) : (
-                                                <div>
-                                                    <p style={{ fontWeight: '850', color: row.quantity < row.min_stock ? '#EF4444' : '#1E293B', fontSize: '1.05rem' }}>
-                                                        {row.quantity} <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{row.primary_unit}</span>
-                                                    </p>
-                                                    <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Min: {row.min_stock} | Reorder: {row.reorder_level}</span>
-                                                </div>
-                                            )}
+                                            ) : (() => {
+                                                const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
+                                                const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
+                                                const sellableQty = isDamagedGodown ? 0 : rawQty;
+                                                return (
+                                                    <div>
+                                                        <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (sellableQty < row.min_stock ? '#EF4444' : '#1E293B'), fontSize: '1.05rem', margin: 0 }}>
+                                                            {sellableQty} <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Sellable</span>
+                                                        </p>
+                                                        {isDamagedGodown ? (
+                                                            <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '850', background: '#FEF2F2', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>
+                                                                ⚠️ Damaged Godown ({rawQty} Dmg)
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Min: {row.min_stock} | Reorder: {row.reorder_level}</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div>
@@ -788,16 +833,23 @@ const BusinessInventory = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ 
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.4rem 0.8rem', borderRadius: '10px',
-                                                background: row.product_type === 'service' ? '#EFF6FF' : (row.quantity < row.min_stock ? '#FEF2F2' : '#F0FDF4'),
-                                                color: row.product_type === 'service' ? '#1D4ED8' : (row.quantity < row.min_stock ? '#B91C1C' : '#15803D'),
-                                                fontSize: '0.8rem', fontWeight: '800'
-                                            }}>
-                                                {row.product_type === 'service' ? <CheckCircle2 size={12} /> : (row.quantity < row.min_stock ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />)}
-                                                {row.product_type === 'service' ? 'SERVICE' : (row.quantity < row.min_stock ? 'LOW STOCK' : 'IN STOCK')}
-                                            </div>
+                                            {(() => {
+                                                const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
+                                                const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
+                                                const sellableQty = isDamagedGodown ? 0 : rawQty;
+                                                return (
+                                                    <div style={{ 
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                                                        padding: '0.4rem 0.8rem', borderRadius: '10px',
+                                                        background: isDamagedGodown ? '#FEF2F2' : (row.product_type === 'service' ? '#EFF6FF' : (sellableQty < row.min_stock ? '#FEF2F2' : '#F0FDF4')),
+                                                        color: isDamagedGodown ? '#DC2626' : (row.product_type === 'service' ? '#1D4ED8' : (sellableQty < row.min_stock ? '#B91C1C' : '#15803D')),
+                                                        fontSize: '0.8rem', fontWeight: '800'
+                                                    }}>
+                                                        {isDamagedGodown ? <AlertTriangle size={12} /> : (row.product_type === 'service' ? <CheckCircle2 size={12} /> : (sellableQty < row.min_stock ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />))}
+                                                        {isDamagedGodown ? 'DAMAGED / NON-SELLABLE' : (row.product_type === 'service' ? 'SERVICE' : (sellableQty < row.min_stock ? 'LOW STOCK' : 'IN STOCK'))}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
@@ -1001,7 +1053,7 @@ const BusinessInventory = () => {
                                             type="text" 
                                             value={formData.hsn_code} 
                                             onChange={(e) => {
-                                                const val = e.target.value;
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 8);
                                                 setFormData({...formData, hsn_code: val});
                                                 setHsnQueryOverride(val);
                                                 setShowHsnInfoPopover(false);
@@ -1247,8 +1299,22 @@ const BusinessInventory = () => {
                                             <input type="date" value={formData.expiry_date} onChange={(e) => setFormData({...formData, expiry_date: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse</label>
-                                            <input type="text" value={formData.warehouse} onChange={(e) => setFormData({...formData, warehouse: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Main Godown" />
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
+                                            <select value={formData.warehouse} onChange={(e) => setFormData({...formData, warehouse: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}>
+                                                <option value="Main Godown">Main Godown (Bulk Storage)</option>
+                                                <option value="Chennai godown">Chennai godown</option>
+                                                <option value="Tiruvallur godown">Tiruvallur godown</option>
+                                                <option value="Damaged products godown">⚠️ Damaged products godown (Non-Sellable)</option>
+                                                {dbWarehouses.map(w => {
+                                                    const wName = w.name || w.warehouse_name;
+                                                    if (['Main Godown', 'Chennai godown', 'Tiruvallur godown', 'Damaged products godown'].includes(wName)) return null;
+                                                    return (
+                                                        <option key={w.id} value={wName}>
+                                                            {wName} ({w.code || w.warehouse_code || `WH-${w.id}`})
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Rack Location</label>

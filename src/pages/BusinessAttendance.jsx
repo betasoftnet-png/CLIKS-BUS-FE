@@ -398,7 +398,6 @@ const BusinessAttendance = () => {
                 {[
                     { id: 'today', label: "Today's Logs", icon: Clock, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
                     { id: 'history', label: 'History Ledger', icon: User, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
-                    { id: 'datewise', label: 'Date-wise Lookup', icon: Calendar, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
                     { id: 'shifts', label: 'Shift Configurations', icon: Calendar, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
                     { id: 'geo', label: 'GPS Location Fencing', icon: MapPin, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' },
                     { id: 'corrections', label: 'Correction Verifications', icon: RefreshCw, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
@@ -619,129 +618,7 @@ const BusinessAttendance = () => {
                 );
             })()}
 
-            {/* Tab: Date-wise Attendance Lookup */}
-            {activeTab === 'datewise' && (() => {
-                const datewiseLogs = filteredLogs.filter(log => log.attendance_date === lookupDate);
-                return (
-                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>Select Lookup Date:</span>
-                                <input 
-                                    type="date" 
-                                    value={lookupDate} 
-                                    onChange={(e) => setLookupDate(e.target.value)} 
-                                    style={{ padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }} 
-                                />
-                            </div>
-                            <div style={{ position: 'relative', width: '300px' }}>
-                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by employee..." 
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.5rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
-                                />
-                            </div>
-                        </div>
 
-                        <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <FilterableTableHead columns={[
-                                    { key: 'attendance_id', label: 'Log ID', placeholder: 'ID' },
-                                    { key: 'employee_name', label: 'Employee Profile', placeholder: 'Name' },
-                                    { key: 'check_in_time', label: 'Check-In / Out', placeholder: 'e.g. 09:00' },
-                                    { key: 'productive_hours', label: 'Productive Hours', placeholder: 'e.g. 8' },
-                                    { key: 'location_address', label: 'Location', placeholder: 'Address' },
-                                    { key: 'attendance_status', label: 'Status', placeholder: 'e.g. Present' },
-                                    { key: '_actions', label: 'Action', noFilter: true }
-                                ]} onFilterChange={setColFiltersDatewise} />
-                                <tbody>
-                                    {datewiseLogs.filter(item => applyTableFilters(item, typeof colFiltersDatewise !== "undefined" ? colFiltersDatewise : {})).map((log) => (
-                                        <tr 
-                                            key={log.attendance_id} 
-                                            style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease' }}
-                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                                <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: 0 }}>#{log.attendance_id}</p>
-                                            </td>
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '900', fontSize: '0.78rem', flexShrink: 0 }}>
-                                                        {log.employee_name.charAt(0)}
-                                                    </div>
-                                                    <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.82rem' }}>{log.employee_name}</span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid #E2E8F0', width: 'fit-content' }}>
-                                                    <Clock size={11} style={{ color: '#3B82F6', flexShrink: 0 }} />
-                                                    <span style={{ fontWeight: '800', color: '#065F46', fontSize: '0.75rem' }}>{log.check_in_time}</span>
-                                                    <span style={{ color: '#94A3B8', fontWeight: '800', fontSize: '0.7rem' }}>→</span>
-                                                    <span style={{ fontWeight: '800', color: '#991B1B', fontSize: '0.75rem' }}>{log.check_out_time}</span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                                <span style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.8rem' }}>{log.productive_hours} Hrs</span>
-                                            </td>
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    <MapPin size={12} style={{ color: log.location_address ? '#3B82F6' : '#CBD5E1', flexShrink: 0 }} />
-                                                    <span style={{ fontSize: '0.78rem', color: log.location_address ? '#334155' : '#94A3B8', fontWeight: '600' }}>
-                                                        {log.location_address || 'Remote check-in'}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                                <span style={{ 
-                                                    padding: '0.2rem 0.45rem', borderRadius: '6px',
-                                                    background: log.attendance_status === 'present' ? '#D1FAE5' : log.attendance_status === 'late' ? '#FEF3C7' : '#FEE2E2',
-                                                    color: log.attendance_status === 'present' ? '#065F46' : log.attendance_status === 'late' ? '#92400E' : '#991B1B',
-                                                    fontWeight: '850', fontSize: '0.68rem', display: 'inline-block',
-                                                    whiteSpace: 'nowrap', letterSpacing: '0.01em'
-                                                }}>{log.attendance_status.toUpperCase()}</span>
-                                            </td>
-                                            <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditForm({
-                                                            attendance_id: log.attendance_id,
-                                                            attendance_date: log.attendance_date,
-                                                            check_in_time: convertTo24Hour(log.check_in_time),
-                                                            check_out_time: convertTo24Hour(log.check_out_time),
-                                                            late_by_minutes: log.late_by_minutes || 0,
-                                                            productive_hours: log.productive_hours || 8.0,
-                                                            location_address: log.location_address || '',
-                                                            status: log.attendance_status || 'present'
-                                                        });
-                                                        setSelectedLog(log);
-                                                        setIsEditModalOpen(true);
-                                                    }}
-                                                    onMouseOver={(e) => { e.currentTarget.style.background = '#3B82F6'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#3B82F6'; }}
-                                                    onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
-                                                    style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
-                                                >
-                                                    Edit
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {datewiseLogs.length === 0 && (
-                                        <tr>
-                                            <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#64748B', fontWeight: '700' }}>
-                                                No attendance logs recorded for this date.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                );
-            })()}
 
             {/* Tab 2: Shifts Configurator */}
             {activeTab === 'shifts' && (

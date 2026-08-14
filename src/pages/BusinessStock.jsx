@@ -64,43 +64,86 @@ const BusinessStock = () => {
         queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data)
     });
 
-    // Safe mapping of DB stock items to UI representation
-    const stocks = dbStocks.map(s => {
-        let warehouseName = 'Main Godown';
-        let rackNumber = 'Rack A-1';
+    // Safe unified mapping of DB products & stock items with strict Damaged Godown exclusion
+    const stocks = React.useMemo(() => {
+        const list = [];
+        const seenNames = new Set();
 
-        if (s.location) {
-            if (s.location.includes('(')) {
-                const parts = s.location.split('(');
-                warehouseName = parts[0].trim();
-                rackNumber = parts[1].replace(')', '').trim();
-            } else {
-                warehouseName = s.location;
+        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
+        safeProds.forEach(p => {
+            if (!p) return;
+            const nameKey = (p.name || '').toLowerCase().trim();
+            if (nameKey) seenNames.add(nameKey);
+
+            const warehouseName = p.warehouse_id || p.warehouse || 'Main Godown';
+            const isDamagedGodown = String(warehouseName).toLowerCase().includes('damaged');
+            const rawQty = parseFloat(p.quantity ?? p.opening_stock ?? 0) || 0;
+            const damagedQty = isDamagedGodown ? rawQty : (parseFloat(p.damaged_stock ?? 0) || 0);
+            const sellableQty = isDamagedGodown ? 0 : Math.max(0, rawQty - damagedQty);
+
+            list.push({
+                stock_id: `STK-${p.id}`,
+                id: p.id,
+                product_id: p.sku || `PROD-${p.id}`,
+                product_name: p.name || 'Unnamed Product',
+                opening_stock: parseFloat(p.opening_stock || p.quantity || 0),
+                current_stock: rawQty,
+                available_stock: sellableQty,
+                damaged_stock: damagedQty,
+                is_damaged_facility: isDamagedGodown,
+                minimum_stock: parseFloat(p.min_stock || 5),
+                purchase_cost: parseFloat(p.purchase_price || p.unit_price || 0),
+                average_cost: parseFloat(p.purchase_price || p.unit_price || 0),
+                selling_value: parseFloat(p.selling_price || (p.purchase_price * 1.2) || 0),
+                warehouse_name: warehouseName,
+                rack_number: p.rack_number || 'Rack A-1'
+            });
+        });
+
+        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
+        safeStocks.forEach(s => {
+            if (!s) return;
+            const nameKey = (s.name || '').toLowerCase().trim();
+            if (nameKey && seenNames.has(nameKey)) return;
+            if (nameKey) seenNames.add(nameKey);
+
+            let warehouseName = 'Main Godown';
+            let rackNumber = 'Rack A-1';
+            if (s.location) {
+                if (s.location.includes('(')) {
+                    const parts = s.location.split('(');
+                    warehouseName = parts[0].trim();
+                    rackNumber = parts[1].replace(')', '').trim();
+                } else {
+                    warehouseName = s.location;
+                }
             }
-        }
+            const isDamagedGodown = String(warehouseName).toLowerCase().includes('damaged');
+            const rawQty = parseFloat(s.quantity || 0);
+            const damagedQty = isDamagedGodown ? rawQty : 0;
+            const sellableQty = isDamagedGodown ? 0 : rawQty;
 
-        return {
-            stock_id: `STK-${s.id}`,
-            id: s.id,
-            product_id: s.sku || `PROD-${s.id}`,
-            product_name: s.name || 'Unnamed Stock Item',
-            opening_stock: s.opening_stock || 10,
-            current_stock: s.quantity || 0,
-            available_stock: s.quantity || 0,
-            reserved_stock: 0,
-            damaged_stock: 0,
-            expired_stock: 0,
-            in_transit_stock: 0,
-            minimum_stock: s.low_stock_threshold || 5,
-            reorder_level: s.low_stock_threshold || 5,
-            reorder_quantity: 50,
-            purchase_cost: s.unit_price || 0,
-            average_cost: s.unit_price || 0,
-            selling_value: (s.unit_price || 0) * 1.2,
-            rack_number: rackNumber,
-            warehouse_name: warehouseName
-        };
-    });
+            list.push({
+                stock_id: `STK-${s.id}`,
+                id: s.id,
+                product_id: s.sku || `PROD-${s.id}`,
+                product_name: s.name || 'Unnamed Stock Item',
+                opening_stock: parseFloat(s.opening_stock || 10),
+                current_stock: rawQty,
+                available_stock: sellableQty,
+                damaged_stock: damagedQty,
+                is_damaged_facility: isDamagedGodown,
+                minimum_stock: parseFloat(s.low_stock_threshold || 5),
+                purchase_cost: parseFloat(s.unit_price || 0),
+                average_cost: parseFloat(s.unit_price || 0),
+                selling_value: parseFloat((s.unit_price || 0) * 1.2),
+                warehouse_name: warehouseName,
+                rack_number: rackNumber
+            });
+        });
+
+        return list;
+    }, [dbProducts, dbStocks]);
 
     // Set default product for history when stock loads
     useEffect(() => {
@@ -576,14 +619,21 @@ const BusinessStock = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                    <MapPin size={14} style={{ color: '#64748B' }} />
-                                                    <span style={{ fontWeight: '600', color: '#475569' }}>{st.warehouse_name} ({st.rack_number})</span>
+                                                    <MapPin size={14} style={{ color: st.is_damaged_facility ? '#EF4444' : '#64748B' }} />
+                                                    <span style={{ fontWeight: '700', color: st.is_damaged_facility ? '#EF4444' : '#475569' }}>{st.warehouse_name} ({st.rack_number})</span>
                                                 </div>
+                                                {st.is_damaged_facility && (
+                                                    <span style={{ fontSize: '0.68rem', background: '#FEF2F2', color: '#DC2626', padding: '2px 6px', borderRadius: '4px', fontWeight: '850', display: 'inline-block', marginTop: '2px' }}>
+                                                        ⚠️ DAMAGED GODOWN (EXCLUDED FROM SELLABLE STOCK)
+                                                    </span>
+                                                )}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#1E293B' }}>{st.current_stock} pcs</td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#10B981' }}>{st.available_stock} pcs</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: st.available_stock > 0 ? '#10B981' : '#64748B' }}>
+                                                {st.available_stock} pcs {st.is_damaged_facility && <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: '800' }}>(0 Sellable)</span>}
+                                            </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
-                                                <span style={{ color: '#EF4444', fontWeight: '700' }}>{st.damaged_stock} Dmg</span> / <span style={{ color: '#B45309', fontWeight: '700' }}>{st.expired_stock} Exp</span>
+                                                <span style={{ color: '#EF4444', fontWeight: '700' }}>{st.damaged_stock} Dmg</span> / <span style={{ color: '#B45309', fontWeight: '700' }}>{st.expired_stock || 0} Exp</span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(st.average_cost)}</td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(valuation)}</td>

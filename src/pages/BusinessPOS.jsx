@@ -1598,34 +1598,28 @@ const BusinessPOS = () => {
 
                             {/* Selected Customer Details Banner */}
                             {selectedCustomerObj && (
-                                <div style={{ marginTop: '0.6rem', padding: '0.75rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer:</span>
-                                            <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.9rem' }}>{selectedCustomerObj.name}</span>
-                                        </div>
-                                        <button 
-                                            type="button"
-                                            onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                            style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750' }}
-                                            title="Change or Remove Customer"
-                                        >
-                                            Change / Remove
-                                        </button>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', color: '#334155', fontWeight: '600', fontSize: '0.78rem', paddingTop: '4px', borderTop: '1px dashed #A7F3D0' }}>
-                                        {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && (
-                                            <>
-                                                <span>Phone: <strong>{selectedCustomerObj.phone_number || selectedCustomerObj.phone}</strong></span>
-                                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                            </>
-                                        )}
-                                        <span>Email: <strong>{selectedCustomerObj.email || 'N/A'}</strong></span>
+                                <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                        <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.85rem' }}>
+                                            Name: <strong>{selectedCustomerObj.name}</strong>
+                                        </span>
                                         <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                        <div style={{ marginLeft: 'auto', fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem' }}>
-                                            Loyalty Points: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
-                                        </div>
+                                        <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }} title={selectedCustomerObj.email}>
+                                            {selectedCustomerObj.email || 'N/A'}
+                                        </span>
+                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                        <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                            LTP: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
+                                        </span>
                                     </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                        style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750', flexShrink: 0 }}
+                                        title="Change or Remove Customer"
+                                    >
+                                        Change / Remove
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -1635,7 +1629,7 @@ const BusinessPOS = () => {
                 {/* Held Carts Row */}
                 {heldCarts.length > 0 && (
                     <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>HELD CARTS ({heldCarts.length}):</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>CARTS ({heldCarts.length}):</span>
                         {heldCarts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(hc => {
                             const isActive = activeHeldCartInfo && activeHeldCartInfo.id === hc.id;
                             return (
@@ -1688,7 +1682,7 @@ const BusinessPOS = () => {
                 {/* Cart Control Header Action Row */}
                 <div style={{ padding: '0.65rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
-                        Cart List {cart.length > 0 ? `(${cart.length})` : ''}
+                        CART {cart.length > 0 ? `(${cart.length})` : ''}
                     </span>
                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                         <button 
