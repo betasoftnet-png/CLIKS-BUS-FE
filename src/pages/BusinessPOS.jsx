@@ -1100,10 +1100,10 @@ const BusinessPOS = () => {
     };
 
     return (
-        <div style={{ display: 'flex', height: '100%', gap: isRightPanelCollapsed ? 0 : '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif", position: 'relative' }}>
+        <div style={{ display: 'flex', height: '100%', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
             {/* Left Side: Product Catalog */}
-            <div style={{ flex: '1 1 0%', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <div style={{ flex: '0 0 calc(60% - 0.5rem)', width: 'calc(60% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 
                 {/* Header: Search & Summary Widget */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
@@ -1467,49 +1467,8 @@ const BusinessPOS = () => {
                 </div>
             </div>
 
-            {/* Boundary Expand/Collapse Double-Head Arrow Control */}
-            <button
-                type="button"
-                onClick={() => setIsRightPanelCollapsed(prev => !prev)}
-                title={isRightPanelCollapsed ? "Expand POS Billing Panel" : "Collapse POS Billing Panel"}
-                style={{
-                    position: 'absolute',
-                    top: '1.5rem',
-                    right: isRightPanelCollapsed ? '1.25rem' : '390px',
-                    zIndex: 100,
-                    background: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: '8px',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justify: 'center',
-                    cursor: 'pointer',
-                    color: '#475569',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.borderColor = '#10B981'; e.currentTarget.style.color = '#047857'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#475569'; }}
-            >
-                <ArrowLeftRight size={14} />
-            </button>
-
             {/* Right Side: Live Cart Workspace / Billing Box */}
-            <div style={{ 
-                width: isRightPanelCollapsed ? '0px' : '380px', 
-                minWidth: isRightPanelCollapsed ? '0px' : '360px', 
-                flex: isRightPanelCollapsed ? '0 0 0px' : '0 0 380px', 
-                background: '#FFFFFF', 
-                borderRadius: '16px', 
-                border: isRightPanelCollapsed ? 'none' : '1px solid #E2E8F0', 
-                display: isRightPanelCollapsed ? 'none' : 'flex', 
-                flexDirection: 'column', 
-                overflow: 'hidden', 
-                boxShadow: isRightPanelCollapsed ? 'none' : '0 4px 12px rgba(0,0,0,0.02)',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}>
+            <div style={{ flex: '0 0 calc(40% - 0.5rem)', width: 'calc(40% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 
                 {/* Customer Attachment Row */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
