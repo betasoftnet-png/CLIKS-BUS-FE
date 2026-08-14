@@ -17,8 +17,7 @@ import {
     ChevronRight,
     ChevronUp,
     ChevronDown,
-    ChevronsLeft,
-    ChevronsRight,
+    ArrowLeftRight,
     Edit,
     X,
     Check,
@@ -1470,34 +1469,33 @@ const BusinessPOS = () => {
                 </div>
             </div>
 
-            {/* Boundary Expand/Collapse Double-Arrow Button */}
+            {/* Boundary Expand/Collapse Double-Head Arrow Control */}
             <button
                 type="button"
                 onClick={() => setIsRightPanelCollapsed(prev => !prev)}
                 title={isRightPanelCollapsed ? "Expand POS Billing Panel" : "Collapse POS Billing Panel"}
                 style={{
                     position: 'absolute',
-                    right: isRightPanelCollapsed ? '1rem' : '390px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
+                    top: '1.5rem',
+                    right: isRightPanelCollapsed ? '1.25rem' : '390px',
                     zIndex: 100,
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
                     background: '#FFFFFF',
                     border: '1px solid #CBD5E1',
-                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+                    borderRadius: '8px',
+                    width: '28px',
+                    height: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justify: 'center',
                     cursor: 'pointer',
-                    color: '#0F172A',
+                    color: '#475569',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
                 onMouseOver={(e) => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.borderColor = '#10B981'; e.currentTarget.style.color = '#047857'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#0F172A'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#475569'; }}
             >
-                {isRightPanelCollapsed ? <ChevronsLeft size={18} /> : <ChevronsRight size={18} />}
+                <ArrowLeftRight size={14} />
             </button>
 
             {/* Right Side: Live Cart Workspace / Billing Box */}
