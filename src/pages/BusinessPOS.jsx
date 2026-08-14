@@ -1613,9 +1613,15 @@ const BusinessPOS = () => {
                                             Change / Remove
                                         </button>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', color: '#334155', fontWeight: '600', fontSize: '0.78rem', paddingTop: '4px', borderTop: '1px dashed #A7F3D0' }}>
-                                        {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && <span>Phone: <strong>{selectedCustomerObj.phone_number || selectedCustomerObj.phone}</strong></span>}
-                                        {selectedCustomerObj.email && <span>Email: <strong>{selectedCustomerObj.email}</strong></span>}
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', color: '#334155', fontWeight: '600', fontSize: '0.78rem', paddingTop: '4px', borderTop: '1px dashed #A7F3D0' }}>
+                                        {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && (
+                                            <>
+                                                <span>Phone: <strong>{selectedCustomerObj.phone_number || selectedCustomerObj.phone}</strong></span>
+                                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                            </>
+                                        )}
+                                        <span>Email: <strong>{selectedCustomerObj.email || 'N/A'}</strong></span>
+                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
                                         <div style={{ marginLeft: 'auto', fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem' }}>
                                             Loyalty Points: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
                                         </div>
@@ -1958,37 +1964,38 @@ const BusinessPOS = () => {
                             </div>
 
                             {/* Grand total Display */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                 <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Payable Amount</span>
                                 <span style={{ fontSize: '1.65rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>{formatCurrency(finalTotal)}</span>
                             </div>
 
                             {/* Checkout Payment Action Matrix */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginTop: '0.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginTop: '2px' }}>
                                 <button
                                     disabled={cart.length === 0 || isCheckingOut}
                                     onClick={() => handleCheckout('Cash')}
                                     style={{
-                                        padding: '0.75rem',
-                                        borderRadius: '12px',
+                                        padding: '0.4rem 0.25rem',
+                                        borderRadius: '8px',
                                         background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                                         color: '#FFFFFF',
                                         border: 'none',
                                         fontWeight: '800',
-                                        fontSize: '0.85rem',
+                                        fontSize: '0.75rem',
                                         cursor: 'pointer',
                                         display: 'flex',
-                                        flexDirection: 'column',
+                                        flexDirection: 'row',
                                         alignItems: 'center',
+                                        justifyContent: 'center',
                                         gap: '4px',
                                         opacity: cart.length === 0 ? 0.6 : 1,
-                                        boxShadow: cart.length > 0 ? '0 4px 12px rgba(16, 185, 129, 0.2)' : 'none',
+                                        boxShadow: cart.length > 0 ? '0 3px 8px rgba(16, 185, 129, 0.2)' : 'none',
                                         transition: 'transform 0.1s'
                                     }}
                                     onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
                                     onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
                                 >
-                                    <DollarSign size={18} />
+                                    <DollarSign size={14} />
                                     Cash (F1)
                                 </button>
 
@@ -1996,26 +2003,27 @@ const BusinessPOS = () => {
                                     disabled={cart.length === 0 || isCheckingOut}
                                     onClick={() => handleCheckout('UPI')}
                                     style={{
-                                        padding: '0.75rem',
-                                        borderRadius: '12px',
+                                        padding: '0.4rem 0.25rem',
+                                        borderRadius: '8px',
                                         background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)',
                                         color: '#FFFFFF',
                                         border: 'none',
                                         fontWeight: '800',
-                                        fontSize: '0.85rem',
+                                        fontSize: '0.75rem',
                                         cursor: 'pointer',
                                         display: 'flex',
-                                        flexDirection: 'column',
+                                        flexDirection: 'row',
                                         alignItems: 'center',
+                                        justifyContent: 'center',
                                         gap: '4px',
                                         opacity: cart.length === 0 ? 0.6 : 1,
-                                        boxShadow: cart.length > 0 ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
+                                        boxShadow: cart.length > 0 ? '0 3px 8px rgba(79, 70, 229, 0.2)' : 'none',
                                         transition: 'transform 0.1s'
                                     }}
                                     onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
                                     onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
                                 >
-                                    <Smartphone size={18} />
+                                    <Smartphone size={14} />
                                     UPI (F2)
                                 </button>
 
@@ -2023,26 +2031,27 @@ const BusinessPOS = () => {
                                     disabled={cart.length === 0 || isCheckingOut}
                                     onClick={() => handleCheckout('Card')}
                                     style={{
-                                        padding: '0.75rem',
-                                        borderRadius: '12px',
+                                        padding: '0.4rem 0.25rem',
+                                        borderRadius: '8px',
                                         background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                                         color: '#FFFFFF',
                                         border: 'none',
                                         fontWeight: '800',
-                                        fontSize: '0.85rem',
+                                        fontSize: '0.75rem',
                                         cursor: 'pointer',
                                         display: 'flex',
-                                        flexDirection: 'column',
+                                        flexDirection: 'row',
                                         alignItems: 'center',
+                                        justifyContent: 'center',
                                         gap: '4px',
                                         opacity: cart.length === 0 ? 0.6 : 1,
-                                        boxShadow: cart.length > 0 ? '0 4px 12px rgba(245, 158, 11, 0.2)' : 'none',
+                                        boxShadow: cart.length > 0 ? '0 3px 8px rgba(245, 158, 11, 0.2)' : 'none',
                                         transition: 'transform 0.1s'
                                     }}
                                     onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
                                     onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
                                 >
-                                    <CreditCard size={18} />
+                                    <CreditCard size={14} />
                                     Card (F3)
                                 </button>
                             </div>
