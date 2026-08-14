@@ -31,7 +31,7 @@ const ALL_PRODUCTS = [
         category: 'Public',
         icon: '/bit_tool_logo.png',
         color: '#2563eb', // Blue
-        url: 'https://bit-tool.beta-softnet.com/'
+        url: 'https://bit-tool.com/'
     },
     {
         name: 'B2Auth',
