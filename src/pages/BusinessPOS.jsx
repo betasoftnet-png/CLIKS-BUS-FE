@@ -87,6 +87,29 @@ const BusinessPOS = () => {
         return () => window.removeEventListener('click', handleGlobalClick);
     }, []);
 
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                if (cart.length > 0 && !isCheckingOut) {
+                    handleCheckout('Cash');
+                }
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                if (cart.length > 0 && !isCheckingOut) {
+                    handleCheckout('UPI');
+                }
+            } else if (e.key === 'F3') {
+                e.preventDefault();
+                if (cart.length > 0 && !isCheckingOut) {
+                    handleCheckout('Card');
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [cart, isCheckingOut, inventory, customerName, customerEmail, selectedCustomerObj, loyaltyPointsEarned, loyaltyPointsRedeemed, discountVal, discountType, taxRate]);
+
     const [newProductData, setNewProductData] = useState(() => ({
         name: '',
         sku: `SKU-${Date.now().toString().slice(-4)}`,
@@ -404,13 +427,18 @@ const BusinessPOS = () => {
             
             // Refetch to reflect updated inventory, customers & stats
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['stockStats'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['business-customers'] });
             refetchSummary();
         },
         onError: (error) => {
             console.error('Checkout failed:', error);
-            alert('Checkout failed. Please try again.');
+            const msg = error.response?.data?.message || 'Checkout failed. Please try again.';
+            alert(msg);
             setIsCheckingOut(false);
         }
     });
@@ -785,6 +813,18 @@ const BusinessPOS = () => {
 
     const handleCheckout = (mode) => {
         if (cart.length === 0) return;
+
+        // Prevent selling more quantity than available stock
+        for (const item of cart) {
+            const catItem = inventory.find(p => p.id === item.id || (p.name && item.name && p.name.toLowerCase().trim() === item.name.toLowerCase().trim()));
+            const maxStock = catItem ? (parseFloat(catItem.quantity) || 0) : Infinity;
+            const requestedQty = parseFloat(item.quantity) || 0;
+            if (requestedQty > maxStock) {
+                alert(`Cannot complete checkout!\n\nRequested quantity (${requestedQty} ${item.unit || 'PCS'}) for "${item.name}" exceeds available stock (${maxStock} ${item.unit || 'PCS'}).`);
+                return;
+            }
+        }
+
         setIsCheckingOut(true);
         
         const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
@@ -816,6 +856,7 @@ const BusinessPOS = () => {
             payment_mode: mode,
             items: cart.map(item => ({
                 id: item.id,
+                name: item.name,
                 description: item.name,
                 quantity: item.quantity,
                 unit: item.unit,
