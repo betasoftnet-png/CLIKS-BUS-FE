@@ -550,7 +550,7 @@ const ProductLauncher = ({ onClose }) => {
                 .launcher-toggle-container {
                     display: flex;
                     flex-direction: column;
-                    background: #f8fafc;
+                    background: #ffffff;
                     border: 1px solid #e2e8f0;
                     border-radius: 16px;
                     padding: 0.55rem;
@@ -641,8 +641,8 @@ const ProductLauncher = ({ onClose }) => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 55px;
-                    height: 55px;
+                    width: 70px;
+                    height: 70px;
                     border-radius: 16px;
                     background: #ffffff;
                     border: 1px solid transparent;
