@@ -203,7 +203,7 @@ const ProductLauncher = ({ onClose }) => {
                                     </div>
                                 ) : (
                                     <div className="launcher-split-grid">
-                                        {favorites.slice(0, 4).map(favName => {
+                                        {favorites.map(favName => {
                                             const prod = ALL_PRODUCTS.find(p => p.name === favName);
                                             if (!prod) return null;
                                             const IconComponent = prod.icon;
@@ -621,8 +621,12 @@ const ProductLauncher = ({ onClose }) => {
                 }
                 .launcher-split-grid {
                     display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 0.6rem;
+                    grid-template-columns: repeat(3, 1fr);
+                    column-gap: 0.75rem;
+                    row-gap: 0.75rem;
+                    width: 100%;
+                    justify-items: center;
+                    align-items: center;
                 }
                 .launcher-mini-item-wrapper {
                     display: flex;
@@ -637,18 +641,22 @@ const ProductLauncher = ({ onClose }) => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 55px;
-                    height: 55px;
+                    width: 70px;
+                    height: 70px;
                     border-radius: 16px;
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    transition: all 0.2s ease;
+                    background: #F0FDF4;
+                    border: 1px solid #DCFCE7;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                     user-select: none;
+                    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.05);
                 }
-                .launcher-mini-item-wrapper:hover .launcher-mini-card {
+                .launcher-mini-item-wrapper:hover .launcher-mini-card,
+                .launcher-mini-item-wrapper:focus .launcher-mini-card,
+                .launcher-mini-item-wrapper:active .launcher-mini-card {
+                    background: #DCFCE7;
+                    border-color: #86EFAC;
                     transform: translateY(-2px);
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-                    border-color: #cbd5e1;
+                    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
                 }
                 .launcher-mini-item-wrapper:active .launcher-mini-card {
                     transform: scale(0.96);
