@@ -58,11 +58,6 @@ const BusinessPOS = () => {
     const [heldCarts, setHeldCarts] = useState([]);
     const [holdCounter, setHoldCounter] = useState(1);
     const [activeHeldCartInfo, setActiveHeldCartInfo] = useState(null);
-
-    // Draft Cart State
-    const [drafts, setDrafts] = useState([]);
-    const [draftCounter, setDraftCounter] = useState(1);
-    const [showDraftsModal, setShowDraftsModal] = useState(false);
     
     const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(0);
@@ -891,8 +886,35 @@ const BusinessPOS = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [cart, isCheckingOut, inventory, customerName, customerEmail, selectedCustomerObj, loyaltyPointsEarned, loyaltyPointsRedeemed, discountVal, discountType, taxRate]);
 
+    // Auto-sync any workspace modifications (items, customer, discount, tax) to active held cart
+    React.useEffect(() => {
+        if (!activeHeldCartInfo) return;
+        setHeldCarts(prev => prev.map(h => {
+            if (h.id === activeHeldCartInfo.id) {
+                return {
+                    ...h,
+                    cart: [...cart],
+                    customerName,
+                    customerEmail,
+                    selectedCustomerObj,
+                    discountVal,
+                    discountType,
+                    taxRate,
+                    loyaltyPointsEarned,
+                    loyaltyPointsRedeemed,
+                    isPtsEarnedManuallyEdited
+                };
+            }
+            return h;
+        }));
+    }, [cart, customerName, customerEmail, selectedCustomerObj, discountVal, discountType, taxRate, loyaltyPointsEarned, loyaltyPointsRedeemed, isPtsEarnedManuallyEdited, activeHeldCartInfo]);
+
     const clearCart = async () => {
+        if (cart.length === 0) return;
         if (await customConfirm('Are you sure you want to clear the current cart?')) {
+            if (activeHeldCartInfo) {
+                setHeldCarts(prev => prev.filter(h => h.id !== activeHeldCartInfo.id));
+            }
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
@@ -919,7 +941,6 @@ const BusinessPOS = () => {
                 : `Cart #${defaultDisplayId}`);
         
         const customName = await customPrompt('Assign a name/label to identify this held cart:', suggestedName);
-        
         if (customName === null) return;
 
         const cartEntry = {
@@ -944,7 +965,7 @@ const BusinessPOS = () => {
             setHoldCounter(prev => prev + 1);
         }
 
-        // Reset workspace & active held cart tracker
+        // Reset workspace & active held cart tracker so user can start a new order
         setActiveHeldCartInfo(null);
         setCart([]);
         setCustomerName('');
@@ -954,68 +975,6 @@ const BusinessPOS = () => {
         setLoyaltyPointsEarned(0);
         setLoyaltyPointsRedeemed(0);
         setIsPtsEarnedManuallyEdited(false);
-    };
-
-    const autoSaveCurrentToDraft = () => {
-        if (cart.length === 0) return null;
-
-        const draftId = Date.now();
-        const displayId = draftCounter;
-        const suggestedName = customerName ? `Draft - ${customerName}` : `Draft #${displayId}`;
-
-        const draftEntry = {
-            id: draftId,
-            displayId: displayId,
-            customName: suggestedName,
-            cart: [...cart],
-            customerName,
-            customerEmail,
-            selectedCustomerObj,
-            discountVal,
-            discountType,
-            taxRate,
-            loyaltyPointsEarned,
-            loyaltyPointsRedeemed,
-            isPtsEarnedManuallyEdited,
-            activeHeldCartInfo,
-            savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        setDrafts(prev => [draftEntry, ...prev]);
-        setDraftCounter(prev => prev + 1);
-        return draftEntry;
-    };
-
-    const restoreDraft = (draftId) => {
-        const draft = drafts.find(d => d.id === draftId);
-        if (!draft) return;
-
-        // Auto-save current active cart into Draft before restoring selected draft
-        if (cart.length > 0) {
-            autoSaveCurrentToDraft();
-        }
-
-        setCart(draft.cart || []);
-        setCustomerName(draft.customerName || '');
-        setCustomerEmail(draft.customerEmail || '');
-        setSelectedCustomerObj(draft.selectedCustomerObj || null);
-        setDiscountVal(draft.discountVal || 0);
-        setDiscountType(draft.discountType || 'percentage');
-        setTaxRate(draft.taxRate || 18);
-        setLoyaltyPointsEarned(draft.loyaltyPointsEarned || 0);
-        setLoyaltyPointsRedeemed(draft.loyaltyPointsRedeemed || 0);
-        setIsPtsEarnedManuallyEdited(draft.isPtsEarnedManuallyEdited || false);
-        setActiveHeldCartInfo(draft.activeHeldCartInfo || null);
-
-        // Remove restored draft from drafts list
-        setDrafts(prev => prev.filter(d => d.id !== draftId));
-        setShowDraftsModal(false);
-    };
-
-    const deleteDraft = async (draftId) => {
-        if (await customConfirm('Discard this draft cart entirely?')) {
-            setDrafts(prev => prev.filter(d => d.id !== draftId));
-        }
     };
 
     const renameHeldCart = async (holdId) => {
@@ -1037,19 +996,53 @@ const BusinessPOS = () => {
             setHeldCarts(prev => prev.filter(h => h.id !== holdId));
             if (activeHeldCartInfo && activeHeldCartInfo.id === holdId) {
                 setActiveHeldCartInfo(null);
+                setCart([]);
+                setCustomerName('');
+                setCustomerEmail('');
+                setSelectedCustomerObj(null);
+                setDiscountVal(0);
+                setLoyaltyPointsEarned(0);
+                setLoyaltyPointsRedeemed(0);
+                setIsPtsEarnedManuallyEdited(false);
             }
         }
     };
 
     const restoreCart = (holdId) => {
+        // If clicking the currently active held cart, do nothing
+        if (activeHeldCartInfo && activeHeldCartInfo.id === holdId) return;
+
+        // 1. If active cart has items and is NOT a held cart yet, auto-hold it as a new held cart!
+        if (cart.length > 0 && !activeHeldCartInfo) {
+            const defaultDisplayId = holdCounter;
+            const defaultId = Date.now();
+            const autoName = customerName ? `Cart - ${customerName}` : `Cart #${defaultDisplayId}`;
+            
+            const newHeldEntry = {
+                id: defaultId,
+                displayId: defaultDisplayId,
+                customName: autoName,
+                cart: [...cart],
+                customerName,
+                customerEmail,
+                selectedCustomerObj,
+                discountVal,
+                discountType,
+                taxRate,
+                loyaltyPointsEarned,
+                loyaltyPointsRedeemed,
+                isPtsEarnedManuallyEdited
+            };
+
+            setHeldCarts(prev => [...prev, newHeldEntry]);
+            setHoldCounter(prev => prev + 1);
+        }
+
+        // 2. Find target held cart
         const held = heldCarts.find(h => h.id === holdId);
         if (!held) return;
 
-        // Auto-save current active cart to Draft instead of overwriting/losing it
-        if (cart.length > 0) {
-            autoSaveCurrentToDraft();
-        }
-        
+        // 3. Load target held cart into active workspace
         setCart(held.cart || []);
         setCustomerName(held.customerName || '');
         setCustomerEmail(held.customerEmail || '');
@@ -1060,16 +1053,13 @@ const BusinessPOS = () => {
         setLoyaltyPointsEarned(held.loyaltyPointsEarned || 0);
         setLoyaltyPointsRedeemed(held.loyaltyPointsRedeemed || 0);
         setIsPtsEarnedManuallyEdited(held.isPtsEarnedManuallyEdited || false);
-        
-        // Track the restored held cart's identity
+
+        // 4. Set active held cart indicator
         setActiveHeldCartInfo({
             id: held.id,
             displayId: held.displayId,
             customName: held.customName
         });
-
-        // Remove from held list while active in workspace
-        setHeldCarts(prev => prev.filter(h => h.id !== holdId));
     };
 
     const printReceipt = () => {
@@ -1612,87 +1602,52 @@ const BusinessPOS = () => {
                 {heldCarts.length > 0 && (
                     <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>HELD CARTS ({heldCarts.length}):</span>
-                        {heldCarts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(hc => (
-                            <div
-                                key={hc.id}
-                                style={{ 
-                                    background: '#FFFFFF', 
-                                    border: '1px solid #FCD34D', 
-                                    padding: '0.3rem 0.6rem', 
-                                    borderRadius: '8px', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.5rem',
-                                    fontSize: '0.75rem', 
-                                    fontWeight: '750', 
-                                    color: '#92400E', 
-                                    whiteSpace: 'nowrap' 
-                                }}
-                            >
-                                <span 
-                                    onClick={() => restoreCart(hc.id)}
-                                    style={{ cursor: 'pointer' }}
-                                    title="Click to restore cart (active order auto-saves to Draft)"
+                        {heldCarts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(hc => {
+                            const isActive = activeHeldCartInfo && activeHeldCartInfo.id === hc.id;
+                            return (
+                                <div
+                                    key={hc.id}
+                                    style={{ 
+                                        background: isActive ? '#DCFCE7' : '#FFFFFF', 
+                                        border: isActive ? '1px solid #86EFAC' : '1px solid #FCD34D', 
+                                        padding: '0.3rem 0.65rem', 
+                                        borderRadius: '8px', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.5rem',
+                                        fontSize: '0.75rem', 
+                                        fontWeight: '800', 
+                                        color: isActive ? '#15803D' : '#92400E', 
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: isActive ? '0 2px 6px rgba(22, 163, 74, 0.15)' : 'none',
+                                        transition: 'all 0.15s ease'
+                                    }}
                                 >
-                                    {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
-                                </span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: '1px solid #FEF3C7', paddingLeft: '6px' }}>
-                                    <Edit 
-                                        size={12} 
-                                        style={{ cursor: 'pointer', color: '#D97706' }} 
-                                        onClick={() => renameHeldCart(hc.id)} 
-                                        title="Rename Cart"
-                                    />
-                                    <Trash2 
-                                        size={12} 
-                                        style={{ cursor: 'pointer', color: '#EF4444' }} 
-                                        onClick={() => deleteHeldCart(hc.id)} 
-                                        title="Discard Cart"
-                                    />
+                                    <span 
+                                        onClick={() => restoreCart(hc.id)}
+                                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        title="Click to view/edit this held cart"
+                                    >
+                                        {isActive && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A', display: 'inline-block' }} />}
+                                        {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
+                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: isActive ? '1px solid #BBF7D0' : '1px solid #FEF3C7', paddingLeft: '6px' }}>
+                                        <Edit 
+                                            size={12} 
+                                            style={{ cursor: 'pointer', color: isActive ? '#16A34A' : '#D97706' }} 
+                                            onClick={() => renameHeldCart(hc.id)} 
+                                            title="Rename Cart"
+                                        />
+                                        <Trash2 
+                                            size={12} 
+                                            style={{ cursor: 'pointer', color: '#EF4444' }} 
+                                            onClick={() => deleteHeldCart(hc.id)} 
+                                            title="Discard Cart"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Drafts Row */}
-                {drafts.length > 0 && (
-                    <div style={{ padding: '0.5rem 1.25rem', background: '#EFF6FF', borderBottom: '1px solid #DBEAFE', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1E40AF', alignSelf: 'center', marginRight: '0.5rem' }}>DRAFTS ({drafts.length}):</span>
-                        {drafts.map(dr => (
-                            <div
-                                key={dr.id}
-                                style={{ 
-                                    background: '#FFFFFF', 
-                                    border: '1px solid #93C5FD', 
-                                    padding: '0.3rem 0.6rem', 
-                                    borderRadius: '8px', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.5rem',
-                                    fontSize: '0.75rem', 
-                                    fontWeight: '750', 
-                                    color: '#1E3A8A', 
-                                    whiteSpace: 'nowrap' 
-                                }}
-                            >
-                                <span 
-                                    onClick={() => restoreDraft(dr.id)}
-                                    style={{ cursor: 'pointer' }}
-                                    title="Click to continue editing draft"
-                                >
-                                    {dr.customName || `Draft #${dr.displayId}`} ({dr.cart.length} items)
-                                </span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: '1px solid #DBEAFE', paddingLeft: '6px' }}>
-                                    <Trash2 
-                                        size={12} 
-                                        style={{ cursor: 'pointer', color: '#EF4444' }} 
-                                        onClick={() => deleteDraft(dr.id)} 
-                                        title="Discard Draft"
-                                    />
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
@@ -1709,7 +1664,7 @@ const BusinessPOS = () => {
                             style={{ 
                                 background: '#F8FAFC', 
                                 border: '1px solid #E2E8F0', 
-                                padding: '0.25rem 0.55rem', 
+                                padding: '0.25rem 0.65rem', 
                                 borderRadius: '6px', 
                                 color: '#334155', 
                                 fontSize: '0.75rem', 
@@ -1719,41 +1674,6 @@ const BusinessPOS = () => {
                             }}
                         >
                             Hold Cart
-                        </button>
-
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                if (cart.length > 0) {
-                                    autoSaveCurrentToDraft();
-                                    setCart([]);
-                                    setCustomerName('');
-                                    setCustomerEmail('');
-                                    setSelectedCustomerObj(null);
-                                    setDiscountVal(0);
-                                    setLoyaltyPointsEarned(0);
-                                    setLoyaltyPointsRedeemed(0);
-                                    setIsPtsEarnedManuallyEdited(false);
-                                    setActiveHeldCartInfo(null);
-                                } else {
-                                    setShowDraftsModal(true);
-                                }
-                            }} 
-                            style={{ 
-                                background: drafts.length > 0 ? '#EFF6FF' : '#F8FAFC', 
-                                border: drafts.length > 0 ? '1px solid #BFDBFE' : '1px solid #E2E8F0', 
-                                padding: '0.25rem 0.55rem', 
-                                borderRadius: '6px', 
-                                color: drafts.length > 0 ? '#1D4ED8' : '#334155', 
-                                fontSize: '0.75rem', 
-                                fontWeight: '800', 
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                            }}
-                        >
-                            Draft {drafts.length > 0 ? `(${drafts.length})` : ''}
                         </button>
 
                         <button 
@@ -1768,7 +1688,7 @@ const BusinessPOS = () => {
                                 fontWeight: '800', 
                                 cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
                                 opacity: cart.length === 0 ? 0.4 : 1,
-                                padding: '0.25rem 0.4rem'
+                                padding: '0.25rem 0.5rem'
                             }}
                         >
                             Clear Cart
@@ -2282,89 +2202,7 @@ const BusinessPOS = () => {
                 </div>
             )}
 
-            {/* DRAFTS MANAGER MODAL */}
-            {showDraftsModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        style={{
-                            background: 'white',
-                            width: '460px',
-                            maxWidth: '90vw',
-                            borderRadius: '20px',
-                            position: 'relative',
-                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            maxHeight: '80vh'
-                        }}
-                    >
-                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>Saved Drafts ({drafts.length})</h3>
-                            </div>
-                            <button
-                                onClick={() => setShowDraftsModal(false)}
-                                style={{ border: 'none', background: '#F1F5F9', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
 
-                        <div style={{ padding: '1.25rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {drafts.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94A3B8' }}>
-                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '0.9rem' }}>No saved drafts</p>
-                                    <span style={{ fontSize: '0.78rem' }}>Unfinished active carts automatically save to Drafts when switching carts.</span>
-                                </div>
-                            ) : (
-                                drafts.map(dr => (
-                                    <div
-                                        key={dr.id}
-                                        style={{
-                                            border: '1px solid #DBEAFE',
-                                            borderRadius: '12px',
-                                            padding: '1rem',
-                                            background: '#F8FAFC',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            gap: '1rem'
-                                        }}
-                                    >
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: '850', color: '#1E3A8A', fontSize: '0.9rem' }}>
-                                                {dr.customName || `Draft #${dr.displayId}`}
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '3px' }}>
-                                                {dr.cart.length} items {dr.customerName ? `• Customer: ${dr.customerName}` : ''} {dr.savedAt ? `• ${dr.savedAt}` : ''}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => restoreDraft(dr.id)}
-                                                style={{ background: '#2563EB', color: 'white', border: 'none', padding: '0.4rem 0.75rem', borderRadius: '8px', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
-                                            >
-                                                Restore / Edit
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => deleteDraft(dr.id)}
-                                                style={{ background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '8px', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
-                                            >
-                                                Discard
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </motion.div>
-                </div>
-            )}
 
             {/* QUICK ADD PRODUCT MODAL (FOR POS CATALOG) */}
             {isAddProductModalOpen && (
