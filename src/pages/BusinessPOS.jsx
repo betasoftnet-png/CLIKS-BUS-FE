@@ -15,6 +15,8 @@ import {
     Filter, 
     Receipt, 
     ChevronRight,
+    ChevronUp,
+    ChevronDown,
     Edit,
     X,
     Check,
@@ -53,6 +55,10 @@ const BusinessPOS = () => {
     const [customerEmail, setCustomerEmail] = useState('');
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
     const [selectedCustomerObj, setSelectedCustomerObj] = useState(null);
+    
+    // Panel Expand/Collapse State
+    const [isCustomerSectionExpanded, setIsCustomerSectionExpanded] = useState(true);
+    const [isTotalsSectionExpanded, setIsTotalsSectionExpanded] = useState(true);
     
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState([]);
@@ -1466,142 +1472,158 @@ const BusinessPOS = () => {
                 
                 {/* Customer Attachment Row */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
-                    <div style={{ position: 'relative' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.4rem 0.75rem' }}>
-                            <User size={16} color="#64748B" />
-                            <input 
-                                ref={customerInputRef}
-                                type="text" 
-                                placeholder="Assign Customer (e.g., Walk-in / Search CRM...)" 
-                                value={customerName}
-                                onChange={(e) => {
-                                    setCustomerName(e.target.value);
-                                    setIsCustomerDropdownOpen(true);
-                                }}
-                                onFocus={() => setIsCustomerDropdownOpen(true)}
-                                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontWeight: '650', color: '#1E293B' }}
-                            />
-                            {customerName && (
-                                <button 
-                                    onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', color: '#94A3B8' }}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCustomerSectionExpanded ? '0.6rem' : 0 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Customer Information {selectedCustomerObj && !isCustomerSectionExpanded ? `(${selectedCustomerObj.name})` : ''}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setIsCustomerSectionExpanded(prev => !prev)}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#64748B', padding: '2px' }}
+                            title={isCustomerSectionExpanded ? "Collapse Customer Section" : "Expand Customer Section"}
+                        >
+                            {isCustomerSectionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                    </div>
+
+                    {isCustomerSectionExpanded && (
+                        <div style={{ position: 'relative' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.4rem 0.75rem' }}>
+                                <User size={16} color="#64748B" />
+                                <input 
+                                    ref={customerInputRef}
+                                    type="text" 
+                                    placeholder="Assign Customer (e.g., Walk-in / Search CRM...)" 
+                                    value={customerName}
+                                    onChange={(e) => {
+                                        setCustomerName(e.target.value);
+                                        setIsCustomerDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontWeight: '650', color: '#1E293B' }}
+                                />
+                                {customerName && (
+                                    <button 
+                                        onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', color: '#94A3B8' }}
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
+
+                                {/* Add Customer Button on Right Side */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddCustomerModalOpen(true)}
+                                    title="Add New Customer"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '0.35rem 0.65rem',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: '#ECFDF5',
+                                        color: '#047857',
+                                        fontWeight: '750',
+                                        fontSize: '0.75rem',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        transition: 'all 0.15s ease'
+                                    }}
                                 >
-                                    <X size={14} />
+                                    <UserPlus size={14} />
+                                    <span>Add Customer</span>
                                 </button>
+                            </div>
+
+                            {/* Dropdown autocomplete for Customers */}
+                            {isCustomerDropdownOpen && customerName.length > 0 && (
+                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '4px', zIndex: 30, boxShadow: '0 12px 24px -4px rgba(0,0,0,0.12)', maxHeight: '220px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                                    {(() => {
+                                        const query = customerName.toLowerCase().trim();
+                                        const matches = customers.filter(c => {
+                                            const nameMatch = (c.name || c.customer_name || c.contact_person || c.business_name || '').toLowerCase().includes(query);
+                                            const codeMatch = (c.code || c.customer_code || c.customer_id || '').toLowerCase().includes(query);
+                                            const phoneMatch = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').toLowerCase().includes(query);
+                                            const emailMatch = (c.email || '').toLowerCase().includes(query);
+                                            return nameMatch || codeMatch || phoneMatch || emailMatch;
+                                        });
+
+                                        if (matches.length === 0) {
+                                            return (
+                                                <div style={{ padding: '0.85rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', fontWeight: '600' }}>
+                                                    No customer found
+                                                </div>
+                                            );
+                                        }
+
+                                        return matches.slice(0, 6).map(cust => (
+                                            <div
+                                                key={cust.id}
+                                                onClick={() => handleCustomerSelect(cust)}
+                                                style={{ padding: '0.65rem 0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F8FAFC', transition: 'background 0.15s ease' }}
+                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ECFDF5'}
+                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', paddingRight: '0.5rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
+                                                        {(cust.code || cust.customer_code) && (
+                                                            <span style={{ fontSize: '0.68rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace' }}>
+                                                                {cust.code || cust.customer_code}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.72rem', color: '#64748B', flexWrap: 'wrap' }}>
+                                                        {(cust.phone_number || cust.phone) && <span>Phone: {cust.phone_number || cust.phone}</span>}
+                                                        {cust.email && <span>Email: {cust.email}</span>}
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                        ⭐ Loyalty Points: {cust.loyalty_points || cust.points || 0}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ));
+                                    })()}
+                                    <div 
+                                        onClick={() => setIsCustomerDropdownOpen(false)}
+                                        style={{ padding: '0.4rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer', fontWeight: '700' }}>
+                                        Close List
+                                    </div>
+                                </div>
                             )}
 
-                            {/* Add Customer Button on Right Side */}
-                            <button
-                                type="button"
-                                onClick={() => setIsAddCustomerModalOpen(true)}
-                                title="Add New Customer"
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    padding: '0.35rem 0.65rem',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    background: '#ECFDF5',
-                                    color: '#047857',
-                                    fontWeight: '750',
-                                    fontSize: '0.75rem',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                <UserPlus size={14} />
-                                <span>Add Customer</span>
-                            </button>
-                        </div>
-
-                        {/* Dropdown autocomplete for Customers */}
-                        {isCustomerDropdownOpen && customerName.length > 0 && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '4px', zIndex: 30, boxShadow: '0 12px 24px -4px rgba(0,0,0,0.12)', maxHeight: '220px', overflowY: 'auto', padding: '0.25rem 0' }}>
-                                {(() => {
-                                    const query = customerName.toLowerCase().trim();
-                                    const matches = customers.filter(c => {
-                                        const nameMatch = (c.name || c.customer_name || c.contact_person || c.business_name || '').toLowerCase().includes(query);
-                                        const codeMatch = (c.code || c.customer_code || c.customer_id || '').toLowerCase().includes(query);
-                                        const phoneMatch = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').toLowerCase().includes(query);
-                                        const emailMatch = (c.email || '').toLowerCase().includes(query);
-                                        return nameMatch || codeMatch || phoneMatch || emailMatch;
-                                    });
-
-                                    if (matches.length === 0) {
-                                        return (
-                                            <div style={{ padding: '0.85rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', fontWeight: '600' }}>
-                                                No customer found
-                                            </div>
-                                        );
-                                    }
-
-                                    return matches.slice(0, 6).map(cust => (
-                                        <div
-                                            key={cust.id}
-                                            onClick={() => handleCustomerSelect(cust)}
-                                            style={{ padding: '0.65rem 0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F8FAFC', transition: 'background 0.15s ease' }}
-                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ECFDF5'}
-                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', paddingRight: '0.5rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
-                                                    {(cust.code || cust.customer_code) && (
-                                                        <span style={{ fontSize: '0.68rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace' }}>
-                                                            {cust.code || cust.customer_code}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.72rem', color: '#64748B', flexWrap: 'wrap' }}>
-                                                    {(cust.phone_number || cust.phone) && <span>Phone: {cust.phone_number || cust.phone}</span>}
-                                                    {cust.email && <span>Email: {cust.email}</span>}
-                                                </div>
-                                            </div>
-                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                    ⭐ Loyalty Points: {cust.loyalty_points || cust.points || 0}
-                                                </span>
-                                            </div>
+                            {/* Selected Customer Details Banner */}
+                            {selectedCustomerObj && (
+                                <div style={{ marginTop: '0.6rem', padding: '0.75rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer:</span>
+                                            <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.9rem' }}>{selectedCustomerObj.name}</span>
                                         </div>
-                                    ));
-                                })()}
-                                <div 
-                                    onClick={() => setIsCustomerDropdownOpen(false)}
-                                    style={{ padding: '0.4rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer', fontWeight: '700' }}>
-                                    Close List
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Selected Customer Details Banner */}
-                        {selectedCustomerObj && (
-                            <div style={{ marginTop: '0.6rem', padding: '0.75rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer:</span>
-                                        <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.9rem' }}>{selectedCustomerObj.name}</span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                            style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750' }}
+                                            title="Change or Remove Customer"
+                                        >
+                                            Change / Remove
+                                        </button>
                                     </div>
-                                    <button 
-                                        type="button"
-                                        onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                        style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750' }}
-                                        title="Change or Remove Customer"
-                                    >
-                                        Change / Remove
-                                    </button>
-                                </div>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', color: '#334155', fontWeight: '600', fontSize: '0.78rem', paddingTop: '4px', borderTop: '1px dashed #A7F3D0' }}>
-                                    {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && <span>Phone: <strong>{selectedCustomerObj.phone_number || selectedCustomerObj.phone}</strong></span>}
-                                    {selectedCustomerObj.email && <span>Email: <strong>{selectedCustomerObj.email}</strong></span>}
-                                    <div style={{ marginLeft: 'auto', fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem' }}>
-                                        Loyalty Points: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', color: '#334155', fontWeight: '600', fontSize: '0.78rem', paddingTop: '4px', borderTop: '1px dashed #A7F3D0' }}>
+                                        {(selectedCustomerObj.phone_number || selectedCustomerObj.phone) && <span>Phone: <strong>{selectedCustomerObj.phone_number || selectedCustomerObj.phone}</strong></span>}
+                                        {selectedCustomerObj.email && <span>Email: <strong>{selectedCustomerObj.email}</strong></span>}
+                                        <div style={{ marginLeft: 'auto', fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem' }}>
+                                            Loyalty Points: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Held Carts Row */}
@@ -1795,220 +1817,237 @@ const BusinessPOS = () => {
 
                 {/* Dynamic Totals Panel footer */}
                 <div style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flexShrink: 0 }}>
-                    
-                    {/* Discount, Tax & Loyalty Points Quick adjustment Row */}
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                    <button onClick={() => setDiscountType('percentage')} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.65rem', fontWeight: discountType === 'percentage' ? '800' : '400', color: discountType === 'percentage' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}>%</button>
-                                    <span style={{ fontSize: '0.65rem', color: '#E2E8F0' }}>|</span>
-                                    <button onClick={() => setDiscountType('flat')} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.65rem', fontWeight: discountType === 'flat' ? '800' : '400', color: discountType === 'flat' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}>Flat</button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            Payment Summary {!isTotalsSectionExpanded && `(${formatCurrency(finalTotal)})`}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setIsTotalsSectionExpanded(prev => !prev)}
+                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#64748B', padding: '2px' }}
+                            title={isTotalsSectionExpanded ? "Collapse Payment Summary" : "Expand Payment Summary"}
+                        >
+                            {isTotalsSectionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                    </div>
+
+                    {isTotalsSectionExpanded && (
+                        <>
+                            {/* Discount, Tax & Loyalty Points Quick adjustment Row */}
+                            <div style={{ display: 'flex', gap: '0.6rem' }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button onClick={() => setDiscountType('percentage')} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.65rem', fontWeight: discountType === 'percentage' ? '800' : '400', color: discountType === 'percentage' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}>%</button>
+                                            <span style={{ fontSize: '0.65rem', color: '#E2E8F0' }}>|</span>
+                                            <button onClick={() => setDiscountType('flat')} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.65rem', fontWeight: discountType === 'flat' ? '800' : '400', color: discountType === 'flat' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}>Flat</button>
+                                        </div>
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        placeholder="0"
+                                        value={discountVal || ''}
+                                        onChange={(e) => setDiscountVal(Math.max(0, parseFloat(e.target.value) || 0))}
+                                        style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', outline: 'none' }}
+                                    />
+                                </div>
+
+                                <div style={{ flex: 1 }}>
+                                    <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>GST Tax (%)</span>
+                                    <select 
+                                        value={taxRate}
+                                        onChange={(e) => setTaxRate(parseInt(e.target.value))}
+                                        style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', background: 'white', outline: 'none' }}>
+                                        <option value={0}>0%</option>
+                                        <option value={5}>5%</option>
+                                        <option value={12}>12%</option>
+                                        <option value={18}>18%</option>
+                                        <option value={28}>28%</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ flex: 1 }}>
+                                    <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Redeemed</span>
+                                    <input 
+                                        type="number"
+                                        step="any"
+                                        min="0"
+                                        max={maxRedeemablePoints}
+                                        placeholder="0"
+                                        disabled={!selectedCustomerObj || availableCustomerPoints <= 0}
+                                        value={selectedCustomerObj ? (loyaltyPointsRedeemed || '') : ''}
+                                        onChange={(e) => {
+                                            if (!selectedCustomerObj) {
+                                                setLoyaltyPointsRedeemed(0);
+                                                return;
+                                            }
+                                            const rawVal = parseFloat(e.target.value);
+                                            if (isNaN(rawVal) || rawVal <= 0) {
+                                                setLoyaltyPointsRedeemed(0);
+                                                return;
+                                            }
+                                            if (rawVal > availableCustomerPoints) {
+                                                alert(`Cannot redeem more than available balance (${availableCustomerPoints} pts)`);
+                                                setLoyaltyPointsRedeemed(availableCustomerPoints);
+                                            } else {
+                                                setLoyaltyPointsRedeemed(rawVal);
+                                            }
+                                        }}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.4rem 0.75rem', 
+                                            boxSizing: 'border-box', 
+                                            borderRadius: '8px', 
+                                            border: '1px solid #FCA5A5', 
+                                            background: !selectedCustomerObj ? '#F8FAFC' : '#FEF2F2', 
+                                            fontSize: '0.85rem', 
+                                            fontWeight: '800', 
+                                            color: '#DC2626', 
+                                            outline: 'none',
+                                            opacity: !selectedCustomerObj ? 0.6 : 1 
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ flex: 1 }}>
+                                    <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Earned</span>
+                                    <input 
+                                        type="number"
+                                        step="any"
+                                        min="0"
+                                        placeholder="0"
+                                        value={loyaltyPointsEarned || ''}
+                                        onChange={(e) => {
+                                            setLoyaltyPointsEarned(e.target.value);
+                                            setIsPtsEarnedManuallyEdited(true);
+                                        }}
+                                        style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #FCD34D', background: '#FFFBEB', fontSize: '0.85rem', fontWeight: '800', color: '#B45309', outline: 'none' }}
+                                    />
                                 </div>
                             </div>
-                            <input 
-                                type="number" 
-                                placeholder="0"
-                                value={discountVal || ''}
-                                onChange={(e) => setDiscountVal(Math.max(0, parseFloat(e.target.value) || 0))}
-                                style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', outline: 'none' }}
-                            />
-                        </div>
 
-                        <div style={{ flex: 1 }}>
-                            <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>GST Tax (%)</span>
-                            <select 
-                                value={taxRate}
-                                onChange={(e) => setTaxRate(parseInt(e.target.value))}
-                                style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', background: 'white', outline: 'none' }}>
-                                <option value={0}>0%</option>
-                                <option value={5}>5%</option>
-                                <option value={12}>12%</option>
-                                <option value={18}>18%</option>
-                                <option value={28}>28%</option>
-                            </select>
-                        </div>
-
-                        <div style={{ flex: 1 }}>
-                            <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Redeemed</span>
-                            <input 
-                                type="number"
-                                step="any"
-                                min="0"
-                                max={maxRedeemablePoints}
-                                placeholder="0"
-                                disabled={!selectedCustomerObj || availableCustomerPoints <= 0}
-                                value={selectedCustomerObj ? (loyaltyPointsRedeemed || '') : ''}
-                                onChange={(e) => {
-                                    if (!selectedCustomerObj) {
-                                        setLoyaltyPointsRedeemed(0);
-                                        return;
-                                    }
-                                    const rawVal = parseFloat(e.target.value);
-                                    if (isNaN(rawVal) || rawVal <= 0) {
-                                        setLoyaltyPointsRedeemed(0);
-                                        return;
-                                    }
-                                    if (rawVal > availableCustomerPoints) {
-                                        alert(`Cannot redeem more than available balance (${availableCustomerPoints} pts)`);
-                                        setLoyaltyPointsRedeemed(availableCustomerPoints);
-                                    } else {
-                                        setLoyaltyPointsRedeemed(rawVal);
-                                    }
-                                }}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '0.4rem 0.75rem', 
-                                    boxSizing: 'border-box', 
-                                    borderRadius: '8px', 
-                                    border: '1px solid #FCA5A5', 
-                                    background: !selectedCustomerObj ? '#F8FAFC' : '#FEF2F2', 
-                                    fontSize: '0.85rem', 
-                                    fontWeight: '800', 
-                                    color: '#DC2626', 
-                                    outline: 'none',
-                                    opacity: !selectedCustomerObj ? 0.6 : 1 
-                                }}
-                            />
-                        </div>
-
-                        <div style={{ flex: 1 }}>
-                            <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Earned</span>
-                            <input 
-                                type="number"
-                                step="any"
-                                min="0"
-                                placeholder="0"
-                                value={loyaltyPointsEarned || ''}
-                                onChange={(e) => {
-                                    setLoyaltyPointsEarned(e.target.value);
-                                    setIsPtsEarnedManuallyEdited(true);
-                                }}
-                                style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #FCD34D', background: '#FFFBEB', fontSize: '0.85rem', fontWeight: '800', color: '#B45309', outline: 'none' }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Receipt Tally breakdown */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem 0', borderBottom: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
-                            <span>Subtotal</span>
-                            <span>{formatCurrency(subtotal)}</span>
-                        </div>
-                        {discountAmount > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#EF4444', fontWeight: '500' }}>
-                                <span>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
-                                <span>- {formatCurrency(discountAmount)}</span>
+                            {/* Receipt Tally breakdown */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem 0', borderBottom: '1px solid #E2E8F0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
+                                    <span>Subtotal</span>
+                                    <span>{formatCurrency(subtotal)}</span>
+                                </div>
+                                {discountAmount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#EF4444', fontWeight: '500' }}>
+                                        <span>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
+                                        <span>- {formatCurrency(discountAmount)}</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
+                                    <span>GST ({taxRate}%)</span>
+                                    <span>{formatCurrency(calculatedTax)}</span>
+                                </div>
+                                {loyaltyDiscountAmount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#DC2626', fontWeight: '600' }}>
+                                        <span>Loyalty Discount ({effectivePointsRedeemed} pts)</span>
+                                        <span>- {formatCurrency(loyaltyDiscountAmount)}</span>
+                                    </div>
+                                )}
+                                {Math.abs(roundOff) > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94A3B8' }}>
+                                        <span>Round Off</span>
+                                        <span>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
-                            <span>GST ({taxRate}%)</span>
-                            <span>{formatCurrency(calculatedTax)}</span>
-                        </div>
-                        {loyaltyDiscountAmount > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#DC2626', fontWeight: '600' }}>
-                                <span>Loyalty Discount ({effectivePointsRedeemed} pts)</span>
-                                <span>- {formatCurrency(loyaltyDiscountAmount)}</span>
+
+                            {/* Grand total Display */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Payable Amount</span>
+                                <span style={{ fontSize: '1.65rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>{formatCurrency(finalTotal)}</span>
                             </div>
-                        )}
-                        {Math.abs(roundOff) > 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94A3B8' }}>
-                                <span>Round Off</span>
-                                <span>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
+
+                            {/* Checkout Payment Action Matrix */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginTop: '0.25rem' }}>
+                                <button
+                                    disabled={cart.length === 0 || isCheckingOut}
+                                    onClick={() => handleCheckout('Cash')}
+                                    style={{
+                                        padding: '0.75rem',
+                                        borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        fontWeight: '800',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        opacity: cart.length === 0 ? 0.6 : 1,
+                                        boxShadow: cart.length > 0 ? '0 4px 12px rgba(16, 185, 129, 0.2)' : 'none',
+                                        transition: 'transform 0.1s'
+                                    }}
+                                    onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                    onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
+                                >
+                                    <DollarSign size={18} />
+                                    Cash (F1)
+                                </button>
+
+                                <button
+                                    disabled={cart.length === 0 || isCheckingOut}
+                                    onClick={() => handleCheckout('UPI')}
+                                    style={{
+                                        padding: '0.75rem',
+                                        borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        fontWeight: '800',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        opacity: cart.length === 0 ? 0.6 : 1,
+                                        boxShadow: cart.length > 0 ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
+                                        transition: 'transform 0.1s'
+                                    }}
+                                    onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                    onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
+                                >
+                                    <Smartphone size={18} />
+                                    UPI (F2)
+                                </button>
+
+                                <button
+                                    disabled={cart.length === 0 || isCheckingOut}
+                                    onClick={() => handleCheckout('Card')}
+                                    style={{
+                                        padding: '0.75rem',
+                                        borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        fontWeight: '800',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        opacity: cart.length === 0 ? 0.6 : 1,
+                                        boxShadow: cart.length > 0 ? '0 4px 12px rgba(245, 158, 11, 0.2)' : 'none',
+                                        transition: 'transform 0.1s'
+                                    }}
+                                    onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                    onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
+                                >
+                                    <CreditCard size={18} />
+                                    Card (F3)
+                                </button>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Grand total Display */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Payable Amount</span>
-                        <span style={{ fontSize: '1.65rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>{formatCurrency(finalTotal)}</span>
-                    </div>
-
-                    {/* Checkout Payment Action Matrix */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginTop: '0.25rem' }}>
-                        <button
-                            disabled={cart.length === 0 || isCheckingOut}
-                            onClick={() => handleCheckout('Cash')}
-                            style={{
-                                padding: '0.75rem',
-                                borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                fontWeight: '800',
-                                fontSize: '0.85rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '4px',
-                                opacity: cart.length === 0 ? 0.6 : 1,
-                                boxShadow: cart.length > 0 ? '0 4px 12px rgba(16, 185, 129, 0.2)' : 'none',
-                                transition: 'transform 0.1s'
-                            }}
-                            onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
-                            onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
-                        >
-                            <DollarSign size={18} />
-                            Cash (F1)
-                        </button>
-
-                        <button
-                            disabled={cart.length === 0 || isCheckingOut}
-                            onClick={() => handleCheckout('UPI')}
-                            style={{
-                                padding: '0.75rem',
-                                borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                fontWeight: '800',
-                                fontSize: '0.85rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '4px',
-                                opacity: cart.length === 0 ? 0.6 : 1,
-                                boxShadow: cart.length > 0 ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
-                                transition: 'transform 0.1s'
-                            }}
-                            onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
-                            onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
-                        >
-                            <Smartphone size={18} />
-                            UPI (F2)
-                        </button>
-
-                        <button
-                            disabled={cart.length === 0 || isCheckingOut}
-                            onClick={() => handleCheckout('Card')}
-                            style={{
-                                padding: '0.75rem',
-                                borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                fontWeight: '800',
-                                fontSize: '0.85rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '4px',
-                                opacity: cart.length === 0 ? 0.6 : 1,
-                                boxShadow: cart.length > 0 ? '0 4px 12px rgba(245, 158, 11, 0.2)' : 'none',
-                                transition: 'transform 0.1s'
-                            }}
-                            onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
-                            onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
-                        >
-                            <CreditCard size={18} />
-                            Card (F3)
-                        </button>
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
 
