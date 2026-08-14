@@ -241,8 +241,8 @@ const ProductLauncher = ({ onClose }) => {
                                                                  className="launcher-mini-img-icon"
                                                              />
                                                         </div>
+                                                        <span className="launcher-mini-name">{prod.name}</span>
                                                     </div>
-                                                    <span className="launcher-mini-name">{prod.name}</span>
                                                 </div>
                                             );
                                         })}
@@ -283,8 +283,8 @@ const ProductLauncher = ({ onClose }) => {
                                                                  className="launcher-mini-img-icon"
                                                              />
                                                         </div>
+                                                        <span className="launcher-mini-name">{prod.name}</span>
                                                     </div>
-                                                    <span className="launcher-mini-name">{prod.name}</span>
                                                 </div>
                                             );
                                         })}
@@ -639,8 +639,10 @@ const ProductLauncher = ({ onClose }) => {
                 .launcher-mini-card {
                     position: relative;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
+                    gap: 6px;
                     width: 70px;
                     height: 70px;
                     border-radius: 16px;
@@ -649,6 +651,7 @@ const ProductLauncher = ({ onClose }) => {
                     transition: border-color 0.15s ease, border 0.15s ease;
                     user-select: none;
                     box-shadow: none;
+                    padding: 0.5rem 0.25rem;
                 }
                 .launcher-mini-item-wrapper:hover .launcher-mini-card,
                 .launcher-mini-item-wrapper:focus .launcher-mini-card,
