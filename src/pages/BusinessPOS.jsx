@@ -17,7 +17,6 @@ import {
     ChevronRight,
     ChevronUp,
     ChevronDown,
-    ArrowLeftRight,
     Edit,
     X,
     Check,
@@ -60,7 +59,6 @@ const BusinessPOS = () => {
     // Panel Expand/Collapse State
     const [isCustomerSectionExpanded, setIsCustomerSectionExpanded] = useState(true);
     const [isTotalsSectionExpanded, setIsTotalsSectionExpanded] = useState(true);
-    const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
     
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState([]);
