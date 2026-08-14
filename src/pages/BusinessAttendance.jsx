@@ -17,7 +17,8 @@ import {
     RefreshCw,
     Check,
     User,
-    QrCode
+    QrCode,
+    Edit2
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -519,11 +520,10 @@ const BusinessAttendance = () => {
                                                         setSelectedLog(log);
                                                         setIsEditModalOpen(true);
                                                     }}
-                                                    onMouseOver={(e) => { e.currentTarget.style.background = '#EC4899'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#EC4899'; }}
-                                                    onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
-                                                    style={{ border: '1px solid #E2E8F0', background: 'white', padding: '0.25rem 0.6rem', borderRadius: '6px', color: '#475569', fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+                                                    style={{ border: '1px solid #FCE7F3', background: '#FDF2F8', padding: '0.35rem 0.75rem', borderRadius: '8px', color: '#EC4899', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', transition: 'all 0.15s ease', whiteSpace: 'nowrap' }}
+                                                    title="Edit Today's Check-In & Check-Out Timings"
                                                 >
-                                                    Edit
+                                                    <Edit2 size={13} /> Edit Timings
                                                 </button>
                                             </td>
                                         </tr>

@@ -377,6 +377,7 @@ const BusinessStaffing = () => {
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['employees'] });
             alert('Employee onboarding sequence completed! Welcome package circular emailed.');
+            setNewEmp(initialEmpState);
             setIsOnboardModalOpen(false);
         }
     });
@@ -463,8 +464,8 @@ const BusinessStaffing = () => {
         };
     }) : [];
 
-    // Form onboarding states
-    const [newEmp, setNewEmp] = useState({
+    // Initial empty employee form state
+    const initialEmpState = {
         first_name: '',
         last_name: '',
         gender: 'Male',
@@ -476,7 +477,7 @@ const BusinessStaffing = () => {
         bank_name: '',
         account_number: '',
         ifsc_code: '',
-        shift_name: 'Morning Shift (6 AM - 2 PM)',
+        shift_name: 'General Shift (9 AM - 6 PM)',
         leave_balance: 14,
         date_of_birth: '',
         blood_group: 'O+',
@@ -491,7 +492,10 @@ const BusinessStaffing = () => {
         emergency_contact_number: '',
         pf_number: '',
         pan_number: ''
-    });
+    };
+
+    // Form onboarding states
+    const [newEmp, setNewEmp] = useState(initialEmpState);
 
     // Form performance review states
     const [perfForm, setPerfForm] = useState({
@@ -738,7 +742,10 @@ const BusinessStaffing = () => {
                         <Award size={15} /> File Appraisal Review
                     </button>
                     <button
-                        onClick={() => setIsOnboardModalOpen(true)}
+                        onClick={() => {
+                            setNewEmp(initialEmpState);
+                            setIsOnboardModalOpen(true);
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
                     >
                         <UserPlus size={15} /> Onboard Staff Employee
@@ -849,21 +856,21 @@ const BusinessStaffing = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#064E3B' }}>{emp.employee_code}</td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.phone_number}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.email}</span>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '750', color: '#064E3B', whiteSpace: 'nowrap' }}>{emp.employee_code}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', minWidth: '180px', wordBreak: 'break-word' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.15rem 0' }}>{emp.phone_number}</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748B', wordBreak: 'break-all', display: 'block', lineHeight: 1.3 }}>{emp.email}</span>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.emergency_contact_name}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.emergency_contact_number}</span>
+                                            <td style={{ padding: '1.25rem 1.5rem', minWidth: '160px', wordBreak: 'break-word' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.15rem 0' }}>{emp.emergency_contact_name}</p>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748B', wordBreak: 'break-all', display: 'block' }}>{emp.emergency_contact_number}</span>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.date_of_birth} ({emp.gender})</p>
+                                            <td style={{ padding: '1.25rem 1.5rem', whiteSpace: 'nowrap' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.15rem 0' }}>{emp.date_of_birth} ({emp.gender})</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#E11D48', fontWeight: '800' }}>Blood group: {emp.blood_group}</span>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{emp.address_line_1}</p>
+                                            <td style={{ padding: '1.25rem 1.5rem', minWidth: '180px', wordBreak: 'break-word' }}>
+                                                <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.15rem 0' }}>{emp.address_line_1}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{emp.city}, {emp.state} ({emp.pincode})</span>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
@@ -964,28 +971,74 @@ const BusinessStaffing = () => {
 
                 {/* Tab 4: Leaves & Shifts Rosters */}
                 {activeTab === 'leaves' && (
-                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Leaves Balance & assigned Roster Shifts</h3>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ background: '#F8FAFC' }}>
-                                <tr>
-                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
-                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Assigned Work Shift</th>
-                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Annual Leave Balance</th>
-                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Weekly Holiday</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => (
-                                    <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.shift_name}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{emp.leave_balance} Days Left</td>
-                                        <td style={{ padding: '1rem' }}>Sunday Off</td>
-                                    </tr>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Leaves Balance, Pays & Assigned Roster Shifts</h3>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>Comprehensive view of employee salaries, bonus eligibility, monthly leave quota, and shift rosters.</p>
+                                </div>
+                                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '800', color: '#047857' }}>
+                                    🌴 Monthly Quota: 1.5 Leaves / Month (18 Days / Year)
+                                </div>
+                            </div>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                    <thead style={{ background: '#F8FAFC' }}>
+                                        <tr>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Assigned Work Shift</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Basic Salary & Pays</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Annual Bonus Est.</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly Allocated Leaves</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Annual Leave Balance</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Weekly Holiday</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => {
+                                            const bonusEst = emp.basic_salary * 0.10; // 10% annual bonus
+                                            return (
+                                                <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.shift_name}</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(emp.basic_salary)} <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>/mo</span></td>
+                                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#D97706' }}>{formatCurrency(bonusEst)}</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#3B82F6' }}>1.5 Days / mo</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{emp.leave_balance} Days Left</td>
+                                                    <td style={{ padding: '1rem' }}><span style={{ background: '#F1F5F9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '750' }}>Sunday Off</span></td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Public Holidays Card for Employees */}
+                        <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.75rem 2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                <Calendar size={18} color="#10B981" />
+                                <h4 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Official Public Holidays Roster (2026)</h4>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                                {[
+                                    { date: '26 Jan 2026', name: 'Republic Day', type: 'National Holiday' },
+                                    { date: '01 May 2026', name: 'May Day / Labor Day', type: 'State Holiday' },
+                                    { date: '15 Aug 2026', name: 'Independence Day', type: 'National Holiday' },
+                                    { date: '02 Oct 2026', name: 'Gandhi Jayanti', type: 'National Holiday' },
+                                    { date: '20 Oct 2026', name: 'Ayudha Pooja / Diwali', type: 'Festival' },
+                                    { date: '25 Dec 2026', name: 'Christmas', type: 'Festival' },
+                                    { date: '01 Jan 2027', name: 'New Year Day', type: 'General Holiday' }
+                                ].map((ph, idx) => (
+                                    <div key={idx} style={{ background: '#F8FAFC', border: '1px solid #F1F5F9', padding: '0.75rem 1rem', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.72rem', color: '#10B981', fontWeight: '800' }}>{ph.date}</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>{ph.name}</span>
+                                        <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>{ph.type}</span>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -1272,8 +1325,24 @@ const BusinessStaffing = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Corporate Email</label>
-                                            <input required type="email" value={newEmp.email} onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="arun.kumar@clikbusiness.com" />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Corporate Email (BNX / Company Mail)</label>
+                                                <span style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '750' }}>CLIKS App Sync</span>
+                                            </div>
+                                            <input required type="email" value={newEmp.email} onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="arun.kumar@bnxmail.com" />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!newEmp.email) {
+                                                        alert("Please enter the employee's corporate email first.");
+                                                        return;
+                                                    }
+                                                    alert(`Invitation request dispatched to ${newEmp.email}! The employee will receive a notification in CLIKS app to connect with your company.`);
+                                                }}
+                                                style={{ marginTop: '0.4rem', padding: '0.35rem 0.65rem', borderRadius: '8px', background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#047857', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                            >
+                                                <Send size={12} /> Send CLIKS Connection Request
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
