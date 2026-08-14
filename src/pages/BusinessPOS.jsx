@@ -1103,7 +1103,7 @@ const BusinessPOS = () => {
         <div style={{ display: 'flex', height: '100%', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             
             {/* Left Side: Product Catalog */}
-            <div style={{ flex: '1 1 60%', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <div style={{ flex: '1 1 0%', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 
                 {/* Header: Search & Summary Widget */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
@@ -1467,8 +1467,8 @@ const BusinessPOS = () => {
                 </div>
             </div>
 
-            {/* Right Side: Live Cart Workspace */}
-            <div style={{ flex: '1 1 40%', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            {/* Right Side: Live Cart Workspace / Billing Box */}
+            <div style={{ width: '380px', minWidth: '360px', flex: '0 0 380px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 
                 {/* Customer Attachment Row */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
