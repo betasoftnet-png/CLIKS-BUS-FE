@@ -35,6 +35,7 @@ import { inventoryService } from '../services/inventoryService';
 import { productsService } from '../services/productsService';
 import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
+import { stockService } from '../services/stockService';
 import { hsnService } from '../services/hsnService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
@@ -303,14 +304,15 @@ const BusinessPOS = () => {
         }
     };
 
-    // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products)
+    // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products + Stock Registry)
     const { data: inventory = [], isLoading: isInventoryLoading } = useQuery({
         queryKey: ['pos-catalog'],
         queryFn: async () => {
             try {
-                const [invRes, prodRes] = await Promise.all([
+                const [invRes, prodRes, stockRes] = await Promise.all([
                     inventoryService.getInventory().catch(() => []),
-                    productsService.getProducts().catch(() => [])
+                    productsService.getProducts().catch(() => []),
+                    stockService.getStocks().catch(() => [])
                 ]);
 
                 // Format Legacy Inventory items
@@ -328,17 +330,29 @@ const BusinessPOS = () => {
                 // Format Central Catalog Products
                 const catalogItems = (prodRes || []).map(p => ({
                     id: p.id,
-                    name: p.product_name || p.name,
+                    name: p.name || p.product_name,
                     sku: p.sku || p.hsn_code,
                     unit: p.unit || p.primary_unit || 'PCS',
                     price: parseFloat(p.selling_price) || parseFloat(p.price) || 0,
-                    quantity: parseFloat(p.stock) || parseFloat(p.quantity) || 0,
-                    category: p.category_name || p.category || 'General',
+                    quantity: parseFloat(p.quantity) !== undefined && !isNaN(parseFloat(p.quantity)) ? parseFloat(p.quantity) : (parseFloat(p.stock) || 0),
+                    category: p.category || p.category_name || 'General',
                     source: 'products'
                 }));
 
+                // Format Stock Registry items
+                const stockItems = (stockRes || []).map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    sku: s.sku,
+                    unit: s.unit || 'PCS',
+                    price: parseFloat(s.unit_price) || parseFloat(s.price) || 0,
+                    quantity: parseFloat(s.quantity) || 0,
+                    category: s.category || 'General',
+                    source: 'stock'
+                }));
+
                 // Aggregate and de-duplicate by exact case-insensitive name
-                const allItems = [...catalogItems, ...legacyItems];
+                const allItems = [...catalogItems, ...legacyItems, ...stockItems];
                 const uniqueMap = new Map();
                 allItems.forEach(item => {
                     if (!item.name) return;
@@ -796,7 +810,7 @@ const BusinessPOS = () => {
     const roundOff = finalTotal - totalBeforeRound;
 
     const handleCheckout = (mode) => {
-        if (cart.length === 0) return;
+        if (cart.length === 0 || isCheckingOut) return;
 
         // Prevent selling more quantity than available stock
         for (const item of cart) {
