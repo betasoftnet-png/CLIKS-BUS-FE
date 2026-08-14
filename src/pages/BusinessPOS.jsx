@@ -396,6 +396,12 @@ const BusinessPOS = () => {
             setLastOrderData(data);
             setShowReceiptModal(true);
             setIsCheckingOut(false);
+
+            // Remove completed held cart from HELD CARTS list after successful payment
+            if (activeHeldCartInfo) {
+                setHeldCarts(prev => prev.filter(h => h.id !== activeHeldCartInfo.id));
+            }
+
             // Reset Cart
             setCart([]);
             setCustomerName('');
