@@ -442,16 +442,49 @@ const BusinessStock = () => {
             </div>
 
             {/* Tab Swappers */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
                 {[
-                    { id: 'registry', label: 'Stock Registry & Valuation', icon: Layers, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
-                    { id: 'movement', label: 'Inward & Outward Logs', icon: Activity, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
-                    { id: 'warehouse', label: 'Warehouse Transfers', icon: Warehouse, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
-                    { id: 'batch', label: 'Batches & Expiries', icon: Calendar, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
+                    { 
+                        id: 'registry', 
+                        label: 'Stock Registry & Valuation', 
+                        icon: Layers, 
+                        gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', 
+                        shadowColor: 'rgba(236, 72, 153, 0.15)',
+                        description: 'Shows your products, available stock, and the value/cost of your inventory.',
+                        example: '50 units × ₹100 cost = ₹5,000 stock value.'
+                    },
+                    { 
+                        id: 'movement', 
+                        label: 'Inward & Outward Logs', 
+                        icon: Activity, 
+                        gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', 
+                        shadowColor: 'rgba(59, 130, 246, 0.15)',
+                        description: 'Shows the history of stock coming in and going out. Inward = stock added/purchased. Outward = stock sold/removed.',
+                        example: 'Purchase +20 units, Sale −5 units.'
+                    },
+                    { 
+                        id: 'warehouse', 
+                        label: 'Warehouse Transfers', 
+                        icon: Warehouse, 
+                        gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', 
+                        shadowColor: 'rgba(139, 92, 246, 0.15)',
+                        description: 'Used to move products from one warehouse to another.',
+                        example: 'Main Warehouse → Chennai Branch: 10 units.'
+                    },
+                    { 
+                        id: 'batch', 
+                        label: 'Batches & Expiries', 
+                        icon: Calendar, 
+                        gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', 
+                        shadowColor: 'rgba(16, 185, 129, 0.15)',
+                        description: 'Used for products that have batches and expiry dates, especially food, medicine, cosmetics, etc.',
+                        example: 'Milk Batch B102 → Expiry: 20-08-2026.'
+                    }
                 ].map(tab => (
                     <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
+                        title={`${tab.description}\nExample: ${tab.example}`}
                         style={{ 
                             padding: '0.5rem 1rem', borderRadius: '8px', 
                             background: activeTab === tab.id ? tab.gradient : 'white', 
@@ -465,6 +498,42 @@ const BusinessStock = () => {
                     </button>
                 ))}
             </div>
+
+            {/* Active Tab Info Description Banner */}
+            {(() => {
+                const tabDescriptions = {
+                    registry: {
+                        desc: "Shows your products, available stock, and the value/cost of your inventory.",
+                        example: "50 units × ₹100 cost = ₹5,000 stock value."
+                    },
+                    movement: {
+                        desc: "Shows the history of stock coming in and going out.\nInward = stock added/purchased. Outward = stock sold/removed.",
+                        example: "Purchase +20 units, Sale −5 units."
+                    },
+                    warehouse: {
+                        desc: "Used to move products from one warehouse to another.",
+                        example: "Main Warehouse → Chennai Branch: 10 units."
+                    },
+                    batch: {
+                        desc: "Used for products that have batches and expiry dates, especially food, medicine, cosmetics, etc.",
+                        example: "Milk Batch B102 → Expiry: 20-08-2026."
+                    }
+                };
+                const current = tabDescriptions[activeTab];
+                if (!current) return null;
+                return (
+                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.65rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                        <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '500', lineHeight: 1.4 }}>
+                            {current.desc.split('\n').map((line, idx) => (
+                                <div key={idx}>{line}</div>
+                            ))}
+                        </div>
+                        <div style={{ background: '#F8FAFC', border: '1px solid #F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', color: '#0F172A', fontWeight: '600', flexShrink: 0 }}>
+                            <span style={{ color: '#64748B', fontWeight: '700' }}>Example:</span> {current.example}
+                        </div>
+                    </div>
+                );
+            })()}
             
             {/* Central Auto-Scrolling Frame */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
