@@ -31,7 +31,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { useCurrency } from '../context';
-import { stockService } from '../services';
+import { productsService } from '../services';
 
 const CANVAS_PRESETS = [
     {
@@ -162,31 +162,37 @@ const BusinessBarcode = () => {
     const barcodeRef = useRef(null);
     const bulkPrintRef = useRef(null);
 
-    // Fetch Stock Products for barcode generation
+    const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+
+    // Fetch Inventory Products for barcode generation
+    const loadInventoryProducts = async () => {
+        setIsLoadingProducts(true);
+        try {
+            const items = await productsService.getProducts();
+            const normalized = Array.isArray(items) ? items : (items?.data || items?.products || items?.rows || items?.items || []);
+            setStockProducts(normalized);
+        } catch (err) {
+            console.error('[Barcode Gen] Error loading inventory products:', err);
+        } finally {
+            setIsLoadingProducts(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchStocks = async () => {
-            try {
-                const res = await stockService.getStocks();
-                const items = Array.isArray(res) ? res : (res?.data || []);
-                setStockProducts(items);
-            } catch (err) {
-                console.error('[Barcode Gen] Error loading stock products:', err);
-            }
-        };
-        fetchStocks();
+        loadInventoryProducts();
     }, []);
 
-    // Auto-fill when stock product selected
+    // Auto-fill when inventory product selected
     const handleSelectStockProduct = (id) => {
         setSelectedStockId(id);
         if (!id) return;
         const prod = stockProducts.find(p => String(p.id) === String(id));
         if (prod) {
-            const skuVal = prod.sku || prod.code || prod.barcode || `SKU-${prod.id}`;
-            const titleVal = prod.name || prod.title || 'Stock Item';
-            const subVal = prod.category || prod.variation || prod.unit ? `Category: ${prod.category || 'General'} | ${prod.unit || 'Pcs'}` : '';
-            const priceVal = String(prod.selling_price || prod.price || prod.rate || '0.00');
-            const mrpVal = String(prod.mrp || prod.original_price || (parseFloat(priceVal) * 1.25).toFixed(2));
+            const skuVal = prod.sku || prod.barcode || prod.code || `SKU-${prod.id}`;
+            const titleVal = prod.name || prod.title || prod.product_name || prod.item_name || 'Inventory Product';
+            const subVal = prod.subtitle || prod.description || (prod.category || prod.unit ? `Category: ${prod.category || 'General'}${prod.unit ? ' | Unit: ' + prod.unit : ''}` : '');
+            const priceVal = String(prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price ?? '0.00');
+            const mrpVal = String(prod.mrp ?? prod.original_price ?? (parseFloat(priceVal) > 0 ? (parseFloat(priceVal) * 1.25).toFixed(2) : '0.00'));
 
             setCodeValue(skuVal);
             setLabelDetails(prev => ({
@@ -199,8 +205,10 @@ const BusinessBarcode = () => {
 
             // Auto populate key fields if present
             const newFields = [];
-            if (prod.batch_no) newFields.push({ id: 1, key: 'Batch No', value: String(prod.batch_no) });
-            if (prod.exp_date) newFields.push({ id: 2, key: 'Exp Date', value: String(prod.exp_date) });
+            const batchVal = prod.batch_number || prod.batch_no;
+            const expVal = prod.expiry_date || prod.exp_date;
+            if (batchVal) newFields.push({ id: 1, key: 'Batch No', value: String(batchVal) });
+            if (expVal) newFields.push({ id: 2, key: 'Exp Date', value: String(expVal) });
             if (prod.mfg_date) newFields.push({ id: 3, key: 'Mfg Date', value: String(prod.mfg_date) });
             if (prod.origin) newFields.push({ id: 4, key: 'Origin', value: String(prod.origin) });
             if (newFields.length > 0) setCustomFields(newFields);
@@ -609,12 +617,19 @@ const BusinessBarcode = () => {
                                     <input 
                                         type="text" 
                                         value={labelDetails.title}
-                                        onClick={() => setIsProductDropdownOpen(true)}
-                                        onFocus={() => setIsProductDropdownOpen(true)}
+                                        onClick={() => {
+                                            setIsProductDropdownOpen(true);
+                                            if (stockProducts.length === 0) loadInventoryProducts();
+                                        }}
+                                        onFocus={() => {
+                                            setIsProductDropdownOpen(true);
+                                            if (stockProducts.length === 0) loadInventoryProducts();
+                                        }}
                                         onChange={(e) => {
                                             updateLabelDetails('title', e.target.value);
                                             setIsProductDropdownOpen(true);
-                                            const matched = stockProducts.find(p => (p.name || p.title || '').toLowerCase().trim() === e.target.value.toLowerCase().trim());
+                                            const val = e.target.value.toLowerCase().trim();
+                                            const matched = stockProducts.find(p => (p.name || p.product_name || p.title || p.item_name || '').toLowerCase().trim() === val);
                                             if (matched) {
                                                 handleSelectStockProduct(matched.id);
                                             }
@@ -623,7 +638,10 @@ const BusinessBarcode = () => {
                                         style={{ width: '100%', padding: '0.75rem', paddingRight: '2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                     />
                                     <div 
-                                        onClick={() => setIsProductDropdownOpen(prev => !prev)}
+                                        onClick={() => {
+                                            setIsProductDropdownOpen(prev => !prev);
+                                            if (stockProducts.length === 0) loadInventoryProducts();
+                                        }}
                                         style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
                                     >
                                         <ChevronDown size={18} />
@@ -646,45 +664,60 @@ const BusinessBarcode = () => {
                                         maxHeight: '220px', 
                                         overflowY: 'auto' 
                                     }}>
-                                        {stockProducts
-                                            .filter(prod => {
-                                                const q = (labelDetails.title || '').toLowerCase().trim();
-                                                if (!q) return true;
-                                                return (prod.name || prod.title || '').toLowerCase().includes(q) || (prod.sku || prod.code || '').toLowerCase().includes(q);
-                                            })
-                                            .map(prod => (
-                                                <div 
-                                                    key={prod.id}
-                                                    onClick={() => {
-                                                        handleSelectStockProduct(prod.id);
-                                                        setIsProductDropdownOpen(false);
-                                                    }}
-                                                    style={{ 
-                                                        padding: '0.65rem 0.9rem', 
-                                                        cursor: 'pointer', 
-                                                        borderBottom: '1px solid #F1F5F9',
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
-                                                        alignItems: 'center',
-                                                        transition: 'background 0.15s'
-                                                    }}
-                                                    onMouseOver={e => e.currentTarget.style.background = '#F0FDF4'}
-                                                    onMouseOut={e => e.currentTarget.style.background = 'white'}
-                                                >
-                                                    <div>
-                                                        <div style={{ fontWeight: '750', fontSize: '0.88rem', color: '#0F172A' }}>{prod.name || prod.title}</div>
-                                                        <div style={{ fontSize: '0.73rem', color: '#64748B' }}>SKU: {prod.sku || prod.code || prod.id}</div>
-                                                    </div>
-                                                    <div style={{ fontWeight: '850', fontSize: '0.88rem', color: '#1B6B3A' }}>
-                                                        ₹{prod.selling_price || prod.price || 0}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        }
-                                        {stockProducts.length === 0 && (
-                                            <div style={{ padding: '0.75rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.8rem' }}>
-                                                No inventory products found.
+                                        {isLoadingProducts && stockProducts.length === 0 ? (
+                                            <div style={{ padding: '0.8rem', textAlign: 'center', color: '#1B6B3A', fontSize: '0.82rem', fontWeight: '700' }}>
+                                                Loading inventory products...
                                             </div>
+                                        ) : (
+                                            <>
+                                                {stockProducts
+                                                    .filter(prod => {
+                                                        const q = (labelDetails.title || '').toLowerCase().trim();
+                                                        if (!q) return true;
+                                                        const nameStr = (prod.name || prod.product_name || prod.title || prod.item_name || '').toLowerCase();
+                                                        const skuStr = (prod.sku || prod.barcode || prod.code || '').toLowerCase();
+                                                        return nameStr.includes(q) || skuStr.includes(q);
+                                                    })
+                                                    .map(prod => {
+                                                        const pName = prod.name || prod.product_name || prod.title || prod.item_name || 'Product';
+                                                        const pSku = prod.sku || prod.barcode || prod.code || `ID-${prod.id}`;
+                                                        const pPrice = prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price ?? 0;
+                                                        return (
+                                                            <div 
+                                                                key={prod.id}
+                                                                onClick={() => {
+                                                                    handleSelectStockProduct(prod.id);
+                                                                    setIsProductDropdownOpen(false);
+                                                                }}
+                                                                style={{ 
+                                                                    padding: '0.65rem 0.9rem', 
+                                                                    cursor: 'pointer', 
+                                                                    borderBottom: '1px solid #F1F5F9',
+                                                                    display: 'flex', 
+                                                                    justifyContent: 'space-between', 
+                                                                    alignItems: 'center',
+                                                                    transition: 'background 0.15s'
+                                                                }}
+                                                                onMouseOver={e => e.currentTarget.style.background = '#F0FDF4'}
+                                                                onMouseOut={e => e.currentTarget.style.background = 'white'}
+                                                            >
+                                                                <div>
+                                                                    <div style={{ fontWeight: '750', fontSize: '0.88rem', color: '#0F172A' }}>{pName}</div>
+                                                                    <div style={{ fontSize: '0.73rem', color: '#64748B' }}>SKU: {pSku}</div>
+                                                                </div>
+                                                                <div style={{ fontWeight: '850', fontSize: '0.88rem', color: '#1B6B3A' }}>
+                                                                    ₹{pPrice}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                }
+                                                {stockProducts.length === 0 && !isLoadingProducts && (
+                                                    <div style={{ padding: '0.75rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.8rem' }}>
+                                                        No inventory products found.
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 )}
