@@ -4,24 +4,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, stockService, settingsService } from '../services';
 import { apiClient } from '../api/client';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { 
-    Warehouse as WarehouseIcon, 
-    Plus, 
-    Search, 
-    MapPin, 
-    User, 
-    Phone, 
-    Mail, 
-    Layers, 
-    ArrowRightLeft, 
-    FileText, 
-    CheckCircle2, 
-    Clock, 
-    X, 
-    DollarSign, 
-    BarChart3, 
-    PercentCircle, 
-    Activity, 
+import {
+    Warehouse as WarehouseIcon,
+    Plus,
+    Search,
+    MapPin,
+    User,
+    Phone,
+    Mail,
+    Layers,
+    ArrowRightLeft,
+    FileText,
+    CheckCircle2,
+    Clock,
+    X,
+    DollarSign,
+    BarChart3,
+    PercentCircle,
+    Activity,
     Sliders,
     Truck,
     Folder,
@@ -121,21 +121,21 @@ const BusinessWarehouse = () => {
     const warehouses = dbWarehouses
         .filter(w => !locallyDeletedIds.includes(String(w.id)))
         .map(w => ({
-        warehouse_id: `WH-0${w.id}`,
-        id: w.id,
-        warehouse_code: w.code || `WH-${w.id}`,
-        warehouse_name: w.name || 'Warehouse Profile',
-        warehouse_type: w.type || 'godown',
-        warehouse_status: w.status || 'active',
-        address: w.address || 'Unspecified',
-        city: w.city || 'N/A',
-        state: w.state || '',
-        pincode: w.pincode || '',
-        contact_person: w.contact_person || 'Not Assigned',
-        phone_number: w.phone_number || '',
-        email: w.email || '',
-        capacity_utilization: w.capacity_utilization || '0%'
-    }));
+            warehouse_id: `WH-0${w.id}`,
+            id: w.id,
+            warehouse_code: w.code || `WH-${w.id}`,
+            warehouse_name: w.name || 'Warehouse Profile',
+            warehouse_type: w.type || 'godown',
+            warehouse_status: w.status || 'active',
+            address: w.address || 'Unspecified',
+            city: w.city || 'N/A',
+            state: w.state || '',
+            pincode: w.pincode || '',
+            contact_person: w.contact_person || 'Not Assigned',
+            phone_number: w.phone_number || '',
+            email: w.email || '',
+            capacity_utilization: w.capacity_utilization || '0%'
+        }));
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
     const whStocks = dbStocks.map(s => {
@@ -313,7 +313,7 @@ const BusinessWarehouse = () => {
     };
 
     const createInwardMutation = useMutation({
-        mutationFn: (data) => apiClient.patch(`/stock/${data.stock_id}/adjust-quantity`, { 
+        mutationFn: (data) => apiClient.patch(`/stock/${data.stock_id}/adjust-quantity`, {
             delta: data.quantity,
             purchase_bill_ref: data.purchase_bill_ref,
             received_by: data.received_by,
@@ -374,12 +374,12 @@ const BusinessWarehouse = () => {
                         The Godowns, Locations, and Logistics module is currently disabled. You can activate this feature instantly from your advanced personalization control panel to start managing bulk godowns and transfers.
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                        <button 
+                        <button
                             onClick={() => window.location.href = '/customization'}
-                            style={{ 
-                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
-                                background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.75rem 1.5rem', borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none',
                                 fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
                                 boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
                             }}
@@ -408,13 +408,13 @@ const BusinessWarehouse = () => {
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage multiple physical godowns, branch storage facilities, inter-warehouse transfers, rack zones, and inward receipts.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button 
+                    <button
                         onClick={() => setIsInwardModalOpen(true)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
                     >
                         <Truck size={15} /> Goods Inward Receiving
                     </button>
-                    <button 
+                    <button
                         onClick={() => setIsCreateModalOpen(true)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
                     >
@@ -437,14 +437,14 @@ const BusinessWarehouse = () => {
                         <div style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.06, color: stat.color, transform: 'rotate(-15deg)' }}>
                             <stat.icon size={70} />
                         </div>
-                        
+
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
                             <stat.icon size={20} />
                         </div>
-                        
+
                         <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.25rem 0', position: 'relative', zIndex: 1 }}>{stat.value}</h3>
                         <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em', position: 'relative', zIndex: 1 }}>{stat.label}</p>
-                        
+
                         {/* Colored bottom border accent */}
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: stat.color, opacity: 0.7 }} />
                     </div>
@@ -459,12 +459,12 @@ const BusinessWarehouse = () => {
                     { id: 'operations', label: 'Goods Inward Historical logs', icon: FileText, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
                     { id: 'transfers', label: 'Inter-Warehouse Transfers', icon: ArrowRightLeft, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
                 ].map(tab => (
-                    <button 
+                    <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        style={{ 
-                            padding: '0.5rem 1rem', borderRadius: '8px', 
-                            background: activeTab === tab.id ? tab.gradient : 'white', 
+                        style={{
+                            padding: '0.5rem 1rem', borderRadius: '8px',
+                            background: activeTab === tab.id ? tab.gradient : 'white',
                             color: activeTab === tab.id ? 'white' : '#64748B',
                             border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -475,210 +475,210 @@ const BusinessWarehouse = () => {
                     </button>
                 ))}
             </div>
-            
+
             {/* Central Auto-Scrolling Frame */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
-            {/* Tab 1: Godown Profiles */}
-            {activeTab === 'profiles' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-                    {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((wh) => (
-                        <div key={wh.warehouse_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{wh.warehouse_code}</span>
-                                <span style={{ display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#E0F2FE', color: '#0369A1', fontSize: '0.75rem', fontWeight: '800' }}>CAPACITY UTILIZATION: {wh.capacity_utilization}</span>
-                            </div>
+                {/* Tab 1: Godown Profiles */}
+                {activeTab === 'profiles' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                        {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((wh) => (
+                            <div key={wh.warehouse_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{wh.warehouse_code}</span>
+                                    <span style={{ display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#E0F2FE', color: '#0369A1', fontSize: '0.75rem', fontWeight: '800' }}>CAPACITY UTILIZATION: {wh.capacity_utilization}</span>
+                                </div>
 
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', marginBottom: '1rem' }}>{wh.warehouse_name}</h3>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', marginBottom: '1rem' }}>{wh.warehouse_name}</h3>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
-                                    <MapPin size={16} style={{ color: '#64748B', flexShrink: 0 }} />
-                                    <span>{wh.address}, {wh.city} - {wh.pincode} ({wh.state})</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
-                                    <User size={16} style={{ color: '#64748B' }} />
-                                    <span>{wh.contact_person}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
-                                    <Phone size={16} style={{ color: '#64748B' }} />
-                                    <span>{wh.phone_number}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
-                                    <Mail size={16} style={{ color: '#64748B' }} />
-                                    <span>{wh.email}</span>
-                                </div>
-                            </div>
-
-                            {/* Facility Action Footer */}
-                            <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1.25rem', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <button onClick={() => { setEditWarehouseForm({ ...wh }); setEditingWarehouse(wh.id); }} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}>✏️ Edit</button>
-                                {confirmingDeleteId === wh.id ? (
-                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                                        <button 
-                                            onClick={(e) => { 
-                                                e.stopPropagation(); 
-                                                if (activeConfig.passcode) {
-                                                    const pin = prompt("Enter Security Passcode to authorize deletion:");
-                                                    if (pin !== "1234") {
-                                                        alert("Unauthorized: Incorrect security passcode.");
-                                                        return;
-                                                    }
-                                                }
-                                                deleteWarehouseMutation.mutate(wh.id); 
-                                                setConfirmingDeleteId(null); 
-                                            }} 
-                                            style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '800' }}
-                                        >
-                                            Delete Godown
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
-                                            style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
-                                        >
-                                            No
-                                        </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
+                                        <MapPin size={16} style={{ color: '#64748B', flexShrink: 0 }} />
+                                        <span>{wh.address}, {wh.city} - {wh.pincode} ({wh.state})</span>
                                     </div>
-                                ) : (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(wh.id); }}
-                                        style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                        title="Delete Warehouse Profile"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
+                                        <User size={16} style={{ color: '#64748B' }} />
+                                        <span>{wh.contact_person}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
+                                        <Phone size={16} style={{ color: '#64748B' }} />
+                                        <span>{wh.phone_number}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
+                                        <Mail size={16} style={{ color: '#64748B' }} />
+                                        <span>{wh.email}</span>
+                                    </div>
+                                </div>
 
-            {/* Tab 2: Warehouse Stock Registry */}
-            {activeTab === 'stock' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                                {/* Facility Action Footer */}
+                                <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1.25rem', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <button onClick={() => { setEditWarehouseForm({ ...wh }); setEditingWarehouse(wh.id); }} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}>✏️ Edit</button>
+                                    {confirmingDeleteId === wh.id ? (
+                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (activeConfig.passcode) {
+                                                        const pin = prompt("Enter Security Passcode to authorize deletion:");
+                                                        if (pin !== "1234") {
+                                                            alert("Unauthorized: Incorrect security passcode.");
+                                                            return;
+                                                        }
+                                                    }
+                                                    deleteWarehouseMutation.mutate(wh.id);
+                                                    setConfirmingDeleteId(null);
+                                                }}
+                                                style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '800' }}
+                                            >
+                                                Delete Godown
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }}
+                                                style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
+                                            >
+                                                No
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(wh.id); }}
+                                            style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                            title="Delete Warehouse Profile"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Tab 2: Warehouse Stock Registry */}
+                {activeTab === 'stock' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'warehouse_name', label: 'Warehouse Facility', placeholder: 'Name' },
+                                    { key: 'product_name', label: 'Product Description', placeholder: 'Product' },
+                                    { key: 'zone', label: 'Storage Zone', placeholder: 'Zone A' },
+                                    { key: 'current_stock', label: 'Current Stock', placeholder: 'e.g. 100' },
+                                    { key: 'damaged', label: 'Damaged Qty', placeholder: 'e.g. 5' },
+                                    { key: 'in_transit', label: 'In Transit', placeholder: 'e.g. 10' },
+                                    { key: 'valuation', label: 'Sourcing Valuation', placeholder: 'e.g. 50000' }
+                                ]} onFilterChange={setColFilters} />
+                                <tbody>
+                                    {whStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => (
+                                        <tr key={st.wh_stock_id} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onClick={() => setSelectedStock(st)} onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{st.warehouse_name}</p>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <p style={{ fontWeight: '700', color: '#1E293B' }}>{st.product_name}</p>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone}</span>
+                                                    <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{st.rack_number} | {st.shelf_number} | {st.bin_number}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.in_transit_stock} pcs</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* Tab 3: Goods Inwards Operations Logs */}
+                {activeTab === 'operations' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Goods Inwards Audit Trail</h3>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <FilterableTableHead columns={[
-        { key: 'warehouse_name', label: 'Warehouse Facility', placeholder: 'Name' },
-        { key: 'product_name', label: 'Product Description', placeholder: 'Product' },
-        { key: 'zone', label: 'Storage Zone', placeholder: 'Zone A' },
-        { key: 'current_stock', label: 'Current Stock', placeholder: 'e.g. 100' },
-        { key: 'damaged', label: 'Damaged Qty', placeholder: 'e.g. 5' },
-        { key: 'in_transit', label: 'In Transit', placeholder: 'e.g. 10' },
-        { key: 'valuation', label: 'Sourcing Valuation', placeholder: 'e.g. 50000' }
-    ]} onFilterChange={setColFilters} />
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Inward ID</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Purchase bill ref</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Received Qty</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Received By</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Date Received</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Destination Warehouse</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                {whStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => (
-                                    <tr key={st.wh_stock_id} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onClick={() => setSelectedStock(st)} onMouseOver={(e) => e.currentTarget.style.background='#F0FDF4'} onMouseOut={(e) => e.currentTarget.style.background='transparent'}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{st.warehouse_name}</p>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '700', color: '#1E293B' }}>{st.product_name}</p>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone}</span>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{st.rack_number} | {st.shelf_number} | {st.bin_number}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.in_transit_stock} pcs</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
+                                {inwards.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inw) => (
+                                    <tr key={inw.inward_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '750' }}>{inw.inward_id}</td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{inw.purchase_id}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700' }}>{inw.product_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{inw.received_quantity} pcs</td>
+                                        <td style={{ padding: '1rem' }}>{inw.received_by}</td>
+                                        <td style={{ padding: '1rem', color: '#64748B' }}>{inw.inward_date}</td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.warehouse_name}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Tab 3: Goods Inwards Operations Logs */}
-            {activeTab === 'operations' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Goods Inwards Audit Trail</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Inward ID</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Purchase bill ref</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Received Qty</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Received By</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Date Received</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Destination Warehouse</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {inwards.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inw) => (
-                                <tr key={inw.inward_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '750' }}>{inw.inward_id}</td>
-                                    <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{inw.purchase_id}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '700' }}>{inw.product_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{inw.received_quantity} pcs</td>
-                                    <td style={{ padding: '1rem' }}>{inw.received_by}</td>
-                                    <td style={{ padding: '1rem', color: '#64748B' }}>{inw.inward_date}</td>
-                                    <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.warehouse_name}</td>
+                {/* Tab 4: Inter-Warehouse Transfers */}
+                {activeTab === 'transfers' && (
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Branch Dispatch & Inter-Transfers</h3>
+                            <button onClick={() => setIsTransferModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Inter-Warehouse Transfer</button>
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Transfer ID</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>From Facility</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>To Facility</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Transfer Qty</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Logistics Carrier / Track ID</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Land Shipment</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Tab 4: Inter-Warehouse Transfers */}
-            {activeTab === 'transfers' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Branch Dispatch & Inter-Transfers</h3>
-                        <button onClick={() => setIsTransferModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Inter-Warehouse Transfer</button>
+                            </thead>
+                            <tbody>
+                                {transfers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((trf) => (
+                                    <tr key={trf.transfer_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '750' }}>{trf.transfer_id}</td>
+                                        <td style={{ padding: '1rem' }}>{trf.source_warehouse}</td>
+                                        <td style={{ padding: '1rem' }}>{trf.destination_warehouse}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700' }}>{trf.product_name}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{trf.transfer_quantity} pcs</td>
+                                        <td style={{ padding: '1rem', color: '#64748B' }}>{trf.carrier_name} ({trf.tracking_number})</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{
+                                                display: 'inline-flex', padding: '0.25rem 0.5rem', borderRadius: '6px',
+                                                background: trf.transfer_status === 'Completed' ? '#ECFDF5' : '#FFFBEB',
+                                                color: trf.transfer_status === 'Completed' ? '#10B981' : '#B45309',
+                                                fontSize: '0.75rem', fontWeight: '800'
+                                            }}>{trf.transfer_status.toUpperCase()}</span>
+                                        </td>
+                                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                            {trf.transfer_status !== 'Completed' && (
+                                                <button
+                                                    onClick={() => handleCompleteTransfer(trf.transfer_id)}
+                                                    style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                >Mark Received</button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Transfer ID</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>From Facility</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>To Facility</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Transfer Qty</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Logistics Carrier / Track ID</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Land Shipment</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {transfers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((trf) => (
-                                <tr key={trf.transfer_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '750' }}>{trf.transfer_id}</td>
-                                    <td style={{ padding: '1rem' }}>{trf.source_warehouse}</td>
-                                    <td style={{ padding: '1rem' }}>{trf.destination_warehouse}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '700' }}>{trf.product_name}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{trf.transfer_quantity} pcs</td>
-                                    <td style={{ padding: '1rem', color: '#64748B' }}>{trf.carrier_name} ({trf.tracking_number})</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{ 
-                                            display: 'inline-flex', padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                            background: trf.transfer_status === 'Completed' ? '#ECFDF5' : '#FFFBEB',
-                                            color: trf.transfer_status === 'Completed' ? '#10B981' : '#B45309',
-                                            fontSize: '0.75rem', fontWeight: '800'
-                                        }}>{trf.transfer_status.toUpperCase()}</span>
-                                    </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                        {trf.transfer_status !== 'Completed' && (
-                                            <button 
-                                                onClick={() => handleCompleteTransfer(trf.transfer_id)}
-                                                style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
-                                            >Mark Received</button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                )}
             </div>
             {/* Edit Warehouse Modal */}
             {editingWarehouse && (
@@ -689,7 +689,7 @@ const BusinessWarehouse = () => {
                             <button onClick={() => setEditingWarehouse(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         <form onSubmit={(e) => { e.preventDefault(); updateWarehouseMutation.mutate({ id: editingWarehouse, data: { name: editWarehouseForm.warehouse_name, code: editWarehouseForm.warehouse_code, type: editWarehouseForm.warehouse_type, address: editWarehouseForm.address, city: editWarehouseForm.city, state: editWarehouseForm.state, pincode: editWarehouseForm.pincode, contact_person: editWarehouseForm.contact_person, phone_number: editWarehouseForm.phone_number, email: editWarehouseForm.email } }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {[['warehouse_name','Warehouse Name','text'],['warehouse_code','Code','text'],['address','Address','text'],['city','City','text'],['state','State','text'],['pincode','Pincode','text'],['contact_person','Contact Person','text'],['phone_number','Phone','tel'],['email','Email','email']].map(([key, label, type]) => (
+                            {[['warehouse_name', 'Warehouse Name', 'text'], ['warehouse_code', 'Code', 'text'], ['address', 'Address', 'text'], ['city', 'City', 'text'], ['state', 'State', 'text'], ['pincode', 'Pincode', 'text'], ['contact_person', 'Contact Person', 'text'], ['phone_number', 'Phone', 'tel'], ['email', 'Email', 'email']].map(([key, label, type]) => (
                                 <div key={key}>
                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>{label}</label>
                                     <input type={type} value={editWarehouseForm[key] || ''} onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, [key]: e.target.value }))} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
@@ -855,15 +855,15 @@ const BusinessWarehouse = () => {
                         </div>
                         <form onSubmit={(e) => { e.preventDefault(); updateWarehouseMutation.mutate({ id: editingWarehouse, data: { name: editWarehouseForm.warehouse_name, code: editWarehouseForm.warehouse_code, type: editWarehouseForm.warehouse_type, address: editWarehouseForm.address, city: editWarehouseForm.city, state: editWarehouseForm.state, pincode: editWarehouseForm.pincode, contact_person: editWarehouseForm.contact_person, phone_number: editWarehouseForm.phone_number, email: editWarehouseForm.email } }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {[
-                                ['warehouse_name','Warehouse Name','text'],
-                                ['warehouse_code','Code','text'],
-                                ['address','Address','text'],
-                                ['city','City','text'],
-                                ['state','State','text'],
-                                ['pincode','Pincode','text'],
-                                ['contact_person','Contact Person','text'],
-                                ['phone_number','Phone','tel'],
-                                ['email','Email','email']
+                                ['warehouse_name', 'Warehouse Name', 'text'],
+                                ['warehouse_code', 'Code', 'text'],
+                                ['address', 'Address', 'text'],
+                                ['city', 'City', 'text'],
+                                ['state', 'State', 'text'],
+                                ['pincode', 'Pincode', 'text'],
+                                ['contact_person', 'Contact Person', 'text'],
+                                ['phone_number', 'Phone', 'tel'],
+                                ['email', 'Email', 'email']
                             ].map(([key, label, type]) => (
                                 <div key={key}>
                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>{label}</label>
@@ -911,10 +911,10 @@ const BusinessWarehouse = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Pincode</label>
-                                    <input 
-                                        required 
-                                        type="text" 
-                                        value={newWarehouse.pincode} 
+                                    <input
+                                        required
+                                        type="text"
+                                        value={newWarehouse.pincode}
                                         onChange={(e) => {
                                             const pin = e.target.value.replace(/\D/g, '').slice(0, 6);
                                             let autoCity = newWarehouse.city;
@@ -925,9 +925,9 @@ const BusinessWarehouse = () => {
                                             else if (pin.startsWith('560')) { autoCity = 'Bengaluru'; autoState = 'Karnataka'; }
                                             else if (pin.startsWith('400')) { autoCity = 'Mumbai'; autoState = 'Maharashtra'; }
                                             setNewWarehouse({ ...newWarehouse, pincode: pin, city: autoCity, state: autoState });
-                                        }} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
-                                        placeholder="e.g. 602001" 
+                                        }}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                        placeholder="e.g. 602001"
                                     />
                                 </div>
                                 <div>
@@ -946,24 +946,24 @@ const BusinessWarehouse = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Mobile (10 Digits)</label>
-                                    <input 
-                                        required 
-                                        type="tel" 
-                                        value={newWarehouse.phone_number} 
-                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) })} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
-                                        placeholder="9876543210" 
+                                    <input
+                                        required
+                                        type="tel"
+                                        value={newWarehouse.phone_number}
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                        placeholder="9876543210"
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Email Address</label>
-                                    <input 
-                                        required 
-                                        type="email" 
-                                        value={newWarehouse.email} 
-                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, email: e.target.value })} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
-                                        placeholder="godown@company.com" 
+                                    <input
+                                        required
+                                        type="email"
+                                        value={newWarehouse.email}
+                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, email: e.target.value })}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                        placeholder="godown@company.com"
                                     />
                                 </div>
                             </div>

@@ -33,7 +33,8 @@ import {
     AlertTriangle,
     Percent,
     ChevronDown,
-    Check
+    Check,
+    Calculator
 } from 'lucide-react';
 import '../App.css';
 import { crmService } from '../services/crmService';
@@ -248,6 +249,10 @@ const BusinessCRM = () => {
     const [csvHeaders, setCsvHeaders] = useState([]);
     const [csvRows, setCsvRows] = useState([]);
     const [columnMap, setColumnMap] = useState({});
+
+    // Points Rules & Ratio Modal State
+    const [isPointsModalOpen, setIsPointsModalOpen] = useState(false);
+    const [calcAmount, setCalcAmount] = useState(10000);
     const [parsedCustomers, setParsedCustomers] = useState([]);
     const [fileName, setFileName] = useState('');
     const [importing, setImporting] = useState(false);
@@ -1037,6 +1042,20 @@ const BusinessCRM = () => {
                     }}
                 >
                     <BarChart3 size={16} /> Aging & Collection Reports 📊
+                </button>
+                <button 
+                    onClick={() => setIsPointsModalOpen(true)}
+                    className="crm-btn-secondary"
+                    style={{ 
+                        padding: '0.45rem 1rem', borderRadius: '8px', 
+                        background: '#EFF6FF', 
+                        color: '#2563EB',
+                        border: '1px solid #BFDBFE', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: '0 2px 4px rgba(37, 99, 235, 0.06)'
+                    }}
+                >
+                    <FileText size={16} /> Points Rules & Ratio
                 </button>
             </div>
 
@@ -2086,6 +2105,218 @@ const BusinessCRM = () => {
                             </div>
                         )}
 
+                    </div>
+                </div>
+            )}
+
+            {/* POINTS CALCULATION & DISTRIBUTION RULES MODAL */}
+            {isPointsModalOpen && (
+                <div 
+                    onClick={() => setIsPointsModalOpen(false)}
+                    style={{ 
+                        position: 'fixed', 
+                        inset: 0, 
+                        background: 'rgba(15, 23, 42, 0.45)', 
+                        backdropFilter: 'blur(5px)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        zIndex: 1200, 
+                        padding: '1.5rem' 
+                    }}
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ 
+                            background: 'white', 
+                            borderRadius: '24px', 
+                            width: '100%', 
+                            maxWidth: '640px', 
+                            overflow: 'hidden', 
+                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', 
+                            border: '1px solid #E2E8F0',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ 
+                            background: '#F0FDF4', 
+                            borderBottom: '1px solid #DCF2E4', 
+                            padding: '1.25rem 1.75rem', 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center' 
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                <div style={{ 
+                                    width: '42px', 
+                                    height: '42px', 
+                                    borderRadius: '12px', 
+                                    background: '#DCF2E4', 
+                                    color: '#166534', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center' 
+                                }}>
+                                    <Calculator size={22} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#14532D', letterSpacing: '-0.01em' }}>
+                                        Points Calculation & Distribution Rules
+                                    </h3>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#166534', fontWeight: '600', opacity: 0.85 }}>
+                                        Understand your points-to-money ratio & cashback conversion
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setIsPointsModalOpen(false)}
+                                style={{ 
+                                    border: '1px solid #CBD5E1', 
+                                    background: 'white', 
+                                    borderRadius: '50%', 
+                                    width: '34px', 
+                                    height: '34px', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    cursor: 'pointer',
+                                    color: '#64748B'
+                                }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body Content */}
+                        <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            {/* 2 Ratios Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                {/* EARNING RATIO CARD */}
+                                <div style={{ 
+                                    border: '1px solid #E2E8F0', 
+                                    borderRadius: '16px', 
+                                    padding: '1.25rem', 
+                                    background: '#FAFDFB' 
+                                }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.4rem' }}>
+                                        EARNING RATIO
+                                    </span>
+                                    <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1B6B3A', margin: 0, letterSpacing: '-0.01em' }}>
+                                        ₹100 = 1 Point
+                                    </h4>
+                                    <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
+                                        Earn 1% reward points on every purchase total.
+                                    </p>
+                                </div>
+
+                                {/* MONEY VALUE RATIO CARD */}
+                                <div style={{ 
+                                    border: '1px solid #E2E8F0', 
+                                    borderRadius: '16px', 
+                                    padding: '1.25rem', 
+                                    background: '#FAFDFB' 
+                                }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.4rem' }}>
+                                        MONEY VALUE RATIO
+                                    </span>
+                                    <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#7C3AED', margin: 0, letterSpacing: '-0.01em' }}>
+                                        10 Pts = ₹1.00
+                                    </h4>
+                                    <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
+                                        1 Point is equivalent to ₹0.10 in cash value.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Interactive Converter Box */}
+                            <div style={{ 
+                                background: '#F0FDF4', 
+                                border: '1px solid #DCF2E4', 
+                                borderRadius: '16px', 
+                                padding: '1.25rem' 
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', color: '#166534', fontWeight: '850', fontSize: '0.95rem' }}>
+                                    <Percent size={18} />
+                                    <span>Interactive Points-to-Money Converter</span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                    {/* Purchase Amount Input */}
+                                    <div style={{ flex: 1, minWidth: '180px' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#166534', marginBottom: '0.35rem' }}>
+                                            Purchase Amount (₹)
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            value={calcAmount} 
+                                            onChange={(e) => setCalcAmount(e.target.value)} 
+                                            style={{ 
+                                                width: '100%', 
+                                                padding: '0.7rem 0.85rem', 
+                                                borderRadius: '10px', 
+                                                border: '1px solid #86EFAC', 
+                                                fontSize: '1.1rem', 
+                                                fontWeight: '800', 
+                                                color: '#0F172A', 
+                                                outline: 'none', 
+                                                background: 'white',
+                                                boxSizing: 'border-box'
+                                            }} 
+                                        />
+                                    </div>
+
+                                    {/* Arrow */}
+                                    <div style={{ fontSize: '1.3rem', color: '#166534', fontWeight: 'bold', paddingTop: '1.2rem' }}>
+                                        →
+                                    </div>
+
+                                    {/* Result Display */}
+                                    <div style={{ 
+                                        flex: 1.3, 
+                                        minWidth: '220px', 
+                                        background: 'white', 
+                                        border: '1px solid #86EFAC', 
+                                        borderRadius: '10px', 
+                                        padding: '0.65rem 1rem' 
+                                    }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.2rem' }}>
+                                            Points Earned & Cashback
+                                        </span>
+                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#7C3AED' }}>
+                                            +{Math.floor((Number(calcAmount) || 0) / 100)} pts <span style={{ fontSize: '1rem' }}>(₹{((Math.floor((Number(calcAmount) || 0) / 100)) * 0.10).toFixed(2)})</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{ 
+                            padding: '1rem 1.75rem', 
+                            borderTop: '1px solid #F1F5F9', 
+                            display: 'flex', 
+                            justifyContent: 'flex-end',
+                            background: '#FAFAFA' 
+                        }}>
+                            <button 
+                                onClick={() => setIsPointsModalOpen(false)}
+                                style={{ 
+                                    padding: '0.65rem 1.75rem', 
+                                    borderRadius: '10px', 
+                                    background: '#1E293B', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '0.9rem', 
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                                }}
+                            >
+                                Got It
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
