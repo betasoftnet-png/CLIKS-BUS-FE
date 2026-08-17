@@ -408,6 +408,21 @@ const BusinessPOS = () => {
                 setHeldCarts(prev => prev.filter(h => h.id !== activeHeldCartInfo.id));
             }
 
+            // Extract exact updated loyalty balance returned from backend database
+            const freshLtp = data?.updated_customer_loyalty_points !== undefined 
+                ? parseFloat(data.updated_customer_loyalty_points) 
+                : (data?.remaining_loyalty_points !== undefined 
+                    ? parseFloat(data.remaining_loyalty_points) 
+                    : (data?.final_loyalty_points !== undefined ? parseFloat(data.final_loyalty_points) : null));
+
+            if (selectedCustomerObj && freshLtp !== null && !isNaN(freshLtp)) {
+                setSelectedCustomerObj(prev => prev ? ({
+                    ...prev,
+                    loyalty_points: freshLtp,
+                    points: freshLtp
+                }) : null);
+            }
+
             // Reset Cart
             setCart([]);
             setCustomerName('');
@@ -415,18 +430,6 @@ const BusinessPOS = () => {
             setLoyaltyPointsEarned(0);
             setLoyaltyPointsRedeemed(0);
             setIsPtsEarnedManuallyEdited(false);
-
-            if (selectedCustomerObj) {
-                const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
-                const ptsRedeemed = parseFloat(loyaltyPointsRedeemed) || 0;
-                const netPts = ptsEarned - ptsRedeemed;
-                setSelectedCustomerObj(prev => prev ? ({
-                    ...prev,
-                    loyalty_points: Math.max(0, (prev.loyalty_points || prev.points || 0) + netPts),
-                    points: Math.max(0, (prev.points || prev.loyalty_points || 0) + netPts)
-                }) : null);
-            }
-
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
             
@@ -438,6 +441,7 @@ const BusinessPOS = () => {
             queryClient.invalidateQueries({ queryKey: ['stockStats'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['business-customers'] });
+            queryClient.refetchQueries({ queryKey: ['business-customers'] });
             refetchSummary();
         },
         onError: (error) => {

@@ -218,11 +218,15 @@ const BusinessBarcode = () => {
     };
 
     const addCustomField = (presetKey = '', presetValue = '') => {
-        setCustomFields(prev => [...prev, { 
-            id: Date.now() + Math.random(), 
-            key: presetKey, 
-            value: presetValue 
-        }]);
+        if (customFields.length >= 25) return;
+        setCustomFields(prev => {
+            if (prev.length >= 25) return prev;
+            return [...prev, { 
+                id: Date.now() + Math.random(), 
+                key: presetKey, 
+                value: presetValue 
+            }];
+        });
     };
 
     const removeCustomField = (id) => {
@@ -443,8 +447,24 @@ const BusinessBarcode = () => {
                                         </button>
                                     </div>
                                     <button 
+                                        disabled={customFields.length >= 25}
                                         onClick={() => addCustomField()}
-                                        style={{ background: '#1B6B3A', border: 'none', color: 'white', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', borderRadius: '8px', boxShadow: '0 2px 6px rgba(27, 107, 58, 0.2)' }}
+                                        style={{ 
+                                            background: customFields.length >= 25 ? '#94A3B8' : '#1B6B3A', 
+                                            border: 'none', 
+                                            color: 'white', 
+                                            fontWeight: '700', 
+                                            fontSize: '0.78rem', 
+                                            cursor: customFields.length >= 25 ? 'not-allowed' : 'pointer', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '4px', 
+                                            padding: '6px 12px', 
+                                            borderRadius: '8px', 
+                                            boxShadow: customFields.length >= 25 ? 'none' : '0 2px 6px rgba(27, 107, 58, 0.2)',
+                                            opacity: customFields.length >= 25 ? 0.65 : 1
+                                        }}
+                                        title={customFields.length >= 25 ? 'Maximum limit of 25 key-value pairs reached' : 'Add Key-Value'}
                                     >
                                         <Plus size={14} /> Add Key-Value
                                     </button>
@@ -457,20 +477,26 @@ const BusinessBarcode = () => {
                                 {PRESET_ATTRIBUTE_PILLS.map((pill, idx) => (
                                     <button
                                         key={idx}
+                                        disabled={customFields.length >= 25}
                                         onClick={() => addCustomField(pill.key, pill.value)}
                                         style={{
-                                            background: '#f0fdf4',
+                                            background: customFields.length >= 25 ? '#f1f5f9' : '#f0fdf4',
                                             border: '1px solid #dcf2e4',
-                                            color: '#166534',
+                                            color: customFields.length >= 25 ? '#94a3b8' : '#166534',
                                             fontSize: '0.72rem',
                                             fontWeight: '700',
                                             padding: '3px 8px',
                                             borderRadius: '12px',
-                                            cursor: 'pointer',
+                                            cursor: customFields.length >= 25 ? 'not-allowed' : 'pointer',
+                                            opacity: customFields.length >= 25 ? 0.6 : 1,
                                             transition: 'all 0.15s ease'
                                         }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = '#dcf2e4'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = '#f0fdf4'}
+                                        onMouseOver={(e) => {
+                                            if (customFields.length < 25) e.currentTarget.style.background = '#dcf2e4';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            if (customFields.length < 25) e.currentTarget.style.background = '#f0fdf4';
+                                        }}
                                     >
                                         + {pill.key}
                                     </button>
