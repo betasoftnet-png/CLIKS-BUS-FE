@@ -674,16 +674,20 @@ const BusinessPOS = () => {
     };
 
     const addToCart = (prod) => {
-        if (prod.quantity <= 0) {
+        const prodUnit = prod.unit || 'PCS';
+        const isDec = isDecimalUnit(prodUnit);
+
+        const cartItem = cart.find(item => item.id === prod.id || (item.name && prod.name && item.name.toLowerCase().trim() === prod.name.toLowerCase().trim()));
+        const currentCartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
+        const availableStock = (parseFloat(prod.quantity) || 0) - currentCartQty;
+
+        if (availableStock <= 0) {
             alert('This item is out of stock!');
             return;
         }
 
-        const prodUnit = prod.unit || 'PCS';
-        const isDec = isDecimalUnit(prodUnit);
-
         setCart(prevCart => {
-            const existing = prevCart.find(item => item.id === prod.id);
+            const existing = prevCart.find(item => item.id === prod.id || (item.name && prod.name && item.name.toLowerCase().trim() === prod.name.toLowerCase().trim()));
             if (existing) {
                 const addStep = isDec ? 0.25 : 1;
                 const newQty = isDec 
@@ -696,7 +700,7 @@ const BusinessPOS = () => {
                 }
 
                 return prevCart.map(item =>
-                    item.id === prod.id
+                    (item.id === prod.id || (item.name && prod.name && item.name.toLowerCase().trim() === prod.name.toLowerCase().trim()))
                         ? { ...item, quantity: newQty, total: Math.round(newQty * (item.price || 0) * 100) / 100 }
                         : item
                 );
@@ -1237,8 +1241,16 @@ const BusinessPOS = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
                             <AnimatePresence>
                                 {filteredProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => {
-                                    const isOutOfStock = (prod.quantity || 0) <= 0;
-                                    const isLowStock = (prod.quantity || 0) > 0 && (prod.quantity || 0) < 10;
+                                    const cartItem = cart.find(c => c.id === prod.id || (c.name && prod.name && c.name.toLowerCase().trim() === prod.name.toLowerCase().trim()));
+                                    const cartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
+                                    const rawStock = parseFloat(prod.quantity) || 0;
+                                    const isDec = isDecimalUnit(prod.unit);
+                                    const displayStock = isDec 
+                                        ? Math.max(0, Math.round((rawStock - cartQty) * 1000) / 1000)
+                                        : Math.max(0, Math.round(rawStock - cartQty));
+
+                                    const isOutOfStock = displayStock <= 0;
+                                    const isLowStock = displayStock > 0 && displayStock < 10;
                                     
                                     return (
                                         <motion.div
@@ -1455,7 +1467,7 @@ const BusinessPOS = () => {
                                                     background: isOutOfStock ? '#FEE2E2' : (isLowStock ? '#FFFBEB' : '#ECFDF5'),
                                                     color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
                                                 }}>
-                                                    {isOutOfStock ? 'OUT' : `${prod.quantity} ${prod.unit || 'PCS'} left`}
+                                                    {isOutOfStock ? 'OUT' : `${displayStock} ${prod.unit || 'PCS'} left`}
                                                 </div>
                                             </div>
                                         </motion.div>
