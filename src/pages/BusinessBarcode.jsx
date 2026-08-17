@@ -27,7 +27,8 @@ import {
     Image as ImageIcon,
     PackageCheck,
     X,
-    Percent
+    Percent,
+    ChevronDown
 } from 'lucide-react';
 import { useCurrency } from '../context';
 import { stockService } from '../services';
@@ -132,6 +133,20 @@ const BusinessBarcode = () => {
     const [selectedBadge, setSelectedBadge] = useState('made_in_india');
 
     const [customFieldsLayout, setCustomFieldsLayout] = useState('grid'); // 'grid', 'list'
+
+    // Interactive Product Dropdown state & ref
+    const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
+    const productDropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (productDropdownRef.current && !productDropdownRef.current.contains(e.target)) {
+                setIsProductDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const [customFields, setCustomFields] = useState([
         { id: 1, key: 'Exp Date', value: '12/2026' },
@@ -588,45 +603,91 @@ const BusinessBarcode = () => {
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', margin: 0 }}>Product Title / Name</label>
-                                    {stockProducts.length > 0 && (
-                                        <select 
-                                            value={selectedStockId} 
-                                            onChange={(e) => handleSelectStockProduct(e.target.value)}
-                                            style={{ fontSize: '0.75rem', fontWeight: '750', color: '#1B6B3A', background: '#E8F5EE', border: '1px solid #A7F3D0', padding: '0.2rem 0.6rem', borderRadius: '6px', cursor: 'pointer', outline: 'none' }}
-                                        >
-                                            <option value="">-- Select from Inventory ({stockProducts.length}) --</option>
-                                            {stockProducts.map(prod => (
-                                                <option key={prod.id} value={prod.id}>
-                                                    {prod.name || prod.title} (SKU: {prod.sku || prod.code || prod.id}) - ₹{prod.selling_price || prod.price || 0}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    )}
+                            <div ref={productDropdownRef} style={{ position: 'relative' }}>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Product Title / Name</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="text" 
+                                        value={labelDetails.title}
+                                        onClick={() => setIsProductDropdownOpen(true)}
+                                        onFocus={() => setIsProductDropdownOpen(true)}
+                                        onChange={(e) => {
+                                            updateLabelDetails('title', e.target.value);
+                                            setIsProductDropdownOpen(true);
+                                            const matched = stockProducts.find(p => (p.name || p.title || '').toLowerCase().trim() === e.target.value.toLowerCase().trim());
+                                            if (matched) {
+                                                handleSelectStockProduct(matched.id);
+                                            }
+                                        }}
+                                        placeholder="Enter or select product title..."
+                                        style={{ width: '100%', padding: '0.75rem', paddingRight: '2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                    />
+                                    <div 
+                                        onClick={() => setIsProductDropdownOpen(prev => !prev)}
+                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
+                                    >
+                                        <ChevronDown size={18} />
+                                    </div>
                                 </div>
-                                <input 
-                                    type="text" 
-                                    list="inventory-stock-datalist"
-                                    value={labelDetails.title}
-                                    onChange={(e) => {
-                                        updateLabelDetails('title', e.target.value);
-                                        const matched = stockProducts.find(p => (p.name || p.title || '').toLowerCase().trim() === e.target.value.toLowerCase().trim());
-                                        if (matched) {
-                                            handleSelectStockProduct(matched.id);
+
+                                {/* DROPDOWN POPUP LIST FOR EXISTING INVENTORY PRODUCTS */}
+                                {isProductDropdownOpen && (
+                                    <div style={{ 
+                                        position: 'absolute', 
+                                        top: '100%', 
+                                        left: 0, 
+                                        right: 0, 
+                                        marginTop: '4px', 
+                                        background: 'white', 
+                                        borderRadius: '10px', 
+                                        border: '1px solid #CBD5E1', 
+                                        boxShadow: '0 10px 25px rgba(0,0,0,0.12)', 
+                                        zIndex: 100, 
+                                        maxHeight: '220px', 
+                                        overflowY: 'auto' 
+                                    }}>
+                                        {stockProducts
+                                            .filter(prod => {
+                                                const q = (labelDetails.title || '').toLowerCase().trim();
+                                                if (!q) return true;
+                                                return (prod.name || prod.title || '').toLowerCase().includes(q) || (prod.sku || prod.code || '').toLowerCase().includes(q);
+                                            })
+                                            .map(prod => (
+                                                <div 
+                                                    key={prod.id}
+                                                    onClick={() => {
+                                                        handleSelectStockProduct(prod.id);
+                                                        setIsProductDropdownOpen(false);
+                                                    }}
+                                                    style={{ 
+                                                        padding: '0.65rem 0.9rem', 
+                                                        cursor: 'pointer', 
+                                                        borderBottom: '1px solid #F1F5F9',
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center',
+                                                        transition: 'background 0.15s'
+                                                    }}
+                                                    onMouseOver={e => e.currentTarget.style.background = '#F0FDF4'}
+                                                    onMouseOut={e => e.currentTarget.style.background = 'white'}
+                                                >
+                                                    <div>
+                                                        <div style={{ fontWeight: '750', fontSize: '0.88rem', color: '#0F172A' }}>{prod.name || prod.title}</div>
+                                                        <div style={{ fontSize: '0.73rem', color: '#64748B' }}>SKU: {prod.sku || prod.code || prod.id}</div>
+                                                    </div>
+                                                    <div style={{ fontWeight: '850', fontSize: '0.88rem', color: '#1B6B3A' }}>
+                                                        ₹{prod.selling_price || prod.price || 0}
+                                                    </div>
+                                                </div>
+                                            ))
                                         }
-                                    }}
-                                    placeholder="Enter or select product title..."
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
-                                />
-                                <datalist id="inventory-stock-datalist">
-                                    {stockProducts.map(prod => (
-                                        <option key={prod.id} value={prod.name || prod.title}>
-                                            SKU: {prod.sku || prod.code || prod.id} - ₹{prod.selling_price || prod.price || 0}
-                                        </option>
-                                    ))}
-                                </datalist>
+                                        {stockProducts.length === 0 && (
+                                            <div style={{ padding: '0.75rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.8rem' }}>
+                                                No inventory products found.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Description / Variation</label>
