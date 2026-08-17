@@ -800,6 +800,29 @@ const BusinessPOS = () => {
         setIsCustomerDropdownOpen(false);
     };
 
+    const getCustomerLtp = (cust) => {
+        if (!cust) return 0;
+        const raw = cust.loyalty_points !== undefined && cust.loyalty_points !== null 
+            ? cust.loyalty_points 
+            : (cust.points !== undefined && cust.points !== null ? cust.points : 0);
+        const val = parseFloat(raw);
+        if (isNaN(val) || val <= 0) return 0;
+        return Number.isInteger(val) ? val : parseFloat(val.toFixed(2));
+    };
+
+    // Auto-sync active selected customer with latest persisted backend data from customers query
+    React.useEffect(() => {
+        if (!selectedCustomerObj || !customers || customers.length === 0) return;
+        const matched = customers.find(c => (c.id && selectedCustomerObj.id && String(c.id) === String(selectedCustomerObj.id)) || (c.email && selectedCustomerObj.email && String(c.email).toLowerCase().trim() === String(selectedCustomerObj.email).toLowerCase().trim()));
+        if (matched) {
+            const freshLtp = getCustomerLtp(matched);
+            const curLtp = getCustomerLtp(selectedCustomerObj);
+            if (freshLtp !== curLtp || matched.name !== selectedCustomerObj.name || matched.email !== selectedCustomerObj.email) {
+                setSelectedCustomerObj(matched);
+            }
+        }
+    }, [customers, selectedCustomerObj]);
+
     // Calculations
     const subtotal = cart.reduce((acc, item) => acc + item.total, 0);
     
@@ -811,7 +834,7 @@ const BusinessPOS = () => {
     const calculatedTax = discountedTotal * (taxRate / 100);
     
     // Loyalty Point Redemption calculation: 1 loyalty point = ₹1 discount
-    const availableCustomerPoints = selectedCustomerObj ? (parseFloat(selectedCustomerObj.loyalty_points || selectedCustomerObj.points) || 0) : 0;
+    const availableCustomerPoints = selectedCustomerObj ? getCustomerLtp(selectedCustomerObj) : 0;
     const maxRedeemablePoints = Math.min(availableCustomerPoints, Math.floor(discountedTotal + calculatedTax));
     const effectivePointsRedeemed = selectedCustomerObj ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
     const loyaltyDiscountAmount = effectivePointsRedeemed; // 1 pt = ₹1
@@ -1610,7 +1633,7 @@ const BusinessPOS = () => {
                                                 </div>
                                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                        ⭐ Loyalty Points: {cust.loyalty_points || cust.points || 0}
+                                                        ⭐ Loyalty Points: {getCustomerLtp(cust)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1637,7 +1660,7 @@ const BusinessPOS = () => {
                                         </span>
                                         <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
                                         <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                            LTP: <strong>{selectedCustomerObj.loyalty_points || selectedCustomerObj.points || 0}</strong>
+                                            LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
                                         </span>
                                     </div>
                                     <button 
