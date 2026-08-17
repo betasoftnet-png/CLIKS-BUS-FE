@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Barcode from 'react-barcode';
 import { QRCodeCanvas } from 'qrcode.react';
 import { 
@@ -19,9 +19,18 @@ import {
     List,
     Tag,
     Box,
-    Sparkles
+    Sparkles,
+    Upload,
+    FileSpreadsheet,
+    Palette,
+    Award,
+    Image as ImageIcon,
+    PackageCheck,
+    X,
+    Percent
 } from 'lucide-react';
 import { useCurrency } from '../context';
+import { stockService } from '../services';
 
 const CANVAS_PRESETS = [
     {
@@ -58,6 +67,13 @@ const CANVAS_PRESETS = [
         desc: 'Ultra-compact dual column format ideal for small items, rings and accessories',
         icon: Sparkles,
         defaultType: 'CODE128'
+    },
+    {
+        id: 'custom',
+        name: 'Custom Template',
+        desc: 'Fully personalized layout with store logo, custom badge, border & discount styling',
+        icon: Palette,
+        defaultType: 'CODE128'
     }
 ];
 
@@ -72,6 +88,15 @@ const PRESET_ATTRIBUTE_PILLS = [
     { key: 'Origin', value: 'India' }
 ];
 
+const BADGE_OPTIONS = [
+    { id: 'none', label: 'None' },
+    { id: 'made_in_india', label: 'Made in India 🇮🇳' },
+    { id: 'eco_friendly', label: 'Eco-Friendly 🌿' },
+    { id: 'quality_checked', label: 'Quality Checked 🔒' },
+    { id: 'organic', label: 'Organic 🍃' },
+    { id: 'genuine', label: '100% Genuine ⭐' }
+];
+
 const BusinessBarcode = () => {
     const { currency } = useCurrency();
     const [selectedPreset, setSelectedPreset] = useState('standard');
@@ -79,6 +104,10 @@ const BusinessBarcode = () => {
     const [codeType, setCodeType] = useState('CODE128'); // 'QR' as alternate
     const [encodeCustomData, setEncodeCustomData] = useState(false);
     
+    // Inventory Stock Products integration
+    const [stockProducts, setStockProducts] = useState([]);
+    const [selectedStockId, setSelectedStockId] = useState('');
+
     const [format, setFormat] = useState({
         width: 2,
         height: 90,
@@ -86,14 +115,21 @@ const BusinessBarcode = () => {
         margin: 10,
         background: '#ffffff',
         lineColor: '#000000',
+        borderColor: '#e2e8f0',
         displayValue: true
     });
 
     const [labelDetails, setLabelDetails] = useState({
         title: 'Premium Cotton Shirt',
         subtitle: 'Size: L | Color: Navy',
-        price: `${currency?.symbol || '₹'} 999.00`
+        price: '999.00',
+        mrp: '1299.00',
+        currencySymbol: currency?.symbol || '₹'
     });
+
+    // Branding & Icon options
+    const [logoUrl, setLogoUrl] = useState('');
+    const [selectedBadge, setSelectedBadge] = useState('made_in_india');
 
     const [customFieldsLayout, setCustomFieldsLayout] = useState('grid'); // 'grid', 'list'
 
@@ -103,9 +139,69 @@ const BusinessBarcode = () => {
         { id: 3, key: 'Batch No', value: 'B-2026-X' }
     ]);
 
-    const barcodeRef = useRef(null);
+    // Bulk CSV State
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkItems, setBulkItems] = useState([]);
+    const bulkFileRef = useRef(null);
 
-    // Compute effective code payload (either raw SKU or combined attributes if checked)
+    const barcodeRef = useRef(null);
+    const bulkPrintRef = useRef(null);
+
+    // Fetch Stock Products for barcode generation
+    useEffect(() => {
+        const fetchStocks = async () => {
+            try {
+                const res = await stockService.getStocks();
+                const items = Array.isArray(res) ? res : (res?.data || []);
+                setStockProducts(items);
+            } catch (err) {
+                console.error('[Barcode Gen] Error loading stock products:', err);
+            }
+        };
+        fetchStocks();
+    }, []);
+
+    // Auto-fill when stock product selected
+    const handleSelectStockProduct = (id) => {
+        setSelectedStockId(id);
+        if (!id) return;
+        const prod = stockProducts.find(p => String(p.id) === String(id));
+        if (prod) {
+            const skuVal = prod.sku || prod.code || prod.barcode || `SKU-${prod.id}`;
+            const titleVal = prod.name || prod.title || 'Stock Item';
+            const subVal = prod.category || prod.variation || prod.unit ? `Category: ${prod.category || 'General'} | ${prod.unit || 'Pcs'}` : '';
+            const priceVal = String(prod.selling_price || prod.price || prod.rate || '0.00');
+            const mrpVal = String(prod.mrp || prod.original_price || (parseFloat(priceVal) * 1.25).toFixed(2));
+
+            setCodeValue(skuVal);
+            setLabelDetails(prev => ({
+                ...prev,
+                title: titleVal,
+                subtitle: subVal,
+                price: priceVal,
+                mrp: mrpVal
+            }));
+
+            // Auto populate key fields if present
+            const newFields = [];
+            if (prod.batch_no) newFields.push({ id: 1, key: 'Batch No', value: String(prod.batch_no) });
+            if (prod.exp_date) newFields.push({ id: 2, key: 'Exp Date', value: String(prod.exp_date) });
+            if (prod.mfg_date) newFields.push({ id: 3, key: 'Mfg Date', value: String(prod.mfg_date) });
+            if (prod.origin) newFields.push({ id: 4, key: 'Origin', value: String(prod.origin) });
+            if (newFields.length > 0) setCustomFields(newFields);
+        }
+    };
+
+    // Input sanitization to prevent letter/number mismatch glitch
+    const sanitizePrice = (val) => {
+        // Strip out non-numeric characters except decimals and numbers
+        const clean = val.replace(/[^0-9.]/g, '');
+        const parts = clean.split('.');
+        if (parts.length > 2) return parts[0] + '.' + parts.slice(1).join('');
+        return clean;
+    };
+
+    // Compute effective code payload
     const getEffectivePayload = () => {
         if (!encodeCustomData) return codeValue || ' ';
         const validFields = customFields.filter(f => f.key.trim() || f.value.trim());
@@ -115,6 +211,7 @@ const BusinessBarcode = () => {
             sku: codeValue,
             title: labelDetails.title,
             price: labelDetails.price,
+            mrp: labelDetails.mrp,
             attributes: validFields.reduce((acc, f) => {
                 if (f.key) acc[f.key] = f.value;
                 return acc;
@@ -132,6 +229,8 @@ const BusinessBarcode = () => {
             setFormat(prev => ({ ...prev, height: 65, fontSize: 13 }));
         } else if (preset.id === 'qr_tag') {
             setFormat(prev => ({ ...prev, height: 110, fontSize: 14 }));
+        } else if (preset.id === 'custom') {
+            setFormat(prev => ({ ...prev, height: 95, fontSize: 16, borderColor: '#1B6B3A' }));
         } else {
             setFormat(prev => ({ ...prev, height: 90, fontSize: 15 }));
         }
@@ -140,7 +239,6 @@ const BusinessBarcode = () => {
     const handleDownload = () => {
         if (!barcodeRef.current) return;
 
-        // Try SVG to Canvas for react-barcode or direct canvas
         const canvas = barcodeRef.current.querySelector('canvas');
         if (canvas) {
             const link = document.createElement('a');
@@ -233,22 +331,127 @@ const BusinessBarcode = () => {
         setCustomFields(prev => prev.filter(f => f.id !== id));
     };
 
+    // Single stretch delete all custom key-value pairs
+    const clearAllCustomFields = () => {
+        setCustomFields([]);
+    };
+
     const updateCustomField = (id, prop, val) => {
         setCustomFields(prev => prev.map(f => f.id === id ? { ...f, [prop]: val } : f));
     };
 
-    // Valid custom fields with non-empty key or value
+    // Logo upload handler
+    const handleLogoUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => setLogoUrl(event.target.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Bulk CSV parsing & upload
+    const handleBulkCsvUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target.result;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 2) {
+                alert('Invalid CSV file format.');
+                return;
+            }
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const items = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+                if (cols.length >= 2) {
+                    items.push({
+                        title: cols[0] || 'Product',
+                        sku: cols[1] || `SKU-${i}`,
+                        price: cols[2] || '999.00',
+                        mrp: cols[3] || '1299.00',
+                        subtitle: cols[4] || ''
+                    });
+                }
+            }
+            setBulkItems(items);
+            alert(`Successfully loaded ${items.length} product records from CSV!`);
+        };
+        reader.readAsText(file);
+    };
+
+    const downloadSampleCsv = () => {
+        const csvContent = "Title,SKU,Price,MRP,Subtitle\nPremium Cotton Shirt,CLKS-1001-PROD,999.00,1299.00,Size: L | Color: Navy\nOrganic Green Tea,CLKS-1002-TEA,299.00,399.00,Pack of 500g\nWireless Earbuds,CLKS-1003-AUDIO,1499.00,1999.00,Bluetooth 5.3";
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'sample_barcode_products.csv');
+        link.click();
+    };
+
+    const handleBatchPrint = () => {
+        if (bulkItems.length === 0) return;
+        const printWindow = window.open('', '_blank');
+        const itemsHtml = bulkItems.map(item => `
+            <div style="border: 1px solid #cbd5e1; padding: 12px; border-radius: 8px; text-align: center; background: white; page-break-inside: avoid;">
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 4px;">${item.title}</div>
+                <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">${item.subtitle}</div>
+                <div style="margin: 8px 0; font-family: monospace; font-weight: bold;">*${item.sku}*</div>
+                <div style="font-size: 13px; font-weight: bold;">
+                    <span style="text-decoration: line-through; color: #94a3b8; margin-right: 6px;">₹${item.mrp}</span>
+                    <span style="color: #166534;">₹${item.price}</span>
+                </div>
+            </div>
+        `).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Batch Print Barcodes (${bulkItems.length} Products)</title>
+                    <style>
+                        body { font-family: 'Inter', sans-serif; padding: 20px; background: #f8fafc; }
+                        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+                        @media print { body { padding: 0; background: white; } }
+                    </style>
+                </head>
+                <body>
+                    <h3 style="text-align: center; margin-bottom: 20px;">CLIKS Product Barcode Batch (${bulkItems.length} Labels)</h3>
+                    <div class="grid">${itemsHtml}</div>
+                    <script>
+                        setTimeout(() => { window.print(); window.close(); }, 500);
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     const activeCustomFields = customFields.filter(f => f.key.trim() !== '' || f.value.trim() !== '');
+
+    // Calculate discount percent
+    const numPrice = parseFloat(labelDetails.price) || 0;
+    const numMrp = parseFloat(labelDetails.mrp) || 0;
+    const discountPct = numMrp > numPrice ? Math.round(((numMrp - numPrice) / numMrp) * 100) : 0;
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
-            {/* Header */}
+            {/* Top Navigation & Actions Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 style={{ fontSize: '1.75rem', fontWeight: '800', color: '#0f172a', margin: '0 0 0.25rem 0' }}>Barcode Generator</h1>
                     <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>Generate high-resolution product labels, QR codes & multi-attribute tags instantly.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button 
+                        onClick={() => setIsBulkModalOpen(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #1B6B3A', background: '#E8F5EE', color: '#1B6B3A', fontWeight: '750', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <FileSpreadsheet size={18} />
+                        Bulk CSV Upload ({bulkItems.length})
+                    </button>
                     <button 
                         onClick={handlePrint}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white', color: '#334155', fontWeight: '700', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -261,6 +464,35 @@ const BusinessBarcode = () => {
                         <Download size={18} />
                         Download PNG
                     </button>
+                </div>
+            </div>
+
+            {/* QUICK INVENTORY STOCK PRODUCT SELECTOR CARD */}
+            <div style={{ background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)', padding: '1.25rem 1.5rem', borderRadius: '16px', color: 'white', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(6, 78, 59, 0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justify: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <PackageCheck size={22} color="#A7F3D0" />
+                        </div>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#F0FDF4' }}>📦 Choose Product from Inventory Stock</h3>
+                            <span style={{ fontSize: '0.78rem', color: '#A7F3D0' }}>Select any stored stock item to auto-populate title, SKU barcode value, pricing & tags instantly.</span>
+                        </div>
+                    </div>
+                    <div style={{ flex: '1', maxWidth: '420px', minWidth: '260px' }}>
+                        <select 
+                            value={selectedStockId} 
+                            onChange={(e) => handleSelectStockProduct(e.target.value)}
+                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.3)', outline: 'none', fontWeight: '700', fontSize: '0.88rem', background: '#FFFFFF', color: '#0F172A', cursor: 'pointer' }}
+                        >
+                            <option value="">-- Select Inventory Stock Product --</option>
+                            {stockProducts.map(prod => (
+                                <option key={prod.id} value={prod.id}>
+                                    {prod.name || prod.title} (SKU: {prod.sku || prod.code || prod.id}) - ₹{prod.selling_price || prod.price || 0}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -381,7 +613,7 @@ const BusinessBarcode = () => {
                             <div style={{ width: '32px', height: '32px', background: '#ecfdf5', color: '#10b981', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <Type size={18} />
                             </div>
-                            <h3 style={{ fontWeight: '800', fontSize: '1rem', color: '#1e293b', margin: 0 }}>Label Print Information</h3>
+                            <h3 style={{ fontWeight: '800', fontSize: '1rem', color: '#1e293b', margin: 0 }}>Label Print Information & Pricing</h3>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
@@ -395,26 +627,68 @@ const BusinessBarcode = () => {
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                 />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Description / Variation</label>
+                                <input 
+                                    type="text" 
+                                    value={labelDetails.subtitle}
+                                    onChange={(e) => updateLabelDetails('subtitle', e.target.value)}
+                                    placeholder="e.g., Size: L | Color: Navy"
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                />
+                            </div>
+
+                            {/* PRICE TAG & ORIGINAL MRP WITH SANITIZATION TO PREVENT ALPHANUMERIC MISMATCH */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Description / Variation</label>
-                                    <input 
-                                        type="text" 
-                                        value={labelDetails.subtitle}
-                                        onChange={(e) => updateLabelDetails('subtitle', e.target.value)}
-                                        placeholder="e.g., Color / Batch"
-                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Price Tag</label>
+                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Offer Price ({labelDetails.currencySymbol})</label>
                                     <input 
                                         type="text" 
                                         value={labelDetails.price}
-                                        onChange={(e) => updateLabelDetails('price', e.target.value)}
-                                        placeholder="e.g., ₹ 999.00"
-                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                        onChange={(e) => updateLabelDetails('price', sanitizePrice(e.target.value))}
+                                        placeholder="e.g., 999.00"
+                                        style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', boxSizing: 'border-box', fontWeight: '800', fontSize: '0.95rem', color: '#1B6B3A' }}
                                     />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Original MRP ({labelDetails.currencySymbol})</label>
+                                    <input 
+                                        type="text" 
+                                        value={labelDetails.mrp}
+                                        onChange={(e) => updateLabelDetails('mrp', sanitizePrice(e.target.value))}
+                                        placeholder="e.g., 1299.00"
+                                        style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', boxSizing: 'border-box', fontWeight: '700', fontSize: '0.95rem', color: '#475569' }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BRAND LOGO & BADGE SELECTOR SECTION */}
+                        <div style={{ borderTop: '1px dashed #e2e8f0', marginTop: '1.5rem', paddingTop: '1.25rem' }}>
+                            <h4 style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.03em' }}>
+                                🏷️ Brand Store Logo & Quality Badge
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '0.4rem' }}>Upload Store Logo</label>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleLogoUpload}
+                                        style={{ fontSize: '0.78rem', width: '100%' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '0.4rem' }}>Tag Badge Icon</label>
+                                    <select 
+                                        value={selectedBadge}
+                                        onChange={(e) => setSelectedBadge(e.target.value)}
+                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', fontSize: '0.82rem' }}
+                                    >
+                                        {BADGE_OPTIONS.map(b => (
+                                            <option key={b.id} value={b.id}>{b.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -424,11 +698,34 @@ const BusinessBarcode = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                                        Custom Keys & Values ({activeCustomFields.length} Assigned)
+                                        Custom Keys & Values ({activeCustomFields.length} / 25 Assigned)
                                     </label>
                                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Assign multiple custom attributes to render on the barcode canvas.</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    {/* SINGLE STRETCH CLEAR ALL BUTTON */}
+                                    {customFields.length > 0 && (
+                                        <button 
+                                            onClick={clearAllCustomFields}
+                                            style={{ 
+                                                background: '#FEF2F2', 
+                                                border: '1px solid #FEE2E2', 
+                                                color: '#EF4444', 
+                                                fontWeight: '800', 
+                                                fontSize: '0.75rem', 
+                                                cursor: 'pointer', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '4px', 
+                                                padding: '6px 10px', 
+                                                borderRadius: '8px' 
+                                            }}
+                                            title="Delete all key-value entries at a single stretch"
+                                        >
+                                            <Trash2 size={13} /> Clear All ({customFields.length})
+                                        </button>
+                                    )}
+
                                     {/* Layout Mode Switcher */}
                                     <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '6px', padding: '2px' }}>
                                         <button 
@@ -491,12 +788,6 @@ const BusinessBarcode = () => {
                                             opacity: customFields.length >= 25 ? 0.6 : 1,
                                             transition: 'all 0.15s ease'
                                         }}
-                                        onMouseOver={(e) => {
-                                            if (customFields.length < 25) e.currentTarget.style.background = '#dcf2e4';
-                                        }}
-                                        onMouseOut={(e) => {
-                                            if (customFields.length < 25) e.currentTarget.style.background = '#f0fdf4';
-                                        }}
                                     >
                                         + {pill.key}
                                     </button>
@@ -545,7 +836,7 @@ const BusinessBarcode = () => {
                             <div style={{ width: '32px', height: '32px', background: '#ecfdf5', color: '#10b981', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <Settings2 size={18} />
                             </div>
-                            <h3 style={{ fontWeight: '800', fontSize: '1rem', color: '#1e293b', margin: 0 }}>Dimensions & Styling</h3>
+                            <h3 style={{ fontWeight: '800', fontSize: '1rem', color: '#1e293b', margin: 0 }}>Dimensions & Custom Canvas Styling</h3>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
@@ -608,7 +899,7 @@ const BusinessBarcode = () => {
                             </div>
                             
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Background Color</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Background Tint</label>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <input type="color" value={format.background} onChange={(e) => updateFormat('background', e.target.value)} style={{ padding: 0, border: 'none', width: '34px', height: '34px', borderRadius: '6px', cursor: 'pointer' }} />
                                     <input type="text" value={format.background} onChange={(e) => updateFormat('background', e.target.value)} style={{ flex: 1, padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem', fontWeight: '600' }} />
@@ -653,7 +944,7 @@ const BusinessBarcode = () => {
                                 style={{ 
                                     padding: '1.75rem 1.5rem', 
                                     background: format.background, 
-                                    borderRadius: '12px', 
+                                    borderRadius: '16px', 
                                     boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -663,9 +954,24 @@ const BusinessBarcode = () => {
                                     width: selectedPreset === 'jewelry' ? '280px' : '360px',
                                     maxWidth: '100%',
                                     boxSizing: 'border-box',
-                                    border: '1px solid #e2e8f0'
+                                    border: `2px solid ${format.borderColor || '#e2e8f0'}`,
+                                    position: 'relative'
                                 }}
                             >
+                                {/* LOGO DISPLAY */}
+                                {logoUrl && (
+                                    <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
+                                        <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '36px', maxWidth: '120px', objectFit: 'contain' }} />
+                                    </div>
+                                )}
+
+                                {/* QUALITY BADGE DISPLAY */}
+                                {selectedBadge && selectedBadge !== 'none' && (
+                                    <div style={{ position: 'absolute', top: '10px', right: '12px', fontSize: '0.65rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', border: '1px solid #DCF2E4', padding: '2px 6px', borderRadius: '6px' }}>
+                                        {BADGE_OPTIONS.find(b => b.id === selectedBadge)?.label}
+                                    </div>
+                                )}
+
                                 {/* Preset Layout Variations */}
                                 {selectedPreset === 'logistics' && (
                                     <div style={{ width: '100%', borderBottom: `2px solid ${format.lineColor}`, paddingBottom: '0.4rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -768,19 +1074,35 @@ const BusinessBarcode = () => {
                                     </div>
                                 )}
 
-                                {/* Price Tag */}
+                                {/* DISCOUNT & STRIKETHROUGH MRP PRICE TAG RENDERING */}
                                 {labelDetails.price && (
                                     <div style={{ 
                                         marginTop: '0.75rem', 
-                                        fontSize: '1.2rem', 
-                                        fontWeight: '900', 
                                         borderTop: `1px solid ${format.lineColor}`, 
                                         paddingTop: '0.4rem', 
                                         width: '100%', 
-                                        textAlign: 'center',
-                                        letterSpacing: '0.02em'
+                                        textAlign: 'center'
                                     }}>
-                                        {labelDetails.price}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                            {/* Original MRP Strikethrough Display */}
+                                            {numMrp > numPrice && (
+                                                <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.95rem', fontWeight: '700' }}>
+                                                    {labelDetails.currencySymbol} {labelDetails.mrp}
+                                                </span>
+                                            )}
+
+                                            {/* Offer Price Display */}
+                                            <span style={{ fontSize: '1.25rem', fontWeight: '900', color: format.lineColor }}>
+                                                {labelDetails.currencySymbol} {labelDetails.price}
+                                            </span>
+
+                                            {/* Discount Percent Badge */}
+                                            {discountPct > 0 && (
+                                                <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
+                                                    {discountPct}% OFF
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -804,12 +1126,105 @@ const BusinessBarcode = () => {
                         <div>
                             <h5 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#1d4ed8' }}>Pro Labeling Tip</h5>
                             <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#1e40af', lineHeight: '1.4' }}>
-                                Switch Canvas Label Presets at top to instantly test retail price tags, logistics badges, or QR spec sheets.
+                                Select stock products above or upload CSV spreadsheets to generate labels in bulk with strikethrough MRP & store badges.
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* BULK CSV / SPREADSHEET UPLOAD MODAL */}
+            {isBulkModalOpen && (
+                <div 
+                    onClick={() => setIsBulkModalOpen(false)}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '1.5rem' }}
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ background: 'white', width: '100%', maxWidth: '780px', maxHeight: '85vh', overflowY: 'auto', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', border: '1px solid #E2E8F0' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#E8F5EE', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FileSpreadsheet size={24} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '850', color: '#0F172A' }}>Bulk CSV / Excel Barcode Generation</h3>
+                                    <span style={{ fontSize: '0.78rem', color: '#64748B' }}>Upload spreadsheet with hundreds of products to generate all labels in one click</span>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsBulkModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <button 
+                                onClick={downloadSampleCsv}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F1F5F9', border: '1px solid #CBD5E1', color: '#334155', fontWeight: '750', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.82rem', cursor: 'pointer' }}
+                            >
+                                <Download size={16} /> Download Sample CSV Template
+                            </button>
+
+                            <input 
+                                type="file" 
+                                ref={bulkFileRef}
+                                accept=".csv"
+                                onChange={handleBulkCsvUpload}
+                                style={{ display: 'none' }}
+                            />
+
+                            <button 
+                                onClick={() => bulkFileRef.current && bulkFileRef.current.click()}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#1B6B3A', border: 'none', color: 'white', fontWeight: '750', padding: '0.6rem 1.25rem', borderRadius: '10px', fontSize: '0.82rem', cursor: 'pointer' }}
+                            >
+                                <Upload size={16} /> Choose & Upload CSV Spreadsheet
+                            </button>
+                        </div>
+
+                        {/* Bulk Preview Table */}
+                        {bulkItems.length > 0 ? (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '850', color: '#1E293B', textTransform: 'uppercase' }}>Loaded Products ({bulkItems.length})</h4>
+                                    <button 
+                                        onClick={handleBatchPrint}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#064E3B', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        <Printer size={16} /> Print All Barcode Labels Grid
+                                    </button>
+                                </div>
+                                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                        <thead>
+                                            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>Product Title</th>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>SKU / Barcode</th>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>Offer Price</th>
+                                                <th style={{ padding: '0.6rem 0.8rem' }}>MRP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {bulkItems.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.6rem 0.8rem', fontWeight: '750' }}>{item.title}</td>
+                                                    <td style={{ padding: '0.6rem 0.8rem', fontFamily: 'monospace' }}>{item.sku}</td>
+                                                    <td style={{ padding: '0.6rem 0.8rem', color: '#1B6B3A', fontWeight: '800' }}>₹{item.price}</td>
+                                                    <td style={{ padding: '0.6rem 0.8rem', color: '#64748B', textDecoration: 'line-through' }}>₹{item.mrp}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '3rem 1.5rem', background: '#F8FAFC', borderRadius: '16px', border: '2px dashed #CBD5E1' }}>
+                                <FileSpreadsheet size={40} color="#94A3B8" style={{ marginBottom: '0.75rem' }} />
+                                <h4 style={{ margin: '0 0 0.3rem', fontSize: '0.95rem', fontWeight: '800', color: '#334155' }}>No CSV File Uploaded Yet</h4>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>Upload a spreadsheet containing Title, SKU, Price, MRP to generate batch barcodes.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

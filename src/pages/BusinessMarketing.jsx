@@ -315,7 +315,12 @@ const BusinessMarketing = () => {
         }
         const activeRecipients = formData.target_audience === 'Custom Customers'
             ? selectedCustomCustomerIds.length
-            : (formData.total_recipients || (customerData.length > 0 ? customerData.length : 100));
+            : (formData.total_recipients !== undefined ? formData.total_recipients : (customerData.length > 0 ? customerData.length : 0));
+
+        if (!activeRecipients || activeRecipients <= 0) {
+            alert("Minimum 1 email should be assigned");
+            return;
+        }
 
         const payload = {
             ...formData,
@@ -407,7 +412,12 @@ const BusinessMarketing = () => {
         console.log('[Campaign Launch] Entry point reached for campaign:', camp.id);
         const recipientCount = camp.target_audience === 'Custom Customers'
             ? selectedCustomCustomerIds.length
-            : (camp.total_recipients || (customerData.length > 0 ? customerData.length : 100));
+            : (camp.total_recipients !== undefined ? camp.total_recipients : (customerData.length > 0 ? customerData.length : 0));
+
+        if (!recipientCount || recipientCount <= 0) {
+            alert("Minimum 1 email should be assigned");
+            return;
+        }
 
         if (!(await customConfirm(`Are you sure you want to launch "${camp.campaign_name}" to ${recipientCount} customers?`))) {
             console.log('[Campaign Launch] User cancelled the confirmation dialog.');
@@ -427,7 +437,9 @@ const BusinessMarketing = () => {
             }
 
             if (recipients.length === 0) {
-                recipients = ['saravana@bnxmail.com', 'client@cliks.in', 'vip@cliks.business'];
+                alert("Minimum 1 email should be assigned");
+                setIsLaunching(false);
+                return;
             }
 
             try {
@@ -1331,16 +1343,51 @@ const BusinessMarketing = () => {
                 </div>
             )}
             {isDetailsOpen && selectedCampaign && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', zIndex: 1050, backdropFilter: 'blur(6px)' }}>
-                    <div style={{ background: 'white', width: '600px', height: '100vh', overflowY: 'auto', padding: '2.5rem', boxShadow: '-10px 0 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
-                            <div>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '800', background: '#E8F5EE', color: '#1B6B3A', padding: '0.2rem 0.5rem', borderRadius: '6px', textTransform: 'uppercase' }}>
-                                    {selectedCampaign.campaign_type}
-                                </span>
-                                <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#0F172A', marginTop: '0.4rem' }}>{selectedCampaign.campaign_name}</h3>
+                <div 
+                    onClick={() => { setIsDetailsOpen(false); setSelectedCampaign(null); }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, backdropFilter: 'blur(8px)', padding: '1.5rem' }}
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ 
+                            background: 'white', 
+                            width: '100%', 
+                            maxWidth: '760px', 
+                            maxHeight: '90vh', 
+                            overflowY: 'auto', 
+                            borderRadius: '24px', 
+                            padding: '2.25rem', 
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)', 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            border: '1px solid #E2E8F0'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.25)', flexShrink: 0 }}>
+                                    <Mail size={24} />
+                                </div>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '850', background: '#E8F5EE', color: '#1B6B3A', padding: '0.15rem 0.55rem', borderRadius: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                            {selectedCampaign.campaign_type}
+                                        </span>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '850', background: selectedCampaign.campaign_status === 'Sent' ? '#DCFCE7' : '#FEF3C7', color: selectedCampaign.campaign_status === 'Sent' ? '#15803D' : '#D97706', padding: '0.15rem 0.55rem', borderRadius: '6px', textTransform: 'uppercase' }}>
+                                            {selectedCampaign.campaign_status}
+                                        </span>
+                                    </div>
+                                    <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>{selectedCampaign.campaign_name}</h3>
+                                </div>
                             </div>
-                            <button onClick={() => { setIsDetailsOpen(false); setSelectedCampaign(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={20} /></button>
+                            <button 
+                                onClick={() => { setIsDetailsOpen(false); setSelectedCampaign(null); }} 
+                                style={{ border: 'none', background: '#F1F5F9', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s' }}
+                                onMouseOver={e => e.currentTarget.style.background = '#E2E8F0'}
+                                onMouseOut={e => e.currentTarget.style.background = '#F1F5F9'}
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', flex: 1 }}>
@@ -1436,7 +1483,7 @@ const BusinessMarketing = () => {
                             </div>
 
                             {/* Section: Sales Team and Owners */}
-                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginTop: '1rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginTop: '0.5rem' }}>
                                 <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>👨💼 Campaign Ownership</h4>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem' }}>
                                     <div>Owner / Manager: <strong style={{ color: '#0F172A' }}>{selectedCampaign.campaign_owner}</strong></div>
@@ -1445,18 +1492,18 @@ const BusinessMarketing = () => {
                             </div>
                         </div>
 
-                        <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.5rem', marginTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                             <button 
                                 onClick={() => handleDeleteCampaign(selectedCampaign.id)}
-                                style={{ width: '100%', background: '#FEF2F2', border: '1px solid #FEE2E2', padding: '0.85rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '850', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', transition: 'all 0.2s' }}
+                                style={{ flex: 1, background: '#FEF2F2', border: '1px solid #FEE2E2', padding: '0.85rem', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '850', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', transition: 'all 0.2s' }}
                                 onMouseOver={e => e.currentTarget.style.background = '#FEE2E2'}
                                 onMouseOut={e => e.currentTarget.style.background = '#FEF2F2'}
                             >
-                                <Trash2 size={18} /> Delete Campaign Permanently
+                                <Trash2 size={18} /> Delete Campaign
                             </button>
                             <button 
                                 onClick={() => { setIsDetailsOpen(false); setSelectedCampaign(null); }}
-                                style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.85rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: '750', cursor: 'pointer', color: '#64748B', transition: 'all 0.2s' }}
+                                style={{ flex: 1, background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.85rem', borderRadius: '12px', fontSize: '0.88rem', fontWeight: '750', cursor: 'pointer', color: '#64748B', transition: 'all 0.2s' }}
                                 onMouseOver={e => e.currentTarget.style.background = '#F1F5F9'}
                                 onMouseOut={e => e.currentTarget.style.background = '#F8FAFC'}
                             >

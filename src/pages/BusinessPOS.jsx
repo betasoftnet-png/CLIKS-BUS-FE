@@ -415,12 +415,34 @@ const BusinessPOS = () => {
                     ? parseFloat(data.remaining_loyalty_points) 
                     : (data?.final_loyalty_points !== undefined ? parseFloat(data.final_loyalty_points) : null));
 
-            if (selectedCustomerObj && freshLtp !== null && !isNaN(freshLtp)) {
-                setSelectedCustomerObj(prev => prev ? ({
-                    ...prev,
-                    loyalty_points: freshLtp,
-                    points: freshLtp
-                }) : null);
+            if (freshLtp !== null && !isNaN(freshLtp)) {
+                if (selectedCustomerObj) {
+                    setSelectedCustomerObj(prev => prev ? ({
+                        ...prev,
+                        loyalty_points: freshLtp,
+                        points: freshLtp
+                    }) : null);
+                }
+
+                // Immediately update queryClient cache for business-customers
+                queryClient.setQueryData(['business-customers'], (oldData) => {
+                    if (!Array.isArray(oldData)) return oldData;
+                    const targetId = data?.customer_id || selectedCustomerObj?.id;
+                    const targetEmail = (data?.client_email || selectedCustomerObj?.email || '').toLowerCase().trim();
+
+                    return oldData.map(cust => {
+                        const matchId = targetId && cust.id && String(cust.id) === String(targetId);
+                        const matchEmail = targetEmail && cust.email && String(cust.email).toLowerCase().trim() === targetEmail;
+                        if (matchId || matchEmail) {
+                            return {
+                                ...cust,
+                                loyalty_points: freshLtp,
+                                points: freshLtp
+                            };
+                        }
+                        return cust;
+                    });
+                });
             }
 
             // Reset Cart
@@ -821,7 +843,7 @@ const BusinessPOS = () => {
         if (matched) {
             const freshLtp = getCustomerLtp(matched);
             const curLtp = getCustomerLtp(selectedCustomerObj);
-            if (freshLtp !== curLtp || matched.name !== selectedCustomerObj.name || matched.email !== selectedCustomerObj.email) {
+            if (freshLtp > curLtp || matched.name !== selectedCustomerObj.name || matched.email !== selectedCustomerObj.email) {
                 setSelectedCustomerObj(matched);
             }
         }
