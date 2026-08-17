@@ -159,6 +159,9 @@ const BusinessBarcode = () => {
     const [bulkItems, setBulkItems] = useState([]);
     const bulkFileRef = useRef(null);
 
+    // Scan Preview Popup State
+    const [isScanPreviewOpen, setIsScanPreviewOpen] = useState(false);
+
     const barcodeRef = useRef(null);
     const bulkPrintRef = useRef(null);
 
@@ -1154,7 +1157,11 @@ const BusinessBarcode = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                    <div 
+                                        onClick={() => setIsScanPreviewOpen(true)}
+                                        title="Click Code 128 barcode to expand scan preview popup"
+                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', cursor: 'pointer', transition: 'transform 0.15s' }}
+                                    >
                                         {codeType === 'QR' ? (
                                             <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
                                                 <QRCodeCanvas 
@@ -1334,6 +1341,209 @@ const BusinessBarcode = () => {
                                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>Upload a spreadsheet containing Title, SKU, Price, MRP to generate batch barcodes.</p>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* CODE 128 SCAN PREVIEW MODAL */}
+            {isScanPreviewOpen && (
+                <div 
+                    onClick={() => setIsScanPreviewOpen(false)}
+                    style={{ 
+                        position: 'fixed', 
+                        inset: 0, 
+                        background: 'rgba(15, 23, 42, 0.75)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        zIndex: 1200, 
+                        backdropFilter: 'blur(8px)', 
+                        padding: '1.5rem' 
+                    }}
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ 
+                            background: 'white', 
+                            width: '100%', 
+                            maxWidth: '580px', 
+                            borderRadius: '24px', 
+                            padding: '2rem', 
+                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', 
+                            border: '1px solid #E2E8F0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#E8F5EE', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Scan size={24} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '850', color: '#0F172A' }}>Code 128 Scan Preview</h3>
+                                    <span style={{ fontSize: '0.78rem', color: '#64748B' }}>High-resolution enlarged barcode preview for easy barcode scanner testing</span>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setIsScanPreviewOpen(false)} 
+                                style={{ border: 'none', background: '#F1F5F9', width: '34px', height: '34px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Instruction Banner */}
+                        <div style={{ width: '100%', background: '#F0FDF4', border: '1px solid #DCF2E4', padding: '0.75rem 1rem', borderRadius: '12px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#166534', fontSize: '0.82rem', fontWeight: '750' }}>
+                            <Scan size={18} color="#166534" />
+                            <span>Scan barcode to test. Ensure clear print quality for best scanning.</span>
+                        </div>
+
+                        {/* ENLARGED BARCODE CANVAS CONTAINER */}
+                        <div style={{ 
+                            padding: '2.25rem 2rem', 
+                            background: format.background, 
+                            borderRadius: '16px', 
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: format.lineColor,
+                            width: '100%',
+                            maxWidth: '440px',
+                            boxSizing: 'border-box',
+                            border: `2px solid ${format.borderColor || '#e2e8f0'}`,
+                            position: 'relative',
+                            marginBottom: '1.75rem'
+                        }}>
+                            {/* Store Logo */}
+                            {logoUrl && (
+                                <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
+                                    <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '42px', maxWidth: '140px', objectFit: 'contain' }} />
+                                </div>
+                            )}
+
+                            {/* Badge */}
+                            {selectedBadge && selectedBadge !== 'none' && (
+                                <div style={{ position: 'absolute', top: '12px', right: '14px', fontSize: '0.7rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', border: '1px solid #DCF2E4', padding: '3px 8px', borderRadius: '6px' }}>
+                                    {BADGE_OPTIONS.find(b => b.id === selectedBadge)?.label}
+                                </div>
+                            )}
+
+                            {/* Title & Subtitle */}
+                            {labelDetails.title && (
+                                <div style={{ fontSize: '1.25rem', fontWeight: '900', marginBottom: '0.2rem', letterSpacing: '0.01em', textAlign: 'center', textTransform: 'uppercase' }}>
+                                    {labelDetails.title}
+                                </div>
+                            )}
+
+                            {labelDetails.subtitle && (
+                                <div style={{ fontSize: '0.82rem', opacity: 0.85, marginBottom: '0.85rem', fontWeight: '600', textAlign: 'center' }}>
+                                    {labelDetails.subtitle}
+                                </div>
+                            )}
+
+                            {/* Custom Attributes */}
+                            {activeCustomFields.length > 0 && (
+                                <div style={{ 
+                                    width: '100%', 
+                                    marginBottom: '1rem',
+                                    padding: '0.6rem 0.8rem',
+                                    background: 'rgba(0,0,0,0.02)',
+                                    borderRadius: '8px'
+                                }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: activeCustomFields.length > 1 ? '1fr 1fr' : '1fr', gap: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
+                                        {activeCustomFields.map((field) => (
+                                            <div key={field.id} style={{ display: 'flex', gap: '4px', overflow: 'hidden' }}>
+                                                {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
+                                                {field.value && <span style={{ opacity: 0.9 }}>{field.value}</span>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ENLARGED BARCODE GRAPHIC */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0.75rem 0' }}>
+                                {codeType === 'QR' ? (
+                                    <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
+                                        <QRCodeCanvas 
+                                            value={getEffectivePayload()} 
+                                            size={format.height + 60} 
+                                            bgColor={format.background}
+                                            fgColor={format.lineColor}
+                                            level={"H"}
+                                        />
+                                        {format.displayValue && (
+                                            <div style={{ textAlign: 'center', marginTop: '8px', color: format.lineColor, fontSize: `${format.fontSize + 2}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                                {codeValue}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Barcode 
+                                        value={getEffectivePayload()}
+                                        format={codeType}
+                                        width={Math.max(format.width, 2.5)}
+                                        height={format.height + 40}
+                                        displayValue={format.displayValue}
+                                        fontSize={format.fontSize + 2}
+                                        background={format.background}
+                                        lineColor={format.lineColor}
+                                        margin={format.margin}
+                                    />
+                                )}
+                            </div>
+
+                            {/* Price & MRP */}
+                            {labelDetails.price && (
+                                <div style={{ 
+                                    marginTop: '0.85rem', 
+                                    borderTop: `1px solid ${format.lineColor}`, 
+                                    paddingTop: '0.5rem', 
+                                    width: '100%', 
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                        {numMrp > numPrice && (
+                                            <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '1.05rem', fontWeight: '700' }}>
+                                                {labelDetails.currencySymbol} {labelDetails.mrp}
+                                            </span>
+                                        )}
+                                        <span style={{ fontSize: '1.4rem', fontWeight: '900', color: format.lineColor }}>
+                                            {labelDetails.currencySymbol} {labelDetails.price}
+                                        </span>
+                                        {discountPct > 0 && (
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: '4px' }}>
+                                                {discountPct}% OFF
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Actions Footer */}
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                            <button 
+                                onClick={() => setIsScanPreviewOpen(false)}
+                                style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontWeight: '750', cursor: 'pointer', fontSize: '0.88rem' }}
+                            >
+                                Close
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handlePrint();
+                                    setIsScanPreviewOpen(false);
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.4rem', borderRadius: '10px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '800', cursor: 'pointer', fontSize: '0.88rem', boxShadow: '0 4px 14px rgba(27, 107, 58, 0.25)' }}
+                            >
+                                <Printer size={18} /> Print Barcode Label
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
