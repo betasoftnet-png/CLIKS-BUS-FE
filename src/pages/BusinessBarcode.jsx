@@ -215,13 +215,28 @@ const BusinessBarcode = () => {
         }
     };
 
-    // Input sanitization to prevent letter/number mismatch glitch
+    // Input sanitization for Offer Price and Original MRP:
+    // Max 10 digits before decimal, positive numeric only, no leading zeros ('0'), no negative signs ('-')
     const sanitizePrice = (val) => {
-        // Strip out non-numeric characters except decimals and numbers
-        const clean = val.replace(/[^0-9.]/g, '');
+        if (!val) return '';
+        // Strip out minus signs and any non-numeric / non-decimal characters
+        let clean = String(val).replace(/[^0-9.]/g, '');
+        // Must not start with '0'
+        clean = clean.replace(/^0+/, '');
+        if (clean.startsWith('.')) {
+            clean = clean.replace(/^\.+/, '');
+        }
         const parts = clean.split('.');
-        if (parts.length > 2) return parts[0] + '.' + parts.slice(1).join('');
-        return clean;
+        let intPart = parts[0] || '';
+        // Maximum 10 digits allowed
+        if (intPart.length > 10) {
+            intPart = intPart.slice(0, 10);
+        }
+        if (parts.length > 1) {
+            const decPart = parts.slice(1).join('').slice(0, 2);
+            return intPart ? `${intPart}.${decPart}` : '';
+        }
+        return intPart;
     };
 
     // Compute effective code payload
@@ -739,6 +754,7 @@ const BusinessBarcode = () => {
                                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Offer Price ({labelDetails.currencySymbol})</label>
                                     <input 
                                         type="text" 
+                                        maxLength={13}
                                         value={labelDetails.price}
                                         onChange={(e) => updateLabelDetails('price', sanitizePrice(e.target.value))}
                                         placeholder="e.g., 999.00"
@@ -749,6 +765,7 @@ const BusinessBarcode = () => {
                                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Original MRP ({labelDetails.currencySymbol})</label>
                                     <input 
                                         type="text" 
+                                        maxLength={13}
                                         value={labelDetails.mrp}
                                         onChange={(e) => updateLabelDetails('mrp', sanitizePrice(e.target.value))}
                                         placeholder="e.g., 1299.00"
