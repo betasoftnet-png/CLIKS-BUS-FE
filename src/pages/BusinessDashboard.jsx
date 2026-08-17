@@ -30,7 +30,9 @@ import {
     Activity,
     Wrench,
     ShoppingBag,
-    ShieldCheck
+    ShieldCheck,
+    Calendar,
+    CalendarDays
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
