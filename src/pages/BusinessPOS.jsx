@@ -867,13 +867,17 @@ const BusinessPOS = () => {
 
     const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount);
     const finalTotal = Math.round(totalBeforeRound);
-    const roundOff = finalTotal - totalBeforeRound;
+    const hasValidCartItems = cart.some(item => (parseFloat(item.quantity) || 0) > 0);
 
     const handleCheckout = (mode) => {
-        if (cart.length === 0 || isCheckingOut) return;
+        const validCartItems = cart.filter(item => (parseFloat(item.quantity) || 0) > 0);
+        if (validCartItems.length === 0 || isCheckingOut) {
+            alert('Cannot generate bill. Please enter a product quantity greater than 0.');
+            return;
+        }
 
         // Prevent selling more quantity than available stock
-        for (const item of cart) {
+        for (const item of validCartItems) {
             const catItem = inventory.find(p => p.id === item.id || (p.name && item.name && p.name.toLowerCase().trim() === item.name.toLowerCase().trim()));
             const maxStock = catItem ? (parseFloat(catItem.quantity) || 0) : Infinity;
             const requestedQty = parseFloat(item.quantity) || 0;
@@ -912,11 +916,11 @@ const BusinessPOS = () => {
             discount_amount: discountAmount,
             round_off: roundOff,
             payment_mode: mode,
-            items: cart.map(item => ({
+            items: validCartItems.map(item => ({
                 id: item.id,
                 name: item.name,
                 description: item.name,
-                quantity: item.quantity,
+                quantity: parseFloat(item.quantity) || 0,
                 unit: item.unit,
                 price: item.price,
                 tax_rate: taxRate,
@@ -2043,7 +2047,7 @@ const BusinessPOS = () => {
                             {/* Checkout Payment Action Matrix */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginTop: '2px' }}>
                                 <button
-                                    disabled={cart.length === 0 || isCheckingOut}
+                                    disabled={!hasValidCartItems || isCheckingOut}
                                     onClick={() => handleCheckout('Cash')}
                                     style={{
                                         padding: '0.4rem 0.25rem',
@@ -2053,25 +2057,25 @@ const BusinessPOS = () => {
                                         border: 'none',
                                         fontWeight: '800',
                                         fontSize: '0.75rem',
-                                        cursor: 'pointer',
+                                        cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
                                         display: 'flex',
                                         flexDirection: 'row',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
-                                        opacity: cart.length === 0 ? 0.6 : 1,
-                                        boxShadow: cart.length > 0 ? '0 3px 8px rgba(16, 185, 129, 0.2)' : 'none',
+                                        opacity: !hasValidCartItems ? 0.5 : 1,
+                                        boxShadow: hasValidCartItems ? '0 3px 8px rgba(16, 185, 129, 0.2)' : 'none',
                                         transition: 'transform 0.1s'
                                     }}
-                                    onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                    onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
+                                    onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                    onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
                                 >
                                     <DollarSign size={14} />
                                     Cash (F1)
                                 </button>
 
                                 <button
-                                    disabled={cart.length === 0 || isCheckingOut}
+                                    disabled={!hasValidCartItems || isCheckingOut}
                                     onClick={() => handleCheckout('UPI')}
                                     style={{
                                         padding: '0.4rem 0.25rem',
@@ -2081,25 +2085,25 @@ const BusinessPOS = () => {
                                         border: 'none',
                                         fontWeight: '800',
                                         fontSize: '0.75rem',
-                                        cursor: 'pointer',
+                                        cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
                                         display: 'flex',
                                         flexDirection: 'row',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
-                                        opacity: cart.length === 0 ? 0.6 : 1,
-                                        boxShadow: cart.length > 0 ? '0 3px 8px rgba(79, 70, 229, 0.2)' : 'none',
+                                        opacity: !hasValidCartItems ? 0.5 : 1,
+                                        boxShadow: hasValidCartItems ? '0 3px 8px rgba(79, 70, 229, 0.2)' : 'none',
                                         transition: 'transform 0.1s'
                                     }}
-                                    onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                    onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
+                                    onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                    onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
                                 >
                                     <Smartphone size={14} />
                                     UPI (F2)
                                 </button>
 
                                 <button
-                                    disabled={cart.length === 0 || isCheckingOut}
+                                    disabled={!hasValidCartItems || isCheckingOut}
                                     onClick={() => handleCheckout('Card')}
                                     style={{
                                         padding: '0.4rem 0.25rem',
@@ -2109,18 +2113,18 @@ const BusinessPOS = () => {
                                         border: 'none',
                                         fontWeight: '800',
                                         fontSize: '0.75rem',
-                                        cursor: 'pointer',
+                                        cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
                                         display: 'flex',
                                         flexDirection: 'row',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
-                                        opacity: cart.length === 0 ? 0.6 : 1,
-                                        boxShadow: cart.length > 0 ? '0 3px 8px rgba(245, 158, 11, 0.2)' : 'none',
+                                        opacity: !hasValidCartItems ? 0.5 : 1,
+                                        boxShadow: hasValidCartItems ? '0 3px 8px rgba(245, 158, 11, 0.2)' : 'none',
                                         transition: 'transform 0.1s'
                                     }}
-                                    onMouseDown={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                    onMouseUp={(e) => cart.length > 0 && (e.currentTarget.style.transform = 'scale(1)')}
+                                    onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                    onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
                                 >
                                     <CreditCard size={14} />
                                     Card (F3)
