@@ -1509,13 +1509,13 @@ const BusinessPOS = () => {
                                                     <span style={{ 
                                                         fontSize: '0.68rem', 
                                                         fontWeight: '800', 
-                                                        color: '#EF4444', 
-                                                        background: '#FEE2E2', 
-                                                        padding: '0.1rem 0.35rem', 
-                                                        borderRadius: '4px',
-                                                        border: '1px solid #FCA5A5'
+                                                        color: '#15803D', 
+                                                        background: '#DCFCE7', 
+                                                        padding: '0.12rem 0.45rem', 
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #86EFAC'
                                                     }}>
-                                                        -{cartQty}
+                                                        {cartQty} In Cart
                                                     </span>
                                                 </div>
                                             )}
