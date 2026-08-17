@@ -867,6 +867,7 @@ const BusinessPOS = () => {
 
     const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount);
     const finalTotal = Math.round(totalBeforeRound);
+    const roundOff = finalTotal - totalBeforeRound;
     const hasValidCartItems = cart.some(item => (parseFloat(item.quantity) || 0) > 0);
 
     const handleCheckout = (mode) => {
