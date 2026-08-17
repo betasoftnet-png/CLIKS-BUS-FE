@@ -1455,7 +1455,23 @@ const BusinessPOS = () => {
                                                 {prod.sku && <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>SKU: {prod.sku}</span>}
                                             </div>
                                             
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+                                            {cartQty > 0 && (
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto' }}>
+                                                    <span style={{ 
+                                                        fontSize: '0.68rem', 
+                                                        fontWeight: '800', 
+                                                        color: '#EF4444', 
+                                                        background: '#FEE2E2', 
+                                                        padding: '0.1rem 0.35rem', 
+                                                        borderRadius: '4px',
+                                                        border: '1px solid #FCA5A5'
+                                                    }}>
+                                                        -{cartQty}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: cartQty > 0 ? '0.2rem' : 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
                                                 <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#0F172A' }}>
                                                     {formatCurrency(prod.price || 0)} <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700' }}>/ {prod.unit || 'PCS'}</span>
                                                 </span>
