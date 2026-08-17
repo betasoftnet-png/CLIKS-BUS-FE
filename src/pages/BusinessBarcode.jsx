@@ -467,35 +467,6 @@ const BusinessBarcode = () => {
                 </div>
             </div>
 
-            {/* QUICK INVENTORY STOCK PRODUCT SELECTOR CARD */}
-            <div style={{ background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)', padding: '1.25rem 1.5rem', borderRadius: '16px', color: 'white', marginBottom: '1.5rem', boxShadow: '0 4px 16px rgba(6, 78, 59, 0.15)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justify: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <PackageCheck size={22} color="#A7F3D0" />
-                        </div>
-                        <div>
-                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#F0FDF4' }}>📦 Choose Product from Inventory Stock</h3>
-                            <span style={{ fontSize: '0.78rem', color: '#A7F3D0' }}>Select any stored stock item to auto-populate title, SKU barcode value, pricing & tags instantly.</span>
-                        </div>
-                    </div>
-                    <div style={{ flex: '1', maxWidth: '420px', minWidth: '260px' }}>
-                        <select 
-                            value={selectedStockId} 
-                            onChange={(e) => handleSelectStockProduct(e.target.value)}
-                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.3)', outline: 'none', fontWeight: '700', fontSize: '0.88rem', background: '#FFFFFF', color: '#0F172A', cursor: 'pointer' }}
-                        >
-                            <option value="">-- Select Inventory Stock Product --</option>
-                            {stockProducts.map(prod => (
-                                <option key={prod.id} value={prod.id}>
-                                    {prod.name || prod.title} (SKU: {prod.sku || prod.code || prod.id}) - ₹{prod.selling_price || prod.price || 0}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
             {/* Presets List Selector Bar ("Canvas Layout Selector") */}
             <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -618,14 +589,44 @@ const BusinessBarcode = () => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Product Title / Name</label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', margin: 0 }}>Product Title / Name</label>
+                                    {stockProducts.length > 0 && (
+                                        <select 
+                                            value={selectedStockId} 
+                                            onChange={(e) => handleSelectStockProduct(e.target.value)}
+                                            style={{ fontSize: '0.75rem', fontWeight: '750', color: '#1B6B3A', background: '#E8F5EE', border: '1px solid #A7F3D0', padding: '0.2rem 0.6rem', borderRadius: '6px', cursor: 'pointer', outline: 'none' }}
+                                        >
+                                            <option value="">-- Select from Inventory ({stockProducts.length}) --</option>
+                                            {stockProducts.map(prod => (
+                                                <option key={prod.id} value={prod.id}>
+                                                    {prod.name || prod.title} (SKU: {prod.sku || prod.code || prod.id}) - ₹{prod.selling_price || prod.price || 0}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
                                 <input 
                                     type="text" 
+                                    list="inventory-stock-datalist"
                                     value={labelDetails.title}
-                                    onChange={(e) => updateLabelDetails('title', e.target.value)}
-                                    placeholder="Product Title"
+                                    onChange={(e) => {
+                                        updateLabelDetails('title', e.target.value);
+                                        const matched = stockProducts.find(p => (p.name || p.title || '').toLowerCase().trim() === e.target.value.toLowerCase().trim());
+                                        if (matched) {
+                                            handleSelectStockProduct(matched.id);
+                                        }
+                                    }}
+                                    placeholder="Enter or select product title..."
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                 />
+                                <datalist id="inventory-stock-datalist">
+                                    {stockProducts.map(prod => (
+                                        <option key={prod.id} value={prod.name || prod.title}>
+                                            SKU: {prod.sku || prod.code || prod.id} - ₹{prod.selling_price || prod.price || 0}
+                                        </option>
+                                    ))}
+                                </datalist>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Description / Variation</label>
