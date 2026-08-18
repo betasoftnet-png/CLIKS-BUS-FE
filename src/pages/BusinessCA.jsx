@@ -1493,9 +1493,12 @@ export default function BusinessCA() {
 
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
+                                                        <label htmlFor="owner-gst-username" style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
                                                         <input
+                                                            id="owner-gst-username"
+                                                            name="gst_username"
                                                             type="text"
+                                                            autoComplete="username"
                                                             placeholder="Enter GST login email or username"
                                                             value={ownerGstUser}
                                                             onChange={(e) => setOwnerGstUser(e.target.value)}
@@ -1504,15 +1507,19 @@ export default function BusinessCA() {
                                                     </div>
 
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
+                                                        <label htmlFor="owner-gst-password" style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
                                                         <input
+                                                            id="owner-gst-password"
+                                                            name="gst_password"
                                                             type={showOwnerGstPass ? 'text' : 'password'}
+                                                            autoComplete="current-password"
                                                             placeholder="Enter GST password"
                                                             value={ownerGstPass}
                                                             onChange={(e) => setOwnerGstPass(e.target.value)}
                                                             style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
                                                         />
                                                     </div>
+
                                                 </div>
 
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
