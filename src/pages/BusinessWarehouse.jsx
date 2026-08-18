@@ -56,20 +56,27 @@ const BusinessWarehouse = () => {
     // Live Warehouses database via useQuery
     const { data: dbWarehouses = [] } = useQuery({
         queryKey: ['warehouses'],
-        queryFn: () => warehouseService.getWarehouses()
+        queryFn: () => warehouseService.getWarehouses(),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
     });
 
     // Live Stocks database via useQuery
     const { data: dbStocks = [] } = useQuery({
         queryKey: ['stocks'],
-        queryFn: () => stockService.getStocks()
+        queryFn: () => stockService.getStocks(),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
     });
 
     // Live Transfers database via useQuery
     const { data: reportsData } = useQuery({
         queryKey: ['warehouseReports'],
-        queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data)
+        queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
     });
+
 
     const createWarehouseMutation = useMutation({
         mutationFn: (data) => warehouseService.createWarehouse(data),

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { MonthlySalesBarChart, StockPieChart } from '../components/ReportCharts';
 import {
     reportsService,
     stockService,
@@ -44,6 +45,9 @@ import { useCurrency } from '../context';
 const BusinessReports = () => {
     const { formatCurrency } = useCurrency();
     const [activeCategory, setActiveCategory] = useState('all');
+    const [viewMode, setViewMode] = useState('both'); // 'table', 'graph', 'both'
+    const [exportToast, setExportToast] = useState('');
+
 
     const { data: summary } = useQuery({
         queryKey: ['reportsSummary'],
@@ -495,6 +499,40 @@ const BusinessReports = () => {
         { id: 20, title: 'Cash Flow Statement', desc: 'Tracking inward & outward liquidity flow.', category: 'accounting', icon: TrendingUp }
     ];
 
+    const handleExportReport = (targetReport = selectedReport, targetData = reportDetails) => {
+        const reportTitle = targetReport?.title || 'Business_Report';
+        const dataToExport = Array.isArray(targetData) ? targetData : (targetData?.inflow ? [...(targetData.inflow || []), ...(targetData.outflow || [])] : []);
+
+        let csvContent = '';
+        if (dataToExport && dataToExport.length > 0) {
+            const headers = Object.keys(dataToExport[0]);
+            csvContent += headers.join(',') + '\n';
+            dataToExport.forEach(row => {
+                const values = headers.map(header => {
+                    const val = row[header] !== undefined && row[header] !== null ? String(row[header]) : '';
+                    return `"${val.replace(/"/g, '""')}"`;
+                });
+                csvContent += values.join(',') + '\n';
+            });
+        } else {
+            csvContent = `Report,${reportTitle}\nStatus,No records found\nGenerated,${new Date().toISOString()}`;
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const fileName = `${reportTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setExportToast(`Downloaded ${fileName}`);
+        setTimeout(() => setExportToast(''), 4000);
+    };
+
     const filteredReports = activeCategory === 'all'
         ? allReports
         : allReports.filter(r => r.category === activeCategory);
@@ -526,12 +564,22 @@ const BusinessReports = () => {
                 <button style={{ color: '#BE185D', background: 'transparent', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: 0 }}>
                     VIEW REPORT <ChevronRight size={14} />
                 </button>
-                <button style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportReport(report, null);
+                    }}
+                    title="Export CSV"
+                    style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#FCE7F3'; e.currentTarget.style.color = '#BE185D'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#94A3B8'; }}
+                >
                     <Download size={14} />
                 </button>
             </div>
         </div>
     );
+
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -634,41 +682,84 @@ const BusinessReports = () => {
                             </button>
                         </div>
 
-                        {/* Advanced Date Range Control Ribbon */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#F8FAFC', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1rem', flexShrink: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                                <Calendar size={13} color="#EC4899" /> Bounding Range:
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
-                                <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
-                                    />
+                        {/* Advanced Date Range & View Control Ribbon */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1rem', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#F8FAFC', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                    <Calendar size={13} color="#EC4899" /> Bounding Range:
                                 </div>
-                                <span style={{ fontSize: '0.65rem', color: '#94A3B8', alignSelf: 'center', fontWeight: '850' }}>TO</span>
-                                <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
-                                    />
+                                <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                                    <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+                                        <input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
+                                        />
+                                    </div>
+                                    <span style={{ fontSize: '0.65rem', color: '#94A3B8', alignSelf: 'center', fontWeight: '850' }}>TO</span>
+                                    <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
+                                        <input
+                                            type="date"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                            style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
+                                        />
+                                    </div>
+                                </div>
+                                {(startDate || endDate) && (
+                                    <button
+                                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                                        style={{ padding: '0.4rem 0.75rem', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: '6px', fontWeight: '900', fontSize: '0.68rem', cursor: 'pointer', textTransform: 'uppercase' }}
+                                    >
+                                        RESET
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Integrated View Controls: Tabular View vs Interactive Graphs */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F1F5F9', padding: '0.3rem', borderRadius: '10px' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', paddingLeft: '0.5rem', textTransform: 'uppercase' }}>
+                                    Visualization View:
+                                </span>
+                                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                    {[
+                                        { mode: 'table', label: '📋 Tabular View' },
+                                        { mode: 'graph', label: '📊 Integrated Graph' },
+                                        { mode: 'both', label: '📑 Dual Split View' }
+                                    ].map(btn => (
+                                        <button
+                                            key={btn.mode}
+                                            onClick={() => setViewMode(btn.mode)}
+                                            style={{
+                                                padding: '0.4rem 0.75rem', borderRadius: '8px', border: 'none',
+                                                background: viewMode === btn.mode ? 'white' : 'transparent',
+                                                color: viewMode === btn.mode ? '#BE185D' : '#64748B',
+                                                fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
+                                                boxShadow: viewMode === btn.mode ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            {btn.label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                            {(startDate || endDate) && (
-                                <button
-                                    onClick={() => { setStartDate(''); setEndDate(''); }}
-                                    style={{ padding: '0.4rem 0.75rem', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2', borderRadius: '6px', fontWeight: '900', fontSize: '0.68rem', cursor: 'pointer', textTransform: 'uppercase' }}
-                                >
-                                    RESET
-                                </button>
-                            )}
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
+                        {/* Integrated Visual Business Graph */}
+                        {(viewMode === 'graph' || viewMode === 'both') && selectedReport && (
+                            <div style={{ flexShrink: 0, marginBottom: '1rem' }}>
+                                {['inventory', 'parties'].includes(selectedReport.category) || [4, 5, 15, 16, 38].includes(selectedReport.id) ? (
+                                    <StockPieChart reportData={reportDetails} title={`${selectedReport.title} Accordance & Stock Metrics`} />
+                                ) : (
+                                    <MonthlySalesBarChart reportData={reportDetails} title={`${selectedReport.title} Monthly Trend`} />
+                                )}
+                            </div>
+                        )}
+
+                        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem', display: viewMode === 'graph' ? 'none' : 'block' }}>
+
                             {isReportLoading ? (
                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '160px', color: '#BE185D', fontWeight: '700' }}>
                                     Loading dynamic report data...
@@ -1536,14 +1627,20 @@ const BusinessReports = () => {
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                            <button onClick={() => handleSelectReport(null)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                Close
-                            </button>
-                            <button onClick={() => { alert('Exporting report...'); }} style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                Export Statement
-                            </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#16A34A' }}>
+                                {exportToast && `✓ ${exportToast}`}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <button onClick={() => handleSelectReport(null)} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                    Close
+                                </button>
+                                <button onClick={() => handleExportReport()} style={{ padding: '0.5rem 1.25rem', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 6px -1px rgba(236,72,153,0.3)' }}>
+                                    <Download size={15} /> Export Statement (CSV)
+                                </button>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             )}

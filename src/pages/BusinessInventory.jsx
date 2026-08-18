@@ -234,8 +234,11 @@ const BusinessInventory = () => {
     // Live catalog items database from productsService
     const { data: items = [] } = useQuery({
         queryKey: ['products'],
-        queryFn: () => productsService.getProducts()
+        queryFn: () => productsService.getProducts(),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
     });
+
 
     const createMutation = useMutation({
         mutationFn: (data) => productsService.createProduct(data),
