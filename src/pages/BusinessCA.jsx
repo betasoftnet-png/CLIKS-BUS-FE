@@ -7,7 +7,7 @@ import {
     RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock,
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
-    Calculator, History, Info, Save, X, ChevronDown, Check, Download, ExternalLink, Eye
+    Calculator, History, Info, Save, X, ChevronDown, Check, Download, ExternalLink, Eye, MessageSquare
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency, useAuth } from '../context';
