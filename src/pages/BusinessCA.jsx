@@ -267,9 +267,17 @@ export default function BusinessCA() {
     });
 
     const activeClientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
+    const acceptedCaConn = outgoingInvitations.find(inv => inv.status === 'Accepted') || incomingInvitations.find(inv => inv.status === 'Accepted');
     const targetChatPartnerId = (user?.role === 'ca' || user?.role === 'firm' || activeTab === 'firm')
-        ? (activeClientObj.business_owner_id || activeClientObj.id || timerClient || 1)
-        : (outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_id || outgoingInvitations.find(inv => inv.status === 'Accepted')?.ca_user_id || 1);
+        ? (activeClientObj.business_owner_id || activeClientObj.realId || activeClientObj.id || timerClient || 1)
+        : (acceptedCaConn
+            ? (String(acceptedCaConn.sender_id) !== String(user?.id) && acceptedCaConn.sender_id
+                ? acceptedCaConn.sender_id
+                : (String(acceptedCaConn.receiver_id) !== String(user?.id) && acceptedCaConn.receiver_id
+                    ? acceptedCaConn.receiver_id
+                    : (acceptedCaConn.ca_user_id || 1)))
+            : 1);
+
 
     const { data: caPresenceInfo, refetch: refetchCaPresence } = useQuery({
         queryKey: ['caPresenceInfo', targetChatPartnerId],
@@ -1523,46 +1531,108 @@ export default function BusinessCA() {
                                                 </div>
                                             )}
 
-                                            {/* 💳 Payment History Section */}
-                                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                                <h3 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>💳 Professional Service Payment History</h3>
-                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).length === 0 ? (
-                                                    <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
-                                                        <p style={{ fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No payment history recorded yet.</p>
+                                            {/* 🔐 GST Portal Credentials Section (Moved to Left Column) */}
+                                            <div style={{
+                                                background: '#FFFFFF',
+                                                padding: '24px',
+                                                borderRadius: '16px',
+                                                border: '1px solid #E2E8F0',
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '16px'
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                                        🔐 GST Portal Credentials (Private Sharing)
                                                     </div>
-                                                ) : (
-                                                    <div style={{ overflowX: 'auto' }}>
-                                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                                            <thead>
-                                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
-                                                                    <th style={{ padding: '12px 8px' }}>Invoice #</th>
-                                                                    <th style={{ padding: '12px 8px' }}>Date</th>
-                                                                    <th style={{ padding: '12px 8px' }}>Duration</th>
-                                                                    <th style={{ padding: '12px 8px' }}>Amount Paid</th>
-                                                                    <th style={{ padding: '12px 8px' }}>Status</th>
-                                                                    <th style={{ padding: '12px 8px' }}>Receipt</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).map(inv => (
-                                                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                                        <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{inv.invoice_number}</td>
-                                                                        <td style={{ padding: '12px 8px', color: '#475569' }}>{inv.invoice_date}</td>
-                                                                        <td style={{ padding: '12px 8px' }}>{Math.floor(inv.duration_seconds / 60)}m</td>
-                                                                        <td style={{ padding: '12px 8px', fontWeight: '850', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</td>
-                                                                        <td style={{ padding: '12px 8px' }}>
-                                                                            <span style={{ fontSize: '10px', fontWeight: '900', background: '#DCFCE7', color: '#15803d', padding: '3px 8px', borderRadius: '12px' }}>SUCCESS</span>
-                                                                        </td>
-                                                                        <td style={{ padding: '12px 8px' }}>
-                                                                            <button style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800' }}>Download</button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
+                                                    <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '4px' }}>
+                                                        Only your connected Chartered Accountant can access these credentials after you choose to share them.
                                                     </div>
-                                                )}
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter GST login email or username"
+                                                            value={ownerGstUser}
+                                                            onChange={(e) => setOwnerGstUser(e.target.value)}
+                                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                        />
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
+                                                        <input
+                                                            type={showOwnerGstPass ? 'text' : 'password'}
+                                                            placeholder="Enter GST password"
+                                                            value={ownerGstPass}
+                                                            onChange={(e) => setOwnerGstPass(e.target.value)}
+                                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={showOwnerGstPass}
+                                                            onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
+                                                            style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                                        />
+                                                        Show Password
+                                                    </label>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
+                                                        <span>Status:</span>
+                                                        {ownerGstCreds?.gstShareStatus === 'Shared' ? (
+                                                            <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
+                                                                Shared with Connected CA
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
+                                                                Not Shared
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
+                                                                alert('Both Username/Email and Password are required to share.');
+                                                                return;
+                                                            }
+                                                            saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
+                                                        }}
+                                                        style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                    >
+                                                        Save & Share with CA
+                                                    </button>
+
+                                                    {ownerGstCreds?.gstShareStatus === 'Shared' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (confirm('Are you sure you want to revoke GST credentials access? Your CA will no longer be able to view them.')) {
+                                                                    revokeOwnerGstMutation.mutate();
+                                                                }
+                                                            }}
+                                                            style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                        >
+                                                            Revoke Sharing
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
+
 
 
                                         </Motion.div>
@@ -1903,13 +1973,13 @@ export default function BusinessCA() {
                                         <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🤝 Accountant Connection</h3>
                                     </div>
 
-                                    {/* Center: Connected FIN-PRO Active badge */}
+                                    {/* Center: Connected badge */}
                                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                                        {outgoingInvitations.some(inv => inv.status === 'Accepted') ? (
+                                        {(outgoingInvitations.some(inv => inv.status === 'Accepted') || incomingInvitations.some(inv => inv.status === 'Accepted')) ? (
                                             <span style={{ fontSize: '11px', background: '#F0FDF4', color: '#16A34A', padding: '4px 12px', borderRadius: '20px', fontWeight: '750', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <CheckCircle2 size={12} /> Connected FIN-PRO Active
+                                                <CheckCircle2 size={12} /> Connected
                                             </span>
-                                        ) : outgoingInvitations.some(inv => inv.status === 'Pending') ? (
+                                        ) : (outgoingInvitations.some(inv => inv.status === 'Pending') || incomingInvitations.some(inv => inv.status === 'Pending')) ? (
                                             <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '4px 12px', borderRadius: '20px', fontWeight: '750', border: '1px solid #FDE047', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 <Clock size={12} className="animate-pulse" /> Pending Acceptance
                                             </span>
@@ -1919,6 +1989,7 @@ export default function BusinessCA() {
                                             </span>
                                         )}
                                     </div>
+
 
                                     {/* Far Right: 💬 Chat & ⏱ Live Timer Action Icons */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2220,208 +2291,48 @@ export default function BusinessCA() {
                                 )}
                             </div>
 
-                            {/* New Card directly below the Accountant Connection Portal */}
-                            {outgoingInvitations.some(inv => inv.status === 'Accepted') && (
-                                ownerGstCreds?.gstShareStatus === 'Requested' ? (
-                                    /* ── Request Card ── */
-                                    <div style={{
-                                        background: '#FFFFFF',
-                                        padding: '24px',
-                                        borderRadius: '16px',
-                                        border: '1px solid #E2E8F0',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '16px'
-                                    }}>
-                                        <div>
-                                            <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                                                🔐 GST Portal Credential Request
-                                            </div>
-                                            <div style={{ fontSize: '13.5px', color: '#334155', fontWeight: '600', marginTop: '8px', lineHeight: '1.5' }}>
-                                                Your accountant <strong style={{ color: '#1D4ED8' }}>{outgoingInvitations.find(inv => inv.status === 'Accepted')?.receiver_email || 'dineshkumar123@bnxmail.com'}</strong> has requested your GST Portal login credentials to file your GST Return.
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter GST login email or username"
-                                                    value={ownerGstUser}
-                                                    onChange={(e) => setOwnerGstUser(e.target.value)}
-                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                />
-                                            </div>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
-                                                <input
-                                                    type={showOwnerGstPass ? 'text' : 'password'}
-                                                    placeholder="Enter GST password"
-                                                    value={ownerGstPass}
-                                                    onChange={(e) => setOwnerGstPass(e.target.value)}
-                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={showOwnerGstPass}
-                                                    onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
-                                                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                                                />
-                                                Show Password
-                                            </label>
-
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
-                                                <span>Status:</span>
-                                                <span style={{ color: '#EAB308', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EAB308' }}></span>
-                                                    Pending
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                        alert('Both Username and Password are required.');
-                                                        return;
-                                                    }
-                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: false });
-                                                }}
-                                                style={{ padding: '10px 20px', background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
-                                            >
-                                                Save
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                        alert('Both Username and Password are required to share.');
-                                                        return;
-                                                    }
-                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
-                                                }}
-                                                style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                            >
-                                                🔒 Save & Share with CA
-                                            </button>
-                                        </div>
+                            {/* 💳 Professional Service Payment History (Moved to Right Column) */}
+                            <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <h3 style={{ fontSize: '16px', fontWeight: '850', color: '#0F172A', margin: 0 }}>💳 Professional Service Payment History</h3>
+                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).length === 0 ? (
+                                    <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
+                                        <p style={{ fontSize: '13px', fontStyle: 'italic', margin: 0 }}>No payment history recorded yet.</p>
                                     </div>
                                 ) : (
-                                    /* ── Standard Credentials Card ── */
-                                    <div style={{
-                                        background: '#FFFFFF',
-                                        padding: '24px',
-                                        borderRadius: '16px',
-                                        border: '1px solid #E2E8F0',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '16px'
-                                    }}>
-                                        <div>
-                                            <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                                                🔐 GST Portal Credentials (Private Sharing)
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '4px' }}>
-                                                Only your connected Chartered Accountant can access these credentials after you choose to share them.
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter GST login email or username"
-                                                    value={ownerGstUser}
-                                                    onChange={(e) => setOwnerGstUser(e.target.value)}
-                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                />
-                                            </div>
-
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
-                                                <input
-                                                    type={showOwnerGstPass ? 'text' : 'password'}
-                                                    placeholder="Enter GST password"
-                                                    value={ownerGstPass}
-                                                    onChange={(e) => setOwnerGstPass(e.target.value)}
-                                                    style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={showOwnerGstPass}
-                                                    onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
-                                                    style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                                                />
-                                                Show Password
-                                            </label>
-
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
-                                                <span>Status:</span>
-                                                {ownerGstCreds?.gstShareStatus === 'Shared' ? (
-                                                    <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
-                                                        Shared with Connected CA
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
-                                                        Not Shared
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                        alert('Both Username/Email and Password are required to share.');
-                                                        return;
-                                                    }
-                                                    saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
-                                                }}
-                                                style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                            >
-                                                Save & Share with CA
-                                            </button>
-
-                                            {ownerGstCreds?.gstShareStatus === 'Shared' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (confirm('Are you sure you want to revoke GST credentials access? Your CA will no longer be able to view them.')) {
-                                                            revokeOwnerGstMutation.mutate();
-                                                        }
-                                                    }}
-                                                    style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
-                                                >
-                                                    Revoke Sharing
-                                                </button>
-                                            )}
-                                        </div>
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                            <thead>
+                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontWeight: '800' }}>
+                                                    <th style={{ padding: '12px 8px' }}>Invoice #</th>
+                                                    <th style={{ padding: '12px 8px' }}>Date</th>
+                                                    <th style={{ padding: '12px 8px' }}>Duration</th>
+                                                    <th style={{ padding: '12px 8px' }}>Amount Paid</th>
+                                                    <th style={{ padding: '12px 8px' }}>Status</th>
+                                                    <th style={{ padding: '12px 8px' }}>Receipt</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {proInvoices.filter(i => i.status === 'Paid' && (i.business_owner_id === profile?.id || i.clientEmail === myEmail)).map(inv => (
+                                                    <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '12px 8px', fontWeight: '800', color: '#0F172A' }}>{inv.invoice_number}</td>
+                                                        <td style={{ padding: '12px 8px', color: '#475569' }}>{inv.invoice_date}</td>
+                                                        <td style={{ padding: '12px 8px' }}>{Math.floor(inv.duration_seconds / 60)}m</td>
+                                                        <td style={{ padding: '12px 8px', fontWeight: '850', color: '#15803d' }}>{formatCurrency(inv.total_amount)}</td>
+                                                        <td style={{ padding: '12px 8px' }}>
+                                                            <span style={{ fontSize: '10px', fontWeight: '900', background: '#DCFCE7', color: '#15803d', padding: '3px 8px', borderRadius: '12px' }}>SUCCESS</span>
+                                                        </td>
+                                                        <td style={{ padding: '12px 8px' }}>
+                                                            <button style={{ border: 'none', background: 'transparent', color: '#004aad', cursor: 'pointer', fontWeight: '800' }}>Download</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                )
-                            )}
+                                )}
+                            </div>
                         </div>
+
 
                     </div>
                 </>
