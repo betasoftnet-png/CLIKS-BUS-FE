@@ -185,6 +185,19 @@ const BusinessBarcode = () => {
         loadInventoryProducts();
     }, []);
 
+    // Ensure Code 128 encoded payload barcode maintains full height and scannability
+    useEffect(() => {
+        if (encodeCustomData && codeType !== 'QR' && barcodeRef.current) {
+            const svgs = barcodeRef.current.querySelectorAll('svg');
+            svgs.forEach(svg => {
+                svg.setAttribute('preserveAspectRatio', 'none');
+                svg.style.width = '100%';
+                svg.style.height = `${format.height || 90}px`;
+                svg.style.display = 'block';
+            });
+        }
+    }, [encodeCustomData, codeType, codeValue, labelDetails, customFields, format, isScanPreviewOpen]);
+
     // Auto-fill when inventory product selected
     const handleSelectStockProduct = (id) => {
         setSelectedStockId(id);
@@ -1178,17 +1191,40 @@ const BusinessBarcode = () => {
                                                 )}
                                             </div>
                                         ) : (
-                                            <Barcode 
-                                                value={getEffectivePayload()}
-                                                format={codeType}
-                                                width={format.width}
-                                                height={format.height}
-                                                displayValue={format.displayValue}
-                                                fontSize={format.fontSize}
-                                                background={format.background}
-                                                lineColor={format.lineColor}
-                                                margin={format.margin}
-                                            />
+                                            encodeCustomData ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                                    <div style={{ width: '100%', height: `${format.height}px`, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                                        <Barcode 
+                                                            value={getEffectivePayload()}
+                                                            format={codeType}
+                                                            width={1}
+                                                            height={format.height}
+                                                            displayValue={false}
+                                                            fontSize={format.fontSize}
+                                                            background={format.background}
+                                                            lineColor={format.lineColor}
+                                                            margin={2}
+                                                        />
+                                                    </div>
+                                                    {format.displayValue && (
+                                                        <div style={{ textAlign: 'center', marginTop: '4px', color: format.lineColor, fontSize: `${format.fontSize}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                                            {codeValue}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <Barcode 
+                                                    value={getEffectivePayload()}
+                                                    format={codeType}
+                                                    width={format.width}
+                                                    height={format.height}
+                                                    displayValue={format.displayValue}
+                                                    fontSize={format.fontSize}
+                                                    background={format.background}
+                                                    lineColor={format.lineColor}
+                                                    margin={format.margin}
+                                                />
+                                            )
                                         )}
                                     </div>
                                 )}
@@ -1484,17 +1520,40 @@ const BusinessBarcode = () => {
                                         )}
                                     </div>
                                 ) : (
-                                    <Barcode 
-                                        value={getEffectivePayload()}
-                                        format={codeType}
-                                        width={Math.max(format.width, 2.5)}
-                                        height={format.height + 40}
-                                        displayValue={format.displayValue}
-                                        fontSize={format.fontSize + 2}
-                                        background={format.background}
-                                        lineColor={format.lineColor}
-                                        margin={format.margin}
-                                    />
+                                    encodeCustomData ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                            <div style={{ width: '100%', height: `${format.height + 40}px`, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                                <Barcode 
+                                                    value={getEffectivePayload()}
+                                                    format={codeType}
+                                                    width={1}
+                                                    height={format.height + 40}
+                                                    displayValue={false}
+                                                    fontSize={format.fontSize + 2}
+                                                    background={format.background}
+                                                    lineColor={format.lineColor}
+                                                    margin={2}
+                                                />
+                                            </div>
+                                            {format.displayValue && (
+                                                <div style={{ textAlign: 'center', marginTop: '6px', color: format.lineColor, fontSize: `${format.fontSize + 2}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                                    {codeValue}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Barcode 
+                                            value={getEffectivePayload()}
+                                            format={codeType}
+                                            width={Math.max(format.width, 2.5)}
+                                            height={format.height + 40}
+                                            displayValue={format.displayValue}
+                                            fontSize={format.fontSize + 2}
+                                            background={format.background}
+                                            lineColor={format.lineColor}
+                                            margin={format.margin}
+                                        />
+                                    )
                                 )}
                             </div>
 
