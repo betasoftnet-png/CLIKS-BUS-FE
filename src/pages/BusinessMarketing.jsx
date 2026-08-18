@@ -209,10 +209,11 @@ const PREMADE_TEMPLATES = [
 const BusinessMarketing = () => {
     const queryClient = useQueryClient();
 
-    // 1. Fetch Campaigns from DB
+    // 1. Fetch Campaigns from DB with 10s auto-refresh
     const { data: campaigns = [] } = useQuery({
         queryKey: ['marketing-campaigns'],
-        queryFn: marketingService.getCampaigns
+        queryFn: marketingService.getCampaigns,
+        refetchInterval: 10000
     });
 
     // 2. Mutations
