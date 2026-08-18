@@ -411,66 +411,20 @@ const BusinessMarketing = () => {
 
     const triggerManualLaunch = async (camp) => {
         console.log('[Campaign Launch] Entry point reached for campaign:', camp.id);
-        const recipientCount = camp.target_audience === 'Custom Customers'
-            ? selectedCustomCustomerIds.length
-            : (camp.total_recipients !== undefined ? camp.total_recipients : (customerData.length > 0 ? customerData.length : 0));
 
-        if (!recipientCount || recipientCount <= 0) {
-            alert("Minimum 1 email should be assigned");
-            return;
-        }
-
-        if (!(await customConfirm(`Are you sure you want to launch "${camp.campaign_name}" to ${recipientCount} customers?`))) {
+        if (!(await customConfirm(`Are you sure you want to launch "${camp.campaign_name}"?`))) {
             console.log('[Campaign Launch] User cancelled the confirmation dialog.');
             return;
         }
 
         setIsLaunching(true);
         try {
-            let recipients = [];
-            if (camp.target_audience === 'Custom Customers') {
-                recipients = customerData
-                    .filter(c => selectedCustomCustomerIds.includes(c.id))
-                    .map(c => c.email || c.client_email)
-                    .filter(e => e && String(e).includes('@'));
-            } else {
-                recipients = customerData.map(c => c.email || c.client_email).filter(e => e && String(e).includes('@'));
-            }
-
-            if (recipients.length === 0) {
-                alert("Minimum 1 email should be assigned");
-                setIsLaunching(false);
-                return;
-            }
-
-            try {
-                await mailService.bulkSend({
-                    recipients: recipients.slice(0, recipientCount),
-                    subject: camp.message_title || camp.campaign_name,
-                    body: camp.message_content || 'Special Campaign Offer from CLIKS!',
-                    isHtml: true
-                });
-            } catch (mailErr) {
-                console.warn('[Mail Service Dispatch Notice]', mailErr.message);
-            }
-
-            await updateMutation.mutateAsync({ 
-                id: camp.id, 
-                data: {
-                    campaign_status: 'Sent',
-                    sent_count: recipientCount,
-                    delivered_count: Math.floor(recipientCount * 0.98),
-                    opened_count: Math.floor(recipientCount * 0.82),
-                    clicked_count: Math.floor(recipientCount * 0.50),
-                    conversion_count: Math.floor(recipientCount * 0.15),
-                    roi_percentage: 180
-                }
-            });
-
+            await marketingService.launchCampaign(camp.id);
+            queryClient.invalidateQueries(['marketing-campaigns']);
             alert(`Campaign "${camp.campaign_name}" launched successfully!`);
         } catch (error) {
             console.error('[Launch Campaign Error]', error);
-            alert(`Campaign created! Status updated to Sent.`);
+            alert(error.response?.data?.message || error.message || 'Failed to launch campaign');
         } finally {
             setIsLaunching(false);
         }

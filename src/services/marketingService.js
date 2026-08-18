@@ -20,6 +20,15 @@ export const marketingService = {
         }
     },
 
+    launchCampaign: async (id) => {
+        try {
+            return await apiClient.post(`/marketing/${id}/launch`);
+        } catch (error) {
+            console.error('[Marketing Service] Launch Error:', error.message);
+            throw error;
+        }
+    },
+
     updateCampaign: async (id, data) => {
         try {
             return await apiClient.put(`/marketing/${id}`, data);
