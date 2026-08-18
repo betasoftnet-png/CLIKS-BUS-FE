@@ -500,6 +500,89 @@ const BusinessExpenses = () => {
         reader.readAsDataURL(file);
     };
 
+    const [receiptSets, setReceiptSets] = useState([
+        { id: 1, receipt: '', file_name: '', file_type: '', file_data: '', file_preview_url: '' }
+    ]);
+
+    const handleAddReceiptSet = () => {
+        setReceiptSets(prev => [
+            ...prev,
+            { id: Date.now() + Math.random(), receipt: '', file_name: '', file_type: '', file_data: '', file_preview_url: '' }
+        ]);
+    };
+
+    const handleRemoveReceiptSet = (index) => {
+        setReceiptSets(prev => {
+            if (prev.length <= 1) {
+                return [{ id: Date.now(), receipt: '', file_name: '', file_type: '', file_data: '', file_preview_url: '' }];
+            }
+            const copy = [...prev];
+            if (copy[index].file_preview_url) {
+                URL.revokeObjectURL(copy[index].file_preview_url);
+            }
+            copy.splice(index, 1);
+            return copy;
+        });
+    };
+
+    const handleReceiptTextChange = (index, text) => {
+        setReceiptSets(prev => {
+            const copy = [...prev];
+            copy[index] = { ...copy[index], receipt: text };
+            return copy;
+        });
+    };
+
+    const handleSetFileChange = (index, file) => {
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Maximum file size is 10 MB.");
+            return;
+        }
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            alert("Invalid file type. Only JPG, JPEG, PNG, WEBP, and PDF are accepted.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64Data = reader.result;
+            const previewUrl = URL.createObjectURL(file);
+            setReceiptSets(prev => {
+                const copy = [...prev];
+                if (copy[index].file_preview_url) {
+                    URL.revokeObjectURL(copy[index].file_preview_url);
+                }
+                copy[index] = {
+                    ...copy[index],
+                    file_name: file.name,
+                    file_type: file.type,
+                    file_data: base64Data,
+                    file_preview_url: previewUrl
+                };
+                return copy;
+            });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleSetFileRemove = (index) => {
+        setReceiptSets(prev => {
+            const copy = [...prev];
+            if (copy[index].file_preview_url) {
+                URL.revokeObjectURL(copy[index].file_preview_url);
+            }
+            copy[index] = {
+                ...copy[index],
+                file_name: '',
+                file_type: '',
+                file_data: '',
+                file_preview_url: ''
+            };
+            return copy;
+        });
+    };
+
     const handleRemoveFile = () => {
         if (newClaim.file_preview_url) {
             URL.revokeObjectURL(newClaim.file_preview_url);
@@ -521,6 +604,10 @@ const BusinessExpenses = () => {
         if (newClaim.file_preview_url) {
             URL.revokeObjectURL(newClaim.file_preview_url);
         }
+        receiptSets.forEach(s => {
+            if (s.file_preview_url) URL.revokeObjectURL(s.file_preview_url);
+        });
+        setReceiptSets([{ id: Date.now(), receipt: '', file_name: '', file_type: '', file_data: '', file_preview_url: '' }]);
         setNewClaim({
             employee_name: '',
             travel_expense: '',
@@ -542,7 +629,21 @@ const BusinessExpenses = () => {
 
     const handleCreateClaim = (e) => {
         e.preventDefault();
-        lodgeClaimMutation.mutate(newClaim);
+        const allReceipts = receiptSets.map(s => s.receipt).filter(Boolean);
+        const validFiles = receiptSets.filter(s => s.file_data && s.file_name).map(s => ({
+            file_name: s.file_name,
+            file_type: s.file_type,
+            file_data: s.file_data
+        }));
+        const claimPayload = {
+            ...newClaim,
+            receipt: allReceipts.join(', ') || newClaim.receipt || '',
+            receipts: allReceipts,
+            files: validFiles,
+            file_data: validFiles[0]?.file_data || '',
+            file_name: validFiles[0]?.file_name || ''
+        };
+        lodgeClaimMutation.mutate(claimPayload);
     };
 
     const handleSaveRecurring = (e) => {
@@ -1548,80 +1649,118 @@ const BusinessExpenses = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
                                 <input required type="number" value={newClaim.claim_amount} onChange={(e) => setNewClaim({ ...newClaim, claim_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receipt File / URL / Reference</label>
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                    <input type="text" value={newClaim.receipt} onChange={(e) => setNewClaim({ ...newClaim, receipt: e.target.value })} style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. claim_receipt_77.pdf or scan link" />
-                                    <input type="file" id="claim-receipt-upload" accept=".png,.jpg,.jpeg,.webp,.pdf" style={{ display: 'none' }} onChange={handleFileChange} />
-                                    <button 
-                                        type="button" 
-                                        onClick={() => document.getElementById('claim-receipt-upload').click()} 
-                                        style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center', 
-                                            width: '2.8rem', 
-                                            height: '2.8rem', 
-                                            borderRadius: '12px', 
-                                            border: '1px solid #E2E8F0', 
-                                            background: '#F8FAFC', 
-                                            color: '#64748B', 
-                                            fontSize: '1.25rem', 
-                                            fontWeight: '600', 
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                                {newClaim.file_name && (
-                                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#F8FAFC' }}>
-                                        {newClaim.file_type && newClaim.file_type.startsWith('image/') ? (
-                                            <img 
-                                                src={newClaim.file_preview_url} 
-                                                alt="Preview" 
-                                                style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} 
+                            {/* Multi-Receipt Sets List */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                {receiptSets.map((set, idx) => (
+                                    <div key={set.id || idx} style={{ border: '1px solid #F1F5F9', borderRadius: '12px', padding: '0.85rem', background: '#FAFAFA', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Receipt / Reference #{idx + 1} (Optional)</label>
+                                            {receiptSets.length > 1 && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleRemoveReceiptSet(idx)} 
+                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                                                >
+                                                    Remove Set
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <input 
+                                                type="text" 
+                                                value={set.receipt} 
+                                                onChange={(e) => handleReceiptTextChange(idx, e.target.value)} 
+                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                                placeholder="e.g. UPI Ref No, Bank Txn ID, Receipt No., or Manual Reference" 
                                             />
-                                        ) : (
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.7rem' }}>
-                                                PDF
+                                            <input 
+                                                type="file" 
+                                                id={`expense-receipt-upload-${idx}`} 
+                                                accept=".png,.jpg,.jpeg,.webp,.pdf" 
+                                                style={{ display: 'none' }} 
+                                                onChange={(e) => handleSetFileChange(idx, e.target.files[0])} 
+                                            />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => document.getElementById(`expense-receipt-upload-${idx}`).click()} 
+                                                style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center', 
+                                                    width: '2.8rem', 
+                                                    height: '2.8rem', 
+                                                    borderRadius: '12px', 
+                                                    border: '1px solid #E2E8F0', 
+                                                    background: '#F8FAFC', 
+                                                    color: '#64748B', 
+                                                    fontSize: '1.25rem', 
+                                                    fontWeight: '600', 
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+
+                                        {set.file_name && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: 'white' }}>
+                                                {set.file_type && set.file_type.startsWith('image/') ? (
+                                                    <img 
+                                                        src={set.file_preview_url} 
+                                                        alt="Preview" 
+                                                        style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} 
+                                                    />
+                                                ) : (
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.7rem' }}>
+                                                        PDF
+                                                    </div>
+                                                )}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {set.file_name}
+                                                    </p>
+                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                        {set.file_type && set.file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => window.open(set.file_preview_url, '_blank')} 
+                                                        style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                                    >
+                                                        View
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => document.getElementById(`expense-receipt-upload-${idx}`).click()} 
+                                                        style={{ border: 'none', background: '#F1F5F9', color: '#475569', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                                    >
+                                                        Replace
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleSetFileRemove(idx)} 
+                                                        style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {newClaim.file_name}
-                                            </p>
-                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
-                                                {newClaim.file_type && newClaim.file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
-                                            </span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => window.open(newClaim.file_preview_url, '_blank')} 
-                                                style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                            >
-                                                View
-                                            </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => document.getElementById('claim-receipt-upload').click()} 
-                                                style={{ border: 'none', background: '#F1F5F9', color: '#475569', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                            >
-                                                Replace
-                                            </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={handleRemoveFile} 
-                                                style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
                                     </div>
-                                )}
+                                ))}
+
+                                <button 
+                                    type="button" 
+                                    onClick={handleAddReceiptSet} 
+                                    style={{ border: '1px dashed #7C3AED', background: '#F5F3FF', color: '#6D28D9', padding: '0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                                >
+                                    + Add Another Receipt / Proof
+                                </button>
                             </div>
 
                             <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
