@@ -137,7 +137,7 @@ export default function BusinessCA() {
     const { data: practiceClients = [], refetch: refetchClients } = useQuery({
         queryKey: ['practiceClients'],
         queryFn: () => caService.getClients(),
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
 
@@ -151,7 +151,7 @@ export default function BusinessCA() {
     const { data: practiceRequests = [], refetch: refetchRequests } = useQuery({
         queryKey: ['practiceRequests'],
         queryFn: () => caService.getRequests(),
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
 
@@ -169,14 +169,14 @@ export default function BusinessCA() {
     const { data: outgoingInvitations = [], refetch: refetchOutgoing } = useQuery({
         queryKey: ['caInvitationsOutgoing'],
         queryFn: () => caService.getOutgoingInvitations(),
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
 
     const { data: incomingInvitations = [], refetch: refetchIncoming } = useQuery({
         queryKey: ['caInvitationsIncoming'],
         queryFn: () => caService.getIncomingInvitations(),
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
 
@@ -222,7 +222,7 @@ export default function BusinessCA() {
     const { data: practiceTasks = [], refetch: refetchTasks } = useQuery({
         queryKey: ['practiceTasks'],
         queryFn: () => caService.getTasks(),
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
 
@@ -282,14 +282,14 @@ export default function BusinessCA() {
     const { data: caPresenceInfo, refetch: refetchCaPresence } = useQuery({
         queryKey: ['caPresenceInfo', targetChatPartnerId],
         queryFn: () => caService.getPresenceStatus(targetChatPartnerId),
-        refetchInterval: 3000,
+        refetchInterval: 30000,
         retry: false
     });
 
     const { data: unreadChatData, refetch: refetchUnreadCount } = useQuery({
         queryKey: ['unreadChatCount'],
         queryFn: () => caService.getUnreadChatCount(),
-        refetchInterval: 3000,
+        refetchInterval: 30000,
         retry: false
     });
 
@@ -297,7 +297,7 @@ export default function BusinessCA() {
         queryKey: ['chatMessages', targetChatPartnerId],
         queryFn: () => targetChatPartnerId ? caService.getChatMessages(targetChatPartnerId) : Promise.resolve([]),
         enabled: !!targetChatPartnerId && showChatWindow,
-        refetchInterval: 1000,
+        refetchInterval: 10000,
         retry: false
     });
 
@@ -438,7 +438,7 @@ export default function BusinessCA() {
         queryKey: ['clientDocuments', selectedWorkpaperClientId],
         queryFn: () => selectedWorkpaperClientId ? caService.getClientDocuments(selectedWorkpaperClientId) : Promise.resolve([]),
         enabled: !!selectedWorkpaperClientId,
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
 
@@ -562,7 +562,7 @@ export default function BusinessCA() {
         queryKey: ['gstStatus', selectedWorkpaperClientId],
         queryFn: () => selectedWorkpaperClientId ? caService.getClientGstStatus(selectedWorkpaperClientId) : Promise.resolve({ gstShareStatus: 'Not Shared' }),
         enabled: !!selectedWorkpaperClientId,
-        refetchInterval: 2000,
+        refetchInterval: 30000,
         retry: false
     });
     const gstShareStatus = gstStatusData?.gstShareStatus || 'Not Shared';

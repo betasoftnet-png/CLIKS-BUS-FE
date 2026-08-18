@@ -558,7 +558,7 @@ const BusinessCRM = () => {
         loadCustomers(true);
         const handleFocus = () => loadCustomers(false);
         window.addEventListener('focus', handleFocus);
-        const timer = setInterval(() => loadCustomers(false), 3000);
+        const timer = setInterval(() => loadCustomers(false), 30000);
         return () => {
             window.removeEventListener('focus', handleFocus);
             clearInterval(timer);

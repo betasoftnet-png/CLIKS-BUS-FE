@@ -236,7 +236,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                 .catch(() => {});
         };
         fetchNotifs();
-        const interval = setInterval(fetchNotifs, 5000);
+        const interval = setInterval(fetchNotifs, 30000);
         return () => {
             isMounted = false;
             clearInterval(interval);
