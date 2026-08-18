@@ -2062,15 +2062,27 @@ const BusinessStaffing = () => {
                                 <select 
                                     required 
                                     value={newClaim.employee_name} 
-                                    onChange={(e) => setNewClaim({ ...newClaim, employee_name: e.target.value })} 
+                                    onChange={(e) => {
+                                        const name = e.target.value;
+                                        const emp = employees.find(s => `${s.first_name || ''} ${s.last_name || ''}`.trim() === name || s.name === name);
+                                        setNewClaim({ 
+                                            ...newClaim, 
+                                            employee_name: name,
+                                            employee_code: emp ? (emp.employee_id || `CLK-00${emp.id}`) : 'CLK-001',
+                                            employee_id: emp ? emp.id : 1
+                                        });
+                                    }}
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
-                                    <option value="">Select Employee</option>
-                                    {employees.map(emp => (
-                                        <option key={emp.employee_id} value={`${emp.first_name} ${emp.last_name}`}>
-                                            {emp.first_name} {emp.last_name} ({emp.department_name})
-                                        </option>
-                                    ))}
+                                    <option value="">-- Select Employee --</option>
+                                    {employees.map(emp => {
+                                        const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.name || 'Employee';
+                                        return (
+                                            <option key={emp.id || emp.employee_id} value={fullName}>
+                                                {fullName} ({emp.department_name || emp.department || 'Staff'})
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                             <div>

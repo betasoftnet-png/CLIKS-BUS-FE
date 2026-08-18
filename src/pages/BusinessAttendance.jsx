@@ -226,6 +226,13 @@ const BusinessAttendance = () => {
         approved_by: log.approved_by || ''
     })) : [];
 
+    const [geoLocations, setGeoLocations] = useState([
+        { id: 1, name: 'Headquarters Office, Mumbai', lat: '19.0760° N', lng: '72.8777° E', radius: '200 Meters', status: 'Active' },
+        { id: 2, name: 'Operations Godown B, Pune', lat: '18.5204° N', lng: '73.8567° E', radius: '500 Meters', status: 'Active' }
+    ]);
+    const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
+    const [geoForm, setGeoForm] = useState({ id: null, name: '', lat: '', lng: '', radius: '200 Meters', status: 'Active' });
+
     // Form inputs states
     const [punchForm, setPunchForm] = useState({
         employee_id: '',
@@ -240,8 +247,10 @@ const BusinessAttendance = () => {
         employee_name: '',
         attendance_date: '',
         missed_punch_reason: '',
+        request_type: 'Missed Punch',
         proposed_punch_in: '',
-        proposed_punch_out: ''
+        proposed_punch_out: '',
+        approved_by: 'Ravi Kumar C (HR Manager)'
     });
 
     const [shiftForm, setShiftForm] = useState({
@@ -284,9 +293,29 @@ const BusinessAttendance = () => {
             employee_name: correctionForm.employee_name,
             attendance_date: correctionForm.attendance_date,
             missed_punch_reason: correctionForm.missed_punch_reason,
+            request_type: correctionForm.request_type || 'Missed Punch',
             proposed_punch_in: convertTo12Hour(correctionForm.proposed_punch_in),
-            proposed_punch_out: convertTo12Hour(correctionForm.proposed_punch_out)
+            proposed_punch_out: convertTo12Hour(correctionForm.proposed_punch_out),
+            approved_by: correctionForm.approved_by || 'Ravi Kumar C (HR Manager)'
         });
+    };
+
+    const handleSaveGeo = (e) => {
+        e.preventDefault();
+        if (geoForm.id) {
+            setGeoLocations(geoLocations.map(g => g.id === geoForm.id ? { ...geoForm } : g));
+        } else {
+            setGeoLocations([...geoLocations, { ...geoForm, id: Date.now() }]);
+        }
+        setIsGeoModalOpen(false);
+    };
+
+    const handleToggleGeoStatus = (id) => {
+        setGeoLocations(geoLocations.map(g => g.id === id ? { ...g, status: g.status === 'Active' ? 'Inactive' : 'Active' } : g));
+    };
+
+    const handleDeleteGeo = (id) => {
+        setGeoLocations(geoLocations.filter(g => g.id !== id));
     };
 
     const handleEditPunchSubmit = (e) => {
@@ -680,19 +709,50 @@ const BusinessAttendance = () => {
             {/* Tab 3: GPS Geo-Fencing */}
             {activeTab === 'geo' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1rem' }}>Geo-Fenced Active GPS Coordinates</h3>
-                    <p style={{ color: '#64748B', marginBottom: '2rem' }}>Only check-ins inside these coordinate boundaries are verified automatically as 'present' without manager intervention.</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: '0 0 0.4rem 0' }}>Geo-Fenced Active GPS Coordinates</h3>
+                            <p style={{ color: '#64748B', margin: 0 }}>Only check-ins inside these coordinate boundaries are verified automatically as 'present' without manager intervention.</p>
+                        </div>
+                        <button 
+                            onClick={() => { setGeoForm({ id: null, name: '', lat: '', lng: '', radius: '200 Meters', status: 'Active' }); setIsGeoModalOpen(true); }}
+                            style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' }}
+                        >
+                            + Add Geo-Fence Location
+                        </button>
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
-                        {[
-                            { name: 'Headquarters Office, Mumbai', lat: '19.0760° N', lng: '72.8777° E', radius: '200 Meters', status: 'Active' },
-                            { name: 'Operations Godown Godown B, Pune', lat: '18.5204° N', lng: '73.8567° E', radius: '500 Meters', status: 'Active' }
-                        ].map((loc, idx) => (
-                            <div key={idx} style={{ padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <h4 style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem' }}>{loc.name}</h4>
-                                    <p style={{ color: '#64748B', fontSize: '0.85rem' }}>Coordinates: {loc.lat}, {loc.lng} | Fence Radius: {loc.radius}</p>
+                        {geoLocations.map((loc) => (
+                            <div key={loc.id} style={{ padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#F8FAFC' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <h4 style={{ fontWeight: '800', color: '#1E293B', margin: '0 0 0.4rem 0', fontSize: '1.05rem' }}>{loc.name}</h4>
+                                        <p style={{ color: '#64748B', fontSize: '0.85rem', margin: 0 }}>Coordinates: <span style={{ fontWeight: '700', color: '#0F172A' }}>{loc.lat}, {loc.lng}</span> | Radius: <span style={{ fontWeight: '700', color: '#0F172A' }}>{loc.radius}</span></p>
+                                    </div>
+                                    <span style={{ padding: '0.25rem 0.65rem', borderRadius: '8px', background: loc.status === 'Active' ? '#ECFDF5' : '#FEE2E2', color: loc.status === 'Active' ? '#10B981' : '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>
+                                        {loc.status}
+                                    </span>
                                 </div>
-                                <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#ECFDF5', color: '#10B981', fontWeight: '800', fontSize: '0.75rem' }}>{loc.status}</span>
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', borderTop: '1px solid #E2E8F0', paddingTop: '0.85rem' }}>
+                                    <button 
+                                        onClick={() => handleToggleGeoStatus(loc.id)}
+                                        style={{ border: '1px solid #CBD5E1', background: 'white', color: loc.status === 'Active' ? '#D97706' : '#059669', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        {loc.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    <button 
+                                        onClick={() => { setGeoForm({ ...loc }); setIsGeoModalOpen(true); }}
+                                        style={{ border: '1px solid #CBD5E1', background: 'white', color: '#2563EB', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteGeo(loc.id)}
+                                        style={{ border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#DC2626', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -702,14 +762,15 @@ const BusinessAttendance = () => {
             {/* Tab 4: Regularization Corrections */}
             {activeTab === 'corrections' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Regularization Verification Request Queue</h3>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Regularization & Leave Permission Queue</h3>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead style={{ background: '#F8FAFC' }}>
                             <tr>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Request ID</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Profile</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Category</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Timesheet Date</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Missed Punch Reason</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reason</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Proposed Times</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Approved By</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
@@ -721,10 +782,15 @@ const BusinessAttendance = () => {
                                 <tr key={cor.correction_request_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750' }}>{cor.correction_request_id}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700' }}>{cor.employee_name}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', background: '#F3E8FF', color: '#7E22CE', fontWeight: '800', fontSize: '0.72rem' }}>
+                                            {cor.request_type || 'Missed Punch'}
+                                        </span>
+                                    </td>
                                     <td style={{ padding: '1rem' }}>{cor.attendance_date}</td>
                                     <td style={{ padding: '1rem' }}>{cor.missed_punch_reason}</td>
                                     <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{cor.proposed_punch_in} - {cor.proposed_punch_out}</td>
-                                    <td style={{ padding: '1rem', color: '#64748B' }}>{cor.approved_by || 'N/A'}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#475569' }}>{cor.approved_by || 'Ravi Kumar C (HR Manager)'}</td>
                                     <td style={{ padding: '1rem' }}>
                                         <span style={{ 
                                             padding: '0.25rem 0.5rem', borderRadius: '6px',
@@ -738,7 +804,7 @@ const BusinessAttendance = () => {
                                             <button 
                                                 onClick={() => handleApproveCorrection(cor.correction_request_id)}
                                                 style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
-                                            >Approve Correction</button>
+                                            >Approve Request</button>
                                         )}
                                     </td>
                                 </tr>
@@ -890,16 +956,14 @@ const BusinessAttendance = () => {
                     </div>
                 </div>
             )}
- 
-            {/* Regularize Missed Punch Modal */}
             {isCorrectionModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '24px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0', boxSizing: 'border-box' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Regularize Missed Punch</h3>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Regularization & Leave Request</h3>
                             <button onClick={() => setIsCorrectionModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
                         </div>
- 
+
                         <form onSubmit={handleAddCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Employee Name</label>
@@ -912,13 +976,30 @@ const BusinessAttendance = () => {
                                     {dbEmployees.length === 0 && <option value="" disabled>No employees found</option>}
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Timesheet Date</label>
-                                <input required type="date" value={correctionForm.attendance_date} onChange={(e) => setCorrectionForm({ ...correctionForm, attendance_date: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Request Category</label>
+                                    <select 
+                                        value={correctionForm.request_type || 'Missed Punch'} 
+                                        onChange={(e) => setCorrectionForm({ ...correctionForm, request_type: e.target.value })}
+                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem' }}
+                                    >
+                                        <option value="Missed Punch">Missed Punch</option>
+                                        <option value="Hour Permission">Hour Permission (1-2 Hrs)</option>
+                                        <option value="Halfday Leave">Halfday Leave</option>
+                                        <option value="Emergency Permission">Emergency Permission</option>
+                                        <option value="Sick Leave">Sick Leave</option>
+                                        <option value="Complementary Holiday">Complementary Holiday</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Timesheet Date</label>
+                                    <input required type="date" value={correctionForm.attendance_date} onChange={(e) => setCorrectionForm({ ...correctionForm, attendance_date: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Reason for Regularization</label>
-                                <input required type="text" value={correctionForm.missed_punch_reason} onChange={(e) => setCorrectionForm({ ...correctionForm, missed_punch_reason: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Biometric mismatch/Travel delay" />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Reason for Regularization / Leave</label>
+                                <input required type="text" value={correctionForm.missed_punch_reason} onChange={(e) => setCorrectionForm({ ...correctionForm, missed_punch_reason: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Biometric mismatch/Travel delay/Medical Emergency" />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -930,9 +1011,111 @@ const BusinessAttendance = () => {
                                     <input required type="time" value={correctionForm.proposed_punch_out} onChange={(e) => setCorrectionForm({ ...correctionForm, proposed_punch_out: e.target.value })} style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                 </div>
                             </div>
- 
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Approved By (Approving Manager)</label>
+                                <input 
+                                    type="text" 
+                                    value={correctionForm.approved_by || 'Ravi Kumar C (HR Manager)'} 
+                                    onChange={(e) => setCorrectionForm({ ...correctionForm, approved_by: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.65rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                />
+                            </div>
+
                             <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)', marginTop: '0.5rem' }}>
                                 Settle Regularization Request
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Shift Configurator Modal */}
+            {isShiftModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{shiftForm.shift_id ? 'Edit' : 'Add'} Roster Shift Timings</h3>
+                            <button onClick={() => setIsShiftModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleCreateShift} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift Name</label>
+                                <input required type="text" value={shiftForm.shift_name} onChange={(e) => setShiftForm({ ...shiftForm, shift_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="General Day Shift" />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift Start Time</label>
+                                    <input 
+                                        required 
+                                        type="time" 
+                                        value={convertTo24Hour(shiftForm.shift_start_time) || '09:00'} 
+                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_start_time: convertTo12Hour(e.target.value) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift End Time</label>
+                                    <input 
+                                        required 
+                                        type="time" 
+                                        value={convertTo24Hour(shiftForm.shift_end_time) || '18:00'} 
+                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_end_time: convertTo12Hour(e.target.value) })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Allowed Grace Time (Minutes)</label>
+                                <input required type="number" value={shiftForm.grace_time} onChange={(e) => setShiftForm({ ...shiftForm, grace_time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
+                                Settle Assigned Work Shift
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add/Edit Geo-Fence Location Modal */}
+            {isGeoModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>{geoForm.id ? 'Edit' : 'Add'} Geo-Fence Location</h3>
+                            <button onClick={() => setIsGeoModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={18} /></button>
+                        </div>
+                        <form onSubmit={handleSaveGeo} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Location / Office Name</label>
+                                <input required type="text" value={geoForm.name} onChange={(e) => setGeoForm({ ...geoForm, name: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none' }} placeholder="Headquarters Office, Mumbai" />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Latitude</label>
+                                    <input required type="text" value={geoForm.lat} onChange={(e) => setGeoForm({ ...geoForm, lat: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none' }} placeholder="19.0760° N" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Longitude</label>
+                                    <input required type="text" value={geoForm.lng} onChange={(e) => setGeoForm({ ...geoForm, lng: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none' }} placeholder="72.8777° E" />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Fence Radius</label>
+                                    <input required type="text" value={geoForm.radius} onChange={(e) => setGeoForm({ ...geoForm, radius: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none' }} placeholder="200 Meters" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Status</label>
+                                    <select value={geoForm.status} onChange={(e) => setGeoForm({ ...geoForm, status: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white' }}>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                Save Geo-Fence Boundary
                             </button>
                         </form>
                     </div>

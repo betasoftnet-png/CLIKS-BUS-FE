@@ -166,6 +166,50 @@ const BusinessPayroll = () => {
         };
     }) : [];
 
+    // Available employees memoized across staff and payroll records
+    const availableEmployees = React.useMemo(() => {
+        const list = [];
+        const namesSeen = new Set();
+
+        if (Array.isArray(staffList)) {
+            staffList.forEach(s => {
+                if (s && s.name && !namesSeen.has(s.name)) {
+                    namesSeen.add(s.name);
+                    list.push({ 
+                        id: `EMP-${s.id}`, 
+                        name: s.name, 
+                        department: s.department || s.role || 'Staff', 
+                        salary: parseFloat(s.salary) || '' 
+                    });
+                }
+            });
+        }
+
+        if (Array.isArray(payrollRecords)) {
+            payrollRecords.forEach(r => {
+                if (r && r.employee_name && !namesSeen.has(r.employee_name)) {
+                    namesSeen.add(r.employee_name);
+                    list.push({ 
+                        id: r.employee_id || `EMP-${r.payroll_id}`, 
+                        name: r.employee_name, 
+                        department: 'Employee', 
+                        salary: r.basic_salary || '' 
+                    });
+                }
+            });
+        }
+
+        if (list.length === 0) {
+            list.push(
+                { id: 'EMP-101', name: 'kiran Kumar C', department: 'Finance', salary: 50000 },
+                { id: 'EMP-102', name: 'Arun Kumar', department: 'Sales', salary: 45000 },
+                { id: 'EMP-103', name: 'Priya Sharma', department: 'HR', salary: 40000 }
+            );
+        }
+
+        return list;
+    }, [staffList, payrollRecords]);
+
     // Form states
     const [payForm, setPayForm] = useState({
         employee_id: '',
@@ -175,7 +219,7 @@ const BusinessPayroll = () => {
         special_allowance: '',
         bonus_amount: '',
         apply_pf: true,
-        esi_deduction: '325',
+        esi_deduction: '',
         tds_deduction: ''
     });
 
@@ -214,19 +258,17 @@ const BusinessPayroll = () => {
     const handleCreateLoan = (e) => {
         e.preventDefault();
         const matchingRecord = payrollRecords.find(r => r.employee_name === loanForm.employee_name);
-        if (matchingRecord) {
-            createLoanMutation.mutate({
-                id: matchingRecord.payroll_id,
-                data: {
-                    loan_amount: parseFloat(loanForm.loan_amount) || 10000,
-                    emi_amount: parseFloat(loanForm.emi_amount) || 1000,
-                    remaining_balance: parseFloat(loanForm.loan_amount) || 10000,
-                    salary_advance: parseFloat(loanForm.salary_advance) || 0
-                }
-            });
-        } else {
-            alert('To grant a loan, the employee must have at least one payroll record created in the system.');
-        }
+        const targetId = matchingRecord ? matchingRecord.payroll_id : 1;
+        createLoanMutation.mutate({
+            id: targetId,
+            data: {
+                employee_name: loanForm.employee_name,
+                loan_amount: parseFloat(loanForm.loan_amount) || 0,
+                emi_amount: parseFloat(loanForm.emi_amount) || 0,
+                remaining_balance: parseFloat(loanForm.loan_amount) || 0,
+                salary_advance: parseFloat(loanForm.salary_advance) || 0
+            }
+        });
     };
 
     const handleReleaseSalary = (payId) => {
@@ -485,7 +527,7 @@ const BusinessPayroll = () => {
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Active Loans & Salary Advance Balances</h3>
-                        <button onClick={() => setIsLoanModalOpen(true)} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Grant Employee Loan</button>
+                        <button onClick={() => { setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', salary_advance: '' }); setIsLoanModalOpen(true); }} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Grant Employee Loan</button>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
@@ -495,19 +537,28 @@ const BusinessPayroll = () => {
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Granted Loan Amount</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly EMI deduction</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Remaining Loan Balance</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Deduction Duration</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Salary Advance</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {loans.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((l, idx) => (
-                                <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{l.employee_name}</td>
-                                    <td style={{ padding: '1rem' }}>{formatCurrency(l.loan_amount)}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#EF4444' }}>-{formatCurrency(l.emi_amount)} / Month</td>
-                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>{formatCurrency(l.remaining_balance)}</td>
-                                    <td style={{ padding: '1rem' }}>{formatCurrency(l.salary_advance)}</td>
-                                </tr>
-                            ))}
+                            {loans.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((l, idx) => {
+                                const tenureMonths = (parseFloat(l.emi_amount) > 0) 
+                                    ? Math.ceil((parseFloat(l.remaining_balance) || parseFloat(l.loan_amount)) / parseFloat(l.emi_amount)) 
+                                    : 0;
+                                return (
+                                    <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{l.employee_name}</td>
+                                        <td style={{ padding: '1rem' }}>{formatCurrency(l.loan_amount)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '750', color: '#EF4444' }}>-{formatCurrency(l.emi_amount)} / Month</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#064E3B' }}>{formatCurrency(l.remaining_balance)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#15803D' }}>
+                                            {tenureMonths > 0 ? `${tenureMonths} Months` : 'N/A'}
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>{formatCurrency(l.salary_advance)}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                     </div>
@@ -530,18 +581,19 @@ const BusinessPayroll = () => {
                                     required
                                     value={payForm.employee_name} 
                                     onChange={(e) => {
-                                        const sel = staffList.find(s => s.name === e.target.value);
+                                        const selName = e.target.value;
+                                        const sel = availableEmployees.find(s => s.name === selName);
                                         setPayForm({ 
                                             ...payForm, 
-                                            employee_name: e.target.value, 
-                                            employee_id: sel ? `EMP-${sel.id}` : '',
-                                            basic_salary: sel && sel.salary ? sel.salary : payForm.basic_salary
+                                            employee_name: selName, 
+                                            employee_id: sel ? sel.id : '',
+                                            basic_salary: sel && sel.salary ? sel.salary : ''
                                         });
                                     }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">-- Select Staff Member --</option>
-                                    {staffList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
+                                    {availableEmployees.map(s => (
                                         <option key={s.id} value={s.name}>{s.name} ({s.department || 'Staff'})</option>
                                     ))}
                                 </select>
@@ -549,21 +601,45 @@ const BusinessPayroll = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Basic Base Salary ({currency.symbol})</label>
-                                    <input required type="number" value={payForm.basic_salary} onChange={(e) => setPayForm({ ...payForm, basic_salary: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 50000"
+                                        value={payForm.basic_salary} 
+                                        onChange={(e) => setPayForm({ ...payForm, basic_salary: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>HRA Allowance ({currency.symbol})</label>
-                                    <input required type="number" value={payForm.hra_amount} onChange={(e) => setPayForm({ ...payForm, hra_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 5000"
+                                        value={payForm.hra_amount} 
+                                        onChange={(e) => setPayForm({ ...payForm, hra_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Special Allowance</label>
-                                    <input required type="number" value={payForm.special_allowance} onChange={(e) => setPayForm({ ...payForm, special_allowance: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 2000"
+                                        value={payForm.special_allowance} 
+                                        onChange={(e) => setPayForm({ ...payForm, special_allowance: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bonus / Incentives</label>
-                                    <input required type="number" value={payForm.bonus_amount} onChange={(e) => setPayForm({ ...payForm, bonus_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 3000"
+                                        value={payForm.bonus_amount} 
+                                        onChange={(e) => setPayForm({ ...payForm, bonus_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
@@ -578,11 +654,23 @@ const BusinessPayroll = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>ESI Deduction</label>
-                                    <input required type="number" value={payForm.esi_deduction} onChange={(e) => setPayForm({ ...payForm, esi_deduction: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 325"
+                                        value={payForm.esi_deduction} 
+                                        onChange={(e) => setPayForm({ ...payForm, esi_deduction: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Estimated TDS</label>
-                                    <input required type="number" value={payForm.tds_deduction} onChange={(e) => setPayForm({ ...payForm, tds_deduction: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 100"
+                                        value={payForm.tds_deduction} 
+                                        onChange={(e) => setPayForm({ ...payForm, tds_deduction: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                             </div>
 
@@ -613,24 +701,53 @@ const BusinessPayroll = () => {
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">-- Select Employee --</option>
-                                    {payrollRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(r => (
-                                        <option key={r.payroll_id} value={r.employee_name}>{r.employee_name}</option>
+                                    {availableEmployees.map(r => (
+                                        <option key={r.id} value={r.name}>{r.name} ({r.department || 'Staff'})</option>
                                     ))}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Amount ({currency.symbol})</label>
-                                    <input required type="number" value={loanForm.loan_amount} onChange={(e) => setLoanForm({ ...loanForm, loan_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 2000"
+                                        value={loanForm.loan_amount} 
+                                        onChange={(e) => setLoanForm({ ...loanForm, loan_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly EMI</label>
-                                    <input required type="number" value={loanForm.emi_amount} onChange={(e) => setLoanForm({ ...loanForm, emi_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        type="number" 
+                                        placeholder="e.g. 50"
+                                        value={loanForm.emi_amount} 
+                                        onChange={(e) => setLoanForm({ ...loanForm, emi_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                             </div>
+
+                            {/* Loan Deduction Duration Calculation */}
+                            {parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > 0 && (
+                                <div style={{ background: '#F0FDF4', border: '1px solid #DCF2E4', padding: '0.65rem 0.85rem', borderRadius: '12px', fontSize: '0.8rem', color: '#166534', fontWeight: '750', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>🗓️ Loan Deduction Tenure:</span>
+                                    <span style={{ fontWeight: '850', color: '#15803D' }}>
+                                        {Math.ceil(parseFloat(loanForm.loan_amount) / parseFloat(loanForm.emi_amount))} Months ({currency.symbol}{parseFloat(loanForm.emi_amount)}/mo)
+                                    </span>
+                                </div>
+                            )}
+
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Immediate Salary Advance ({currency.symbol})</label>
-                                <input required type="number" value={loanForm.salary_advance} onChange={(e) => setLoanForm({ ...loanForm, salary_advance: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input 
+                                    type="number" 
+                                    placeholder="e.g. 500"
+                                    value={loanForm.salary_advance} 
+                                    onChange={(e) => setLoanForm({ ...loanForm, salary_advance: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                />
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
