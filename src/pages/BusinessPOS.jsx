@@ -401,18 +401,48 @@ const BusinessPOS = () => {
     const [customerHistoryModalCustomer, setCustomerHistoryModalCustomer] = useState(null);
 
     const { data: customerOrders = [], isLoading: isCustomerOrdersLoading } = useQuery({
-        queryKey: ['customer-orders', customerHistoryModalCustomer?.id || customerHistoryModalCustomer?.customer_id, customerHistoryModalCustomer?.email],
+        queryKey: ['customer-orders', customerHistoryModalCustomer?.id || customerHistoryModalCustomer?.customer_id, customerHistoryModalCustomer?.name, customerHistoryModalCustomer?.email],
         queryFn: async () => {
-            const custId = customerHistoryModalCustomer?.id || customerHistoryModalCustomer?.customer_id;
-            const custEmail = customerHistoryModalCustomer?.email;
-            const allOrders = await posService.getOrders({ customer_id: custId, limit: 100 });
+            if (!customerHistoryModalCustomer) return [];
+
+            const targetId = customerHistoryModalCustomer.id || customerHistoryModalCustomer.customer_id || null;
+            const targetEmail = (customerHistoryModalCustomer.email || '').toLowerCase().trim();
+            const targetName = (customerHistoryModalCustomer.name || customerName || 'Walk-in Customer').toLowerCase().trim();
             
-            // Strictly filter for selected customer's orders
+            const isWalkIn = targetName === 'walk-in customer' || targetName === 'walk-in' || targetName === 'walkin' || (!targetId && !targetEmail && (targetName.includes('walk') || targetName === ''));
+
+            // Build request parameters for POS orders API
+            const params = { limit: 100 };
+            if (isWalkIn) {
+                params.client_name = 'Walk-in Customer';
+            } else if (targetId) {
+                params.customer_id = targetId;
+            } else if (targetName) {
+                params.client_name = targetName;
+            }
+
+            let allOrders = await posService.getOrders(params);
+
+            // Fallback fetch if specific filter returned empty
+            if (allOrders.length === 0) {
+                allOrders = await posService.getOrders({ limit: 100 });
+            }
+
+            // Filter strictly for this target customer
             return allOrders.filter(order => {
-                const matchId = custId && order.customer_id && String(order.customer_id) === String(custId);
-                const matchEmail = custEmail && order.client_email && String(order.client_email).toLowerCase().trim() === String(custEmail).toLowerCase().trim();
-                const matchName = !custId && !custEmail && customerHistoryModalCustomer?.name && order.client_name === customerHistoryModalCustomer.name;
-                return matchId || matchEmail || matchName;
+                const orderId = order.customer_id ? String(order.customer_id) : null;
+                const orderEmail = (order.client_email || '').toLowerCase().trim();
+                const orderName = (order.client_name || 'Walk-in Customer').toLowerCase().trim();
+
+                if (isWalkIn) {
+                    return orderName === 'walk-in customer' || orderName === 'walkin' || orderName === 'walk-in' || (!orderId && !orderEmail && (orderName.includes('walk') || orderName === ''));
+                }
+
+                if (targetId && orderId && String(targetId) === String(orderId)) return true;
+                if (targetEmail && orderEmail && targetEmail === orderEmail) return true;
+                if (targetName && orderName && targetName === orderName) return true;
+
+                return false;
             });
         },
         enabled: isCustomerHistoryModalOpen && !!customerHistoryModalCustomer
@@ -1751,7 +1781,7 @@ const BusinessPOS = () => {
                                         <button 
                                             type="button"
                                             onClick={() => {
-                                                setCustomerHistoryModalCustomer(selectedCustomerObj);
+                                                setCustomerHistoryModalCustomer(selectedCustomerObj || { name: customerName || 'Walk-in Customer', email: customerEmail || '' });
                                                 setIsCustomerHistoryModalOpen(true);
                                             }}
                                             style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: '750', transition: 'all 0.15s ease' }}

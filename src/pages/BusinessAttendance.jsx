@@ -1174,20 +1174,20 @@ const BusinessAttendance = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift Start Time</label>
                                     <input 
                                         required 
-                                        type="time" 
-                                        value={convertTo24Hour(shiftForm.shift_start_time) || '06:00'} 
-                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_start_time: convertTo12Hour(e.target.value) })} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                        type="text" 
+                                        readOnly
+                                        value={shiftForm.shift_start_time || '06:00 AM'} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '700', fontSize: '0.85rem', background: '#F8FAFC', color: '#1E293B', boxSizing: 'border-box' }} 
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift End Time</label>
                                     <input 
                                         required 
-                                        type="time" 
-                                        value={convertTo24Hour(shiftForm.shift_end_time) || '14:00'} 
-                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_end_time: convertTo12Hour(e.target.value) })} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
+                                        type="text" 
+                                        readOnly
+                                        value={shiftForm.shift_end_time || '02:00 PM'} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '700', fontSize: '0.85rem', background: '#F8FAFC', color: '#1E293B', boxSizing: 'border-box' }} 
                                     />
                                 </div>
                             </div>

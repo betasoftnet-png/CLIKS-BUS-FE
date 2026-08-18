@@ -626,7 +626,7 @@ const ProductLauncher = ({ onClose }) => {
                     row-gap: 0.75rem;
                     width: 100%;
                     justify-items: center;
-                    align-items: center;
+                    align-items: flex-start;
                 }
                 .launcher-mini-item-wrapper {
                     display: flex;
@@ -642,16 +642,17 @@ const ProductLauncher = ({ onClose }) => {
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    gap: 6px;
-                    width: 70px;
-                    height: 70px;
+                    gap: 4px;
+                    width: 72px;
+                    min-height: 70px;
+                    height: auto;
                     border-radius: 16px;
                     background: transparent;
                     border: 1px solid transparent;
                     transition: all 0.15s ease;
                     user-select: none;
                     box-shadow: none;
-                    padding: 0.5rem 0.25rem;
+                    padding: 0.4rem 0.2rem;
                 }
                 .launcher-mini-item-wrapper:hover .launcher-mini-card,
                 .launcher-mini-item-wrapper:focus .launcher-mini-card,
@@ -673,9 +674,10 @@ const ProductLauncher = ({ onClose }) => {
                     font-weight: 700;
                     color: #000000 !important;
                     text-align: center;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
+                    white-space: normal;
+                    word-break: break-word;
+                    overflow: visible;
+                    line-height: 1.15;
                     width: 100%;
                     padding: 0 2px;
                 }
