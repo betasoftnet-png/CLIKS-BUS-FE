@@ -232,6 +232,79 @@ const BusinessAttendance = () => {
     ]);
     const [isGeoModalOpen, setIsGeoModalOpen] = useState(false);
     const [geoForm, setGeoForm] = useState({ id: null, name: '', lat: '', lng: '', radius: '200 Meters', status: 'Active' });
+    const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+    const [geoStatusMessage, setGeoStatusMessage] = useState('');
+
+    const detectCurrentGpsLocation = () => {
+        if (!navigator.geolocation) {
+            setIsDetectingLocation(false);
+            setGeoStatusMessage('Unable to detect current location. Please enter the location manually.');
+            return;
+        }
+
+        setIsDetectingLocation(true);
+        setGeoStatusMessage('Detecting current location…');
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                const latFormatted = `${latitude.toFixed(6)}° ${latitude >= 0 ? 'N' : 'S'}`;
+                const lngFormatted = `${longitude.toFixed(6)}° ${longitude >= 0 ? 'E' : 'W'}`;
+
+                setGeoForm(prev => ({
+                    ...prev,
+                    lat: latFormatted,
+                    lng: lngFormatted
+                }));
+
+                try {
+                    const res = await fetch(
+                        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+                    );
+                    if (res.ok) {
+                        const data = await res.json();
+                        
+                        const locality = data.locality || data.city || data.localityInfo?.informal?.[0]?.name || '';
+                        const region = data.principalSubdivision || data.countryName || '';
+
+                        let locationName = '';
+                        if (locality && region) {
+                            locationName = `${locality}, ${region}`;
+                        } else if (locality || region) {
+                            locationName = locality || region;
+                        }
+
+                        if (locationName) {
+                            setGeoForm(prev => ({
+                                ...prev,
+                                name: locationName
+                            }));
+                        }
+                        setGeoStatusMessage('');
+                    } else {
+                        setGeoStatusMessage('Reverse geocoding unavailable. Please enter the location manually.');
+                    }
+                } catch (err) {
+                    console.warn('BigDataCloud API error:', err);
+                    setGeoStatusMessage('Reverse geocoding unavailable. Please enter the location manually.');
+                } finally {
+                    setIsDetectingLocation(false);
+                }
+            },
+            (error) => {
+                console.warn('Geolocation error:', error);
+                setIsDetectingLocation(false);
+                setGeoStatusMessage('Unable to detect current location. Please enter the location manually.');
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 10000
+            }
+        );
+    };
 
     // Form inputs states
     const [punchForm, setPunchForm] = useState({
@@ -753,7 +826,12 @@ const BusinessAttendance = () => {
                             <p style={{ color: '#64748B', margin: 0 }}>Only check-ins inside these coordinate boundaries are verified automatically as 'present' without manager intervention.</p>
                         </div>
                         <button 
-                            onClick={() => { setGeoForm({ id: null, name: '', lat: '', lng: '', radius: '200 Meters', status: 'Active' }); setIsGeoModalOpen(true); }}
+                            onClick={() => { 
+                                setGeoForm({ id: null, name: '', lat: '', lng: '', radius: '200 Meters', status: 'Active' }); 
+                                setIsGeoModalOpen(true); 
+                                setGeoStatusMessage('');
+                                detectCurrentGpsLocation();
+                            }}
                             style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' }}
                         >
                             + Add Geo-Fence Location
@@ -1136,6 +1214,19 @@ const BusinessAttendance = () => {
                             <button onClick={() => setIsGeoModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={18} /></button>
                         </div>
                         <form onSubmit={handleSaveGeo} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {isDetectingLocation && (
+                                <div style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.78rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid #BFDBFE' }}>
+                                    <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #3B82F6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                    Detecting current location…
+                                </div>
+                            )}
+
+                            {!isDetectingLocation && geoStatusMessage && (
+                                <div style={{ padding: '0.65rem 0.85rem', borderRadius: '10px', background: '#FEF2F2', color: '#991B1B', fontSize: '0.78rem', fontWeight: '700', border: '1px solid #FCA5A5' }}>
+                                    {geoStatusMessage}
+                                </div>
+                            )}
+
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Location / Office Name</label>
                                 <input required type="text" value={geoForm.name} onChange={(e) => setGeoForm({ ...geoForm, name: e.target.value })} style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none' }} placeholder="Headquarters Office, Mumbai" />

@@ -810,8 +810,8 @@ const ProductLauncher = ({ onClose }) => {
                     object-fit: contain;
                 }
                 .launcher-mini-img-icon {
-                    width: 30px;
-                    height: 30px;
+                    width: 38px;
+                    height: 38px;
                     object-fit: contain;
                 }
                 .launcher-all-card:hover {

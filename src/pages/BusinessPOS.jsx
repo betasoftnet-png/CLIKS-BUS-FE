@@ -18,6 +18,7 @@ import {
     ChevronUp,
     ChevronDown,
     Edit,
+    Edit2,
     X,
     Check,
     Printer,
@@ -393,6 +394,28 @@ const BusinessPOS = () => {
         queryKey: ['pos-order-history'],
         queryFn: () => posService.getOrders({ limit: 50 }),
         enabled: showHistoryModal
+    });
+
+    // 4b. Fetch Customer Specific Order History
+    const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);
+    const [customerHistoryModalCustomer, setCustomerHistoryModalCustomer] = useState(null);
+
+    const { data: customerOrders = [], isLoading: isCustomerOrdersLoading } = useQuery({
+        queryKey: ['customer-orders', customerHistoryModalCustomer?.id || customerHistoryModalCustomer?.customer_id, customerHistoryModalCustomer?.email],
+        queryFn: async () => {
+            const custId = customerHistoryModalCustomer?.id || customerHistoryModalCustomer?.customer_id;
+            const custEmail = customerHistoryModalCustomer?.email;
+            const allOrders = await posService.getOrders({ customer_id: custId, limit: 100 });
+            
+            // Strictly filter for selected customer's orders
+            return allOrders.filter(order => {
+                const matchId = custId && order.customer_id && String(order.customer_id) === String(custId);
+                const matchEmail = custEmail && order.client_email && String(order.client_email).toLowerCase().trim() === String(custEmail).toLowerCase().trim();
+                const matchName = !custId && !custEmail && customerHistoryModalCustomer?.name && order.client_name === customerHistoryModalCustomer.name;
+                return matchId || matchEmail || matchName;
+            });
+        },
+        enabled: isCustomerHistoryModalOpen && !!customerHistoryModalCustomer
     });
 
     // 5. Checkout Mutation
@@ -1694,14 +1717,52 @@ const BusinessPOS = () => {
                                             LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
                                         </span>
                                     </div>
-                                    <button 
-                                        type="button"
-                                        onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                        style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750', flexShrink: 0 }}
-                                        title="Change or Remove Customer"
-                                    >
-                                        Change / Remove
-                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                                        {/* 1. Edit / Change Customer Icon Button */}
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                if (customerInputRef.current) {
+                                                    customerInputRef.current.focus();
+                                                    setIsCustomerDropdownOpen(true);
+                                                }
+                                            }}
+                                            style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
+                                            title="Edit / Change Customer"
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#BBF7D0'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#DCFCE7'}
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+
+                                        {/* 2. Remove Customer Icon Button */}
+                                        <button 
+                                            type="button"
+                                            onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                            style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
+                                            title="Remove Customer"
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#FCA5A5'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#FEE2E2'}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+
+                                        {/* 3. Order History Icon Button */}
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setCustomerHistoryModalCustomer(selectedCustomerObj);
+                                                setIsCustomerHistoryModalOpen(true);
+                                            }}
+                                            style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: '750', transition: 'all 0.15s ease' }}
+                                            title="View Customer Order History"
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#DBEAFE'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#EFF6FF'}
+                                        >
+                                            <History size={14} />
+                                            <span>History</span>
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -3199,6 +3260,99 @@ const BusinessPOS = () => {
                             </button>
                         </div>
                     </motion.div>
+                </div>
+            )}
+            {/* Customer Order History Modal */}
+            {isCustomerHistoryModalOpen && customerHistoryModalCustomer && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+                    <div style={{ background: '#FFFFFF', width: '100%', maxWidth: '680px', maxHeight: '85vh', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <History size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>Previous Orders</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
+                                        Customer: <strong style={{ color: '#047857' }}>{customerHistoryModalCustomer.name}</strong> ({customerHistoryModalCustomer.email || 'No email'})
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => { setIsCustomerHistoryModalOpen(false); setCustomerHistoryModalCustomer(null); }}
+                                style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Orders List */}
+                        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }}>
+                            {isCustomerOrdersLoading ? (
+                                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748B' }}>
+                                    <div className="animate-spin" style={{ width: '24px', height: '24px', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', borderRadius: '50%', margin: '0 auto 0.75rem auto' }} />
+                                    <span>Loading order history...</span>
+                                </div>
+                            ) : customerOrders.length === 0 ? (
+                                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94A3B8' }}>
+                                    <ShoppingBag size={36} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
+                                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#64748B' }}>No previous orders found for this customer.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                    {customerOrders.map(order => {
+                                        const orderItems = Array.isArray(order.items) ? order.items : [];
+                                        const orderDate = order.created_at || order.issue_date || order.date;
+                                        const formattedDate = orderDate ? new Date(orderDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
+                                        const orderNum = order.invoice_number || `POS-${order.id}`;
+                                        const paymentMode = order.payment_mode || 'Cash';
+                                        const totalAmt = parseFloat(order.total_amount || order.amount) || 0;
+
+                                        return (
+                                            <div key={order.id || orderNum} style={{ border: '1px solid #E2E8F0', borderRadius: '14px', padding: '1rem', background: '#FAFAFA', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.9rem', fontFamily: 'monospace' }}>#{orderNum}</span>
+                                                        <span style={{ fontSize: '0.72rem', background: '#ECFDF5', color: '#047857', fontWeight: '800', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>Paid</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>
+                                                        📅 {formattedDate}
+                                                    </div>
+                                                </div>
+
+                                                {/* Items List */}
+                                                <div style={{ background: '#FFFFFF', borderRadius: '10px', border: '1px solid #F1F5F9', padding: '0.6rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Purchased Items ({orderItems.length})</span>
+                                                    {orderItems.length > 0 ? (
+                                                        orderItems.map((item, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#334155' }}>
+                                                                <span><strong>{item.name || item.description}</strong> × {item.quantity || 1} {item.unit || 'PCS'}</span>
+                                                                <span style={{ fontWeight: '700' }}>{formatCurrency(item.total || ((item.price || 0) * (item.quantity || 1)))}</span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontStyle: 'italic' }}>Details not available</span>
+                                                    )}
+                                                </div>
+
+                                                {/* Bottom summary */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.2rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700' }}>
+                                                        Payment Mode: <strong style={{ color: '#1E293B' }}>{paymentMode}</strong>
+                                                    </span>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#059669' }}>
+                                                        Total: {formatCurrency(totalAmt)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
