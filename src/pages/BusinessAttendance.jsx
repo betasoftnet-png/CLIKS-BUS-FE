@@ -255,7 +255,6 @@ const BusinessAttendance = () => {
 
     const [shiftForm, setShiftForm] = useState({
         shift_id: null,
-        shift_preset: 'General Shift',
         shift_name: 'General Shift',
         shift_start_time: '06:00 AM',
         shift_end_time: '02:00 PM',
@@ -263,29 +262,18 @@ const BusinessAttendance = () => {
         grace_time: 15
     });
 
-    const handleShiftPresetChange = (preset) => {
-        if (preset === 'General Shift') {
+    const handleShiftNameChange = (name) => {
+        if (name === 'Afternoon Shift') {
             setShiftForm(prev => ({
                 ...prev,
-                shift_preset: 'General Shift',
-                shift_name: 'General Shift',
-                shift_start_time: '06:00 AM',
-                shift_end_time: '02:00 PM',
-                shift_type: 'general'
-            }));
-        } else if (preset === 'Afternoon Shift') {
-            setShiftForm(prev => ({
-                ...prev,
-                shift_preset: 'Afternoon Shift',
                 shift_name: 'Afternoon Shift',
                 shift_start_time: '02:00 PM',
                 shift_end_time: '10:00 PM',
                 shift_type: 'afternoon'
             }));
-        } else if (preset === 'Night Shift') {
+        } else if (name === 'Night Shift') {
             setShiftForm(prev => ({
                 ...prev,
-                shift_preset: 'Night Shift',
                 shift_name: 'Night Shift',
                 shift_start_time: '10:00 PM',
                 shift_end_time: '06:00 AM',
@@ -294,8 +282,10 @@ const BusinessAttendance = () => {
         } else {
             setShiftForm(prev => ({
                 ...prev,
-                shift_preset: 'Custom Shift',
-                shift_type: 'custom'
+                shift_name: 'General Shift',
+                shift_start_time: '06:00 AM',
+                shift_end_time: '02:00 PM',
+                shift_type: 'general'
             }));
         }
     };
@@ -696,7 +686,6 @@ const BusinessAttendance = () => {
                         <button onClick={() => {
                             setShiftForm({ 
                                 shift_id: null, 
-                                shift_preset: 'General Shift',
                                 shift_name: 'General Shift', 
                                 shift_start_time: '06:00 AM', 
                                 shift_end_time: '02:00 PM', 
@@ -730,11 +719,10 @@ const BusinessAttendance = () => {
                                     <td style={{ padding: '1rem', textAlign: 'right' }}>
                                         <button
                                             onClick={() => {
-                                                const presetName = s.shift_name === 'General Shift' ? 'General Shift' : s.shift_name === 'Afternoon Shift' ? 'Afternoon Shift' : s.shift_name === 'Night Shift' ? 'Night Shift' : 'Custom Shift';
+                                                const validName = (s.shift_name === 'Afternoon Shift' || s.shift_name === 'Night Shift') ? s.shift_name : 'General Shift';
                                                 setShiftForm({
                                                     shift_id: s.shift_id,
-                                                    shift_preset: presetName,
-                                                    shift_name: s.shift_name,
+                                                    shift_name: validName,
                                                     shift_start_time: s.shift_start_time,
                                                     shift_end_time: s.shift_end_time,
                                                     shift_type: s.shift_type || 'general',
@@ -1090,29 +1078,17 @@ const BusinessAttendance = () => {
 
                         <form onSubmit={handleCreateShift} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift Selection</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift Name</label>
                                 <select 
-                                    value={shiftForm.shift_preset || 'General Shift'} 
-                                    onChange={(e) => handleShiftPresetChange(e.target.value)}
+                                    required 
+                                    value={shiftForm.shift_name || 'General Shift'} 
+                                    onChange={(e) => handleShiftNameChange(e.target.value)}
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.85rem' }}
                                 >
-                                    <option value="General Shift">General Shift (06:00 AM – 02:00 PM)</option>
-                                    <option value="Afternoon Shift">Afternoon Shift (02:00 PM – 10:00 PM)</option>
-                                    <option value="Night Shift">Night Shift (10:00 PM – 06:00 AM)</option>
-                                    <option value="Custom Shift">Custom Shift (User Defined)</option>
+                                    <option value="General Shift">General Shift</option>
+                                    <option value="Afternoon Shift">Afternoon Shift</option>
+                                    <option value="Night Shift">Night Shift</option>
                                 </select>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Shift Name</label>
-                                <input 
-                                    required 
-                                    type="text" 
-                                    value={shiftForm.shift_name} 
-                                    onChange={(e) => setShiftForm({ ...shiftForm, shift_name: e.target.value, shift_preset: 'Custom Shift' })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
-                                    placeholder="e.g. General Shift" 
-                                />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1122,7 +1098,7 @@ const BusinessAttendance = () => {
                                         required 
                                         type="time" 
                                         value={convertTo24Hour(shiftForm.shift_start_time) || '06:00'} 
-                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_start_time: convertTo12Hour(e.target.value), shift_preset: 'Custom Shift' })} 
+                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_start_time: convertTo12Hour(e.target.value) })} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
                                     />
                                 </div>
@@ -1132,7 +1108,7 @@ const BusinessAttendance = () => {
                                         required 
                                         type="time" 
                                         value={convertTo24Hour(shiftForm.shift_end_time) || '14:00'} 
-                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_end_time: convertTo12Hour(e.target.value), shift_preset: 'Custom Shift' })} 
+                                        onChange={(e) => setShiftForm({ ...shiftForm, shift_end_time: convertTo12Hour(e.target.value) })} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
                                     />
                                 </div>
