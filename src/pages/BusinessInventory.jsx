@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { productsService, hsnService } from '../services';
+import { productsService, hsnService, warehouseService, stockService } from '../services';
 import { 
     Package, 
     Plus, 
@@ -231,6 +231,14 @@ const BusinessInventory = () => {
 
 
 
+    // Live Warehouses database via useQuery
+    const { data: dbWarehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses(),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
+    });
+
     // Live catalog items database from productsService
     const { data: items = [] } = useQuery({
         queryKey: ['products'],
@@ -239,11 +247,28 @@ const BusinessInventory = () => {
         refetchOnWindowFocus: false
     });
 
-
     const createMutation = useMutation({
         mutationFn: (data) => productsService.createProduct(data),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
+            // Also create a stock entry for the selected warehouse
+            if (variables && variables.name) {
+                const whName = variables.warehouse_id || 'Main Godown';
+                stockService.createStock({
+                    name: variables.name,
+                    sku: variables.sku,
+                    category: variables.category || 'General',
+                    quantity: parseFloat(variables.quantity) || 0,
+                    unit_price: parseFloat(variables.purchase_price) || 0,
+                    cost_price: parseFloat(variables.purchase_price) || 0,
+                    location: whName,
+                    warehouse: whName,
+                    supplier_name: 'Direct Inward'
+                }).catch(err => console.warn('[Stock Sync Warning]', err));
+            }
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             alert('Product created and catalog initialized successfully!');
             setIsModalOpen(false);
         }
@@ -602,12 +627,6 @@ const BusinessInventory = () => {
         setSelectedItem(null);
         alert('Real-time inventory levels adjusted and committed!');
     };
-
-    // Live warehouses database for initial storage facility selection
-    const { data: dbWarehouses = [] } = useQuery({
-        queryKey: ['warehouses'],
-        queryFn: () => warehouseService.getWarehouses()
-    });
 
     const filteredItems = items.filter(i => {
         const matchesSearch = (i.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1304,19 +1323,23 @@ const BusinessInventory = () => {
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
                                             <select value={formData.warehouse} onChange={(e) => setFormData({...formData, warehouse: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}>
-                                                <option value="Main Godown">Main Godown (Bulk Storage)</option>
-                                                <option value="Chennai godown">Chennai godown</option>
-                                                <option value="Tiruvallur godown">Tiruvallur godown</option>
-                                                <option value="Damaged products godown">⚠️ Damaged products godown (Non-Sellable)</option>
-                                                {dbWarehouses.map(w => {
-                                                    const wName = w.name || w.warehouse_name;
-                                                    if (['Main Godown', 'Chennai godown', 'Tiruvallur godown', 'Damaged products godown'].includes(wName)) return null;
-                                                    return (
-                                                        <option key={w.id} value={wName}>
-                                                            {wName} ({w.code || w.warehouse_code || `WH-${w.id}`})
-                                                        </option>
-                                                    );
-                                                })}
+                                                {dbWarehouses.length > 0 ? (
+                                                    dbWarehouses.map(w => {
+                                                        const wName = w.name || w.warehouse_name;
+                                                        return (
+                                                            <option key={w.id} value={wName}>
+                                                                {wName}
+                                                            </option>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <>
+                                                        <option value="Main Godown">Main Godown (Bulk Storage)</option>
+                                                        <option value="Chennai godown">Chennai godown</option>
+                                                        <option value="Tiruvallur godown">Tiruvallur godown</option>
+                                                        <option value="Damaged products godown">⚠️ Damaged products godown (Non-Sellable)</option>
+                                                    </>
+                                                )}
                                             </select>
                                         </div>
                                         <div>
