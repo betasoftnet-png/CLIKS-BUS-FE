@@ -93,6 +93,54 @@ const BusinessBilling = () => {
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
     const barcodeInputRef = React.useRef(null);
 
+    // Supplier View Modal states for B2B Purchase Request confirmation
+    const [isSupplierViewModalOpen, setIsSupplierViewModalOpen] = useState(false);
+    const [supplierViewPO, setSupplierViewPO] = useState(null);
+    const [isConfirmingPO, setIsConfirmingPO] = useState(false);
+
+    const handleOpenSupplierView = (invoice) => {
+        const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items || '[]') : (invoice.items || []);
+        const poData = {
+            id: invoice.id,
+            purchase_id: invoice.id,
+            purchase_number: invoice.invoice_number?.replace(/^INV-/, '') || invoice.invoice_number || 'PO-0702',
+            dealer_name: invoice.client_name || 'CLIKS Dealer Store',
+            supplier_name: businessProfile?.data?.business_name || businessProfile?.business_name || 'gogo tech',
+            purchase_date: invoice.due_date || (invoice.created_at ? invoice.created_at.split('T')[0] : '2026-08-19'),
+            created_at: invoice.created_at,
+            items: items.map(it => ({
+                product_name: it.product_name || it.name || it.description || 'Product',
+                quantity: it.quantity || it.qty || 1,
+                primary_unit: it.primary_unit || it.unit || 'pcs',
+                purchase_price: it.purchase_price || it.price || it.unit_cost || 0
+            })),
+            status: invoice.status === 'CONFIRMED' || invoice.status === 'Paid' ? 'CONFIRMED' : 'PENDING SUPPLIER CONFIRMATION',
+            supplier_confirmation_status: invoice.status === 'CONFIRMED' || invoice.status === 'Paid' ? 'CONFIRMED' : 'PENDING'
+        };
+        setSupplierViewPO(poData);
+        setIsSupplierViewModalOpen(true);
+    };
+
+    const handleConfirmPOBySupplier = async (poId) => {
+        setIsConfirmingPO(true);
+        try {
+            await purchasesService.confirmSupplierPurchase(poId);
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            alert('Order successfully CONFIRMED! Dealer notification has been generated.');
+            if (supplierViewPO) {
+                setSupplierViewPO(prev => ({
+                    ...prev,
+                    status: 'CONFIRMED',
+                    supplier_confirmation_status: 'CONFIRMED'
+                }));
+            }
+        } catch(err) {
+            alert(err.message || 'Failed to confirm order');
+        } finally {
+            setIsConfirmingPO(false);
+        }
+    };
+
     // Tab Navigation State (Orders List, Sales Returns, Purchase Returns, Warranty Claims)
     const [activeMainTab, setActiveMainTab] = useState('orders'); // 'orders', 'sales_returns', 'purchase_returns', 'warranty'
     const [isOrderReportsModalOpen, setIsOrderReportsModalOpen] = useState(false);
@@ -1307,7 +1355,21 @@ const BusinessBilling = () => {
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem', alignItems: 'center' }}>
+                                                {(inv.notes?.includes('Source: Purchase Invoice') || inv.invoice_type === 'B2B' || inv.invoice_number?.includes('PO')) && (
+                                                    <button 
+                                                        onClick={() => handleOpenSupplierView(inv)} 
+                                                        title="Supplier View (Confirm Order)" 
+                                                        style={{ 
+                                                            padding: '0.25rem 0.6rem', borderRadius: '6px', 
+                                                            border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', 
+                                                            fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', 
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem' 
+                                                        }}
+                                                    >
+                                                        <Globe size={12} /> Supplier View
+                                                    </button>
+                                                )}
                                                 <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={14} /></button>
                                                 <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={14} /></button>
                                                 <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#BE185D', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={14} /></button>
@@ -2721,6 +2783,119 @@ const BusinessBilling = () => {
                                 {createReturnMutation.isPending ? 'Saving...' : 'Submit & Save Record'}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Supplier Portal View (Confirm Order) Modal */}
+            {isSupplierViewModalOpen && supplierViewPO && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '750px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                        {/* Header Banner */}
+                        <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Globe size={24} />
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800' }}>Cliks Website — Supplier Order Confirmation</h3>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.9 }}>Supplier View for Purchase Request #{supplierViewPO.purchase_number}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsSupplierViewModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Order Body */}
+                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* Alert Banner */}
+                            <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '16px', padding: '1rem 1.25rem', color: '#1E40AF', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Info size={20} color="#1D4ED8" />
+                                <span>THIS DEALER HAS REQUESTED THESE PRODUCTS FROM YOU.</span>
+                            </div>
+
+                            {/* Order Demographics */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Dealer / Business Name</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{supplierViewPO.dealer_name || 'CLIKS Dealer Store'}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Supplier Name</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{supplierViewPO.supplier_name}</strong>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Order Date</span>
+                                    <strong style={{ fontSize: '0.95rem', color: '#1E293B' }}>{supplierViewPO.purchase_date}</strong>
+                                </div>
+                            </div>
+
+                            {/* Requested Product List */}
+                            <div>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Requested Products & Quantities</h4>
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                        <thead>
+                                            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Product Name</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Requested Qty</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Unit</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Unit Price</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'center' }}>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {supplierViewPO.items && supplierViewPO.items.length > 0 ? (
+                                                supplierViewPO.items.map((item, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: idx < supplierViewPO.items.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#1E293B' }}>{item.product_name}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: '#1D4ED8' }}>{item.quantity}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#475569' }}>{item.primary_unit || item.unit || 'pcs'}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{formatCurrency(item.purchase_price || item.price || 0)}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#F0FDF4', color: '#15803D' }}>
+                                                                Confirm
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8' }}>No specific item details listed</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Action */}
+                        <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>
+                                Status: <strong style={{ color: (supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? '#15803D' : '#B45309' }}>
+                                    {(supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? 'CONFIRMED' : 'PENDING SUPPLIER CONFIRMATION'}
+                                </strong>
+                            </span>
+
+                            {(supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? (
+                                <span style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#F0FDF4', color: '#15803D', fontWeight: '800', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <CheckCircle2 size={18} /> Order Confirmed by Supplier
+                                </span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    disabled={isConfirmingPO}
+                                    onClick={() => handleConfirmPOBySupplier(supplierViewPO.id || supplierViewPO.purchase_id)}
+                                    style={{
+                                        padding: '0.75rem 1.75rem', borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                        color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer',
+                                        boxShadow: '0 8px 16px rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                                    }}
+                                >
+                                    <CheckCircle2 size={18} /> CONFIRM ORDER
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
