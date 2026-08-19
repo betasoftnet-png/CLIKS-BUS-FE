@@ -694,7 +694,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             fontWeight: '500',
                             color: '#475569'
                         }}>
-                            80 KB of 5 GB used
+                            0 KB of 5 GB used
                         </div>
                     </div>
                 )}
