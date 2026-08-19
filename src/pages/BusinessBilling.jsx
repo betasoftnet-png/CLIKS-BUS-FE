@@ -169,7 +169,7 @@ const BusinessBilling = () => {
                 items: payloadItems
             };
 
-            const targetId = poId || supplierViewPO?.purchase_number || supplierViewPO?.id;
+            const targetId = poId || supplierViewPO?.id || supplierViewPO?.purchase_number || supplierViewPO?.invoice_number;
             await purchasesService.confirmSupplierPurchase(targetId, payload);
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
