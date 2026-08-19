@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { warehouseService, stockService, settingsService } from '../services';
+import { warehouseService, stockService, settingsService, productsService } from '../services';
 import { apiClient } from '../api/client';
 import FilterableTableHead from '../components/FilterableTableHead';
 import {
@@ -52,6 +52,25 @@ const BusinessWarehouse = () => {
     const [editingWarehouse, setEditingWarehouse] = useState(null);
     const [editWarehouseForm, setEditWarehouseForm] = useState({});
     const [selectedStock, setSelectedStock] = useState(null);
+
+    // Warehouse Card Actions State: Add New Product & View List
+    const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+    const [targetWarehouseForProduct, setTargetWarehouseForProduct] = useState(null);
+    const [newWarehouseProduct, setNewWarehouseProduct] = useState({
+        name: '',
+        sku: '',
+        category: 'General',
+        unit: 'PCS',
+        quantity: 10,
+        purchase_price: 0,
+        selling_price: 0,
+        barcode: '',
+        hsn_code: ''
+    });
+
+    const [isViewListModalOpen, setIsViewListModalOpen] = useState(false);
+    const [targetWarehouseForList, setTargetWarehouseForList] = useState(null);
+    const [viewListSearch, setViewListSearch] = useState('');
 
     // Live Warehouses database via useQuery
     const { data: dbWarehouses = [] } = useQuery({
@@ -294,6 +313,131 @@ const BusinessWarehouse = () => {
         return list;
     }, [dbProducts, dbStocks]);
 
+    const warehouseAssignedProducts = React.useMemo(() => {
+        if (!targetWarehouseForList) return [];
+        const targetId = String(targetWarehouseForList.id);
+        const targetCode = (targetWarehouseForList.warehouse_code || '').toLowerCase();
+        const targetName = (targetWarehouseForList.warehouse_name || '').toLowerCase();
+
+        const resultList = [];
+        const seenSkus = new Set();
+
+        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
+        safeProds.forEach(p => {
+            if (!p) return;
+            const pWhId = String(p.warehouse_id || '').toLowerCase();
+            if (pWhId === targetId.toLowerCase() || pWhId === targetCode || pWhId === targetName || pWhId === `wh-0${targetId.toLowerCase()}` || (targetName && pWhId.includes(targetName))) {
+                const key = (p.sku || p.name || '').toLowerCase();
+                seenSkus.add(key);
+                resultList.push({
+                    id: p.id,
+                    name: p.name || 'Unnamed Product',
+                    sku: p.sku || `PROD-${p.id}`,
+                    category: p.category || 'General',
+                    quantity: p.quantity || 0,
+                    unit: p.unit || 'PCS',
+                    purchase_price: p.purchase_price || 0,
+                    selling_price: p.selling_price || 0,
+                    barcode: p.barcode || 'N/A',
+                    hsn_code: p.hsn_code || 'N/A'
+                });
+            }
+        });
+
+        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
+        safeStocks.forEach(s => {
+            if (!s) return;
+            const loc = (s.location || '').toLowerCase();
+            const wh = (s.warehouse || '').toLowerCase();
+            if (loc === targetName || loc.includes(targetName) || wh === targetCode || wh === targetId.toLowerCase()) {
+                const key = (s.sku || s.name || '').toLowerCase();
+                if (!seenSkus.has(key)) {
+                    seenSkus.add(key);
+                    resultList.push({
+                        id: `stk-${s.id}`,
+                        name: s.name || 'Unnamed Stock Item',
+                        sku: s.sku || `STK-${s.id}`,
+                        category: s.category || 'Stock Item',
+                        quantity: s.quantity || 0,
+                        unit: s.unit || 'PCS',
+                        purchase_price: s.unit_price || 0,
+                        selling_price: s.unit_price || 0,
+                        barcode: s.barcode || 'N/A',
+                        hsn_code: s.hsn_code || 'N/A'
+                    });
+                }
+            }
+        });
+
+        return resultList;
+    }, [targetWarehouseForList, dbProducts, dbStocks]);
+
+    const handleOpenAddProduct = (wh) => {
+        setTargetWarehouseForProduct(wh);
+        setNewWarehouseProduct({
+            name: '',
+            sku: `SKU-${Date.now().toString().slice(-6)}`,
+            category: 'General',
+            unit: 'PCS',
+            quantity: 10,
+            purchase_price: 0,
+            selling_price: 0,
+            barcode: '',
+            hsn_code: ''
+        });
+        setIsAddProductModalOpen(true);
+    };
+
+    const handleCreateWarehouseProductSubmit = async (e) => {
+        e.preventDefault();
+        if (!newWarehouseProduct.name || !targetWarehouseForProduct) return;
+
+        try {
+            const targetIdStr = String(targetWarehouseForProduct.id || targetWarehouseForProduct.warehouse_code);
+            const targetName = targetWarehouseForProduct.warehouse_name;
+            const targetCode = targetWarehouseForProduct.warehouse_code;
+
+            await productsService.createProduct({
+                ...newWarehouseProduct,
+                warehouse_id: targetIdStr
+            });
+
+            try {
+                await stockService.createStock({
+                    name: newWarehouseProduct.name,
+                    sku: newWarehouseProduct.sku,
+                    category: newWarehouseProduct.category,
+                    unit: newWarehouseProduct.unit,
+                    quantity: parseFloat(newWarehouseProduct.quantity) || 0,
+                    unit_price: parseFloat(newWarehouseProduct.purchase_price) || 0,
+                    cost_price: parseFloat(newWarehouseProduct.purchase_price) || 0,
+                    location: targetName,
+                    warehouse: targetCode,
+                    supplier_name: 'Direct Inward'
+                });
+            } catch (stErr) {
+                console.warn('[Warehouse Product Stock creation warning]', stErr);
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+
+            alert(`New product "${newWarehouseProduct.name}" successfully created and saved in ${targetName}!`);
+            setIsAddProductModalOpen(false);
+        } catch (err) {
+            console.error('[Warehouse Product Creation Error]', err);
+            alert(err.message || 'Failed to create product for warehouse.');
+        }
+    };
+
+    const handleOpenViewList = (wh) => {
+        setTargetWarehouseForList(wh);
+        setViewListSearch('');
+        setIsViewListModalOpen(true);
+    };
+
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
 
@@ -515,6 +659,35 @@ const BusinessWarehouse = () => {
                                         <Mail size={16} style={{ color: '#64748B' }} />
                                         <span>{wh.email}</span>
                                     </div>
+                                </div>
+
+                                {/* Facility Product & Inventory Actions */}
+                                <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1rem', paddingTop: '0.85rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleOpenAddProduct(wh)} 
+                                        style={{ 
+                                            padding: '0.5rem 0.5rem', borderRadius: '10px', 
+                                            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', 
+                                            border: 'none', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', 
+                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                                            boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
+                                        }}
+                                    >
+                                        <Plus size={14} /> Add New Product
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleOpenViewList(wh)} 
+                                        style={{ 
+                                            padding: '0.5rem 0.5rem', borderRadius: '10px', 
+                                            background: '#EFF6FF', color: '#1D4ED8', 
+                                            border: '1px solid #BFDBFE', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', 
+                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' 
+                                        }}
+                                    >
+                                        <Layers size={14} /> View the List
+                                    </button>
                                 </div>
 
                                 {/* Facility Action Footer */}
@@ -979,6 +1152,193 @@ const BusinessWarehouse = () => {
                                 Register Facility Profile
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Add New Product to Specific Warehouse Modal */}
+            {isAddProductModalOpen && targetWarehouseForProduct && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(4px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '650px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '850' }}>Add New Product</h3>
+                                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Assign & Stock Item for Warehouse: <strong>{targetWarehouseForProduct.warehouse_name}</strong> ({targetWarehouseForProduct.warehouse_code})</p>
+                            </div>
+                            <button onClick={() => setIsAddProductModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateWarehouseProductSubmit} style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '78vh', overflowY: 'auto' }}>
+                            {/* Warehouse Banner */}
+                            <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#047857', fontWeight: '700' }}>
+                                <WarehouseIcon size={18} />
+                                <span>Target Facility: {targetWarehouseForProduct.warehouse_name} ({targetWarehouseForProduct.warehouse_code})</span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Product Name *</label>
+                                    <input required type="text" value={newWarehouseProduct.name} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="e.g. Industrial Steel Pipe 2 inch" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>SKU Code *</label>
+                                    <input required type="text" value={newWarehouseProduct.sku} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, sku: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="e.g. WH-SKU-01" />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Category</label>
+                                    <input type="text" value={newWarehouseProduct.category} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, category: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="General" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Primary Unit</label>
+                                    <select value={newWarehouseProduct.unit} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, unit: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem', background: 'white' }}>
+                                        <option value="PCS">PCS</option>
+                                        <option value="Box">Box</option>
+                                        <option value="Kg">Kg</option>
+                                        <option value="Mtr">Mtr</option>
+                                        <option value="Nos">Nos</option>
+                                        <option value="Ltr">Ltr</option>
+                                        <option value="Set">Set</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Opening Stock *</label>
+                                    <input required type="number" min="0" value={newWarehouseProduct.quantity} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, quantity: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem', fontWeight: '800', color: '#047857' }} placeholder="10" />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Purchase Price / Unit Cost (₹)</label>
+                                    <input type="number" min="0" step="any" value={newWarehouseProduct.purchase_price} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, purchase_price: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="0" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Selling Price / MRP (₹)</label>
+                                    <input type="number" min="0" step="any" value={newWarehouseProduct.selling_price} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, selling_price: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="0" />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Barcode</label>
+                                    <input type="text" value={newWarehouseProduct.barcode} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, barcode: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="Scan / Optional" />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>HSN Code</label>
+                                    <input type="text" value={newWarehouseProduct.hsn_code} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, hsn_code: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="e.g. 7306" />
+                                </div>
+                            </div>
+
+                            <button type="submit" style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.25)', marginTop: '0.5rem' }}>
+                                Save Product to {targetWarehouseForProduct.warehouse_name}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Assigned Products List Modal for Specific Warehouse */}
+            {isViewListModalOpen && targetWarehouseForList && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(4px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}>
+                        {/* Header */}
+                        <div style={{ padding: '1.5rem 2rem', background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <WarehouseIcon size={24} />
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '850' }}>{targetWarehouseForList.warehouse_name} — Products List</h3>
+                                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Facility Code: <strong>{targetWarehouseForList.warehouse_code}</strong> | Total Items: <strong>{warehouseAssignedProducts.length}</strong></p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <button
+                                    onClick={() => {
+                                        setIsViewListModalOpen(false);
+                                        handleOpenAddProduct(targetWarehouseForList);
+                                    }}
+                                    style={{ border: 'none', background: '#10B981', color: 'white', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                >
+                                    <Plus size={14} /> Add Product
+                                </button>
+                                <button onClick={() => setIsViewListModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Filter Search Bar */}
+                        <div style={{ padding: '1rem 1.5rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ position: 'relative', width: '280px' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input
+                                    type="text"
+                                    value={viewListSearch}
+                                    onChange={(e) => setViewListSearch(e.target.value)}
+                                    placeholder="Search product, SKU..."
+                                    style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2.2rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none', background: 'white' }}
+                                />
+                            </div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748B' }}>
+                                Total Inventory Value: <strong style={{ color: '#047857' }}>{formatCurrency(warehouseAssignedProducts.reduce((acc, p) => acc + (p.quantity * (p.purchase_price || 0)), 0))}</strong>
+                            </div>
+                        </div>
+
+                        {/* Products Table */}
+                        <div style={{ overflowY: 'auto', flex: 1, padding: '1rem 1.5rem' }}>
+                            {warehouseAssignedProducts.filter(p => !viewListSearch || p.name.toLowerCase().includes(viewListSearch.toLowerCase()) || p.sku.toLowerCase().includes(viewListSearch.toLowerCase())).length > 0 ? (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                    <thead>
+                                        <tr style={{ background: '#F1F5F9', borderBottom: '1px solid #E2E8F0' }}>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Product Name</th>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>SKU Code</th>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Category</th>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Stock / Qty</th>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Unit</th>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Unit Cost</th>
+                                            <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'center' }}>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {warehouseAssignedProducts
+                                            .filter(p => !viewListSearch || p.name.toLowerCase().includes(viewListSearch.toLowerCase()) || p.sku.toLowerCase().includes(viewListSearch.toLowerCase()))
+                                            .map((prod, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                    <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#1E293B' }}>{prod.name}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#3B82F6' }}>{prod.sku}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '600' }}>{prod.category}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: prod.quantity > 5 ? '#047857' : '#DC2626' }}>{prod.quantity}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', color: '#475569', fontWeight: '700' }}>{prod.unit}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#1E293B' }}>{formatCurrency(prod.purchase_price)}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '6px', background: prod.quantity > 5 ? '#F0FDF4' : '#FEF2F2', color: prod.quantity > 5 ? '#15803D' : '#DC2626' }}>
+                                                            {prod.quantity > 5 ? 'In Stock' : (prod.quantity > 0 ? 'Low Stock' : 'Out of Stock')}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
+                                    <Folder size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.5, display: 'block' }} />
+                                    <p style={{ margin: 0, fontWeight: '700', fontSize: '0.95rem' }}>No products found for this warehouse facility.</p>
+                                    <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.8rem' }}>Click "Add Product" above to assign products to {targetWarehouseForList.warehouse_name}.</p>
+                                    <button
+                                        onClick={() => {
+                                            setIsViewListModalOpen(false);
+                                            handleOpenAddProduct(targetWarehouseForList);
+                                        }}
+                                        style={{ border: 'none', background: '#10B981', color: 'white', padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer' }}
+                                    >
+                                        + Add New Product Now
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
