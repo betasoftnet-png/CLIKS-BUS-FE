@@ -662,24 +662,12 @@ const BusinessWarehouse = () => {
                                 </div>
 
                                 {/* Facility Product & Inventory Actions */}
-                                <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1rem', paddingTop: '0.85rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                                    <button 
-                                        type="button"
-                                        onClick={() => handleOpenAddProduct(wh)} 
-                                        style={{ 
-                                            padding: '0.5rem 0.5rem', borderRadius: '10px', 
-                                            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', 
-                                            border: 'none', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', 
-                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                                            boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
-                                        }}
-                                    >
-                                        <Plus size={14} /> Add New Product
-                                    </button>
+                                <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1rem', paddingTop: '0.85rem', display: 'flex' }}>
                                     <button 
                                         type="button"
                                         onClick={() => handleOpenViewList(wh)} 
                                         style={{ 
+                                            flex: 1,
                                             padding: '0.5rem 0.5rem', borderRadius: '10px', 
                                             background: '#EFF6FF', color: '#1D4ED8', 
                                             border: '1px solid #BFDBFE', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', 

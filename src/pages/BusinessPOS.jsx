@@ -52,7 +52,28 @@ const BusinessPOS = () => {
     const [colFilters, setColFilters] = React.useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [selectedWarehouseId, setSelectedWarehouseId] = useState('All');
+    const [selectedWarehouseIds, setSelectedWarehouseIds] = useState([]);
+    const [isWarehouseDropdownOpen, setIsWarehouseDropdownOpen] = useState(false);
+    const warehouseDropdownRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (warehouseDropdownRef.current && !warehouseDropdownRef.current.contains(event.target)) {
+                setIsWarehouseDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const toggleWarehouseSelection = (whId) => {
+        const idStr = String(whId);
+        setSelectedWarehouseIds(prev => 
+            prev.includes(idStr) 
+                ? prev.filter(id => id !== idStr)
+                : [...prev, idStr]
+        );
+    };
     
     const [customerName, setCustomerName] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
@@ -748,26 +769,28 @@ const BusinessPOS = () => {
     const filteredProducts = inventory.filter(prod => {
         const lowerSearch = searchTerm.toLowerCase().trim();
 
-        // Warehouse matching logic
+        // Warehouse matching logic (Multi-select)
         let matchesWarehouse = true;
-        if (selectedWarehouseId !== 'All' && selectedWarehouseId !== 'all') {
-            const selectedWh = dbWarehouses.find(w => String(w.id) === String(selectedWarehouseId) || w.code === selectedWarehouseId || w.name === selectedWarehouseId);
-            const targetId = String(selectedWarehouseId).toLowerCase();
-            const targetCode = (selectedWh?.code || `WH-0${selectedWarehouseId}`).toLowerCase();
-            const targetName = (selectedWh?.name || selectedWh?.warehouse_name || '').toLowerCase();
+        if (selectedWarehouseIds.length > 0) {
+            matchesWarehouse = selectedWarehouseIds.some(whId => {
+                const selectedWh = dbWarehouses.find(w => String(w.id) === String(whId) || w.code === whId || w.name === whId);
+                const targetId = String(whId).toLowerCase();
+                const targetCode = (selectedWh?.code || `WH-0${whId}`).toLowerCase();
+                const targetName = (selectedWh?.name || selectedWh?.warehouse_name || '').toLowerCase();
 
-            const pWhId = String(prod.warehouse_id || '').toLowerCase();
-            const pLoc = String(prod.location || '').toLowerCase();
+                const pWhId = String(prod.warehouse_id || '').toLowerCase();
+                const pLoc = String(prod.location || '').toLowerCase();
 
-            matchesWarehouse = (
-                pWhId === targetId ||
-                pWhId === targetCode ||
-                pWhId === targetName ||
-                pWhId === `wh-0${targetId}` ||
-                (targetName && pLoc.includes(targetName)) ||
-                (targetName && pWhId.includes(targetName)) ||
-                (selectedWh && (pWhId === String(selectedWh.id) || pLoc === selectedWh.name?.toLowerCase()))
-            );
+                return (
+                    pWhId === targetId ||
+                    pWhId === targetCode ||
+                    pWhId === targetName ||
+                    pWhId === `wh-0${targetId}` ||
+                    (targetName && pLoc.includes(targetName)) ||
+                    (targetName && pWhId.includes(targetName)) ||
+                    (selectedWh && (pWhId === String(selectedWh.id) || pLoc === selectedWh.name?.toLowerCase()))
+                );
+            });
         }
 
         const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
@@ -1370,38 +1393,111 @@ const BusinessPOS = () => {
                         </div>
                     </div>
 
-                    {/* Warehouse Filter Dropdown (Exactly matching reference design) */}
-                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center' }}>
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <select
-                                value={selectedWarehouseId}
-                                onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                                style={{
-                                    appearance: 'none',
-                                    WebkitAppearance: 'none',
-                                    MozAppearance: 'none',
-                                    padding: '0.45rem 2.2rem 0.45rem 0.9rem',
-                                    borderRadius: '12px',
-                                    border: '1.5px solid #000000',
-                                    background: '#FFFFFF',
-                                    color: '#0F172A',
-                                    fontSize: '0.82rem',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    outline: 'none',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                                    minWidth: '130px'
-                                }}
-                            >
-                                <option value="All">Warehouse</option>
-                                {dbWarehouses.map(wh => (
-                                    <option key={wh.id} value={wh.id}>
-                                        {wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#0F172A' }} />
-                        </div>
+                    {/* Warehouse Filter Dropdown (With Multi-Select Checkboxes) */}
+                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setIsWarehouseDropdownOpen(!isWarehouseDropdownOpen)}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '12px',
+                                border: '1.5px solid #000000',
+                                background: '#FFFFFF',
+                                color: '#0F172A',
+                                fontSize: '0.82rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                minWidth: '130px'
+                            }}
+                        >
+                            <span>
+                                {selectedWarehouseIds.length === 0
+                                    ? 'Warehouse'
+                                    : selectedWarehouseIds.length === 1
+                                        ? (dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.name || dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.warehouse_name || '1 Selected')
+                                        : `Warehouse (${selectedWarehouseIds.length})`}
+                            </span>
+                            <ChevronDown size={14} style={{ color: '#0F172A', transition: 'transform 0.2s', transform: isWarehouseDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                        </button>
+
+                        {/* Dropdown Popover List */}
+                        {isWarehouseDropdownOpen && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                marginTop: '6px',
+                                background: '#FFFFFF',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '14px',
+                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
+                                zIndex: 50,
+                                minWidth: '200px',
+                                maxWidth: '280px',
+                                padding: '0.5rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.25rem'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.4rem 0.4rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Select Warehouses</span>
+                                    {selectedWarehouseIds.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedWarehouseIds([])}
+                                            style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                        >
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
+
+                                {dbWarehouses.length > 0 ? (
+                                    dbWarehouses.map(wh => {
+                                        const idStr = String(wh.id);
+                                        const isChecked = selectedWarehouseIds.includes(idStr);
+                                        const whName = wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`;
+                                        return (
+                                            <div
+                                                key={wh.id}
+                                                onClick={() => toggleWarehouseSelection(wh.id)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    padding: '0.4rem 0.6rem',
+                                                    borderRadius: '8px',
+                                                    background: isChecked ? '#ECFDF5' : 'transparent',
+                                                    cursor: 'pointer',
+                                                    transition: 'background 0.15s'
+                                                }}
+                                                onMouseEnter={(e) => { if (!isChecked) e.currentTarget.style.background = '#F8FAFC'; }}
+                                                onMouseLeave={(e) => { if (!isChecked) e.currentTarget.style.background = 'transparent'; }}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => {}} // Handled by container div click
+                                                    style={{ width: '13px', height: '13px', accentColor: '#10B981', cursor: 'pointer', margin: 0 }}
+                                                />
+                                                <span style={{ fontSize: '0.8rem', fontWeight: isChecked ? '800' : '600', color: isChecked ? '#047857' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {whName}
+                                                </span>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div style={{ padding: '0.5rem', fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>
+                                        No registered warehouses found
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
