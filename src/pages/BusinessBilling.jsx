@@ -36,7 +36,8 @@ import {
     ShieldCheck,
     FileSpreadsheet,
     Package,
-    Wrench
+    Wrench,
+    Globe
 } from 'lucide-react';
 import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
 import { 
