@@ -40,6 +40,7 @@ import { crmService } from '../services/crmService';
 import { posService } from '../services/posService';
 import { stockService } from '../services/stockService';
 import { hsnService } from '../services/hsnService';
+import { warehouseService } from '../services/warehouseService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -51,6 +52,7 @@ const BusinessPOS = () => {
     const [colFilters, setColFilters] = React.useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState('All');
     
     const [customerName, setCustomerName] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
@@ -306,6 +308,14 @@ const BusinessPOS = () => {
         }
     };
 
+    // Live Warehouses database via useQuery
+    const { data: dbWarehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses().catch(() => []),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
+    });
+
     // 1. Fetch Unified Catalog (Combines Legacy Inventory + Standard Catalog Products + Stock Registry)
     const { data: inventory = [], isLoading: isInventoryLoading } = useQuery({
         queryKey: ['pos-catalog'],
@@ -326,6 +336,8 @@ const BusinessPOS = () => {
                     price: parseFloat(i.price) || 0,
                     quantity: parseFloat(i.quantity) || 0,
                     category: i.category || 'General',
+                    warehouse_id: i.warehouse_id || i.location || 'Main Godown',
+                    location: i.location || i.warehouse_id || 'Main Godown',
                     source: 'inventory'
                 }));
 
@@ -338,6 +350,8 @@ const BusinessPOS = () => {
                     price: parseFloat(p.selling_price) || parseFloat(p.price) || 0,
                     quantity: parseFloat(p.quantity) !== undefined && !isNaN(parseFloat(p.quantity)) ? parseFloat(p.quantity) : (parseFloat(p.stock) || 0),
                     category: p.category || p.category_name || 'General',
+                    warehouse_id: p.warehouse_id || p.location || 'Main Godown',
+                    location: p.location || p.warehouse_id || 'Main Godown',
                     source: 'products'
                 }));
 
@@ -350,6 +364,8 @@ const BusinessPOS = () => {
                     price: parseFloat(s.unit_price) || parseFloat(s.price) || 0,
                     quantity: parseFloat(s.quantity) || 0,
                     category: s.category || 'General',
+                    warehouse_id: s.warehouse || s.location || 'Main Godown',
+                    location: s.location || s.warehouse || 'Main Godown',
                     source: 'stock'
                 }));
 
@@ -731,8 +747,33 @@ const BusinessPOS = () => {
     // Filtered Products Catalog
     const filteredProducts = inventory.filter(prod => {
         const lowerSearch = searchTerm.toLowerCase().trim();
+
+        // Warehouse matching logic
+        let matchesWarehouse = true;
+        if (selectedWarehouseId !== 'All' && selectedWarehouseId !== 'all') {
+            const selectedWh = dbWarehouses.find(w => String(w.id) === String(selectedWarehouseId) || w.code === selectedWarehouseId || w.name === selectedWarehouseId);
+            const targetId = String(selectedWarehouseId).toLowerCase();
+            const targetCode = (selectedWh?.code || `WH-0${selectedWarehouseId}`).toLowerCase();
+            const targetName = (selectedWh?.name || selectedWh?.warehouse_name || '').toLowerCase();
+
+            const pWhId = String(prod.warehouse_id || '').toLowerCase();
+            const pLoc = String(prod.location || '').toLowerCase();
+
+            matchesWarehouse = (
+                pWhId === targetId ||
+                pWhId === targetCode ||
+                pWhId === targetName ||
+                pWhId === `wh-0${targetId}` ||
+                (targetName && pLoc.includes(targetName)) ||
+                (targetName && pWhId.includes(targetName)) ||
+                (selectedWh && (pWhId === String(selectedWh.id) || pLoc === selectedWh.name?.toLowerCase()))
+            );
+        }
+
+        const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+
         if (!lowerSearch) {
-            return selectedCategory === 'All' || prod.category === selectedCategory;
+            return matchesCategory && matchesWarehouse;
         }
 
         const matchesSearch = 
@@ -741,9 +782,7 @@ const BusinessPOS = () => {
             (prod.category || '').toLowerCase().includes(lowerSearch) ||
             (prod.price || 0).toString().includes(lowerSearch);
         
-        const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
-
-        return matchesSearch && matchesCategory;
+        return matchesSearch && matchesCategory && matchesWarehouse;
     });
 
     // Handlers
@@ -1328,6 +1367,40 @@ const BusinessPOS = () => {
                                     {cat}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Warehouse Filter Dropdown (Exactly matching reference design) */}
+                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <select
+                                value={selectedWarehouseId}
+                                onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                                style={{
+                                    appearance: 'none',
+                                    WebkitAppearance: 'none',
+                                    MozAppearance: 'none',
+                                    padding: '0.45rem 2.2rem 0.45rem 0.9rem',
+                                    borderRadius: '12px',
+                                    border: '1.5px solid #000000',
+                                    background: '#FFFFFF',
+                                    color: '#0F172A',
+                                    fontSize: '0.82rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                    minWidth: '130px'
+                                }}
+                            >
+                                <option value="All">Warehouse</option>
+                                {dbWarehouses.map(wh => (
+                                    <option key={wh.id} value={wh.id}>
+                                        {wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#0F172A' }} />
                         </div>
                     </div>
                 </div>
