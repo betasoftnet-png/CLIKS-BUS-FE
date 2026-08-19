@@ -36,7 +36,7 @@ import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { purchasesService, productsService, suppliersService, settingsService } from '../services';
+import { purchasesService, productsService, suppliersService, settingsService, returnsService } from '../services';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -82,7 +82,7 @@ const BusinessPurchases = () => {
         const create = searchParams.get('create');
         const tab = searchParams.get('tab');
         
-        if (tab && ['purchase-orders', 'purchase-bills', 'purchase-returns'].includes(tab)) {
+        if (tab && ['purchase-orders', 'purchase-bills', 'purchase-returns', 'supplier-returns'].includes(tab)) {
             setActiveTab(tab);
         }
         
@@ -167,6 +167,13 @@ const BusinessPurchases = () => {
         queryKey: ['suppliers'],
         queryFn: () => suppliersService.getSuppliers()
     });
+
+    const { data: allReturns = [] } = useQuery({
+        queryKey: ['returns'],
+        queryFn: returnsService.getReturns
+    });
+
+    const supplierReturnsList = allReturns.filter(r => r.return_type === 'purchase');
 
     const applyFilters = (docs) => docs.filter(p => {
         const matchesSearch = 
@@ -578,6 +585,19 @@ const BusinessPurchases = () => {
                 >
                     <ArrowDownRight size={16} /> Returns (Debit Notes)
                 </button>
+                <button 
+                    onClick={() => setActiveTab('supplier-returns')}
+                    style={{ 
+                        padding: '0.5rem 1rem', borderRadius: '8px', 
+                        background: activeTab === 'supplier-returns' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : 'white', 
+                        color: activeTab === 'supplier-returns' ? 'white' : '#64748B',
+                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        boxShadow: activeTab === 'supplier-returns' ? '0 4px 10px rgba(16, 185, 129, 0.15)' : 'none'
+                    }}
+                >
+                    <RefreshCw size={16} /> Purchase Returns (Suppliers)
+                </button>
             </div>
             
             {/* Central Auto-Scrolling Frame */}
@@ -869,6 +889,98 @@ const BusinessPurchases = () => {
                                         </td>
                                     </tr>
                                 ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 4: Purchase Returns (Suppliers) */}
+            {activeTab === 'supplier-returns' && (
+                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Purchase Returns (Suppliers)</h2>
+                            <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.25rem 0 0 0', fontWeight: '500' }}>Manage supplier defective product returns, debit notes, and refund statuses.</p>
+                        </div>
+                        <button 
+                            onClick={() => { setCreateDocType('RETURN'); setIsCreateModalOpen(true); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}
+                        >
+                            <Plus size={15} /> New Supplier Return
+                        </button>
+                    </div>
+
+                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ background: '#F8FAFC' }}>
+                                <tr>
+                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Return Ref</th>
+                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / Purchase ID</th>
+                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
+                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
+                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Refund Amount</th>
+                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {supplierReturnsList.length > 0 ? (
+                                    supplierReturnsList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((pr) => (
+                                        <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{pr.return_number || `PRN-${pr.id}`}</td>
+                                            <td style={{ padding: '1.25rem', fontWeight: '700', color: '#475569' }}>{pr.purchase_id || pr.purchase_number || 'N/A'}</td>
+                                            <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{pr.supplier_name || 'N/A'}</td>
+                                            <td style={{ padding: '1.25rem' }}>
+                                                {(pr.items || []).map((item, idx) => (
+                                                    <div key={idx} style={{ fontSize: '0.85rem' }}>
+                                                        <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>{item.product_name}</p>
+                                                        <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Qty returned: {item.return_quantity || item.quantity || 1}</span>
+                                                    </div>
+                                                ))}
+                                            </td>
+                                            <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
+                                                {formatCurrency(pr.refund_amount || (pr.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.return_quantity) || 0), 0))}
+                                            </td>
+                                            <td style={{ padding: '1.25rem' }}>
+                                                <span style={{ 
+                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
+                                                    background: pr.status === 'Completed' ? '#F0FDF4' : '#FEF2F2',
+                                                    color: pr.status === 'Completed' ? '#15803D' : '#EF4444',
+                                                    fontSize: '0.75rem', fontWeight: '800'
+                                                }}>
+                                                    {(pr.inspection_status || pr.status || 'Completed').toUpperCase()}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    purchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
+                                        <tr key={ret.return_id || ret.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#B91C1C' }}>{ret.return_id || ret.doc_number}</td>
+                                            <td style={{ padding: '1.25rem', fontWeight: '700', color: '#475569' }}>{ret.purchase_number || 'N/A'}</td>
+                                            <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{ret.supplier_name}</td>
+                                            <td style={{ padding: '1.25rem' }}>
+                                                {(ret.items || ret.returned_items || []).map((item, idx) => (
+                                                    <div key={idx} style={{ fontSize: '0.85rem' }}>
+                                                        <p style={{ fontWeight: '700', margin: 0 }}>{item.product_name}</p>
+                                                        <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Returned: {item.quantity || item.return_quantity} Units</span>
+                                                    </div>
+                                                ))}
+                                            </td>
+                                            <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
+                                                {formatCurrency(ret.refund_amount || (ret.returned_items || ret.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.quantity) || 0), 0))}
+                                            </td>
+                                            <td style={{ padding: '1.25rem' }}>
+                                                <span style={{ 
+                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
+                                                    background: '#F0FDF4', color: '#15803D', fontSize: '0.75rem', fontWeight: '800'
+                                                }}>
+                                                    COMPLETED
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
