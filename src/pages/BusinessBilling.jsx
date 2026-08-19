@@ -1182,30 +1182,6 @@ const BusinessBilling = () => {
                     <span>Sales Returns (Customers)</span>
                 </button>
 
-                {/* 3. Purchase Returns (Suppliers) */}
-                <button
-                    type="button"
-                    onClick={() => setActiveMainTab('purchase_returns')}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: activeMainTab === 'purchase_returns' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'purchase_returns' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'purchase_returns' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'purchase_returns' ? '0 4px 12px rgba(59, 130, 246, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <Truck size={15} />
-                    <span>Purchase Returns (Suppliers)</span>
-                </button>
 
                 {/* 4. Warranty & Replacement Claims */}
                 <button
@@ -1395,57 +1371,7 @@ const BusinessBilling = () => {
                                 )}
                             </tbody>
                         </table>
-                    ) : activeMainTab === 'purchase_returns' ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Ref #</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Supplier Name</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Purchase Bill #</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Date</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Amount</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
-                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {purchaseReturnsList.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                                <Truck size={32} opacity={0.4} />
-                                                <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Supplier Purchase Returns Found</p>
-                                                <span style={{ fontSize: '0.8rem' }}>Log purchase returns to suppliers and debit note transactions.</span>
-                                                <button 
-                                                    onClick={() => { setReturnFormType('purchase'); setIsReturnModalOpen(true); }} 
-                                                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
-                                                >
-                                                    + Create Purchase Return
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    purchaseReturnsList.map((ret) => (
-                                        <tr key={ret.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#2563EB' }}>{ret.return_number || `PRET-${ret.id}`}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{ret.supplier_name || ret.vendor_name || ret.client_name || 'Supplier'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace' }}>{ret.bill_number || ret.purchase_number || 'BILL-001'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{ret.created_at ? new Date(ret.created_at).toLocaleDateString() : 'Today'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(ret.total_amount || ret.amount || 0)}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: '#DBEAFE', color: '#1E40AF' }}>
-                                                    {(ret.status || 'Dispatched').toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
-                                                <button onClick={() => alert(`Purchase Return #${ret.return_number || ret.id}\nSupplier: ${ret.supplier_name || 'Supplier'}\nAmount: ₹${ret.total_amount || 0}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>View Details</button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>

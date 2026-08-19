@@ -82,8 +82,10 @@ const BusinessPurchases = () => {
         const create = searchParams.get('create');
         const tab = searchParams.get('tab');
         
-        if (tab && ['purchase-orders', 'purchase-bills', 'purchase-returns', 'supplier-returns'].includes(tab)) {
+        if (tab && ['purchase-orders', 'purchase-bills', 'supplier-returns'].includes(tab)) {
             setActiveTab(tab);
+        } else if (tab === 'purchase-returns') {
+            setActiveTab('supplier-returns');
         }
         
         if (create === 'true') {
@@ -573,19 +575,6 @@ const BusinessPurchases = () => {
                     <FileText size={16} /> Purchase Bills & Invoices
                 </button>
                 <button 
-                    onClick={() => setActiveTab('purchase-returns')}
-                    style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'purchase-returns' ? 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)' : 'white', 
-                        color: activeTab === 'purchase-returns' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'purchase-returns' ? '0 4px 10px rgba(139, 92, 246, 0.15)' : 'none'
-                    }}
-                >
-                    <ArrowDownRight size={16} /> Returns (Debit Notes)
-                </button>
-                <button 
                     onClick={() => setActiveTab('supplier-returns')}
                     style={{ 
                         padding: '0.5rem 1rem', borderRadius: '8px', 
@@ -844,48 +833,6 @@ const BusinessPurchases = () => {
                                                     {bill.status === 'Completed' ? 'COMPLETED' : bill.status.toUpperCase()}
                                                 </span>
                                             )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {/* Tab 3: Purchase Returns */}
-            {activeTab === 'purchase-returns' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Purchase Returns & Debit Notes</h2>
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ background: '#F8FAFC' }}>
-                                <tr>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Return ID</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Reason</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Refund Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {purchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
-                                    <tr key={ret.return_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '1.25rem', fontWeight: '850', color: '#B91C1C' }}>{ret.return_id}</td>
-                                        <td style={{ padding: '1.25rem', fontWeight: '700', color: '#475569' }}>{ret.purchase_number}</td>
-                                        <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{ret.supplier_name}</td>
-                                        <td style={{ padding: '1.25rem', fontSize: '0.85rem', color: '#64748B' }}>{ret.return_reason}</td>
-                                        <td style={{ padding: '1.25rem' }}>
-                                            {(ret.returned_items || []).map((item, idx) => (
-                                                <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                    <p style={{ fontWeight: '700' }}>{item.product_name}</p>
-                                                    <span style={{ color: '#94A3B8' }}>Returned: {item.quantity} Units</span>
-                                                </div>
-                                            ))}
-                                        </td>
-                                        <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
-                                            {formatCurrency((ret.returned_items || []).reduce((sum, i) => sum + (i.refund_amount || 0), 0))}
                                         </td>
                                     </tr>
                                 ))}
