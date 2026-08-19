@@ -278,7 +278,6 @@ const BusinessFinancePurchases = () => {
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>Supplier & Purchase Details (Finance Module)</h3>
-                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Real-time synchronization between Cliks Business & Cliks Website Supplier Portal</p>
                     </div>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
@@ -290,14 +289,13 @@ const BusinessFinancePurchases = () => {
                                 { key: 'items', label: 'Requested Products & Quantities', placeholder: 'Items' },
                                 { key: 'grand_total', label: 'Total Amount', placeholder: 'Amount' },
                                 { key: 'status', label: 'Order Status', placeholder: 'Status' },
-                                { key: 'supplier_confirmation_status', label: 'Supplier Confirmation', placeholder: 'Confirmation' },
                                 { key: 'purchase_date', label: 'Order Date', placeholder: 'Date' }
                             ]}
                             onFilterChange={setColFilters}
                         />
                         <tbody>
                             {purchases.filter(item => applyTableFilters(item, colFilters)).map((pur) => {
-                                const isConfirmed = pur.status === 'CONFIRMED' || pur.supplier_confirmation_status === 'CONFIRMED';
+                                const isConfirmed = pur.status === 'CONFIRMED';
                                 return (
                                     <tr key={pur.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.2rem 1.5rem', fontWeight: '800', color: '#1B6B3A' }}>{pur.purchase_number}</td>
@@ -316,12 +314,7 @@ const BusinessFinancePurchases = () => {
                                         <td style={{ padding: '1.2rem 1.5rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(pur.grand_total)}</td>
                                         <td style={{ padding: '1.2rem 1.5rem' }}>
                                             <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: isConfirmed ? '#F0FDF4' : '#EFF6FF', color: isConfirmed ? '#15803D' : '#1D4ED8' }}>
-                                                {pur.status || 'SENT TO SUPPLIER'}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '1.2rem 1.5rem' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: isConfirmed ? '#F0FDF4' : '#FFFBEB', color: isConfirmed ? '#15803D' : '#B45309' }}>
-                                                {isConfirmed ? 'CONFIRMED' : 'PENDING'}
+                                                {pur.status || 'ORDERED'}
                                             </span>
                                         </td>
                                         <td style={{ padding: '1.2rem 1.5rem', fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{pur.purchase_date}</td>

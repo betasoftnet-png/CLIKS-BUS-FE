@@ -59,6 +59,16 @@ export const crmService = {
             console.error('[CRM Service Lookup Error]', error.message);
             return { exists: false, loyalty_points: 0 };
         }
+    },
+
+    respondB2BConnection: async (connection_id, action) => {
+        try {
+            const res = await apiClient.post('/customers/b2b-respond', { connection_id, action });
+            return res.data?.data ?? res.data;
+        } catch (error) {
+            console.error('[CRM B2B Respond Error]', error.message);
+            throw error;
+        }
     }
 };
 

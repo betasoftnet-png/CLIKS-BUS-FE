@@ -2515,6 +2515,14 @@ const BusinessBilling = () => {
                                 </div>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, fontWeight: '500' }}>Document Ref: <span style={{ fontWeight: '800', color: '#334155' }}>{viewingInvoice.invoice_number}</span></p>
                             </div>
+                            {(viewingInvoice.notes?.includes('Source: Purchase Invoice') || viewingInvoice.invoice_type === 'B2B' || viewingInvoice.source_note) && (
+                                <div style={{ padding: '0.4rem 0.8rem', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <ShieldCheck size={16} color="#16A34A" />
+                                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#166534' }}>
+                                        {viewingInvoice.notes || viewingInvoice.source_note || `Source: Purchase Invoice from ${viewingInvoice.client_name}`}
+                                    </span>
+                                </div>
+                            )}
                             <div className="billing-preview-modal-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
                                 <a 
                                     href="/sales/invoice/preview" 

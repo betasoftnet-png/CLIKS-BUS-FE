@@ -868,13 +868,45 @@ const BusinessCRM = () => {
         window.open(whatsappUrl, '_blank');
     };
 
+    const handleAcceptB2B = async (connectionId) => {
+        try {
+            await crmService.respondB2BConnection(connectionId, 'ACCEPT');
+            alert('Supplier connection accepted successfully!');
+            loadCustomers();
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || err.message || 'Failed to accept connection request.');
+        }
+    };
+
+    const handleRejectB2B = async (connectionId) => {
+        try {
+            await crmService.respondB2BConnection(connectionId, 'REJECT');
+            alert('Supplier connection request declined.');
+            loadCustomers();
+        } catch (err) {
+            console.error(err);
+            alert(err.response?.data?.message || err.message || 'Failed to reject connection request.');
+        }
+    };
+
     const filteredCustomers = customers.filter(c => {
         const matchesSearch = 
             (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (c.business_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (c.phone_number || '').toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchesType = customerTypeFilter === 'All' || c.customer_type === customerTypeFilter;
+        let matchesType = true;
+        if (customerTypeFilter === 'PENDING') {
+            matchesType = c.status === 'PENDING' || c.customer_type === 'PENDING' || c.connection_status === 'PENDING' || c.is_b2b_request;
+        } else if (customerTypeFilter === 'Connected' || customerTypeFilter === 'ACCEPTED') {
+            matchesType = c.status === 'Connected' || c.status === 'ACCEPTED' || c.connection_status === 'CONNECTED';
+        } else if (customerTypeFilter === 'REJECTED') {
+            matchesType = c.status === 'Rejected' || c.status === 'REJECTED' || c.connection_status === 'REJECTED';
+        } else if (customerTypeFilter !== 'All') {
+            matchesType = c.customer_type === customerTypeFilter;
+        }
         
         let matchesBalance = true;
         if (balanceFilter === 'Outstanding') matchesBalance = (c.current_balance || 0) > 0;
@@ -1082,9 +1114,12 @@ const BusinessCRM = () => {
                             <select 
                                 value={customerTypeFilter}
                                 onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                                style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B' }}
+                                style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}
                             >
                                 <option value="All">All Types</option>
+                                <option value="PENDING">Pending Requests</option>
+                                <option value="Connected">Accepted / Connected</option>
+                                <option value="REJECTED">Rejected</option>
                                 <option value="wholesale">Wholesale</option>
                                 <option value="retail">Retail</option>
                             </select>
@@ -1109,8 +1144,8 @@ const BusinessCRM = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
         { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
-        { key: 'business', label: 'Business / Contact', placeholder: 'e.g. ABC Ltd' },
-        { key: 'gstin', label: 'GSTIN', placeholder: 'Tax ID' },
+        { key: 'business', label: 'Business / Email', placeholder: 'e.g. ABC Ltd' },
+        { key: 'gstin', label: 'GSTIN / Type', placeholder: 'Tax ID' },
         { key: 'credit_limit', label: 'Credit Limit', placeholder: 'e.g. 50000' },
         { key: 'outstanding', label: 'Outstanding', placeholder: 'e.g. 5000' },
         { key: 'credit_status', label: 'Credit Status', placeholder: 'e.g. Good' },
@@ -1134,21 +1169,21 @@ const BusinessCRM = () => {
                                                     <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0 }}>{row.name}</p>
                                                     <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Code: {row.customer_code}</span>
                                                     {(() => {
-                                                        const rawSt = String(row.connection_status || row.connectionStatus || '').toLowerCase();
+                                                        const rawSt = String(row.status || row.connection_status || row.connectionStatus || '').toLowerCase();
                                                         let displayStatus = 'unconnected';
                                                         let statusColor = '#64748B';
                                                         if (rawSt === 'accepted' || rawSt === 'connected') {
                                                             displayStatus = 'connected';
                                                             statusColor = '#10B981';
                                                         } else if (rawSt === 'pending') {
-                                                            displayStatus = 'pending';
+                                                            displayStatus = 'pending request';
                                                             statusColor = '#D97706';
-                                                        } else {
-                                                            displayStatus = 'unconnected';
-                                                            statusColor = '#64748B';
+                                                        } else if (rawSt === 'rejected') {
+                                                            displayStatus = 'rejected';
+                                                            statusColor = '#EF4444';
                                                         }
                                                         return (
-                                                            <span style={{ fontSize: '0.75rem', color: statusColor, display: 'block', fontWeight: '500', marginTop: '1px' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: statusColor, display: 'block', fontWeight: '700', textTransform: 'capitalize', marginTop: '1px' }}>
                                                                 {displayStatus}
                                                             </span>
                                                         );
@@ -1159,7 +1194,13 @@ const BusinessCRM = () => {
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <div>
                                                 <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.82rem', margin: 0 }}>{row.business_name || 'Personal'}</p>
-                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{row.phone_number}</span>
+                                                <span style={{ fontSize: '0.75rem', color: '#2563EB', display: 'block' }}>{row.email}</span>
+                                                {row.phone_number && <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block' }}>{row.phone_number}</span>}
+                                                {row.connection_type && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#4F46E5', background: '#EEF2FF', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '2px', fontWeight: '700' }}>
+                                                        {row.connection_type} ({row.request_date || 'Pending'})
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
@@ -1196,26 +1237,53 @@ const BusinessCRM = () => {
                                             </td>
                                         )}
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right', position: 'relative' }}>
-                                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); viewLedger(row); }}
-                                                    className="crm-btn-secondary"
-                                                    style={{ 
-                                                        display: 'flex', alignItems: 'center', gap: '0.25rem',
-                                                        padding: '0.35rem 0.75rem', borderRadius: '8px', 
-                                                        border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', 
-                                                        fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <FileText size={12} /> View Ledger
-                                                </button>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === row.id ? null : row.id); }}
-                                                    style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                                >
-                                                    <MoreHorizontal size={14} />
-                                                </button>
-                                            </div>
+                                            {row.b2b_connection_id && (String(row.status).toUpperCase() === 'PENDING' || String(row.customer_type).toUpperCase() === 'PENDING') ? (
+                                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleAcceptB2B(row.b2b_connection_id); }}
+                                                        style={{ 
+                                                            padding: '0.35rem 0.75rem', borderRadius: '8px', 
+                                                            background: '#16A34A', color: 'white', border: 'none', 
+                                                            fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
+                                                            boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)'
+                                                        }}
+                                                    >
+                                                        Accept
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleRejectB2B(row.b2b_connection_id); }}
+                                                        style={{ 
+                                                            padding: '0.35rem 0.75rem', borderRadius: '8px', 
+                                                            background: '#EF4444', color: 'white', border: 'none', 
+                                                            fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
+                                                            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
+                                                        }}
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); viewLedger(row); }}
+                                                        className="crm-btn-secondary"
+                                                        style={{ 
+                                                            display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                                            padding: '0.35rem 0.75rem', borderRadius: '8px', 
+                                                            border: '1px solid #E9D5FF', background: '#F3E8FF', color: '#7C3AED', 
+                                                            fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        <FileText size={12} /> View Ledger
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === row.id ? null : row.id); }}
+                                                        style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    >
+                                                        <MoreHorizontal size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
                                             {activeMenu === row.id && (
                                                 <div style={{ position: 'absolute', right: '1rem', top: '2.25rem', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100, width: '170px', overflow: 'hidden' }}>
                                                     <button 

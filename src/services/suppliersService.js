@@ -9,6 +9,8 @@ export const suppliersService = {
 
     createSupplier: (data) => apiClient.post('/suppliers', data).then(res => res.data.data || res.data),
 
+    createB2BRequest: (data) => apiClient.post('/suppliers/b2b-request', data).then(res => res.data.data || res.data),
+
     updateSupplier: (id, data) => apiClient.put(`/suppliers/${id}`, data).then(res => res.data.data || res.data),
 
     deleteSupplier: (id) => apiClient.delete(`/suppliers/${id}`).then(res => res.data.data || res.data),

@@ -98,9 +98,7 @@ const BusinessSuppliers = () => {
     const [chatInput, setChatInput] = useState('');
     const [isSendingMessage, setIsSendingMessage] = useState(false);
 
-    // Website Supplier Portal Simulation
-    const [isPortalModalOpen, setIsPortalModalOpen] = useState(false);
-    const [portalIntegrations, setPortalIntegrations] = useState([]);
+
 
     // Supplier Bulk Import CSV states
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -316,6 +314,10 @@ const BusinessSuppliers = () => {
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
             alert('Supplier registered and master profile initialized!');
             setIsModalOpen(false);
+        },
+        onError: (err) => {
+            const errMsg = err.response?.data?.message || err.message || 'Failed to create supplier connection';
+            alert(errMsg);
         }
     });
 
@@ -490,27 +492,7 @@ const BusinessSuppliers = () => {
         }
     };
 
-    const handleOpenPortalSim = async () => {
-        setIsPortalModalOpen(true);
-        try {
-            const list = await suppliersService.getPortalIntegrations();
-            setPortalIntegrations(Array.isArray(list) ? list : []);
-        } catch(e) {
-            setPortalIntegrations([]);
-        }
-    };
 
-    const handleRespondPortal = async (connId, action) => {
-        try {
-            await suppliersService.respondPortalIntegration(connId, action);
-            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-            const list = await suppliersService.getPortalIntegrations();
-            setPortalIntegrations(Array.isArray(list) ? list : []);
-            alert(`Supplier connection request ${action}ed successfully!`);
-        } catch(err) {
-            alert(err.message || 'Failed to respond');
-        }
-    };
 
     const [formErrors, setFormErrors] = useState({});
 
@@ -780,19 +762,7 @@ const BusinessSuppliers = () => {
                         <Download size={18} style={{ transform: 'rotate(180deg)' }} />
                         Bulk Import (CSV)
                     </button>
-                    <button 
-                        onClick={handleOpenPortalSim}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            padding: '0.65rem 1.25rem', borderRadius: '10px', 
-                            background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', 
-                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
-                        }}
-                    >
-                        <Globe size={18} />
-                        Cliks Website Supplier Portal
-                    </button>
+
                     <button 
                         onClick={handleOpenCreateModal}
                         style={{ 
@@ -1676,68 +1646,7 @@ const BusinessSuppliers = () => {
                 </div>
             )}
 
-            {/* Cliks Website Supplier Portal Simulation Modal */}
-            {isPortalModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '700px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.25rem 1.5rem', background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <Globe size={22} />
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>Cliks Website — Supplier Confirmation Portal</h3>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>Incoming dealer connection & purchase order requests</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsPortalModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
-                                <X size={18} />
-                            </button>
-                        </div>
 
-                        <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: '800', color: '#1E293B' }}>Pending Connection Requests from Dealers</h4>
-                            {portalIntegrations.length === 0 ? (
-                                <div style={{ padding: '2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '16px', color: '#64748B', fontSize: '0.85rem' }}>
-                                    No pending supplier connection requests found on Cliks Website.
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                    {portalIntegrations.map((item) => (
-                                        <div key={item.id} style={{ padding: '1.25rem', border: '1px solid #E2E8F0', borderRadius: '16px', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <p style={{ fontWeight: '800', color: '#1E293B', margin: '0 0 0.25rem 0', fontSize: '0.95rem' }}>{item.dealer_business_name}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Supplier: {item.supplier_name} ({item.supplier_email})</span>
-                                                <div style={{ marginTop: '0.35rem' }}>
-                                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '6px', background: item.status === 'CONNECTED' ? '#F0FDF4' : '#FFFBEB', color: item.status === 'CONNECTED' ? '#15803D' : '#B45309' }}>
-                                                        STATUS: {item.status}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {item.status === 'PENDING' ? (
-                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button
-                                                        onClick={() => handleRespondPortal(item.id, 'accept')}
-                                                        style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#10B981', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
-                                                    >
-                                                        Accept Request
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleRespondPortal(item.id, 'reject')}
-                                                        style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#EF4444', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '800' }}>✓ Accepted</span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
             {/* Direct Pay Now Instant Gateway Modal */}
             {isPayNowModalOpen && payNowSupplier && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '2rem' }}>
