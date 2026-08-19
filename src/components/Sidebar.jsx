@@ -42,7 +42,8 @@ import {
     ShieldAlert,
     Target,
     Wallet,
-    LineChart
+    LineChart,
+    Cloud
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -642,38 +643,60 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 background: '#FFFFFF',
                 zIndex: 10
             }}>
-                {/* FIN-PRO CTA Button - Fixed, below marketing, above subscription */}
+                {/* Storage Card - Relocated in removed FIN-PRO sidebar area */}
                 {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
-                    <button
-                        onClick={() => handleItemClick('FIN-PRO', '/ca')}
-                        style={{
-                            width: '100%',
+                    <div style={{
+                        width: '100%',
+                        backgroundColor: '#EFF6FF',
+                        borderRadius: '12px',
+                        padding: '0.75rem 0.85rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                        border: '1px solid #DBEAFE',
+                        boxSizing: 'border-box',
+                        flexShrink: 0
+                    }}>
+                        <div style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.75rem',
-                            padding: '0.6rem 0.85rem',
-                            background: 'transparent',
-                            color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontWeight: '750',
-                            fontSize: '0.85rem',
-                            borderRadius: '10px',
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.color = '#1B6B3A';
-                            e.currentTarget.style.background = '#DCF2E4';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.color = location.pathname.includes('/ca') ? '#1B6B3A' : '#475569';
-                            e.currentTarget.style.background = 'transparent';
-                        }}
-                    >
-                        <Briefcase size={18} style={{ color: location.pathname.includes('/ca') ? '#1B6B3A' : '#475569' }} />
-                        <span>FIN-PRO Audit Hub</span>
-                    </button>
+                            justifyContent: 'space-between'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                <Cloud size={18} color="#2563EB" strokeWidth={2.2} />
+                                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B' }}>
+                                    Storage
+                                </span>
+                            </div>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#2563EB' }}>
+                                0%
+                            </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div style={{
+                            width: '100%',
+                            height: '6px',
+                            backgroundColor: '#E2E8F0',
+                            borderRadius: '999px',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                width: '0%',
+                                height: '100%',
+                                backgroundColor: '#2563EB',
+                                borderRadius: '999px'
+                            }} />
+                        </div>
+
+                        <div style={{
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            color: '#475569'
+                        }}>
+                            80 KB of 5 GB used
+                        </div>
+                    </div>
                 )}
  
                 {/* Unified Subscription Conversion Card */}

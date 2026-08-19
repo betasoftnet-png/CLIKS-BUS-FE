@@ -6,7 +6,7 @@ import {
     LayoutDashboard, PercentCircle, Receipt, Package, Layers, TrendingUp, BarChart3,
     UsersRound, LineChart, FileText, ShoppingCart, MapPin, Truck, Monitor, Barcode,
     HelpCircle, Gift, Target, Split, Wallet, CreditCard,
-    StickyNote
+    StickyNote, Briefcase
 } from 'lucide-react';
 
 import '../App.css';
@@ -762,6 +762,38 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         )}
                     </AnimatePresence>
                 </div>
+
+                {/* FIN-PRO Header Option */}
+                <button
+                    onClick={() => handleNavigation('/ca')}
+                    title="FIN-PRO Audit Hub"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        height: '36px',
+                        padding: '0 14px',
+                        borderRadius: '999px',
+                        backgroundColor: location.pathname.startsWith('/ca') ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: '#FFFFFF',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={(e) => {
+                        if (!location.pathname.startsWith('/ca')) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
+                    }}
+                    onMouseLeave={(e) => {
+                        if (!location.pathname.startsWith('/ca')) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                    }}
+                >
+                    <Briefcase size={16} color="#FFFFFF" />
+                    <span>FIN-PRO</span>
+                </button>
 
                 <ProfileDropdown
                     onAccount={() => navigate('/profile')}
