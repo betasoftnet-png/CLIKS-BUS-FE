@@ -37,7 +37,8 @@ import {
     FileSpreadsheet,
     Package,
     Wrench,
-    Globe
+    Globe,
+    Info
 } from 'lucide-react';
 import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
 import { 
