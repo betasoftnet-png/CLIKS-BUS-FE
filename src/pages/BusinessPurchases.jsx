@@ -674,35 +674,87 @@ const BusinessPurchases = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             {(() => {
-                                                const isConfirmed = po.status === 'CONFIRMED' || po.supplier_confirmation_status === 'CONFIRMED';
+                                                const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
+                                                const isConfirmed = statusType === 'CONFIRMED' || po.status === 'Paid';
+                                                const isPartiallyAvailable = statusType === 'PARTIALLY_AVAILABLE';
+                                                const isNotAvailable = statusType === 'NOT_AVAILABLE';
+                                                const isAvailableLater = statusType === 'AVAILABLE_LATER';
+
+                                                let badgeBg = '#FFFBEB';
+                                                let badgeColor = '#B45309';
+                                                let badgeIcon = <Clock size={13} />;
+                                                let badgeText = 'SENT TO SUPPLIER (PENDING)';
+                                                let statusMessage = 'Awaiting Supplier Confirmation';
+
+                                                if (isConfirmed) {
+                                                    badgeBg = '#F0FDF4';
+                                                    badgeColor = '#15803D';
+                                                    badgeIcon = <CheckCircle2 size={13} />;
+                                                    badgeText = 'CONFIRMED BY SUPPLIER';
+                                                    statusMessage = 'Supplier has confirmed your order.';
+                                                } else if (isPartiallyAvailable) {
+                                                    badgeBg = '#FFF7ED';
+                                                    badgeColor = '#C2410C';
+                                                    badgeIcon = <AlertTriangle size={13} />;
+                                                    badgeText = 'PARTIALLY AVAILABLE / WAITING FOR BUYER RESPONSE';
+                                                    statusMessage = po.supplier_status_message || 'Supplier can provide only a smaller quantity.';
+                                                } else if (isNotAvailable) {
+                                                    badgeBg = '#FEF2F2';
+                                                    badgeColor = '#DC2626';
+                                                    badgeIcon = <X size={13} />;
+                                                    badgeText = 'PRODUCT NOT AVAILABLE / WAITING FOR BUYER RESPONSE';
+                                                    statusMessage = po.supplier_status_message || 'Product not available — Waiting for buyer response.';
+                                                } else if (isAvailableLater) {
+                                                    badgeBg = '#EFF6FF';
+                                                    badgeColor = '#1D4ED8';
+                                                    badgeIcon = <Clock size={13} />;
+                                                    const expDate = po.expected_available_date ? po.expected_available_date : '';
+                                                    badgeText = expDate ? `WAITING FOR SUPPLIER — AVAILABLE ON ${expDate}` : 'WAITING FOR SUPPLIER — AVAILABLE LATER';
+                                                    statusMessage = expDate ? `Expected to become available on ${expDate}.` : (po.supplier_status_message || 'Waiting for supplier availability.');
+                                                }
+
+                                                // Parse items breakdown if supplier provided partial availability
+                                                let itemsBreakdown = null;
+                                                const itemList = po.items || (po.supplier_response_items ? (typeof po.supplier_response_items === 'string' ? JSON.parse(po.supplier_response_items) : po.supplier_response_items) : null);
+                                                if (isPartiallyAvailable && Array.isArray(itemList)) {
+                                                    itemsBreakdown = (
+                                                        <div style={{ marginTop: '0.4rem', background: '#FFF7ED', border: '1px solid #FFEDD5', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
+                                                            <strong style={{ fontSize: '0.72rem', color: '#9A3412', display: 'block', marginBottom: '0.2rem' }}>Quantity Breakdown:</strong>
+                                                            {itemList.map((it, idx) => {
+                                                                const reqQty = it.quantity || 1;
+                                                                const availQty = it.available_quantity !== undefined && it.available_quantity !== null ? it.available_quantity : reqQty;
+                                                                return (
+                                                                    <div key={idx} style={{ fontSize: '0.72rem', color: '#C2410C', fontWeight: '700' }}>
+                                                                        • {it.product_name || it.name || 'Item'}: Requested {reqQty} | Available {availQty}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                }
+
                                                 return (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                                                         <div style={{ 
                                                             display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
                                                             padding: '0.35rem 0.75rem', borderRadius: '10px',
-                                                            background: isConfirmed ? '#F0FDF4' : '#FFFBEB',
-                                                            color: isConfirmed ? '#15803D' : '#B45309',
+                                                            background: badgeBg,
+                                                            color: badgeColor,
                                                             fontSize: '0.78rem', fontWeight: '800', width: 'fit-content'
                                                         }}>
-                                                            {isConfirmed ? <CheckCircle2 size={13} /> : <Clock size={13} />}
-                                                            {isConfirmed ? 'CONFIRMED BY SUPPLIER' : 'SENT TO SUPPLIER (PENDING)'}
+                                                            {badgeIcon}
+                                                            {badgeText}
                                                         </div>
-                                                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
-                                                            {isConfirmed ? 'Order Confirmed on Website' : 'Awaiting Supplier Confirmation'}
+                                                        <span style={{ fontSize: '0.75rem', color: badgeColor, fontWeight: '700' }}>
+                                                            {statusMessage}
                                                         </span>
+                                                        {itemsBreakdown}
                                                     </div>
                                                 );
                                             })()}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
-                                                <button
-                                                    onClick={() => handleOpenSupplierView(po)}
-                                                    title="Supplier Portal View (Confirm Order)"
-                                                    style={{ padding: '0.45rem 0.75rem', borderRadius: '10px', border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                                                >
-                                                    <Globe size={14} /> Supplier View
-                                                </button>
                                                 <button
                                                     onClick={() => handleOpenChat(po)}
                                                     title="Dealer-Supplier Chat"
