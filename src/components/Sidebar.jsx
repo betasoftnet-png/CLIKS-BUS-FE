@@ -43,7 +43,8 @@ import {
     Target,
     Wallet,
     LineChart,
-    Cloud
+    Cloud,
+    X
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -287,6 +288,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
     const [openMenus, setOpenMenus] = useState({});
+    const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
 
     const navigationConfig = {
         admin: [
@@ -645,18 +647,32 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             }}>
                 {/* Storage Card - Relocated in removed FIN-PRO sidebar area */}
                 {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
-                    <div style={{
-                        width: '100%',
-                        backgroundColor: '#EFF6FF',
-                        borderRadius: '12px',
-                        padding: '0.75rem 0.85rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        border: '1px solid #DBEAFE',
-                        boxSizing: 'border-box',
-                        flexShrink: 0
-                    }}>
+                    <div 
+                        onClick={() => setIsStorageModalOpen(true)}
+                        title="Click to view Storage Allocation & Breakdown"
+                        style={{
+                            width: '100%',
+                            backgroundColor: '#EFF6FF',
+                            borderRadius: '12px',
+                            padding: '0.75rem 0.85rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem',
+                            border: '1px solid #DBEAFE',
+                            boxSizing: 'border-box',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#E0F2FE';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#EFF6FF';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -859,6 +875,199 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     <ChevronRight size={14} style={{ opacity: 0.5 }} />
                 </button>
             </div>
+
+            {/* Storage Allocation & Content Breakdown Modal */}
+            <AnimatePresence>
+                {isStorageModalOpen && (
+                    <div 
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                            backdropFilter: 'blur(4px)',
+                            zIndex: 99999,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '1rem'
+                        }}
+                        onClick={() => setIsStorageModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                backgroundColor: '#FFFFFF',
+                                borderRadius: '20px',
+                                width: '100%',
+                                maxWidth: '680px',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                border: '1px solid #E2E8F0',
+                                overflow: 'hidden',
+                                fontFamily: "'Inter', sans-serif"
+                            }}
+                        >
+                            {/* Modal Header */}
+                            <div style={{
+                                padding: '1.25rem 1.5rem',
+                                borderBottom: '1px solid #F1F5F9',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{
+                                        width: '42px',
+                                        height: '42px',
+                                        borderRadius: '12px',
+                                        backgroundColor: '#2563EB',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#FFFFFF',
+                                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                                    }}>
+                                        <Cloud size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>
+                                            Storage Allocation & Content
+                                        </h3>
+                                        <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B', fontWeight: '500' }}>
+                                            Workspace Storage Breakdown (0 KB of 5 GB used)
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setIsStorageModalOpen(false)}
+                                    style={{
+                                        background: '#FFFFFF',
+                                        border: '1px solid #CBD5E1',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#64748B',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = '#0F172A'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '75vh', overflowY: 'auto' }}>
+                                {/* Summary Stat Cards */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                    <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Total Capacity</span>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>5.00 GB</div>
+                                    </div>
+                                    <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#2563EB', textTransform: 'uppercase' }}>Used Storage</span>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1E40AF', marginTop: '2px' }}>0 KB (0%)</div>
+                                    </div>
+                                    <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16A34A', textTransform: 'uppercase' }}>Free Available</span>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#15803D', marginTop: '2px' }}>5.00 GB</div>
+                                    </div>
+                                </div>
+
+                                {/* Multi-Color Segmented Storage Quota Distribution Bar */}
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>
+                                        <span>Module Storage Quota Distribution</span>
+                                        <span>100% Allocated</span>
+                                    </div>
+                                    <div style={{ display: 'flex', height: '10px', width: '100%', borderRadius: '999px', overflow: 'hidden', backgroundColor: '#E2E8F0' }}>
+                                        <div style={{ width: '40%', backgroundColor: '#2563EB' }} title="Audit & Tax (FIN-PRO): 40%" />
+                                        <div style={{ width: '25%', backgroundColor: '#10B981' }} title="Sales & Purchases: 25%" />
+                                        <div style={{ width: '15%', backgroundColor: '#8B5CF6' }} title="Expenses: 15%" />
+                                        <div style={{ width: '10%', backgroundColor: '#F59E0B' }} title="HR & Payroll: 10%" />
+                                        <div style={{ width: '10%', backgroundColor: '#06B6D4' }} title="Inventory & Media: 10%" />
+                                    </div>
+                                </div>
+
+                                {/* Table Requested by User */}
+                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569' }}>Module</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569', textAlign: 'center' }}>Typical Storage Share</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569' }}>Main File Types</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { module: 'Audit & Tax (FIN-PRO)', share: '40%', files: 'PDFs, XLS, Signed Certificates', color: '#2563EB', badgeBg: '#EFF6FF' },
+                                                { module: 'Sales & Purchases', share: '25%', files: 'PDF Invoices, Vendor Bills', color: '#10B981', badgeBg: '#ECFDF5' },
+                                                { module: 'Expenses', share: '15%', files: 'Receipt Scans, Images', color: '#8B5CF6', badgeBg: '#F5F3FF' },
+                                                { module: 'HR & Payroll', share: '10%', files: 'ID Documents, Payslip PDFs', color: '#F59E0B', badgeBg: '#FFFBEB' },
+                                                { module: 'Inventory & Media', share: '10%', files: 'Product Photos, Barcodes', color: '#06B6D4', badgeBg: '#ECFEFF' }
+                                            ].map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: idx < 4 ? '1px solid #F1F5F9' : 'none' }}>
+                                                    <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, display: 'inline-block' }} />
+                                                        {item.module}
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                                        <span style={{ backgroundColor: item.badgeBg, color: item.color, padding: '2px 8px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: '800', border: `1px solid ${item.color}33` }}>
+                                                            {item.share}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '500' }}>
+                                                        {item.files}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div style={{
+                                padding: '1rem 1.5rem',
+                                borderTop: '1px solid #F1F5F9',
+                                backgroundColor: '#F8FAFC',
+                                display: 'flex',
+                                justifyContent: 'flex-end'
+                            }}>
+                                <button
+                                    onClick={() => setIsStorageModalOpen(false)}
+                                    style={{
+                                        padding: '0.55rem 1.25rem',
+                                        backgroundColor: '#2563EB',
+                                        color: '#FFFFFF',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        fontWeight: '750',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 6px rgba(37, 99, 235, 0.2)'
+                                    }}
+                                >
+                                    Close Breakdown
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </aside>
     );
 };
