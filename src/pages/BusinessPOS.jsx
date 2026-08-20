@@ -703,17 +703,18 @@ const BusinessPOS = () => {
     // 8. Delete Product Mutation
     const deleteProductMutation = useMutation({
         mutationFn: async ({ id, source }) => {
+            const cleanId = String(id).replace(/^(stk|prod|inv)[_-]/i, '').trim();
             if (source === 'inventory') {
                 try {
-                    return await inventoryService.deleteItem(id);
+                    return await inventoryService.deleteItem(cleanId);
                 } catch (e) {
-                    return await productsService.deleteProduct(id);
+                    return await productsService.deleteProduct(cleanId);
                 }
             } else {
                 try {
-                    return await productsService.deleteProduct(id);
+                    return await productsService.deleteProduct(cleanId);
                 } catch (e) {
-                    return await inventoryService.deleteItem(id);
+                    return await inventoryService.deleteItem(cleanId);
                 }
             }
         },
@@ -721,10 +722,14 @@ const BusinessPOS = () => {
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
         },
         onError: (err) => {
             console.error('Error deleting product:', err);
-            alert('Could not delete product.');
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
         }
     });
 
