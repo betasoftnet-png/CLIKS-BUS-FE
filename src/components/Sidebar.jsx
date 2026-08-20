@@ -694,14 +694,16 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             width: '100%',
                             height: '6px',
                             backgroundColor: '#E2E8F0',
-                            borderRadius: '999px',
-                            overflow: 'hidden'
+                            borderRadius: '9999px',
+                            overflow: 'hidden',
+                            position: 'relative'
                         }}>
                             <div style={{
                                 width: '0%',
                                 height: '100%',
                                 backgroundColor: '#2563EB',
-                                borderRadius: '999px'
+                                borderRadius: '9999px',
+                                transition: 'width 0.3s ease-in-out'
                             }} />
                         </div>
 
@@ -710,7 +712,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             fontWeight: '500',
                             color: '#475569'
                         }}>
-                            0 KB of 5 GB used
+                            0 KB of 1 GB used
                         </div>
                     </div>
                 )}
@@ -941,7 +943,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                             Storage Allocation & Content
                                         </h3>
                                         <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B', fontWeight: '500' }}>
-                                            Workspace Storage Breakdown (0 KB of 5 GB used)
+                                            Workspace Storage Breakdown (0 KB of 1 GB used)
                                         </p>
                                     </div>
                                 </div>

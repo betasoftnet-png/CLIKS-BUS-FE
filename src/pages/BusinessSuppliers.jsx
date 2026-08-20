@@ -978,7 +978,7 @@ const BusinessSuppliers = () => {
                                                                 {isConn ? 'CONNECTED' : (isPend ? 'PENDING' : 'UNCONNECTED')}
                                                             </span>
                                                             <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
-                                                                {isConn ? 'Connected on Website' : (isPend ? 'Sent to Cliks Website' : 'Not Connected')}
+                                                                {isConn ? 'Connected on Website' : (isPend ? `Sent to ${supEmail && supEmail !== 'N/A' ? supEmail : (sup.email || sup.supplier_email || '')}` : 'Not Connected')}
                                                             </span>
                                                         </div>
                                                     );
