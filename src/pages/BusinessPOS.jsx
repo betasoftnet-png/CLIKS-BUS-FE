@@ -2660,7 +2660,37 @@ const BusinessPOS = () => {
                                         min="0.01"
                                         step="any"
                                         value={newProductData.selling_price} 
-                                        onChange={(e) => setNewProductData({...newProductData, selling_price: e.target.value})} 
+                                        onKeyDown={(e) => {
+                                            if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
+                                                return;
+                                            }
+                                            if (/^[0-9]$/.test(e.key)) {
+                                                const currentDigits = (e.target.value || '').replace(/[^0-9]/g, '');
+                                                if (currentDigits.length >= 10) {
+                                                    e.preventDefault();
+                                                }
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            let val = e.target.value;
+                                            const digitsOnly = val.replace(/[^0-9]/g, '');
+                                            if (digitsOnly.length > 10) {
+                                                let truncated = '';
+                                                let count = 0;
+                                                for (let char of val) {
+                                                    if (/[0-9]/.test(char)) {
+                                                        if (count < 10) {
+                                                            truncated += char;
+                                                            count++;
+                                                        }
+                                                    } else {
+                                                        truncated += char;
+                                                    }
+                                                }
+                                                val = truncated;
+                                            }
+                                            setNewProductData({ ...newProductData, selling_price: val });
+                                        }} 
                                         style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
                                         placeholder="0.00" 
                                     />
