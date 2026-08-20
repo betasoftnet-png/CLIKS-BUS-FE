@@ -55,6 +55,7 @@ import '../App.css';
 import logoPng from '../assets/cliks6.png';
 import inventoryIconPng from '../assets/image.png';
 import hrIconPng from '../assets/image copy.png';
+import storageLogo from '../assets/storagelogo.png';
 
 const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false }) => {
     const IconComp = item.icon;
@@ -679,7 +680,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             justifyContent: 'space-between'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <Cloud size={18} color="#2563EB" strokeWidth={2.2} />
+                                <img src={storageLogo} alt="Storage" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B' }}>
                                     Storage
                                 </span>
@@ -692,7 +693,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         {/* Progress Bar */}
                         <div style={{
                             width: '100%',
-                            height: '6px',
+                            height: '8px',
                             backgroundColor: '#E2E8F0',
                             borderRadius: '9999px',
                             WebkitBorderRadius: '9999px',
