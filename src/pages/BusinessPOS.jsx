@@ -1557,7 +1557,7 @@ const BusinessPOS = () => {
                                         >
                                             {/* Top Row: Visual Tag for Category + Three-Dot Menu */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{prod.category || 'General'}</span>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{prod.category || 'General'}</span>
 
                                                 {/* Three-Dot Option Icon */}
                                                 <div style={{ position: 'relative' }}>
@@ -1733,14 +1733,14 @@ const BusinessPOS = () => {
                                             </div>
                                             
                                             {/* Middle Row: Product Name + SKU on Left, "In Cart" Badge on Right */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '46px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '40px' }}>
                                                 <div style={{ flex: 1, minWidth: 0, paddingRight: '0.4rem' }}>
-                                                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
-                                                    {prod.sku && <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: '2px', fontWeight: '500' }}>SKU: {prod.sku}</div>}
+                                                    <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
+                                                    {prod.sku && <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '2px', fontWeight: '500' }}>SKU: {prod.sku}</div>}
                                                 </div>
                                                 {cartQty > 0 && (
                                                     <span style={{ 
-                                                        fontSize: '0.75rem', 
+                                                        fontSize: '0.65rem', 
                                                         fontWeight: '800', 
                                                         color: '#FFFFFF', 
                                                         background: '#FF5722', 
@@ -1758,13 +1758,13 @@ const BusinessPOS = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F8FAFC', gap: '0.3rem' }}>
                                                 {(() => {
                                                     const cardPriceStr = formatCurrency(prod.price || 0);
-                                                    const cardPriceFontSz = cardPriceStr.length > 14 ? '0.78rem' : (cardPriceStr.length > 11 ? '0.9rem' : '1.15rem');
+                                                    const cardPriceFontSz = cardPriceStr.length > 14 ? '0.7rem' : (cardPriceStr.length > 11 ? '0.78rem' : '0.92rem');
                                                     return (
                                                         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
                                                             <span style={{ fontSize: cardPriceFontSz, fontWeight: '900', color: '#0F172A', lineHeight: 1.1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
-                                                                {cardPriceStr} <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>/</span>
+                                                                {cardPriceStr} <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700' }}>/</span>
                                                             </span>
-                                                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
                                                                 {prod.unit || 'PCS'}
                                                             </span>
                                                         </div>
@@ -1773,7 +1773,7 @@ const BusinessPOS = () => {
                                                 <div style={{ 
                                                     padding: '0.4rem 0.65rem', 
                                                     borderRadius: '12px', 
-                                                    fontSize: '0.75rem', 
+                                                    fontSize: '0.68rem', 
                                                     fontWeight: '800',
                                                     lineHeight: 1.25,
                                                     textAlign: 'left',
@@ -1782,7 +1782,7 @@ const BusinessPOS = () => {
                                                     color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
                                                 }}>
                                                     <div>{isOutOfStock ? 'OUT' : `${displayStock} ${prod.unit || 'PCS'}`}</div>
-                                                    {!isOutOfStock && <div style={{ fontSize: '0.72rem', fontWeight: '700' }}>left</div>}
+                                                    {!isOutOfStock && <div style={{ fontSize: '0.62rem', fontWeight: '700' }}>left</div>}
                                                 </div>
                                             </div>
                                         </motion.div>
