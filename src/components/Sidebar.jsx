@@ -657,8 +657,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             borderRadius: '12px',
                             padding: '0.75rem 0.85rem',
                             display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.5rem',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
                             border: '1px solid #DBEAFE',
                             boxSizing: 'border-box',
                             flexShrink: 0,
@@ -674,61 +674,69 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             e.currentTarget.style.transform = 'translateY(0)';
                         }}
                     >
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                        }}>
+                        {/* Left Info Column */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                                 <Cloud size={18} color="#2563EB" strokeWidth={2.2} />
                                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B' }}>
                                     Storage
                                 </span>
                             </div>
-                            {(() => {
-                                const storagePercent = 0;
-                                const radius = 8;
-                                const circ = 2 * Math.PI * radius;
-                                const strokeDashoffset = circ * (1 - storagePercent / 100);
-                                return (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        <svg width="18" height="18" viewBox="0 0 20 20" style={{ transform: 'rotate(-90deg)' }}>
-                                            <circle
-                                                cx="10"
-                                                cy="10"
-                                                r={radius}
-                                                fill="none"
-                                                stroke="#DBEAFE"
-                                                strokeWidth="2.5"
-                                            />
-                                            <circle
-                                                cx="10"
-                                                cy="10"
-                                                r={radius}
-                                                fill="none"
-                                                stroke="#2563EB"
-                                                strokeWidth="2.5"
-                                                strokeDasharray={circ}
-                                                strokeDashoffset={strokeDashoffset}
-                                                strokeLinecap="round"
-                                                style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-                                            />
-                                        </svg>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#2563EB' }}>
-                                            {Math.round(storagePercent)}%
-                                        </span>
-                                    </div>
-                                );
-                            })()}
+                            <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>
+                                0 KB of 1 GB used
+                            </div>
                         </div>
 
-                        <div style={{
-                            fontSize: '0.75rem',
-                            fontWeight: '500',
-                            color: '#475569'
-                        }}>
-                            0 KB of 1 GB used
-                        </div>
+                        {/* Right Neat Circular Progress Ring with % Inside */}
+                        {(() => {
+                            const storagePercent = 0;
+                            const radius = 15;
+                            const circ = 2 * Math.PI * radius;
+                            const strokeDashoffset = circ * (1 - storagePercent / 100);
+
+                            return (
+                                <div style={{
+                                    position: 'relative',
+                                    width: '38px',
+                                    height: '38px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
+                                    <svg width="38" height="38" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                                        <circle
+                                            cx="18"
+                                            cy="18"
+                                            r={radius}
+                                            fill="none"
+                                            stroke="#DBEAFE"
+                                            strokeWidth="3"
+                                        />
+                                        <circle
+                                            cx="18"
+                                            cy="18"
+                                            r={radius}
+                                            fill="none"
+                                            stroke="#2563EB"
+                                            strokeWidth="3"
+                                            strokeDasharray={circ}
+                                            strokeDashoffset={strokeDashoffset}
+                                            strokeLinecap="round"
+                                            style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+                                        />
+                                    </svg>
+                                    <span style={{
+                                        position: 'absolute',
+                                        fontSize: '0.72rem',
+                                        fontWeight: '800',
+                                        color: '#2563EB'
+                                    }}>
+                                        {Math.round(storagePercent)}%
+                                    </span>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
  
