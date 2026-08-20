@@ -203,7 +203,7 @@ const BusinessPurchases = () => {
 
     const handleOpenReceiveModal = (doc) => {
         setSelectedDoc(doc);
-        const defaultWh = doc.warehouse_id || (warehousesList && warehousesList[0] ? (warehousesList[0].name || warehousesList[0].warehouse_name) : 'Main Godown');
+        const defaultWh = doc.warehouse_id || (warehousesList && warehousesList[0] ? (warehousesList[0].id || warehousesList[0].code || warehousesList[0].name || warehousesList[0].warehouse_name) : '1');
         setSelectedReceiveWarehouse(defaultWh);
         setIsReceiveModalOpen(true);
     };
@@ -212,17 +212,27 @@ const BusinessPurchases = () => {
         if (!selectedDoc) return;
         try {
             const targetId = selectedDoc.id || selectedDoc.purchase_id || selectedDoc.purchase_number;
+            const chosenWh = (warehousesList || []).find(w => 
+                String(w.id) === String(selectedReceiveWarehouse) || 
+                (w.code || '').toLowerCase() === String(selectedReceiveWarehouse).toLowerCase() || 
+                (w.name || w.warehouse_name || '').toLowerCase() === String(selectedReceiveWarehouse).toLowerCase()
+            ) || { id: selectedReceiveWarehouse, name: selectedReceiveWarehouse, code: selectedReceiveWarehouse };
+
             await purchasesService.receiveGoods(targetId, {
-                warehouse_name: selectedReceiveWarehouse,
-                warehouse_id: selectedReceiveWarehouse
+                warehouse_id: chosenWh.id || chosenWh.code || selectedReceiveWarehouse,
+                warehouse_name: chosenWh.name || chosenWh.warehouse_name || selectedReceiveWarehouse,
+                warehouse_code: chosenWh.code || chosenWh.warehouse_code || selectedReceiveWarehouse
             });
+
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+
             setIsReceiveModalOpen(false);
             setSelectedDoc(null);
-            alert(`✅ Goods received successfully!\n\nThe purchase order status has been updated to COMPLETED and physical stock has been added to warehouse: ${selectedReceiveWarehouse}.`);
+            alert(`✅ Goods received successfully!\n\nThe purchase order status has been updated to COMPLETED and physical stock has been added to warehouse: ${chosenWh.name || chosenWh.warehouse_name || selectedReceiveWarehouse}.`);
         } catch(err) {
             alert('Error receiving goods: ' + (err.response?.data?.message || err.message || 'Failed to process warehouse stock receiving'));
         }
@@ -1838,7 +1848,8 @@ const BusinessPurchases = () => {
                             >
                                 {warehousesList.map((wh, idx) => {
                                     const wName = wh.name || wh.warehouse_name || `Warehouse ${idx + 1}`;
-                                    return <option key={idx} value={wName}>{wName}</option>;
+                                    const wVal = wh.id || wh.code || wName;
+                                    return <option key={idx} value={wVal}>{wName} ({wh.code || `WH-${wh.id || idx + 1}`})</option>;
                                 })}
                             </select>
                         </div>
