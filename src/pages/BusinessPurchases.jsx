@@ -200,6 +200,33 @@ const BusinessPurchases = () => {
         }
     };
 
+    const handleOpenReceiveModal = (doc) => {
+        setSelectedDoc(doc);
+        const defaultWh = doc.warehouse_id || (warehousesList && warehousesList[0] ? (warehousesList[0].name || warehousesList[0].warehouse_name) : 'Main Godown');
+        setSelectedReceiveWarehouse(defaultWh);
+        setIsReceiveModalOpen(true);
+    };
+
+    const handleConfirmReceiveGoods = async () => {
+        if (!selectedDoc) return;
+        try {
+            const targetId = selectedDoc.id || selectedDoc.purchase_id || selectedDoc.purchase_number;
+            await purchasesService.receiveGoods(targetId, {
+                warehouse_name: selectedReceiveWarehouse,
+                warehouse_id: selectedReceiveWarehouse
+            });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            setIsReceiveModalOpen(false);
+            setSelectedDoc(null);
+            alert(`✅ Goods received successfully!\n\nThe purchase order status has been updated to COMPLETED and physical stock has been added to warehouse: ${selectedReceiveWarehouse}.`);
+        } catch(err) {
+            alert('Error receiving goods: ' + (err.response?.data?.message || err.message || 'Failed to process warehouse stock receiving'));
+        }
+    };
+
     const queryClient = useQueryClient();
 
     // Queries
@@ -447,36 +474,6 @@ const BusinessPurchases = () => {
         }
 
         createMutation.mutate(docPayload);
-    };
-
-    const handleOpenReceiveModal = (po) => {
-        setSelectedDoc(po);
-        setSelectedReceiveWarehouse(po.warehouse_id || 'Main Godown');
-        const qtyMap = {};
-        (po.items || []).forEach((item, idx) => {
-            qtyMap[idx] = (item.quantity - (item.received_quantity !== undefined ? item.received_quantity : item.quantity));
-        });
-        setReceiveQuantities(qtyMap);
-        setIsReceiveModalOpen(true);
-    };
-
-    const handleConfirmReceiveGoods = async () => {
-        if (!selectedDoc) return;
-        try {
-            await purchasesService.receiveGoods(selectedDoc.id || selectedDoc.purchase_id, {
-                warehouse_id: selectedReceiveWarehouse,
-                warehouse_name: selectedReceiveWarehouse
-            });
-            queryClient.invalidateQueries({ queryKey: ['purchases'] });
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['invoices'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-            setIsReceiveModalOpen(false);
-            setSelectedDoc(null);
-            alert(`✅ Goods received successfully into ${selectedReceiveWarehouse}!\n\nInventory updated and Purchase Bill completed.`);
-        } catch (err) {
-            alert('Failed to receive goods: ' + (err.message || 'Unknown error'));
-        }
     };
 
     const handleCommitGoodsReceived = (e) => {
@@ -943,8 +940,7 @@ const BusinessPurchases = () => {
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             {bill.status === 'Pending Goods' ? (
                                                 <button
-                                                    disabled={receiveGoodsMutation.isPending}
-                                                    onClick={() => setPendingReceiveBill(bill)}
+                                                    onClick={() => handleOpenReceiveModal(bill)}
                                                     style={{
                                                         padding: '0.5rem 1.1rem', borderRadius: '10px', border: 'none',
                                                         background: '#064E3B',

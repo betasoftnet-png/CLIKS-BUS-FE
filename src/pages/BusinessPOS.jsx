@@ -1750,15 +1750,21 @@ const BusinessPOS = () => {
                                             </div>
 
                                             {/* Bottom Row: Price / Unit on Left, Stock Badge on Right */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F8FAFC' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0F172A', lineHeight: 1.1 }}>
-                                                        {formatCurrency(prod.price || 0)} <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '700' }}>/</span>
-                                                    </span>
-                                                    <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
-                                                        {prod.unit || 'PCS'}
-                                                    </span>
-                                                </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F8FAFC', gap: '0.3rem' }}>
+                                                {(() => {
+                                                    const cardPriceStr = formatCurrency(prod.price || 0);
+                                                    const cardPriceFontSz = cardPriceStr.length > 14 ? '0.78rem' : (cardPriceStr.length > 11 ? '0.9rem' : '1.15rem');
+                                                    return (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
+                                                            <span style={{ fontSize: cardPriceFontSz, fontWeight: '900', color: '#0F172A', lineHeight: 1.1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
+                                                                {cardPriceStr} <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>/</span>
+                                                            </span>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                                {prod.unit || 'PCS'}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                                 <div style={{ 
                                                     padding: '0.4rem 0.65rem', 
                                                     borderRadius: '12px', 
@@ -1766,6 +1772,7 @@ const BusinessPOS = () => {
                                                     fontWeight: '800',
                                                     lineHeight: 1.25,
                                                     textAlign: 'left',
+                                                    flexShrink: 0,
                                                     background: isOutOfStock ? '#FEE2E2' : (isLowStock ? '#FFFBEB' : '#ECFDF5'),
                                                     color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
                                                 }}>
@@ -2107,15 +2114,21 @@ const BusinessPOS = () => {
                                             borderBottom: '1px solid #F8FAFC'
                                         }}
                                     >
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B' }}>{item.name}</p>
-                                            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>
-                                                <span>{formatCurrency(item.price)} / {item.unit || 'PCS'}</span>
-                                            </div>
+                                        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                                            {(() => {
+                                                const cartPriceStr = `${formatCurrency(item.price)} / ${item.unit || 'PCS'}`;
+                                                const cartPriceFontSz = cartPriceStr.length > 22 ? '0.66rem' : '0.75rem';
+                                                return (
+                                                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
+                                                        <span>{cartPriceStr}</span>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Quantity Selectors */}
-                                        <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px', flexShrink: 0 }}>
                                             <button 
                                                 type="button"
                                                 onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)} 
@@ -2154,9 +2167,15 @@ const BusinessPOS = () => {
                                             </button>
                                         </div>
 
-                                        <div style={{ width: '70px', textAlign: 'right' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(item.total)}</span>
-                                        </div>
+                                        {(() => {
+                                            const totalStr = formatCurrency(item.total);
+                                            const totalFontSz = totalStr.length > 14 ? '0.72rem' : (totalStr.length > 10 ? '0.78rem' : '0.85rem');
+                                            return (
+                                                <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '0.2rem' }}>
+                                                    <span style={{ fontSize: totalFontSz, fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{totalStr}</span>
+                                                </div>
+                                            );
+                                        })()}
 
                                         <button onClick={() => removeFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#EF4444', padding: '0.25rem', cursor: 'pointer', display: 'flex', opacity: 0.6 }}>
                                             <Trash2 size={14} />
@@ -2282,39 +2301,57 @@ const BusinessPOS = () => {
 
                             {/* Receipt Tally breakdown */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem 0', borderBottom: '1px solid #E2E8F0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
-                                    <span>Subtotal</span>
-                                    <span>{formatCurrency(subtotal)}</span>
-                                </div>
+                                {(() => {
+                                    const subStr = formatCurrency(subtotal);
+                                    const subFontSz = subStr.length > 14 ? '0.72rem' : '0.8rem';
+                                    return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748B', gap: '0.5rem' }}>
+                                            <span style={{ flexShrink: 0 }}>Subtotal</span>
+                                            <span style={{ fontSize: subFontSz, fontWeight: '600', whiteSpace: 'nowrap' }}>{subStr}</span>
+                                        </div>
+                                    );
+                                })()}
                                 {discountAmount > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#EF4444', fontWeight: '500' }}>
-                                        <span>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
-                                        <span>- {formatCurrency(discountAmount)}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#EF4444', fontWeight: '500', gap: '0.5rem' }}>
+                                        <span style={{ flexShrink: 0 }}>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
+                                        <span style={{ fontSize: formatCurrency(discountAmount).length > 14 ? '0.72rem' : '0.8rem', whiteSpace: 'nowrap' }}>- {formatCurrency(discountAmount)}</span>
                                     </div>
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
-                                    <span>GST ({taxRate}%)</span>
-                                    <span>{formatCurrency(calculatedTax)}</span>
-                                </div>
+                                {(() => {
+                                    const taxStr = formatCurrency(calculatedTax);
+                                    const taxFontSz = taxStr.length > 14 ? '0.72rem' : '0.8rem';
+                                    return (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748B', gap: '0.5rem' }}>
+                                            <span style={{ flexShrink: 0 }}>GST ({taxRate}%)</span>
+                                            <span style={{ fontSize: taxFontSz, fontWeight: '600', whiteSpace: 'nowrap' }}>{taxStr}</span>
+                                        </div>
+                                    );
+                                })()}
                                 {loyaltyDiscountAmount > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#DC2626', fontWeight: '600' }}>
-                                        <span>Loyalty Discount ({effectivePointsRedeemed} pts)</span>
-                                        <span>- {formatCurrency(loyaltyDiscountAmount)}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#DC2626', fontWeight: '600', gap: '0.5rem' }}>
+                                        <span style={{ flexShrink: 0 }}>Loyalty Discount ({effectivePointsRedeemed} pts)</span>
+                                        <span style={{ fontSize: formatCurrency(loyaltyDiscountAmount).length > 14 ? '0.72rem' : '0.8rem', whiteSpace: 'nowrap' }}>- {formatCurrency(loyaltyDiscountAmount)}</span>
                                     </div>
                                 )}
                                 {Math.abs(roundOff) > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94A3B8' }}>
-                                        <span>Round Off</span>
-                                        <span>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#94A3B8', gap: '0.5rem' }}>
+                                        <span style={{ flexShrink: 0 }}>Round Off</span>
+                                        <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
                                     </div>
                                 )}
                             </div>
 
                             {/* Grand total Display */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Payable Amount</span>
-                                <span style={{ fontSize: '1.65rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>{formatCurrency(finalTotal)}</span>
-                            </div>
+                            {(() => {
+                                const finalStr = formatCurrency(finalTotal);
+                                const finalFontSz = finalStr.length > 15 ? '1.15rem' : (finalStr.length > 12 ? '1.3rem' : '1.65rem');
+                                return (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A', flexShrink: 0 }}>Payable Amount</span>
+                                        <span style={{ fontSize: finalFontSz, fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{finalStr}</span>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Checkout Payment Action Matrix */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginTop: '2px' }}>
