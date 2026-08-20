@@ -1243,15 +1243,6 @@ const BusinessWarehouse = () => {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <button
-                                    onClick={() => {
-                                        setIsViewListModalOpen(false);
-                                        handleOpenAddProduct(targetWarehouseForList);
-                                    }}
-                                    style={{ border: 'none', background: '#10B981', color: 'white', padding: '0.45rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                                >
-                                    <Plus size={14} /> Add Product
-                                </button>
                                 <button onClick={() => setIsViewListModalOpen(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer' }}>
                                     <X size={20} />
                                 </button>
@@ -1314,16 +1305,6 @@ const BusinessWarehouse = () => {
                                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
                                     <Folder size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.5, display: 'block' }} />
                                     <p style={{ margin: 0, fontWeight: '700', fontSize: '0.95rem' }}>No products found for this warehouse facility.</p>
-                                    <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.8rem' }}>Click "Add Product" above to assign products to {targetWarehouseForList.warehouse_name}.</p>
-                                    <button
-                                        onClick={() => {
-                                            setIsViewListModalOpen(false);
-                                            handleOpenAddProduct(targetWarehouseForList);
-                                        }}
-                                        style={{ border: 'none', background: '#10B981', color: 'white', padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer' }}
-                                    >
-                                        + Add New Product Now
-                                    </button>
                                 </div>
                             )}
                         </div>
