@@ -61,6 +61,9 @@ const BusinessPurchases = () => {
     const [isSupplierViewModalOpen, setIsSupplierViewModalOpen] = useState(false);
     const [supplierViewPO, setSupplierViewPO] = useState(null);
     const [isConfirmingPO, setIsConfirmingPO] = useState(false);
+    const [supplierResponseMode, setSupplierResponseMode] = useState('CONFIRMED');
+    const [expectedAvailableDate, setExpectedAvailableDate] = useState('');
+    const [itemAvailableQtys, setItemAvailableQtys] = useState({});
 
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [chatSupplier, setChatSupplier] = useState(null);
@@ -103,18 +106,63 @@ const BusinessPurchases = () => {
     // Helper handlers for Supplier confirmation & Chat
     const handleOpenSupplierView = (po) => {
         setSupplierViewPO(po);
+        setSupplierResponseMode(po.supplier_response_type || po.supplier_confirmation_status || 'CONFIRMED');
+        setExpectedAvailableDate(po.expected_available_date || '');
+        const initialQtys = {};
+        if (po.items && Array.isArray(po.items)) {
+            po.items.forEach((it, idx) => {
+                initialQtys[idx] = it.available_quantity !== undefined && it.available_quantity !== null ? it.available_quantity : it.quantity;
+            });
+        }
+        setItemAvailableQtys(initialQtys);
         setIsSupplierViewModalOpen(true);
     };
 
-    const handleConfirmPOBySupplier = async (poId) => {
+    const handleConfirmPOBySupplier = async (poId, responseTypeOverride) => {
+        const mode = responseTypeOverride || supplierResponseMode || 'CONFIRMED';
         setIsConfirmingPO(true);
         try {
-            await purchasesService.confirmSupplierPurchase(poId);
+            const payloadItems = (supplierViewPO?.items || []).map((it, idx) => ({
+                ...it,
+                available_quantity: mode === 'PARTIALLY_AVAILABLE' ? (parseFloat(itemAvailableQtys[idx]) || 0) : (mode === 'NOT_AVAILABLE' ? 0 : it.quantity),
+                item_availability_status: mode
+            }));
+
+            let notes = 'Supplier has confirmed your order.';
+            if (mode === 'PARTIALLY_AVAILABLE') {
+                notes = 'Supplier can provide only a smaller quantity.';
+            } else if (mode === 'NOT_AVAILABLE') {
+                notes = 'Product not available — Waiting for buyer response.';
+            } else if (mode === 'AVAILABLE_LATER') {
+                notes = expectedAvailableDate ? `Waiting for supplier — Available on ${expectedAvailableDate}.` : 'Waiting for supplier — Expected to become available later.';
+            }
+
+            const payload = {
+                response_type: mode,
+                expected_available_date: mode === 'AVAILABLE_LATER' ? expectedAvailableDate : null,
+                notes,
+                items: payloadItems
+            };
+
+            const targetId = poId || supplierViewPO?.id || supplierViewPO?.purchase_id || supplierViewPO?.purchase_number;
+            await purchasesService.confirmSupplierPurchase(targetId, payload);
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
-            alert('Purchase Order successfully CONFIRMED! Dealer notification has been generated.');
-            setIsSupplierViewModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            alert('Supplier response saved and order updated successfully!');
+
+            if (supplierViewPO) {
+                setSupplierViewPO(prev => ({
+                    ...prev,
+                    status: mode,
+                    supplier_confirmation_status: mode,
+                    supplier_response_type: mode,
+                    expected_available_date: payload.expected_available_date,
+                    supplier_status_message: notes,
+                    items: payloadItems
+                }));
+            }
         } catch(err) {
-            alert(err.message || 'Failed to confirm purchase order');
+            alert(err.message || 'Failed to record supplier response');
         } finally {
             setIsConfirmingPO(false);
         }
@@ -1410,10 +1458,10 @@ const BusinessPurchases = () => {
                 </div>
             )}
 
-            {/* Supplier Portal View (Confirm Order) Modal */}
+            {/* Supplier Portal View (Confirm Order & Availability Response) Modal */}
             {isSupplierViewModalOpen && supplierViewPO && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '750px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '780px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                         {/* Header Banner */}
                         <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1452,6 +1500,81 @@ const BusinessPurchases = () => {
                                 </div>
                             </div>
 
+                            {/* Response Selection Options (If Pending) */}
+                            {(!supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_confirmation_status === 'PENDING' || supplierViewPO.supplier_confirmation_status === 'PENDING SUPPLIER CONFIRMATION' || supplierViewPO.supplier_confirmation_status === 'Unpaid' || supplierViewPO.supplier_confirmation_status === 'Draft') && (
+                                <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', display: 'block', marginBottom: '0.75rem' }}>
+                                        Select Supplier Response Option
+                                    </label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.6rem' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSupplierResponseMode('CONFIRMED')}
+                                            style={{
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer',
+                                                border: supplierResponseMode === 'CONFIRMED' ? '2px solid #10B981' : '1px solid #CBD5E1',
+                                                background: supplierResponseMode === 'CONFIRMED' ? '#ECFDF5' : 'white',
+                                                color: supplierResponseMode === 'CONFIRMED' ? '#047857' : '#475569',
+                                                boxShadow: supplierResponseMode === 'CONFIRMED' ? '0 4px 12px rgba(16,185,129,0.15)' : 'none'
+                                            }}
+                                        >
+                                            ✓ Confirm Order
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSupplierResponseMode('PARTIALLY_AVAILABLE')}
+                                            style={{
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer',
+                                                border: supplierResponseMode === 'PARTIALLY_AVAILABLE' ? '2px solid #F97316' : '1px solid #CBD5E1',
+                                                background: supplierResponseMode === 'PARTIALLY_AVAILABLE' ? '#FFF7ED' : 'white',
+                                                color: supplierResponseMode === 'PARTIALLY_AVAILABLE' ? '#C2410C' : '#475569',
+                                                boxShadow: supplierResponseMode === 'PARTIALLY_AVAILABLE' ? '0 4px 12px rgba(249,115,22,0.15)' : 'none'
+                                            }}
+                                        >
+                                            ⚠ Less Qty Available
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSupplierResponseMode('NOT_AVAILABLE')}
+                                            style={{
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer',
+                                                border: supplierResponseMode === 'NOT_AVAILABLE' ? '2px solid #EF4444' : '1px solid #CBD5E1',
+                                                background: supplierResponseMode === 'NOT_AVAILABLE' ? '#FEF2F2' : 'white',
+                                                color: supplierResponseMode === 'NOT_AVAILABLE' ? '#B91C1C' : '#475569',
+                                                boxShadow: supplierResponseMode === 'NOT_AVAILABLE' ? '0 4px 12px rgba(239,68,68,0.15)' : 'none'
+                                            }}
+                                        >
+                                            ✕ Product Not Available
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSupplierResponseMode('AVAILABLE_LATER')}
+                                            style={{
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer',
+                                                border: supplierResponseMode === 'AVAILABLE_LATER' ? '2px solid #3B82F6' : '1px solid #CBD5E1',
+                                                background: supplierResponseMode === 'AVAILABLE_LATER' ? '#EFF6FF' : 'white',
+                                                color: supplierResponseMode === 'AVAILABLE_LATER' ? '#1D4ED8' : '#475569',
+                                                boxShadow: supplierResponseMode === 'AVAILABLE_LATER' ? '0 4px 12px rgba(59,130,246,0.15)' : 'none'
+                                            }}
+                                        >
+                                            📅 Available Later
+                                        </button>
+                                    </div>
+
+                                    {supplierResponseMode === 'AVAILABLE_LATER' && (
+                                        <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#EFF6FF', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #BFDBFE' }}>
+                                            <label style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E40AF' }}>Expected Available Date:</label>
+                                            <input
+                                                type="date"
+                                                value={expectedAvailableDate}
+                                                onChange={(e) => setExpectedAvailableDate(e.target.value)}
+                                                style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #3B82F6', fontSize: '0.85rem', fontWeight: '800', outline: 'none', background: 'white' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Requested Product List */}
                             <div>
                                 <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Requested Products & Quantities</h4>
@@ -1461,26 +1584,41 @@ const BusinessPurchases = () => {
                                             <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                                                 <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Product Name</th>
                                                 <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Requested Qty</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Available Qty</th>
                                                 <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569' }}>Unit</th>
                                                 <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'right' }}>Unit Price</th>
-                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#475569', textAlign: 'center' }}>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {supplierViewPO.items && supplierViewPO.items.length > 0 ? (
-                                                supplierViewPO.items.map((item, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: idx < supplierViewPO.items.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
-                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#1E293B' }}>{item.product_name}</td>
-                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: '#1D4ED8' }}>{item.quantity}</td>
-                                                        <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#475569' }}>{item.primary_unit || item.unit || 'PCS'}</td>
-                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{formatCurrency(item.purchase_price || item.price || 0)}</td>
-                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#F0FDF4', color: '#15803D' }}>
-                                                                Confirm
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))
+                                                supplierViewPO.items.map((item, idx) => {
+                                                    const isPending = !supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_confirmation_status === 'PENDING' || supplierViewPO.supplier_confirmation_status === 'PENDING SUPPLIER CONFIRMATION' || supplierViewPO.supplier_confirmation_status === 'Unpaid';
+                                                    const curAvail = itemAvailableQtys[idx] !== undefined ? itemAvailableQtys[idx] : (item.available_quantity !== undefined ? item.available_quantity : item.quantity);
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: idx < supplierViewPO.items.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
+                                                            <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#1E293B' }}>{item.product_name}</td>
+                                                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '800', color: '#1D4ED8' }}>{item.quantity}</td>
+                                                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                                {isPending && supplierResponseMode === 'PARTIALLY_AVAILABLE' ? (
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max={item.quantity}
+                                                                        value={curAvail}
+                                                                        onChange={(e) => setItemAvailableQtys({ ...itemAvailableQtys, [idx]: e.target.value })}
+                                                                        style={{ width: '70px', padding: '0.3rem 0.5rem', borderRadius: '8px', border: '2px solid #F97316', textAlign: 'right', fontWeight: '800', color: '#C2410C', background: '#FFF7ED' }}
+                                                                    />
+                                                                ) : (
+                                                                    <span style={{ fontWeight: '800', color: supplierViewPO.supplier_confirmation_status === 'PARTIALLY_AVAILABLE' ? '#C2410C' : (supplierViewPO.supplier_confirmation_status === 'NOT_AVAILABLE' ? '#DC2626' : '#15803D') }}>
+                                                                        {supplierViewPO.supplier_confirmation_status === 'NOT_AVAILABLE' ? 0 : curAvail}
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#475569' }}>{item.primary_unit || item.unit || 'pcs'}</td>
+                                                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{formatCurrency(item.purchase_price || item.price || 0)}</td>
+                                                        </tr>
+                                                    );
+                                                })
                                             ) : (
                                                 <tr>
                                                     <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8' }}>No specific item details listed</td>
@@ -1494,32 +1632,78 @@ const BusinessPurchases = () => {
 
                         {/* Footer Action */}
                         <div style={{ padding: '1.25rem 1.5rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>
-                                Status: <strong style={{ color: (supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? '#15803D' : '#B45309' }}>
-                                    {(supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? 'CONFIRMED' : 'PENDING SUPPLIER CONFIRMATION'}
-                                </strong>
-                            </span>
+                            {(() => {
+                                const st = supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_response_type || supplierViewPO.status;
+                                let badgeText = 'PENDING SUPPLIER CONFIRMATION';
+                                let badgeColor = '#B45309';
 
-                            {(supplierViewPO.status === 'CONFIRMED' || supplierViewPO.supplier_confirmation_status === 'CONFIRMED') ? (
-                                <span style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#F0FDF4', color: '#15803D', fontWeight: '800', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                    <CheckCircle2 size={18} /> Order Confirmed by Supplier
-                                </span>
-                            ) : (
-                                <button
-                                    type="button"
-                                    disabled={isConfirmingPO}
-                                    onClick={() => handleConfirmPOBySupplier(supplierViewPO.id || supplierViewPO.purchase_id)}
-                                    style={{
-                                        padding: '0.75rem 1.75rem', borderRadius: '12px',
-                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                        color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer',
-                                        boxShadow: '0 8px 16px rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem'
-                                    }}
-                                >
-                                    <CheckCircle2 size={18} />
-                                    {isConfirmingPO ? 'Confirming...' : 'CONFIRM ORDER'}
-                                </button>
-                            )}
+                                if (st === 'CONFIRMED') {
+                                    badgeText = 'CONFIRMED BY SUPPLIER';
+                                    badgeColor = '#15803D';
+                                } else if (st === 'PARTIALLY_AVAILABLE') {
+                                    badgeText = 'PARTIALLY AVAILABLE / WAITING FOR BUYER RESPONSE';
+                                    badgeColor = '#C2410C';
+                                } else if (st === 'NOT_AVAILABLE') {
+                                    badgeText = 'PRODUCT NOT AVAILABLE / WAITING FOR BUYER RESPONSE';
+                                    badgeColor = '#DC2626';
+                                } else if (st === 'AVAILABLE_LATER') {
+                                    badgeText = `WAITING FOR SUPPLIER — AVAILABLE ON ${supplierViewPO.expected_available_date || 'EXPECTED DATE'}`;
+                                    badgeColor = '#1D4ED8';
+                                }
+
+                                return (
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>
+                                        Status: <strong style={{ color: badgeColor }}>{badgeText}</strong>
+                                    </span>
+                                );
+                            })()}
+
+                            {(() => {
+                                const st = supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_response_type || supplierViewPO.status;
+                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER';
+
+                                if (isResponded) {
+                                    return (
+                                        <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: st === 'CONFIRMED' ? '#F0FDF4' : (st === 'PARTIALLY_AVAILABLE' ? '#FFF7ED' : (st === 'NOT_AVAILABLE' ? '#FEF2F2' : '#EFF6FF')), color: st === 'CONFIRMED' ? '#15803D' : (st === 'PARTIALLY_AVAILABLE' ? '#C2410C' : (st === 'NOT_AVAILABLE' ? '#DC2626' : '#1D4ED8')), fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <CheckCircle2 size={16} /> Response Submitted
+                                        </span>
+                                    );
+                                }
+
+                                let btnGradient = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+                                let btnText = 'CONFIRM ORDER';
+                                let btnShadow = 'rgba(16, 185, 129, 0.25)';
+
+                                if (supplierResponseMode === 'PARTIALLY_AVAILABLE') {
+                                    btnGradient = 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)';
+                                    btnText = 'SUBMIT AVAILABLE QUANTITY';
+                                    btnShadow = 'rgba(249, 115, 22, 0.25)';
+                                } else if (supplierResponseMode === 'NOT_AVAILABLE') {
+                                    btnGradient = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
+                                    btnText = 'MARK AS NOT AVAILABLE';
+                                    btnShadow = 'rgba(239, 68, 68, 0.25)';
+                                } else if (supplierResponseMode === 'AVAILABLE_LATER') {
+                                    btnGradient = 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)';
+                                    btnText = 'SET AVAILABLE DATE';
+                                    btnShadow = 'rgba(59, 130, 246, 0.25)';
+                                }
+
+                                return (
+                                    <button
+                                        type="button"
+                                        disabled={isConfirmingPO}
+                                        onClick={() => handleConfirmPOBySupplier(supplierViewPO.id || supplierViewPO.purchase_id)}
+                                        style={{
+                                            padding: '0.75rem 1.75rem', borderRadius: '12px',
+                                            background: btnGradient,
+                                            color: 'white', border: 'none', fontWeight: '800', fontSize: '0.92rem', cursor: 'pointer',
+                                            boxShadow: `0 8px 16px ${btnShadow}`, display: 'flex', alignItems: 'center', gap: '0.5rem'
+                                        }}
+                                    >
+                                        <CheckCircle2 size={18} /> {isConfirmingPO ? 'SUBMITTING...' : btnText}
+                                    </button>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
