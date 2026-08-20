@@ -1538,20 +1538,21 @@ const BusinessPOS = () => {
                                             style={{
                                                 background: '#FFFFFF',
                                                 border: '1px solid #E2E8F0',
-                                                borderRadius: '14px',
-                                                padding: '0.85rem',
+                                                borderRadius: '20px',
+                                                padding: '1rem 1.1rem',
                                                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '0.5rem',
+                                                gap: '0.6rem',
                                                 position: 'relative',
                                                 opacity: isOutOfStock ? 0.6 : 1,
-                                                transition: 'border 0.2s'
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                             }}
                                         >
                                             {/* Top Row: Visual Tag for Category + Three-Dot Menu */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{prod.category || 'General'}</span>
+                                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{prod.category || 'General'}</span>
 
                                                 {/* Three-Dot Option Icon */}
                                                 <div style={{ position: 'relative' }}>
@@ -1577,7 +1578,7 @@ const BusinessPOS = () => {
                                                         onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                         title="Options"
                                                     >
-                                                        <MoreVertical size={15} />
+                                                        <MoreVertical size={16} />
                                                     </button>
 
                                                     {/* Dropdown Menu */}
@@ -1726,40 +1727,50 @@ const BusinessPOS = () => {
                                                 </div>
                                             </div>
                                             
-                                            <div style={{ height: '40px' }}>
-                                                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
-                                                {prod.sku && <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>SKU: {prod.sku}</span>}
-                                            </div>
-                                            
-                                            {cartQty > 0 && (
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto' }}>
+                                            {/* Middle Row: Product Name + SKU on Left, "In Cart" Badge on Right */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '46px' }}>
+                                                <div style={{ flex: 1, minWidth: 0, paddingRight: '0.4rem' }}>
+                                                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
+                                                    {prod.sku && <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: '2px', fontWeight: '500' }}>SKU: {prod.sku}</div>}
+                                                </div>
+                                                {cartQty > 0 && (
                                                     <span style={{ 
-                                                        fontSize: '0.68rem', 
+                                                        fontSize: '0.75rem', 
                                                         fontWeight: '800', 
                                                         color: '#FFFFFF', 
-                                                        background: '#F97316', 
-                                                        padding: '0.12rem 0.45rem', 
-                                                        borderRadius: '6px',
-                                                        border: '1px solid #EA580C'
+                                                        background: '#FF5722', 
+                                                        padding: '0.35rem 0.65rem', 
+                                                        borderRadius: '10px',
+                                                        whiteSpace: 'nowrap',
+                                                        display: 'inline-block'
                                                     }}>
                                                         {cartQty} In Cart
                                                     </span>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: cartQty > 0 ? '0.2rem' : 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
-                                                <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#0F172A' }}>
-                                                    {formatCurrency(prod.price || 0)} <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700' }}>/ {prod.unit || 'PCS'}</span>
-                                                </span>
+                                            {/* Bottom Row: Price / Unit on Left, Stock Badge on Right */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid #F8FAFC' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0F172A', lineHeight: 1.1 }}>
+                                                        {formatCurrency(prod.price || 0)} <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '700' }}>/</span>
+                                                    </span>
+                                                    <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                        {prod.unit || 'PCS'}
+                                                    </span>
+                                                </div>
                                                 <div style={{ 
-                                                    padding: '0.15rem 0.4rem', 
-                                                    borderRadius: '6px', 
-                                                    fontSize: '0.65rem', 
+                                                    padding: '0.4rem 0.65rem', 
+                                                    borderRadius: '12px', 
+                                                    fontSize: '0.75rem', 
                                                     fontWeight: '800',
+                                                    lineHeight: 1.25,
+                                                    textAlign: 'left',
                                                     background: isOutOfStock ? '#FEE2E2' : (isLowStock ? '#FFFBEB' : '#ECFDF5'),
                                                     color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
                                                 }}>
-                                                    {isOutOfStock ? 'OUT' : `${displayStock} ${prod.unit || 'PCS'} left`}
+                                                    <div>{isOutOfStock ? 'OUT' : `${displayStock} ${prod.unit || 'PCS'}`}</div>
+                                                    {!isOutOfStock && <div style={{ fontSize: '0.72rem', fontWeight: '700' }}>left</div>}
                                                 </div>
                                             </div>
                                         </motion.div>
