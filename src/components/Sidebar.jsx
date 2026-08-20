@@ -680,36 +680,46 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             justifyContent: 'space-between'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <img src={storageLogo} alt="Storage" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                                <Cloud size={18} color="#2563EB" strokeWidth={2.2} />
                                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B' }}>
                                     Storage
                                 </span>
                             </div>
-                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#2563EB' }}>
-                                0%
-                            </span>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div style={{
-                            width: '100%',
-                            height: '8px',
-                            backgroundColor: '#E2E8F0',
-                            borderRadius: '9999px',
-                            WebkitBorderRadius: '9999px',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            WebkitMaskImage: '-webkit-radial-gradient(white, black)',
-                            transform: 'translateZ(0)'
-                        }}>
-                            <div style={{
-                                width: '0%',
-                                height: '100%',
-                                backgroundColor: '#2563EB',
-                                borderRadius: '9999px',
-                                WebkitBorderRadius: '9999px',
-                                transition: 'width 0.3s ease-in-out'
-                            }} />
+                            {(() => {
+                                const storagePercent = 0;
+                                const radius = 8;
+                                const circ = 2 * Math.PI * radius;
+                                const strokeDashoffset = circ * (1 - storagePercent / 100);
+                                return (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <svg width="18" height="18" viewBox="0 0 20 20" style={{ transform: 'rotate(-90deg)' }}>
+                                            <circle
+                                                cx="10"
+                                                cy="10"
+                                                r={radius}
+                                                fill="none"
+                                                stroke="#DBEAFE"
+                                                strokeWidth="2.5"
+                                            />
+                                            <circle
+                                                cx="10"
+                                                cy="10"
+                                                r={radius}
+                                                fill="none"
+                                                stroke="#2563EB"
+                                                strokeWidth="2.5"
+                                                strokeDasharray={circ}
+                                                strokeDashoffset={strokeDashoffset}
+                                                strokeLinecap="round"
+                                                style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+                                            />
+                                        </svg>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#2563EB' }}>
+                                            {Math.round(storagePercent)}%
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         <div style={{
