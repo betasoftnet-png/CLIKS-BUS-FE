@@ -34,7 +34,7 @@ export const purchasesService = {
 
     // Stock Adjustments
     processStockUpdate: (id, data) => apiClient.post(`/purchases/${id}/stock-update`, data).then(res => res.data.data || res.data),
-    receiveGoods: (id) => apiClient.post(`/purchases/${id}/receive-goods`).then(res => res.data.data || res.data),
+    receiveGoods: (id, payload) => apiClient.post(`/purchases/${id}/receive-goods`, payload).then(res => res.data.data || res.data),
     getStockHistory: (id) => apiClient.get(`/purchases/${id}/stock-history`).then(res => res.data.data || res.data),
 
     // Invoices & Bills

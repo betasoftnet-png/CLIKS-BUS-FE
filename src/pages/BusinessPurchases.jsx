@@ -36,7 +36,7 @@ import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { purchasesService, productsService, suppliersService, settingsService, returnsService } from '../services';
+import { purchasesService, productsService, suppliersService, settingsService, returnsService, warehouseService } from '../services';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -56,6 +56,7 @@ const BusinessPurchases = () => {
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [pendingReceiveBill, setPendingReceiveBill] = useState(null);
+    const [selectedReceiveWarehouse, setSelectedReceiveWarehouse] = useState('Main Godown');
 
     // Supplier Confirmation View & Chat states
     const [isSupplierViewModalOpen, setIsSupplierViewModalOpen] = useState(false);
@@ -300,8 +301,15 @@ const BusinessPurchases = () => {
         }
     });
 
-    // Receive Goods Partial Modal Form state
-    const [receiveQuantities, setReceiveQuantities] = useState({});
+    // Warehouse query for Receive Goods dropdown
+    const warehousesQuery = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses()
+    });
+
+    const warehousesList = Array.isArray(warehousesQuery.data) && warehousesQuery.data.length > 0
+        ? warehousesQuery.data
+        : [{ id: 1, name: 'Main Godown' }, { id: 2, name: 'Shop Front' }, { id: 3, name: 'Central Warehouse' }];
 
     // New Document Form States
     const [formHeader, setFormHeader] = useState(() => ({
@@ -443,12 +451,32 @@ const BusinessPurchases = () => {
 
     const handleOpenReceiveModal = (po) => {
         setSelectedDoc(po);
+        setSelectedReceiveWarehouse(po.warehouse_id || 'Main Godown');
         const qtyMap = {};
-        po.items.forEach((item, idx) => {
-            qtyMap[idx] = (item.quantity - item.received_quantity);
+        (po.items || []).forEach((item, idx) => {
+            qtyMap[idx] = (item.quantity - (item.received_quantity !== undefined ? item.received_quantity : item.quantity));
         });
         setReceiveQuantities(qtyMap);
         setIsReceiveModalOpen(true);
+    };
+
+    const handleConfirmReceiveGoods = async () => {
+        if (!selectedDoc) return;
+        try {
+            await purchasesService.receiveGoods(selectedDoc.id || selectedDoc.purchase_id, {
+                warehouse_id: selectedReceiveWarehouse,
+                warehouse_name: selectedReceiveWarehouse
+            });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            setIsReceiveModalOpen(false);
+            setSelectedDoc(null);
+            alert(`✅ Goods received successfully into ${selectedReceiveWarehouse}!\n\nInventory updated and Purchase Bill completed.`);
+        } catch (err) {
+            alert('Failed to receive goods: ' + (err.message || 'Unknown error'));
+        }
     };
 
     const handleCommitGoodsReceived = (e) => {
@@ -702,12 +730,12 @@ const BusinessPurchases = () => {
                                             <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            {po.items.map((item, idx) => (
-                                                <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                    <p style={{ fontWeight: '700', color: '#475569' }}>{item.product_name}</p>
-                                                    <span style={{ color: '#94A3B8' }}>Ordered: {item.quantity} | Received: {item.received_quantity} {item.primary_unit}</span>
-                                                </div>
-                                            ))}
+                                             {po.items.map((item, idx) => (
+                                                 <div key={idx} style={{ fontSize: '0.85rem' }}>
+                                                     <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>{item.product_name}</p>
+                                                     <span style={{ color: '#94A3B8' }}>Ordered: {item.quantity} | Received: {item.received_quantity !== undefined && item.received_quantity !== null && item.received_quantity !== '' ? item.received_quantity : item.quantity} {item.primary_unit || 'pcs'}</span>
+                                                 </div>
+                                             ))}
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             {(() => {
@@ -1785,6 +1813,87 @@ const BusinessPurchases = () => {
                                 <span>Send</span>
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Receive Goods & Warehouse Selection Modal */}
+            {isReceiveModalOpen && selectedDoc && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', maxWidth: '640px', width: '100%', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <PackageOpen size={22} color="#064E3B" />
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#1E293B' }}>Receive Goods & Warehouse Assignment</h3>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>Confirm stock arrival and select destination godown/warehouse.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsReceiveModalOpen(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer' }}>
+                                <X size={18} color="#64748B" />
+                            </button>
+                        </div>
+
+                        {/* PO Header Info */}
+                        <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1rem', marginBottom: '1.25rem', border: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div>
+                                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Purchase Order #</span>
+                                <p style={{ margin: 0, fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{selectedDoc.purchase_number}</p>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Supplier Name</span>
+                                <p style={{ margin: 0, fontWeight: '850', color: '#1E293B', fontSize: '0.95rem' }}>{selectedDoc.supplier_name}</p>
+                            </div>
+                        </div>
+
+                        {/* Items Table */}
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '750', color: '#334155', marginBottom: '0.5rem' }}>Item Details to Receive</label>
+                            <div style={{ border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                    <thead style={{ background: '#F1F5F9', color: '#475569', fontWeight: '700' }}>
+                                        <tr>
+                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>Product</th>
+                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Ordered Qty</th>
+                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Confirmed / Received</th>
+                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right' }}>Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(selectedDoc.items && selectedDoc.items.length > 0 ? selectedDoc.items : [{ product_name: 'Product Item', quantity: 1, purchase_price: selectedDoc.grand_total }]).map((it, idx) => (
+                                            <tr key={idx} style={{ borderTop: '1px solid #F1F5F9' }}>
+                                                <td style={{ padding: '0.65rem 0.8rem', fontWeight: '700', color: '#1E293B' }}>{it.product_name}</td>
+                                                <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center', fontWeight: '800', color: '#1E293B' }}>{it.quantity} {it.primary_unit || 'pcs'}</td>
+                                                <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center', fontWeight: '800', color: '#15803D' }}>{it.received_quantity !== undefined && it.received_quantity !== null && it.received_quantity !== '' ? it.received_quantity : it.quantity} {it.primary_unit || 'pcs'}</td>
+                                                <td style={{ padding: '0.65rem 0.8rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{formatCurrency(it.purchase_price || 0)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Warehouse Dropdown */}
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '750', color: '#1E293B', marginBottom: '0.4rem' }}>Select Target Warehouse / Godown *</label>
+                            <select 
+                                value={selectedReceiveWarehouse}
+                                onChange={(e) => setSelectedReceiveWarehouse(e.target.value)}
+                                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.9rem', color: '#0F172A' }}
+                            >
+                                {warehousesList.map((wh, idx) => {
+                                    const wName = wh.name || wh.warehouse_name || `Warehouse ${idx + 1}`;
+                                    return <option key={idx} value={wName}>{wName}</option>;
+                                })}
+                            </select>
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setIsReceiveModalOpen(false)} style={{ padding: '0.7rem 1.25rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '700', cursor: 'pointer', color: '#475569' }}>Cancel</button>
+                            <button onClick={handleConfirmReceiveGoods} style={{ padding: '0.7rem 1.4rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <CheckCircle2 size={16} /> Submit & Receive Goods
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
