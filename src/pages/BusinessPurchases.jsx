@@ -57,6 +57,7 @@ const BusinessPurchases = () => {
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [pendingReceiveBill, setPendingReceiveBill] = useState(null);
     const [selectedReceiveWarehouse, setSelectedReceiveWarehouse] = useState('Main Godown');
+    const [receiveQuantities, setReceiveQuantities] = useState({});
 
     // Supplier Confirmation View & Chat states
     const [isSupplierViewModalOpen, setIsSupplierViewModalOpen] = useState(false);
@@ -1058,47 +1059,6 @@ const BusinessPurchases = () => {
                 </div>
             )}
             </div>
-            {/* Goods Receiving Partial/Complete Modal */}
-            {isReceiveModalOpen && selectedDoc && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Verify Goods Received</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Order: {selectedDoc.purchase_number}</p>
-                            </div>
-                            <button onClick={() => setIsReceiveModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
-                        </div>
-
-                        <form onSubmit={handleCommitGoodsReceived} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            {selectedDoc.items.map((item, idx) => (
-                                <div key={idx} style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                                    <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', marginBottom: '0.4rem' }}>{item.product_name}</p>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748B', marginBottom: '0.75rem' }}>
-                                        <span>Ordered: {item.quantity}</span>
-                                        <span>Already Got: {item.received_quantity}</span>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.4rem' }}>Receive New Quantity</label>
-                                        <input 
-                                            required 
-                                            type="number" 
-                                            max={item.quantity - item.received_quantity}
-                                            value={receiveQuantities[idx] || 0} 
-                                            onChange={(e) => setReceiveQuantities({ ...receiveQuantities, [idx]: parseInt(e.target.value) || 0 })} 
-                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', fontWeight: '700' }} 
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
-                                Commit Goods & Update Stocks
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
 
             {/* Structured Goods Receipt Confirmation Modal */}
             {pendingReceiveBill && (
