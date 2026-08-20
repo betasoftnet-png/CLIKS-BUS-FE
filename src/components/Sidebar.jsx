@@ -695,14 +695,18 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             height: '6px',
                             backgroundColor: '#E2E8F0',
                             borderRadius: '9999px',
+                            WebkitBorderRadius: '9999px',
                             overflow: 'hidden',
-                            position: 'relative'
+                            position: 'relative',
+                            WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                            transform: 'translateZ(0)'
                         }}>
                             <div style={{
                                 width: '0%',
                                 height: '100%',
                                 backgroundColor: '#2563EB',
                                 borderRadius: '9999px',
+                                WebkitBorderRadius: '9999px',
                                 transition: 'width 0.3s ease-in-out'
                             }} />
                         </div>
