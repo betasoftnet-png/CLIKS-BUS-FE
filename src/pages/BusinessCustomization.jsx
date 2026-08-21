@@ -162,6 +162,21 @@ const BusinessCustomization = () => {
                         ...parsedLocal
                     };
                     
+                    // Priority for signatureUrl & logoUrl: check dbSettings first, then parsedLocal
+                    if (dbSettings.signatureUrl !== undefined) {
+                        merged.signatureUrl = dbSettings.signatureUrl;
+                    } else if (dbSettings.settings && dbSettings.settings.signatureUrl !== undefined) {
+                        merged.signatureUrl = dbSettings.settings.signatureUrl;
+                    }
+
+                    if (dbSettings.logoUrl !== undefined) {
+                        merged.logoUrl = dbSettings.logoUrl;
+                    } else if (dbSettings.settings && dbSettings.settings.logoUrl !== undefined) {
+                        merged.logoUrl = dbSettings.settings.logoUrl;
+                    } else if (userProfile.avatar_url) {
+                        merged.logoUrl = userProfile.avatar_url;
+                    }
+
                     // Fallback empty profile settings to registered account details
                     if (!merged.companyName || merged.companyName === 'My Primary Firm') {
                         merged.companyName = userProfile.business_name || userProfile.name || 'My Primary Firm';
@@ -265,10 +280,39 @@ const BusinessCustomization = () => {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = (evt) => {
-                setConfig(prev => ({ ...prev, logoUrl: evt.target.result }));
+            reader.onload = async (evt) => {
+                const logoDataUrl = evt.target.result;
+                setConfig(prev => {
+                    const updated = { ...prev, logoUrl: logoDataUrl };
+                    localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+                    localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+                    window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                    return updated;
+                });
+                try {
+                    await settingsService.updateSettings({ logoUrl: logoDataUrl });
+                    await profileService.updateProfile({ avatar_data: logoDataUrl, avatar_name: file.name });
+                } catch (err) {
+                    console.warn('[Logo Persistence] Failed to sync logo to cloud backend:', err);
+                }
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveLogo = async (e) => {
+        if (e) e.stopPropagation();
+        setConfig(prev => {
+            const updated = { ...prev, logoUrl: null };
+            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            return updated;
+        });
+        try {
+            await settingsService.updateSettings({ logoUrl: null });
+        } catch (err) {
+            console.warn('[Logo Persistence] Failed to remove logo from backend:', err);
         }
     };
 
@@ -284,10 +328,38 @@ const BusinessCustomization = () => {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = (evt) => {
-                setConfig(prev => ({ ...prev, signatureUrl: evt.target.result }));
+            reader.onload = async (evt) => {
+                const sigDataUrl = evt.target.result;
+                setConfig(prev => {
+                    const updated = { ...prev, signatureUrl: sigDataUrl };
+                    localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+                    localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+                    window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                    return updated;
+                });
+                try {
+                    await settingsService.updateSettings({ signatureUrl: sigDataUrl });
+                } catch (err) {
+                    console.warn('[Signature Persistence] Failed to sync signature to cloud backend:', err);
+                }
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveSignature = async (e) => {
+        if (e) e.stopPropagation();
+        setConfig(prev => {
+            const updated = { ...prev, signatureUrl: null };
+            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            return updated;
+        });
+        try {
+            await settingsService.updateSettings({ signatureUrl: null });
+        } catch (err) {
+            console.warn('[Signature Persistence] Failed to remove signature on backend:', err);
         }
     };
 
@@ -363,7 +435,7 @@ const BusinessCustomization = () => {
                             {config.logoUrl && (
                                 <button 
                                     type="button" 
-                                    onClick={(e) => { e.stopPropagation(); setConfig(prev => ({ ...prev, logoUrl: null })); }}
+                                    onClick={handleRemoveLogo}
                                     style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer' }}
                                 >
                                     Remove Logo
@@ -518,7 +590,7 @@ const BusinessCustomization = () => {
                                 {config.signatureUrl && (
                                     <button 
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); setConfig(prev => ({ ...prev, signatureUrl: null })); }}
+                                        onClick={handleRemoveSignature}
                                         style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', marginTop: '0.4rem' }}
                                     >
                                         Remove Signature
