@@ -11,7 +11,7 @@ import {
 
 import '../App.css';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context';
+import { useAuth, useLanguage } from '../context';
 import { apiClient } from '../api/client';
 import logoPng from '../assets/cliks6.png'; // Final branding
 import accessKitPng from '../assets/ACCESS_KIT.png';
@@ -139,8 +139,6 @@ const iconMap = {
     Split,
     Wallet
 };
-
-import { useAuth, useLanguage } from '../context';
 
 const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel }) => {
     const { logout, user, selectedPlan } = useAuth();
