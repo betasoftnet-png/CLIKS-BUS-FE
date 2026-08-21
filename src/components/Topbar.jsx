@@ -311,8 +311,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
         location.pathname.includes('/sales-portal/');
 
     const handleNavigation = (path) => {
-        const isSocialOrPayment = path.startsWith('/social/') || path.startsWith('/payments/');
-        if (selectedPlan === 'Free Plan' && path !== '/dashboard' && !isSocialOrPayment) {
+        if (selectedPlan === 'Free Plan' && path !== '/dashboard') {
             alert('You are on the Free Plan! Please subscribe to unlock full access to this feature.');
             navigate('/subscription');
         } else {

@@ -402,11 +402,10 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         setActiveItem(label);
         
         if (path) {
-            // Intercept clicks if the user is on the Free Plan (allow essential pages, social, and payments)
+            // Intercept clicks if the user is on the Free Plan (allow essential pages)
             const allowedFreePlanPages = ['Dashboard', 'Settings', 'Subscription', 'Help & Support', 'Business Settings', 'Profile'];
-            const isSocialOrPayment = path.startsWith('/social/') || path.startsWith('/payments/');
             
-            if (selectedPlan === 'Free Plan' && !allowedFreePlanPages.includes(label) && !isSocialOrPayment) {
+            if (selectedPlan === 'Free Plan' && !allowedFreePlanPages.includes(label)) {
                 alert('You are on the Free Plan! Please subscribe to unlock full access to this feature.');
                 navigate('/subscription');
             } else {
@@ -721,8 +720,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
  
                 {/* Unified Subscription Conversion Card */}
                 {(!isAdminMode && !isSalesAgentMode) && (() => {
-                    const displayPlan = (isSocialMode || isFinanceMode) ? 'Elite Suite' : selectedPlan;
-                    const displayDays = (isSocialMode || isFinanceMode) ? 365 : planDaysRemaining;
+                    const displayPlan = selectedPlan;
+                    const displayDays = planDaysRemaining;
 
                     const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(displayPlan);
                     const totalDays = isAnnual ? 365 : 30;
