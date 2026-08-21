@@ -50,7 +50,8 @@ import {
     settingsService,
     returnsService,
     purchasesService,
-    suppliersService
+    suppliersService,
+    warehouseService
 } from '../services';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
@@ -228,6 +229,24 @@ const BusinessBilling = () => {
         onError: (err) => {
             console.error('Failed to create return:', err);
             alert('Could not record return transaction.');
+        }
+    });
+
+    const [moveWarehouseModalReturn, setMoveWarehouseModalReturn] = useState(null);
+    const [selectedWarehouseForMove, setSelectedWarehouseForMove] = useState('');
+
+    const assignWarehouseMutation = useMutation({
+        mutationFn: ({ returnId, warehouseName }) => returnsService.updateReturn(returnId, { warehouse_id: warehouseName, warehouse_name: warehouseName, inspection_status: 'Assigned to Warehouse' }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['returns'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            alert('Returned items successfully assigned & moved to warehouse stock!');
+            setMoveWarehouseModalReturn(null);
+            setSelectedWarehouseForMove('');
+        },
+        onError: (err) => {
+            alert('Failed to assign warehouse: ' + (err.message || 'Error occurred'));
         }
     });
 
@@ -736,6 +755,26 @@ const BusinessBilling = () => {
             });
         }
     }, [invoices, purchasesList, newReturnData.client_name, returnFormType]);
+
+    const { data: rawWarehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
+        queryFn: () => warehouseService.getWarehouses().catch(() => []),
+        refetchOnWindowFocus: false
+    });
+    const dbWarehousesList = React.useMemo(() => {
+        let list = [];
+        if (Array.isArray(rawWarehouses)) list = rawWarehouses;
+        else if (rawWarehouses?.warehouses && Array.isArray(rawWarehouses.warehouses)) list = rawWarehouses.warehouses;
+        else if (rawWarehouses?.data && Array.isArray(rawWarehouses.data)) list = rawWarehouses.data;
+        
+        if (list.length === 0) {
+            return [
+                { id: 'Main Godown', name: 'Main Godown', code: 'MAIN-01' },
+                { id: 'North Central Hub', name: 'North Central Hub', code: 'NORTH-02' }
+            ];
+        }
+        return list;
+    }, [rawWarehouses]);
 
     React.useEffect(() => {
         const email = formData.client_email ? String(formData.client_email).trim() : '';
@@ -1527,9 +1566,40 @@ const BusinessBilling = () => {
                                             <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{ret.created_at ? new Date(ret.created_at).toLocaleDateString() : 'Today'}</td>
                                             <td style={{ padding: '0.75rem 1.25rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(ret.total_amount || ret.amount || 0)}</td>
                                             <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: ret.status === 'Approved' ? '#D1FAE5' : '#FEF3C7', color: ret.status === 'Approved' ? '#065F46' : '#92400E' }}>
-                                                    {(ret.status || 'Processed').toUpperCase()}
-                                                </span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: ret.status === 'Approved' ? '#D1FAE5' : '#FEF3C7', color: ret.status === 'Approved' ? '#065F46' : '#92400E' }}>
+                                                        {(ret.status || 'Processed').toUpperCase()}
+                                                    </span>
+                                                    {ret.warehouse_id || ret.warehouse_name ? (
+                                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: '#047857', fontWeight: '750', background: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
+                                                            <Warehouse size={11} />
+                                                            <span>Assigned: {ret.warehouse_name || ret.warehouse_id}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setMoveWarehouseModalReturn(ret);
+                                                                setSelectedWarehouseForMove('');
+                                                            }}
+                                                            style={{
+                                                                background: 'none',
+                                                                border: 'none',
+                                                                padding: 0,
+                                                                color: '#2563EB',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '800',
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '3px',
+                                                                textDecoration: 'underline'
+                                                            }}
+                                                        >
+                                                            <Warehouse size={11} /> Move to Warehouse
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
                                                 <button onClick={() => alert(`Sales Return #${ret.return_number || ret.id}\nClient: ${ret.client_name || 'Customer'}\nAmount: ₹${ret.total_amount || 0}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>View Details</button>
@@ -3076,6 +3146,75 @@ const BusinessBilling = () => {
                             >
                                 {createReturnMutation.isPending ? 'Saving...' : 'Submit & Save Record'}
                             </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* MOVE TO WAREHOUSE MODAL POPUP */}
+            {moveWarehouseModalReturn && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '20px', padding: '1.5rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+                                    <Warehouse size={20} />
+                                </div>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>Move to Warehouse</h4>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>
+                                        {moveWarehouseModalReturn.return_number || `RET-${moveWarehouseModalReturn.id}`}
+                                    </span>
+                                </div>
+                            </div>
+                            <button onClick={() => setMoveWarehouseModalReturn(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
+                        </div>
+
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!selectedWarehouseForMove) {
+                                alert('Please select a warehouse');
+                                return;
+                            }
+                            assignWarehouseMutation.mutate({
+                                returnId: moveWarehouseModalReturn.id,
+                                warehouseName: selectedWarehouseForMove
+                            });
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '6px', textTransform: 'uppercase' }}>
+                                    Select Destination Warehouse *
+                                </label>
+                                <select
+                                    required
+                                    value={selectedWarehouseForMove}
+                                    onChange={(e) => setSelectedWarehouseForMove(e.target.value)}
+                                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', cursor: 'pointer' }}
+                                >
+                                    <option value="">-- Select Registered Warehouse --</option>
+                                    {dbWarehousesList.map((wh, idx) => (
+                                        <option key={idx} value={wh.name || wh.id}>
+                                            {wh.name} {wh.code ? `(${wh.code})` : ''} {wh.location ? `— ${wh.location}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setMoveWarehouseModalReturn(null)}
+                                    style={{ padding: '0.6rem 1.1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#475569', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={assignWarehouseMutation.isPending}
+                                    style={{ padding: '0.6rem 1.4rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', opacity: assignWarehouseMutation.isPending ? 0.7 : 1 }}
+                                >
+                                    {assignWarehouseMutation.isPending ? 'Submitting...' : 'Confirm Move'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

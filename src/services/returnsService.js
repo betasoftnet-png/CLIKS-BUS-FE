@@ -68,7 +68,24 @@ export const returnsService = {
         }
     },
 
-    updateReturn: (id, data) => apiClient.put(`/returns/${id}`, data).then(res => res.data.data || res.data),
+    updateReturn: async (id, data) => {
+        try {
+            const res = await apiClient.put(`/returns/${id}`, data);
+            return res.data?.data || res.data;
+        } catch (error) {
+            console.warn('[ReturnsService] Local fallback updateReturn:', error.message);
+            const local = getLocalReturns();
+            const safeLocal = Array.isArray(local) ? local : [];
+            const updated = safeLocal.map(r => {
+                if (r.id?.toString() === id?.toString()) {
+                    return { ...r, ...data };
+                }
+                return r;
+            });
+            saveLocalReturns(updated);
+            return { id, ...data };
+        }
+    },
 
     deleteReturn: (id) => apiClient.delete(`/returns/${id}`).then(res => res.data.data || res.data),
 
