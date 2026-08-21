@@ -6,9 +6,12 @@ import { settingsService } from '../services';
 import { Toggle } from '../components/ui/toggle';
 import { Bell, Shield, Globe, Save, Sliders } from 'lucide-react';
 
+import { useLanguage } from '../context';
+
 const Settings = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, setLanguage } = useLanguage();
     const [localSettings, setLocalSettings] = useState({
         notifications: true,
         emailDigest: false,
@@ -64,6 +67,7 @@ const Settings = () => {
     const handleLanguageChange = (val) => {
         setLocalSettings(prev => {
             const updated = { ...prev, language: val };
+            setLanguage(val);
             localStorage.setItem('cliks_language', val);
             document.documentElement.setAttribute('lang', val);
             localStorage.setItem('cliks_business_config', JSON.stringify(updated));

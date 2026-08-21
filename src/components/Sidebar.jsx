@@ -97,27 +97,21 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             primaryColor = '#FFD700'; // Keep the icon vibrant gold when active
             darkTextColor = '#D97706'; // Warm golden amber for subheader labels
         } else if (isCa) {
-            backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient
-            primaryColor = '#D4AF37'; // Keep the icon vibrant gold when active
-            activeText = '#D4AF37'; // Pure gold text when active as requested
-            darkTextColor = '#B8860B'; // Warm golden amber for subheader labels
-        } else {
-            backgroundStyle = '#1B6B3A';
-        }
+        primaryColor = '#B8860B';
+        activeBg = 'linear-gradient(135deg, #D4AF37 0%, #AA771C 100%)';
+        darkTextColor = '#B8860B';
+        if (isActive) backgroundStyle = activeBg;
     }
 
     if (hasChildren) {
         return (
-            <div style={{ marginBottom: '6px' }}>
+            <div className="sidebar-group" style={{ marginBottom: '6px' }}>
                 <button
-                    className={`sidebar-item`}
+                    className={`sidebar-item has-children ${isOpen ? 'open' : ''} ${isActive ? 'active' : ''}`}
                     onClick={() => toggleMenu(item.label)}
                     style={{
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        background: (isOpen || isChildActive) ? activeBg : 'transparent',
-                        boxShadow: isChildActive ? `inset 4px 0 0 ${primaryColor}` : 'none',
-                        transition: 'all 0.2s ease'
+                        background: backgroundStyle,
+                        color: activeText
                     }}
                 >
                     <div className="flex items-center gap-3">
@@ -126,46 +120,31 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                         ) : item.label === 'HR' ? (
                             <img src={hrIconPng} alt="HR" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block' }} />
                         ) : (
-                            <IconComp size={20} style={{ color: primaryColor }} />
+                            <IconComp size={20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
                         )}
-                        <span className="sidebar-label" style={{ fontWeight: '750', color: darkTextColor }}>{item.label}</span>
+                        <span className="sidebar-label" style={{ fontWeight: '750', color: darkTextColor }}>{displayLabel}</span>
                     </div>
-                    <motion.div
-                        animate={{ rotate: isOpen ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{ display: 'flex', alignItems: 'center', color: primaryColor, opacity: 0.7 }}
-                    >
-                        <ChevronRight size={16} />
-                    </motion.div>
+                    {isOpen ? <ChevronDown size={16} style={{ color: darkTextColor }} /> : <ChevronRight size={16} style={{ color: darkTextColor }} />}
                 </button>
 
-                <AnimatePresence initial={false}>
-                    {isOpen && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: 'easeInOut' }}
-                            style={{ overflow: 'hidden' }}
-                        >
-                            <div style={{ borderLeft: `2px solid ${activeBg}`, marginLeft: '1.5rem', marginTop: '6px', marginBottom: '6px', paddingLeft: '2px' }}>
-                                {item.children.map((child) => (
-                                    <MenuItem
-                                        key={child.label}
-                                        item={child}
-                                        isChild={true}
-                                        activeItem={activeItem}
-                                        openMenus={openMenus}
-                                        toggleMenu={toggleMenu}
-                                        handleItemClick={handleItemClick}
-                                        isAdmin={isAdmin}
-                                        isSales={isSales}
-                                    />
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {isOpen && (
+                    <div className="sidebar-submenu pl-4" style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                        {item.children.map((child, idx) => (
+                            <MenuItem
+                                key={idx}
+                                item={child}
+                                isChild={true}
+                                activeItem={activeItem}
+                                openMenus={openMenus}
+                                toggleMenu={toggleMenu}
+                                handleItemClick={handleItemClick}
+                                isAdmin={isAdmin}
+                                isSales={isSales}
+                                isSupport={isSupport}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         );
     }
@@ -192,7 +171,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                 ) : (
                     <IconComp size={isChild ? 18 : 20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
                 )}
-                <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{item.label}</span>
+                <span className="sidebar-label" style={{ fontWeight: isActive ? '800' : 'inherit' }}>{displayLabel}</span>
             </div>
         </button>
     );

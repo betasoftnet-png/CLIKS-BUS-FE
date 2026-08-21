@@ -11,7 +11,7 @@ import '../App.css';
 import { Toggle } from '../components/ui/toggle';
 import { settingsService, profileService } from '../services';
 import { customPrompt } from '../utils/customConfirm';
-import { useCurrency } from '../context';
+import { useCurrency, useLanguage } from '../context';
 
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
@@ -19,6 +19,7 @@ const BusinessCustomization = () => {
     const navigate = useNavigate();
     const [isSaving, setIsSaving] = useState(false);
     const { currency } = useCurrency();
+    const { t, language, setLanguage } = useLanguage();
     const [activeTab, setActiveTab] = useState('profile');
 
     const logoInputRef = React.useRef(null);
@@ -215,6 +216,7 @@ const BusinessCustomization = () => {
             return;
         }
         if (key === 'language') {
+            setLanguage(val);
             localStorage.setItem('cliks_language', val);
             document.documentElement.setAttribute('lang', val);
         }
@@ -290,16 +292,16 @@ const BusinessCustomization = () => {
     };
 
     const tabs = [
-        { id: 'profile', label: 'Org Profile', icon: Building2, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'general', label: 'General', icon: Sliders, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'transaction', label: 'Transaction', icon: FileText, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'print', label: 'Print', icon: Printer, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'gst', label: 'Taxes & GST', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'party', label: 'Contacts', icon: Users, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'accounting', label: 'Accounting', icon: Calculator, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'payment', label: 'Payment', icon: Coins, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'finPro', label: 'FIN-PRO', icon: Zap, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
-        { id: 'betaClub', label: 'Beta Club', icon: Crown, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' }
+        { id: 'profile', label: t('tabProfile', 'Org Profile'), icon: Building2, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'general', label: t('tabGeneral', 'General'), icon: Sliders, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'transaction', label: t('tabTransaction', 'Transaction'), icon: FileText, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'print', label: t('tabPrint', 'Print'), icon: Printer, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'gst', label: t('tabGst', 'Taxes & GST'), icon: ShieldCheck, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'party', label: t('tabParty', 'Contacts'), icon: Users, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'accounting', label: t('tabAccounting', 'Accounting'), icon: Calculator, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'payment', label: t('tabPayment', 'Payment'), icon: Coins, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadow: 'rgba(59, 130, 246, 0.2)' },
+        { id: 'finPro', label: t('tabFinPro', 'FIN-PRO'), icon: Zap, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadow: 'rgba(245, 158, 11, 0.2)' },
+        { id: 'betaClub', label: t('tabBetaClub', 'Beta Club'), icon: Crown, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadow: 'rgba(139, 92, 246, 0.2)' }
     ];
 
     const renderContent = () => {
@@ -750,9 +752,9 @@ const BusinessCustomization = () => {
             {/* Core & Features Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
                 <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <CustomizationCard title="Application Core" icon={Sliders}>
+                    <CustomizationCard title={t('applicationCore', 'Application Core')} icon={Sliders}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <PremiumToggleItem label="Security Passcode" desc="Validate auth tokens before destructive operations." active={config.passcode} onToggle={() => handleToggle('passcode')} />
+                            <PremiumToggleItem label={t('securityPasscode', 'Security Passcode')} desc={t('securityPasscodeDesc', 'Validate auth tokens before destructive operations.')} active={config.passcode} onToggle={() => handleToggle('passcode')} />
                             {config.passcode && (
                                 <div style={{ marginLeft: '2.75rem', padding: '0.75rem 1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Security PIN:</label>
@@ -767,14 +769,14 @@ const BusinessCustomization = () => {
                                 </div>
                             )}
                             <Divider />
-                            <PremiumToggleItem label="Prevent Negative Inventory" desc="Restrict invoicing items when stock level <= 0." active={config.negativeStock} onToggle={() => handleToggle('negativeStock')} />
+                            <PremiumToggleItem label={t('preventNegativeInventory', 'Prevent Negative Inventory')} desc={t('preventNegativeInventoryDesc', 'Restrict invoicing items when stock level <= 0.')} active={config.negativeStock} onToggle={() => handleToggle('negativeStock')} />
                             <Divider />
-                            <PremiumToggleItem label="Lock Contact Generation" desc="Prevent new customer/supplier records within standard transaction forms." active={config.blockParties} onToggle={() => handleToggle('blockParties')} />
+                            <PremiumToggleItem label={t('lockContactGeneration', 'Lock Contact Generation')} desc={t('lockContactGenerationDesc', 'Prevent new customer/supplier records within standard transaction forms.')} active={config.blockParties} onToggle={() => handleToggle('blockParties')} />
                         </div>
                     </CustomizationCard>
-                    <CustomizationCard title="Operational Features" icon={Truck}>
+                    <CustomizationCard title={t('operationalFeatures', 'Operational Features')} icon={Truck}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <PremiumToggleItem label="Activate Delivery Challans" active={config.deliveryChallan} onToggle={() => handleToggle('deliveryChallan')} />
+                            <PremiumToggleItem label={t('activateDeliveryChallans', 'Activate Delivery Challans')} active={config.deliveryChallan} onToggle={() => handleToggle('deliveryChallan')} />
                             {config.deliveryChallan && (
                                 <div style={{ marginLeft: '2.75rem', padding: '1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', gap: '1rem' }}>
                                     <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
@@ -783,7 +785,7 @@ const BusinessCustomization = () => {
                                             checked={config.reverseGoodsLogic} 
                                             onChange={() => handleToggle('reverseGoodsLogic')} 
                                             style={{ accentColor: '#1B6B3A' }} 
-                                        /> Reverse Goods Logic
+                                        /> {t('reverseGoodsLogic', 'Reverse Goods Logic')}
                                     </label>
                                     <label style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
                                         <input 
@@ -791,7 +793,7 @@ const BusinessCustomization = () => {
                                             checked={config.displayAmountChallan} 
                                             onChange={() => handleToggle('displayAmountChallan')} 
                                             style={{ accentColor: '#1B6B3A' }} 
-                                        /> Display Amount
+                                        /> {t('displayAmount', 'Display Amount')}
                                     </label>
                                 </div>
                             )}
@@ -799,13 +801,13 @@ const BusinessCustomization = () => {
                     </CustomizationCard>
                 </div>
                 <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <CustomizationCard title="Warehousing" icon={ArrowRightLeft}>
-                        <PremiumToggleItem label="Godown Links" active={config.godown} onToggle={() => handleToggle('godown')} />
+                    <CustomizationCard title={t('warehousing', 'Warehousing')} icon={ArrowRightLeft}>
+                        <PremiumToggleItem label={t('godownLinks', 'Godown Links')} active={config.godown} onToggle={() => handleToggle('godown')} />
                     </CustomizationCard>
-                    <CustomizationCard title="Integrity" icon={Database}>
+                    <CustomizationCard title={t('integrity', 'Integrity & Security')} icon={Database}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <PremiumToggleItem label="Auto Backup" active={config.autoBackup} onToggle={() => handleToggle('autoBackup')} />
-                            <PremiumToggleItem label="Audit Trail" active={config.auditTrail} onToggle={() => handleToggle('auditTrail')} />
+                            <PremiumToggleItem label={t('autoBackup', 'Auto Backup')} active={config.autoBackup} onToggle={() => handleToggle('autoBackup')} />
+                            <PremiumToggleItem label={t('auditTrail', 'Audit Trail')} active={config.auditTrail} onToggle={() => handleToggle('auditTrail')} />
                         </div>
                     </CustomizationCard>
                 </div>
@@ -813,19 +815,19 @@ const BusinessCustomization = () => {
 
             {/* System Preferences & Settings Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-                <CustomizationCard title="Preferences" icon={Globe}>
+                <CustomizationCard title={t('preferences', 'Preferences')} icon={Globe}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <PremiumToggleItem 
-                            label="Dark Mode" 
-                            desc="Use a dark theme for the application interface." 
+                            label={t('darkMode', 'Dark Mode')} 
+                            desc={t('darkModeDesc', 'Use a dark theme for the application interface.')} 
                             active={config.darkMode} 
                             onToggle={() => handleToggle('darkMode')} 
                         />
                         <Divider />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#334155' }}>Language</h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>System localization language</p>
+                                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#334155' }}>{t('language', 'Language')}</h4>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>{t('systemLanguageDesc', 'System localization language')}</p>
                             </div>
                             <select 
                                 value={config.language || 'EN-US'} 
@@ -843,17 +845,17 @@ const BusinessCustomization = () => {
                     </div>
                 </CustomizationCard>
 
-                <CustomizationCard title="Notifications" icon={Bell}>
+                <CustomizationCard title={t('notifications', 'Notifications')} icon={Bell}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <PremiumToggleItem 
-                            label="Push Notifications" 
+                            label={t('pushNotifications', 'Push Notifications')} 
                             desc="Receive real-time alerts for updates and activities." 
                             active={config.notifications} 
                             onToggle={() => handleToggle('notifications')} 
                         />
                         <Divider />
                         <PremiumToggleItem 
-                            label="Email Digest" 
+                            label={t('emailDigest', 'Email Digest')} 
                             desc="Receive a weekly summary of your financial activity." 
                             active={config.emailDigest} 
                             onToggle={() => handleToggle('emailDigest')} 
@@ -861,24 +863,24 @@ const BusinessCustomization = () => {
                     </div>
                 </CustomizationCard>
 
-                <CustomizationCard title="Privacy & Security" icon={Shield}>
+                <CustomizationCard title={t('privacySecurity', 'Privacy & Security')} icon={Shield}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <PremiumToggleItem 
-                            label="Public Profile" 
+                            label={t('publicProfile', 'Public Profile')} 
                             desc="Allow other users on the platform to find you." 
                             active={config.publicProfile} 
                             onToggle={() => handleToggle('publicProfile')} 
                         />
                         <Divider />
                         <PremiumToggleItem 
-                            label="Two-Factor Authentication" 
+                            label={t('twoFactor', 'Two-Factor Authentication')} 
                             desc="Add an extra layer of security to your account." 
                             active={config.twoFactor} 
                             onToggle={() => handleToggle('twoFactor')} 
                         />
                         <Divider />
                         <PremiumToggleItem 
-                            label="Data & Analytics" 
+                            label={t('dataSharing', 'Data & Analytics')} 
                             desc="Allow usage data to be collected to improve experience." 
                             active={config.dataSharing} 
                             onToggle={() => handleToggle('dataSharing')} 
@@ -1175,13 +1177,13 @@ const BusinessCustomization = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
                     <button onClick={() => navigate(-1)} style={{ background: 'transparent', border: 'none', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', marginBottom: '0.5rem', padding: 0 }}>
-                        <ArrowLeft size={16} /> BACK
+                        <ArrowLeft size={16} /> {t('back', 'BACK')}
                     </button>
-                    <h1 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#111827', letterSpacing: '-0.02em', margin: 0 }}>Advanced Engine Configuration</h1>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#111827', letterSpacing: '-0.02em', margin: 0 }}>{t('advancedEngineConfig', 'Advanced Engine Configuration')}</h1>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', marginTop: '0.2rem' }}>Manage dynamic deployment switches and high-level metadata configuration.</p>
                 </div>
                 <button onClick={handleSave} disabled={isSaving} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)', opacity: isSaving ? 0.7 : 1, fontSize: '0.85rem' }}>
-                    <Save size={18} /> {isSaving ? 'Saving...' : 'DEPLOY CONFIG'}
+                    <Save size={18} /> {isSaving ? 'Saving...' : t('deployConfig', 'DEPLOY CONFIG')}
                 </button>
             </div>
 

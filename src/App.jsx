@@ -375,13 +375,15 @@ function AppContent() {
   );
 }
 
+import { LanguageProvider } from './context';
+
 function App() {
   return (
-    <>
+    <LanguageProvider>
       <GlobalAlert />
       <GlobalConfirm />
       <AppContent />
-    </>
+    </LanguageProvider>
   );
 }
 
