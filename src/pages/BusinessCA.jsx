@@ -213,9 +213,11 @@ export default function BusinessCA() {
     const [newRequestTitle, setNewRequestTitle] = useState('');
     const [newRequestDesc, setNewRequestDesc] = useState('');
     const [newRequestDueDate, setNewRequestDueDate] = useState('');
+    const [newRequestPriority, setNewRequestPriority] = useState('Medium');
     const [newRequestDocType, setNewRequestDocType] = useState('Form 16');
     const [isCustomDocType, setIsCustomDocType] = useState(false);
     const [customDocTypeInput, setCustomDocTypeInput] = useState('');
+    const [selectedRequestForReview, setSelectedRequestForReview] = useState(null);
 
     const { data: practiceTasks = [], refetch: refetchTasks } = useQuery({
         queryKey: ['practiceTasks'],
