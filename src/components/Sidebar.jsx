@@ -51,6 +51,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/auth-context';
+import { useLanguage } from '../context/LanguageContext';
 import '../App.css';
 import logoPng from '../assets/cliks6.png';
 import inventoryIconPng from '../assets/image.png';
@@ -93,15 +94,21 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
         } else if (isSupport) {
             backgroundStyle = 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)';
         } else if (isBetaClub) {
-            backgroundStyle = '#FFFDF0'; // Soft golden background instead of solid dark gradient
-            primaryColor = '#FFD700'; // Keep the icon vibrant gold when active
-            darkTextColor = '#D97706'; // Warm golden amber for subheader labels
+            backgroundStyle = '#FFFDF0';
+            primaryColor = '#FFD700';
+            darkTextColor = '#D97706';
         } else if (isCa) {
-        primaryColor = '#B8860B';
-        activeBg = 'linear-gradient(135deg, #D4AF37 0%, #AA771C 100%)';
-        darkTextColor = '#B8860B';
-        if (isActive) backgroundStyle = activeBg;
+            primaryColor = '#B8860B';
+            activeBg = 'linear-gradient(135deg, #D4AF37 0%, #AA771C 100%)';
+            darkTextColor = '#B8860B';
+            backgroundStyle = activeBg;
+        } else {
+            backgroundStyle = '#1B6B3A';
+        }
     }
+
+    const { t } = useLanguage();
+    const displayLabel = (t && typeof t === 'function') ? t(item.label, item.label) : item.label;
 
     if (hasChildren) {
         return (
