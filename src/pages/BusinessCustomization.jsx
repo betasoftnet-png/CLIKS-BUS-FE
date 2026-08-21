@@ -110,7 +110,7 @@ const BusinessCustomization = () => {
 
         // SYSTEM PREFERENCES (INTEGRATED FROM SETTINGS PAGE)
         darkMode: false,
-        language: 'EN-US',
+        language: localStorage.getItem('cliks_language') || 'EN-US',
         notifications: true,
         emailDigest: false,
         publicProfile: true,

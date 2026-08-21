@@ -16,6 +16,7 @@ const Settings = () => {
         notifications: true,
         emailDigest: false,
         darkMode: false,
+        language: localStorage.getItem('cliks_language') || 'EN-US',
         twoFactor: true,
         dataSharing: false
     });
