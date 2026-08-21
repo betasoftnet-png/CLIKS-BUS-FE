@@ -207,6 +207,8 @@ const BusinessBilling = () => {
         return_type: 'sales'
     });
 
+    const [selectedReturnItems, setSelectedReturnItems] = useState([]);
+
     // Fetch Returns & Claims
     const { data: allReturns = [], isLoading: isReturnsLoading } = useQuery({
         queryKey: ['returns'],
@@ -220,6 +222,7 @@ const BusinessBilling = () => {
             queryClient.invalidateQueries({ queryKey: ['returns'] });
             alert('Return / Claim record created successfully!');
             setIsReturnModalOpen(false);
+            setSelectedReturnItems([]);
             setNewReturnData({ client_name: '', invoice_number: '', total_amount: '', reason: 'Defective / Customer Return', return_type: 'sales' });
         },
         onError: (err) => {
@@ -2819,11 +2822,22 @@ const BusinessBilling = () => {
                         </div>
                         <form onSubmit={(e) => {
                             e.preventDefault();
+                            const itemsToReturn = (selectedReturnItems || []).filter(it => it.selected).map(it => ({
+                                product_id: it.product_id,
+                                product_name: it.product_name,
+                                return_quantity: parseFloat(it.return_quantity) || 1,
+                                quantity: parseFloat(it.return_quantity) || 1,
+                                price: parseFloat(it.price) || 0,
+                                unit: it.unit,
+                                total: (parseFloat(it.price) || 0) * (parseFloat(it.return_quantity) || 1)
+                            }));
+
                             createReturnMutation.mutate({
                                 ...newReturnData,
                                 return_type: returnFormType,
                                 amount: parseFloat(newReturnData.total_amount) || 0,
-                                total_amount: parseFloat(newReturnData.total_amount) || 0
+                                total_amount: parseFloat(newReturnData.total_amount) || 0,
+                                items: itemsToReturn
                             });
                         }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                             <div>
@@ -2835,6 +2849,7 @@ const BusinessBilling = () => {
                                     value={newReturnData.client_name} 
                                     onChange={(e) => {
                                         const chosenName = e.target.value;
+                                        setSelectedReturnItems([]);
                                         setNewReturnData(prev => ({ 
                                             ...prev, 
                                             client_name: chosenName,
@@ -2886,12 +2901,34 @@ const BusinessBilling = () => {
                                         onChange={(e) => {
                                             const invNum = e.target.value;
                                             const matchInv = availableInvoicesForReturn.find(i => (i.invoice_number || i.purchase_number || i.id?.toString()) === invNum);
-                                            const invAmt = matchInv ? (matchInv.total_amount || matchInv.grand_total || matchInv.amount || '') : newReturnData.total_amount;
-                                            setNewReturnData(prev => ({ 
-                                                ...prev, 
-                                                invoice_number: invNum,
-                                                total_amount: invAmt !== undefined && invAmt !== null && invAmt !== '' ? invAmt.toString() : prev.total_amount
-                                            }));
+                                            if (matchInv) {
+                                                const rawItems = typeof matchInv.items === 'string' ? JSON.parse(matchInv.items || '[]') : (matchInv.items || []);
+                                                const initialReturnItems = rawItems.map((it, idx) => {
+                                                    const origQty = parseFloat(it.quantity || it.qty || 1);
+                                                    const prc = parseFloat(it.price || it.unit_price || it.selling_price || 0);
+                                                    return {
+                                                        id: it.id || idx,
+                                                        product_id: it.product_id || it.id || null,
+                                                        product_name: it.product_name || it.name || it.description || 'Product',
+                                                        unit: it.unit || it.primary_unit || 'pcs',
+                                                        invoiced_quantity: origQty,
+                                                        return_quantity: origQty,
+                                                        price: prc,
+                                                        selected: true
+                                                    };
+                                                });
+                                                setSelectedReturnItems(initialReturnItems);
+                                                const calcTotal = initialReturnItems.filter(i => i.selected).reduce((sum, i) => sum + (i.price * i.return_quantity), 0);
+                                                const finalAmt = calcTotal > 0 ? calcTotal.toFixed(2) : (matchInv.total_amount || matchInv.grand_total || matchInv.amount || '').toString();
+                                                setNewReturnData(prev => ({ 
+                                                    ...prev, 
+                                                    invoice_number: invNum,
+                                                    total_amount: finalAmt
+                                                }));
+                                            } else {
+                                                setSelectedReturnItems([]);
+                                                setNewReturnData(prev => ({ ...prev, invoice_number: invNum }));
+                                            }
                                         }} 
                                         style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace', background: 'white', cursor: 'pointer' }} 
                                     >
@@ -2906,15 +2943,105 @@ const BusinessBilling = () => {
                                             if (!num) return null;
                                             const amt = inv.total_amount || inv.grand_total || inv.amount || 0;
                                             const dt = inv.created_at ? inv.created_at.split('T')[0] : (inv.invoice_date || inv.date || '');
+                                            const rawItems = typeof inv.items === 'string' ? JSON.parse(inv.items || '[]') : (inv.items || []);
+                                            const itemNames = rawItems.map(i => i.product_name || i.name || i.description).filter(Boolean).slice(0, 3).join(', ');
+                                            const itemSuffix = itemNames ? ` [${itemNames}${rawItems.length > 3 ? '...' : ''}]` : '';
                                             return (
                                                 <option key={idx} value={num}>
-                                                    {num} — ₹{amt} {dt ? `(${dt})` : ''}
+                                                    {num} — ₹{amt}{itemSuffix} {dt ? `(${dt})` : ''}
                                                 </option>
                                             );
                                         })}
                                     </select>
                                 )}
                             </div>
+
+                            {/* Multi-Product Selection & Quantity Adjustment for Return */}
+                            {selectedReturnItems && selectedReturnItems.length > 0 && (
+                                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.75rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>
+                                            Select Products to Return ({selectedReturnItems.filter(i => i.selected).length} selected)
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const allSelected = selectedReturnItems.every(i => i.selected);
+                                                const updated = selectedReturnItems.map(i => ({ ...i, selected: !allSelected }));
+                                                setSelectedReturnItems(updated);
+                                                const newTotal = updated.filter(i => i.selected).reduce((sum, i) => sum + (i.price * (parseFloat(i.return_quantity) || 0)), 0);
+                                                setNewReturnData(prev => ({ ...prev, total_amount: newTotal.toFixed(2) }));
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#BE185D', fontSize: '0.7rem', fontWeight: '750', cursor: 'pointer' }}
+                                        >
+                                            {selectedReturnItems.every(i => i.selected) ? 'Deselect All' : 'Select All'}
+                                        </button>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '180px', overflowY: 'auto' }}>
+                                        {selectedReturnItems.map((item, idx) => {
+                                            return (
+                                                <div 
+                                                    key={idx} 
+                                                    style={{ 
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', 
+                                                        padding: '0.5rem 0.65rem', borderRadius: '10px', 
+                                                        background: item.selected ? '#FFFFFF' : '#F1F5F9', 
+                                                        border: item.selected ? '1px solid #CBD5E1' : '1px solid #E2E8F0',
+                                                        opacity: item.selected ? 1 : 0.6
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={item.selected}
+                                                            onChange={(e) => {
+                                                                const updated = [...selectedReturnItems];
+                                                                updated[idx].selected = e.target.checked;
+                                                                setSelectedReturnItems(updated);
+                                                                const newTotal = updated.filter(i => i.selected).reduce((sum, i) => sum + (i.price * (parseFloat(i.return_quantity) || 0)), 0);
+                                                                setNewReturnData(prev => ({ ...prev, total_amount: newTotal.toFixed(2) }));
+                                                            }}
+                                                            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#BE185D' }}
+                                                        />
+                                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                                            <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                {item.product_name}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600' }}>
+                                                                Invoiced: {item.invoiced_quantity} {item.unit} • ₹{item.price}/{item.unit}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {item.selected && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                            <label style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700' }}>Return Qty:</label>
+                                                            <input 
+                                                                type="number"
+                                                                min="1"
+                                                                max={item.invoiced_quantity}
+                                                                value={item.return_quantity}
+                                                                onChange={(e) => {
+                                                                    let val = parseFloat(e.target.value);
+                                                                    if (isNaN(val)) val = 1;
+                                                                    if (val > item.invoiced_quantity) val = item.invoiced_quantity;
+                                                                    if (val < 1) val = 1;
+
+                                                                    const updated = [...selectedReturnItems];
+                                                                    updated[idx].return_quantity = val;
+                                                                    setSelectedReturnItems(updated);
+                                                                    const newTotal = updated.filter(i => i.selected).reduce((sum, i) => sum + (i.price * (parseFloat(i.return_quantity) || 0)), 0);
+                                                                    setNewReturnData(prev => ({ ...prev, total_amount: newTotal.toFixed(2) }));
+                                                                }}
+                                                                style={{ width: '55px', padding: '0.25rem 0.4rem', borderRadius: '6px', border: '1px solid #CBD5E1', textAlign: 'right', fontWeight: '700', fontSize: '0.8rem', outline: 'none' }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Return Amount (₹) *</label>
                                 <input 

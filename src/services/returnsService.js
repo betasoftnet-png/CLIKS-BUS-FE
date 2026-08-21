@@ -1,13 +1,72 @@
 import { apiClient } from '../api/client';
 
+const getLocalReturns = () => {
+    try {
+        const local = localStorage.getItem('cliks_local_returns');
+        return local ? JSON.parse(local) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveLocalReturns = (returns) => {
+    try {
+        localStorage.setItem('cliks_local_returns', JSON.stringify(returns));
+    } catch {
+        // Ignored
+    }
+};
+
 export const returnsService = {
     // CRUD Operations (QueryFunctionContext safe)
-    getReturns: (params) => {
+    getReturns: async (params) => {
         const cleanParams = params && !params.queryKey ? params : undefined;
-        return apiClient.get('/returns', { params: cleanParams }).then(res => res.data.data || res.data);
+        try {
+            const res = await apiClient.get('/returns', { params: cleanParams });
+            const rawData = res.data?.data ?? res.data;
+            let serverData = [];
+            if (Array.isArray(rawData)) {
+                serverData = rawData;
+            } else if (rawData?.returns && Array.isArray(rawData.returns)) {
+                serverData = rawData.returns;
+            } else if (rawData?.rows && Array.isArray(rawData.rows)) {
+                serverData = rawData.rows;
+            } else if (rawData?.items && Array.isArray(rawData.items)) {
+                serverData = rawData.items;
+            } else if (rawData?.data && Array.isArray(rawData.data)) {
+                serverData = rawData.data;
+            }
+            const local = getLocalReturns();
+            const safeLocal = Array.isArray(local) ? local : [];
+            const serverIds = new Set((Array.isArray(serverData) ? serverData : []).map(r => r?.id?.toString()).filter(Boolean));
+            const uniqueLocal = (Array.isArray(safeLocal) ? safeLocal : []).filter(r => !serverIds.has(r?.id?.toString()));
+            return [...uniqueLocal, ...(Array.isArray(serverData) ? serverData : [])];
+        } catch (error) {
+            console.warn('[ReturnsService] Fallback to local storage returns due to connection issue.', error);
+            const local = getLocalReturns();
+            return Array.isArray(local) ? local : [];
+        }
     },
 
-    createReturn: (data) => apiClient.post('/returns', data).then(res => res.data.data || res.data),
+    createReturn: async (data) => {
+        try {
+            const res = await apiClient.post('/returns', data);
+            return res.data?.data || res.data;
+        } catch (error) {
+            console.warn('[ReturnsService] Saving return to local storage fallback due to connection issue.', error.message);
+            const newReturn = {
+                id: Date.now(),
+                return_number: `RET-${Date.now().toString().slice(-6)}`,
+                created_at: new Date().toISOString(),
+                ...data
+            };
+            const currentLocal = getLocalReturns();
+            const safeLocal = Array.isArray(currentLocal) ? currentLocal : [];
+            const updated = [newReturn, ...safeLocal];
+            saveLocalReturns(updated);
+            return newReturn;
+        }
+    },
 
     updateReturn: (id, data) => apiClient.put(`/returns/${id}`, data).then(res => res.data.data || res.data),
 
