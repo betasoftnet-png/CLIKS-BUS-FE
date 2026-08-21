@@ -140,8 +140,11 @@ const iconMap = {
     Wallet
 };
 
+import { useAuth, useLanguage } from '../context';
+
 const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel }) => {
     const { logout, user, selectedPlan } = useAuth();
+    const { t } = useLanguage();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -343,9 +346,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     const isFinanceActive = activeModule === 'payments';
 
     const navItems = [
-        { name: 'Books', url: '/dashboard', icon: BookOpen, active: activeModule === 'books' },
-        { name: 'Payments', url: '/payments/people', icon: Calculator, active: isFinanceActive },
-        { name: 'Social', url: '/social/betaclub', icon: Users, active: isSocialActive },
+        { name: t('books', 'Books'), url: '/dashboard', icon: BookOpen, active: activeModule === 'books' },
+        { name: t('payments', 'Payments'), url: '/payments/people', icon: Calculator, active: isFinanceActive },
+        { name: t('social', 'Social'), url: '/social/betaclub', icon: Users, active: isSocialActive },
     ];
 
     return (

@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 const translations = {
     'EN-US': {
+        // Topbar & Modules
+        books: 'Books',
+        payments: 'Payments',
+        social: 'Social',
+
         // Sidebar & Main Nav
         dashboard: 'Dashboard',
         generateInvoice: 'Generate Invoice',
@@ -71,6 +76,10 @@ const translations = {
         dataSharing: 'Data & Analytics'
     },
     'HI-IN': {
+        books: 'बुक्स (Books)',
+        payments: 'भुगतान (Payments)',
+        social: 'सोशल (Social)',
+
         // Sidebar & Main Nav
         dashboard: 'डैशबोर्ड (Dashboard)',
         generateInvoice: '+ नया बिल बनाएं',
@@ -140,6 +149,10 @@ const translations = {
         dataSharing: 'डेटा और विश्लेषण'
     },
     'TE-IN': {
+        books: 'బుక్స్ (Books)',
+        payments: 'చెల్లింపులు (Payments)',
+        social: 'సోషల్ (Social)',
+
         // Sidebar & Main Nav
         dashboard: 'డాష్‌బోర్డ్ (Dashboard)',
         generateInvoice: '+ కొత్త ఇన్వాయిస్ సృష్టించండి',
