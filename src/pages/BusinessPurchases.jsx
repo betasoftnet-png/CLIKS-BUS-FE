@@ -890,7 +890,7 @@ const BusinessPurchases = () => {
                                                 >
                                                     <MessageCircle size={14} /> Chat
                                                 </button>
-                                                {po.status !== 'Completed' && statusType !== 'PARTIAL_REJECTED' && (
+                                                {po.status !== 'Completed' && (po.supplier_response_type || po.supplier_confirmation_status || po.status) !== 'PARTIAL_REJECTED' && (
                                                     <button 
                                                         onClick={() => handleOpenReceiveModal(po)}
                                                         style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
