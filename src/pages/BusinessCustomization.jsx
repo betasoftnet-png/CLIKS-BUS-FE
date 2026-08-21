@@ -510,7 +510,6 @@ const BusinessCustomization = () => {
                                     onChange={(e) => handleTextChange('businessVerticalType', e.target.value)}
                                 >
                                     <option>Retail</option>
-                                    <option>Manufacturing</option>
                                     <option>Wholesale Distributor</option>
                                     <option>Service Provider</option>
                                 </select>

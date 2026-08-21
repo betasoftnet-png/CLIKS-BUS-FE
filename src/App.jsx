@@ -63,7 +63,6 @@ import BusinessGST from './pages/BusinessGST';
 import BusinessAttendance from './pages/BusinessAttendance';
 import BusinessPayroll from './pages/BusinessPayroll';
 import BusinessDelivery from './pages/BusinessDelivery';
-import BusinessManufacturing from './pages/BusinessManufacturing';
 import BusinessSubscription from './pages/BusinessSubscription';
 import BusinessBarcode from './pages/BusinessBarcode';
 import BusinessCustomization from './pages/BusinessCustomization';
@@ -337,7 +336,7 @@ function AppContent() {
                     <Route path="/marketing" element={<BusinessMarketing />} />
                     <Route path="/ca" element={<BusinessCA />} />
                     <Route path="/sales/delivery" element={<BusinessDelivery />} />
-                    <Route path="/manufacturing" element={<BusinessManufacturing />} />
+                    <Route path="/manufacturing" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/reports" element={<BusinessReports />} />
                     <Route path="/pos" element={<BusinessPOS />} />
                     <Route path="/sales/pos" element={<Navigate to="/pos" replace />} />
