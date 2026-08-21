@@ -249,7 +249,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/payments/bank-accounts')) return 'Bank Accounts';
         if (path.includes('/finance/expenses')) return 'Expenses';
         if (path.includes('/reports')) return 'Reports';
-        if (path.includes('/finance/gst')) return 'GST';
+        if (path.includes('/finance/gst')) return 'TAX';
         if (path.includes('/hr/staff')) return 'Staff';
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
@@ -331,7 +331,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 children: [
                     { label: 'Accounting', icon: Calculator, path: '/finance/accounting' },
                     { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses' },
-                    { label: 'GST', icon: PercentCircle, path: '/finance/gst' }
+                    { label: 'TAX', icon: PercentCircle, path: '/finance/gst' }
                 ]
             },
             {
