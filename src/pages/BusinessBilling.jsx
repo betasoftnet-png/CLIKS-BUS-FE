@@ -237,12 +237,21 @@ const BusinessBilling = () => {
     const [selectedWarehouseForMove, setSelectedWarehouseForMove] = useState('');
 
     const assignWarehouseMutation = useMutation({
-        mutationFn: ({ returnId, warehouseName }) => returnsService.updateReturn(returnId, { warehouse_id: warehouseName, warehouse_name: warehouseName, inspection_status: 'Assigned to Warehouse' }),
+        mutationFn: ({ returnId, warehouseName }) => returnsService.updateReturn(returnId, {
+            warehouse_id: warehouseName,
+            warehouse_name: warehouseName,
+            inspection_status: 'Assigned to Warehouse',
+            items: moveWarehouseModalReturn?.items || [],
+            return_obj: moveWarehouseModalReturn,
+            product_name: moveWarehouseModalReturn?.product_name || moveWarehouseModalReturn?.name,
+            return_quantity: moveWarehouseModalReturn?.return_quantity || moveWarehouseModalReturn?.quantity
+        }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['returns'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
             alert('Returned items successfully assigned & moved to warehouse stock!');
             setMoveWarehouseModalReturn(null);
             setSelectedWarehouseForMove('');
