@@ -38,7 +38,8 @@ import {
     Package,
     Wrench,
     Globe,
-    Info
+    Info,
+    Warehouse
 } from 'lucide-react';
 import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
 import { 
