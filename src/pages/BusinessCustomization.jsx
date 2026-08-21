@@ -13,11 +13,16 @@ import { settingsService, profileService } from '../services';
 import { customPrompt } from '../utils/customConfirm';
 import { useCurrency } from '../context';
 
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
 const BusinessCustomization = () => {
     const navigate = useNavigate();
     const [isSaving, setIsSaving] = useState(false);
     const { currency } = useCurrency();
     const [activeTab, setActiveTab] = useState('profile');
+
+    const logoInputRef = React.useRef(null);
+    const sigInputRef = React.useRef(null);
 
     const [config, setConfig] = useState({
         // PROFILE / COMPANY INFO
@@ -174,26 +179,69 @@ const BusinessCustomization = () => {
     };
 
     const handleTextChange = (key, val) => {
+        if (key === 'gstinRef') {
+            const sanitized = val.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15);
+            setConfig(prev => ({ ...prev, gstinRef: sanitized }));
+            return;
+        }
         setConfig(prev => ({ ...prev, [key]: val }));
     };
 
     const handleSave = async () => {
+        if (config.gstinRef && config.gstinRef.trim() && !GSTIN_REGEX.test(config.gstinRef.trim())) {
+            alert('GSTIN Validation Error: The GSTIN Reference entered is invalid. Standard format: 27AAAAA0000A1Z5 (15 alphanumeric characters).');
+            return;
+        }
+
         setIsSaving(true);
         try {
             await settingsService.updateSettings(config);
+            localStorage.setItem('cliks_business_config', JSON.stringify(config));
             alert('Master deployment parameters synchronized to secure ledger successfully!');
         } catch (err) {
-            console.error('[Sync Router] Failed to write metadata:', err);
-            alert('Network Sync Exception: Connection to backend control layer was interrupted.');
+            console.warn('[Sync Router] Failed to write metadata, saving locally:', err);
+            localStorage.setItem('cliks_business_config', JSON.stringify(config));
+            alert('Deployment parameters saved to local workspace configuration!');
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleSimulateUpload = async (field) => {
-        const name = await customPrompt('Simulate Uploading (Enter dummy file URL or click OK):', `https://api.cliksbusiness.com/simulations/${field}.png`);
-        if (name) {
-            setConfig(prev => ({ ...prev, [field]: name }));
+    const handleLogoClick = () => {
+        if (logoInputRef.current) logoInputRef.current.click();
+    };
+
+    const handleLogoFileSelect = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size exceeds 5MB limit. Please choose a smaller image.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                setConfig(prev => ({ ...prev, logoUrl: evt.target.result }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSigClick = () => {
+        if (sigInputRef.current) sigInputRef.current.click();
+    };
+
+    const handleSigFileSelect = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size exceeds 5MB limit. Please choose a smaller image.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                setConfig(prev => ({ ...prev, signatureUrl: evt.target.result }));
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -226,164 +274,217 @@ const BusinessCustomization = () => {
         }
     };
 
-    const renderProfile = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2.5rem' }}>
-                    <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => handleSimulateUpload('logoUrl')}>
-                        {config.logoUrl ? (
-                            <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '2px solid #4F46E5', background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={config.logoUrl} alt="Branding Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display='none'; }} />
-                                <Building2 size={32} color="#4F46E5" />
+    const renderProfile = () => {
+        const isGstinTyped = Boolean(config.gstinRef && config.gstinRef.trim());
+        const isGstinValid = isGstinTyped && GSTIN_REGEX.test(config.gstinRef.trim());
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* Hidden File Inputs for Native Document & Image Picking */}
+                <input 
+                    type="file" 
+                    ref={logoInputRef} 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                    onChange={handleLogoFileSelect} 
+                />
+                <input 
+                    type="file" 
+                    ref={sigInputRef} 
+                    accept="image/*" 
+                    style={{ display: 'none' }} 
+                    onChange={handleSigFileSelect} 
+                />
+
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={handleLogoClick} title="Click to upload company logo from your device">
+                                {config.logoUrl ? (
+                                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '2.5px solid #1B6B3A', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        <img src={config.logoUrl} alt="Company Branding Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display='none'; }} />
+                                    </div>
+                                ) : (
+                                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '2.5px dashed #CBD5E1', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#64748B' }}>
+                                        <Camera size={26} />
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '750', marginTop: '4px', color: '#1B6B3A' }}>Add Logo</span>
+                                    </div>
+                                )}
+                                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', background: '#1B6B3A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: '2px solid white' }}>
+                                    <Edit size={14} />
+                                </div>
                             </div>
-                        ) : (
-                            <div style={{ width: '100px', height: '100px', borderRadius: '50%', border: '4px dashed #CBD5E1', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#94A3B8' }}>
-                                <Camera size={24} />
-                                <span style={{ fontSize: '0.7rem', fontWeight: '700', marginTop: '4px' }}>Add Logo</span>
-                            </div>
-                        )}
-                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: '28px', height: '28px', background: '#4F46E5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: '2px solid white' }}>
-                            <Edit size={14} />
+                            {config.logoUrl && (
+                                <button 
+                                    type="button" 
+                                    onClick={(e) => { e.stopPropagation(); setConfig(prev => ({ ...prev, logoUrl: null })); }}
+                                    style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer' }}
+                                >
+                                    Remove Logo
+                                </button>
+                            )}
                         </div>
-                    </div>
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>Company Branding</h2>
-                        <p style={{ margin: 0, color: '#64748B', fontSize: '0.85rem' }}>This data will be used automatically on all official invoices and emails.</p>
-                    </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2.5rem' }}>
-                    {/* Column 1: Core Details */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Business Details</h3>
-                        <ProfileInputField 
-                            label="Business Name *" 
-                            icon={Building2} 
-                            value={config.companyName} 
-                            onChange={(e) => handleTextChange('companyName', e.target.value)} 
-                        />
-                        <ProfileInputField 
-                            label="Phone Number" 
-                            icon={Phone} 
-                            placeholder="Enter mobile no." 
-                            value={config.phone} 
-                            onChange={(e) => handleTextChange('phone', e.target.value)} 
-                        />
-                        <ProfileInputField 
-                            label="GSTIN Reference" 
-                            icon={ShieldCheck} 
-                            placeholder="E.g. 27AAAAA0000A1Z5" 
-                            value={config.gstinRef} 
-                            onChange={(e) => handleTextChange('gstinRef', e.target.value)} 
-                        />
-                        <ProfileInputField 
-                            label="Contact Email ID" 
-                            icon={Mail} 
-                            placeholder="mail@business.com" 
-                            value={config.email} 
-                            onChange={(e) => handleTextChange('email', e.target.value)} 
-                        />
-                        <ProfileInputField 
-                            label="Books Beginning Date" 
-                            icon={Calendar} 
-                            type="date" 
-                            value={config.booksBeginDate} 
-                            onChange={(e) => handleTextChange('booksBeginDate', e.target.value)} 
-                        />
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>Company Branding</h2>
+                            <p style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>Upload your official company logo and signature for automatic inclusion on billing documents, invoices, and reports.</p>
+                        </div>
                     </div>
 
-                    {/* Column 2: Extra Detail */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Localization</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Business Vertical Type</label>
-                            <select 
-                                style={selectStyle} 
-                                value={config.businessVerticalType} 
-                                onChange={(e) => handleTextChange('businessVerticalType', e.target.value)}
-                            >
-                                <option>Retail</option>
-                                <option>Manufacturing</option>
-                                <option>Wholesale Distributor</option>
-                                <option>Service Provider</option>
-                            </select>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Business Category</label>
-                            <select 
-                                style={selectStyle} 
-                                value={config.businessCategory} 
-                                onChange={(e) => handleTextChange('businessCategory', e.target.value)}
-                            >
-                                <option>Grocery</option>
-                                <option>Automobile</option>
-                                <option>Apparel & Clothing</option>
-                                <option>Electronics</option>
-                                <option>Pharmaceutical</option>
-                            </select>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>State Registered</label>
-                            <select 
-                                style={selectStyle} 
-                                value={config.stateRegistered} 
-                                onChange={(e) => handleTextChange('stateRegistered', e.target.value)}
-                            >
-                                <option>Maharashtra</option>
-                                <option>Karnataka</option>
-                                <option>Delhi</option>
-                                <option>Tamil Nadu</option>
-                                <option>Gujarat</option>
-                                <option>West Bengal</option>
-                            </select>
-                        </div>
-                        <ProfileInputField 
-                            label="Pincode" 
-                            icon={MapPin} 
-                            placeholder="6 digit code" 
-                            value={config.pincode} 
-                            onChange={(e) => handleTextChange('pincode', e.target.value)} 
-                        />
-                    </div>
-
-                    {/* Column 3: Signature & Address */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Physical Presence</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Full Registered Address</label>
-                            <textarea 
-                                rows="3" 
-                                style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', resize: 'none' }} 
-                                placeholder="Enter detailed operating address..."
-                                value={config.registeredAddress}
-                                onChange={(e) => handleTextChange('registeredAddress', e.target.value)}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2.5rem' }}>
+                        {/* Column 1: Core Details */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Business Details</h3>
+                            <ProfileInputField 
+                                label="Business Name *" 
+                                icon={Building2} 
+                                value={config.companyName} 
+                                onChange={(e) => handleTextChange('companyName', e.target.value)} 
+                            />
+                            <ProfileInputField 
+                                label="Phone Number" 
+                                icon={Phone} 
+                                placeholder="Enter mobile no." 
+                                value={config.phone} 
+                                onChange={(e) => handleTextChange('phone', e.target.value)} 
+                            />
+                            <ProfileInputField 
+                                label="GSTIN Reference" 
+                                icon={ShieldCheck} 
+                                placeholder="E.g. 27AAAAA0000A1Z5" 
+                                value={config.gstinRef || ''} 
+                                maxLength={15}
+                                error={isGstinTyped && !isGstinValid}
+                                onChange={(e) => handleTextChange('gstinRef', e.target.value)} 
+                                helper={
+                                    !isGstinTyped ? (
+                                        <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Format: 15-character GSTIN (e.g. 27AAAAA0000A1Z5)</span>
+                                    ) : isGstinValid ? (
+                                        <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '800' }}>✓ Valid 15-digit GSTIN</span>
+                                    ) : (
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '750' }}>⚠️ Invalid GSTIN ({config.gstinRef.length}/15 chars). Example: 27AAAAA0000A1Z5</span>
+                                    )
+                                }
+                            />
+                            <ProfileInputField 
+                                label="Contact Email ID" 
+                                icon={Mail} 
+                                placeholder="mail@business.com" 
+                                value={config.email} 
+                                onChange={(e) => handleTextChange('email', e.target.value)} 
+                            />
+                            <ProfileInputField 
+                                label="Books Beginning Date" 
+                                icon={Calendar} 
+                                type="date" 
+                                value={config.booksBeginDate} 
+                                onChange={(e) => handleTextChange('booksBeginDate', e.target.value)} 
                             />
                         </div>
-                        
-                        <div style={{ marginTop: '1rem' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569', display: 'block', marginBottom: '0.5rem' }}>Authorized E-Signature</label>
-                            <div 
-                                onClick={() => handleSimulateUpload('signatureUrl')}
-                                style={{ height: '100px', border: config.signatureUrl ? '2px solid #10B981' : '2px dashed #CBD5E1', borderRadius: '10px', background: config.signatureUrl ? '#ECFDF5' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer' }}
-                            >
-                                {config.signatureUrl ? (
-                                    <>
-                                        <CheckCircle2 size={24} color="#10B981" />
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#065F46', marginTop: '4px' }}>Signature Attached</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <UploadCloud size={24} color="#94A3B8" />
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748B', marginTop: '4px' }}>Upload Signature PNG</span>
-                                    </>
+
+                        {/* Column 2: Extra Detail */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Localization</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Business Vertical Type</label>
+                                <select 
+                                    style={selectStyle} 
+                                    value={config.businessVerticalType} 
+                                    onChange={(e) => handleTextChange('businessVerticalType', e.target.value)}
+                                >
+                                    <option>Retail</option>
+                                    <option>Manufacturing</option>
+                                    <option>Wholesale Distributor</option>
+                                    <option>Service Provider</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Business Category</label>
+                                <select 
+                                    style={selectStyle} 
+                                    value={config.businessCategory} 
+                                    onChange={(e) => handleTextChange('businessCategory', e.target.value)}
+                                >
+                                    <option>Grocery</option>
+                                    <option>Automobile</option>
+                                    <option>Apparel & Clothing</option>
+                                    <option>Electronics</option>
+                                    <option>Pharmaceutical</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>State Registered</label>
+                                <select 
+                                    style={selectStyle} 
+                                    value={config.stateRegistered} 
+                                    onChange={(e) => handleTextChange('stateRegistered', e.target.value)}
+                                >
+                                    <option>Maharashtra</option>
+                                    <option>Karnataka</option>
+                                    <option>Delhi</option>
+                                    <option>Tamil Nadu</option>
+                                    <option>Gujarat</option>
+                                    <option>West Bengal</option>
+                                </select>
+                            </div>
+                            <ProfileInputField 
+                                label="Pincode" 
+                                icon={MapPin} 
+                                placeholder="6 digit code" 
+                                value={config.pincode} 
+                                onChange={(e) => handleTextChange('pincode', e.target.value)} 
+                            />
+                        </div>
+
+                        {/* Column 3: Signature & Address */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.5rem' }}>Physical Presence</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Full Registered Address</label>
+                                <textarea 
+                                    rows="3" 
+                                    style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', resize: 'none' }} 
+                                    placeholder="Enter detailed operating address..."
+                                    value={config.registeredAddress}
+                                    onChange={(e) => handleTextChange('registeredAddress', e.target.value)}
+                                />
+                            </div>
+                            
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569', display: 'block', marginBottom: '0.5rem' }}>Authorized E-Signature</label>
+                                <div 
+                                    onClick={handleSigClick}
+                                    style={{ height: '110px', border: config.signatureUrl ? '2px solid #10B981' : '2px dashed #CBD5E1', borderRadius: '10px', background: config.signatureUrl ? '#ECFDF5' : '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', padding: '0.5rem', position: 'relative' }}
+                                    title="Click to upload electronic signature image from your device"
+                                >
+                                    {config.signatureUrl ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                                            <img src={config.signatureUrl} alt="Authorized Signature" style={{ maxHeight: '70px', maxWidth: '90%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#065F46', marginTop: '4px' }}>✓ Signature Attached (Click to Change)</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <UploadCloud size={24} color="#94A3B8" />
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1B6B3A', marginTop: '4px' }}>Upload Signature PNG</span>
+                                            <span style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: '2px' }}>Pick signature file from your device</span>
+                                        </>
+                                    )}
+                                </div>
+                                {config.signatureUrl && (
+                                    <button 
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setConfig(prev => ({ ...prev, signatureUrl: null })); }}
+                                        style={{ border: 'none', background: '#FEF2F2', color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', padding: '0.2rem 0.5rem', borderRadius: '6px', cursor: 'pointer', marginTop: '0.4rem' }}
+                                    >
+                                        Remove Signature
+                                    </button>
                                 )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderAccounting = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px' }}>
@@ -1013,13 +1114,27 @@ const BusinessCustomization = () => {
 };
 
 // eslint-disable-next-line no-unused-vars
-const ProfileInputField = ({ label, icon: Icon, ...props }) => (
+const ProfileInputField = ({ label, icon: Icon, error, helper, style, ...props }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>{label}</label>
         <div style={{ position: 'relative' }}>
-            <Icon size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-            <input {...props} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+            <Icon size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: error ? '#EF4444' : '#94A3B8' }} />
+            <input 
+                {...props} 
+                style={{ 
+                    width: '100%', 
+                    padding: '0.6rem 0.6rem 0.6rem 2.5rem', 
+                    borderRadius: '8px', 
+                    border: error ? '1.5px solid #EF4444' : (props.value && String(props.value).length === 15 ? '1.5px solid #10B981' : '1px solid #E2E8F0'), 
+                    background: 'white', 
+                    outline: 'none', 
+                    fontSize: '0.85rem', 
+                    boxSizing: 'border-box',
+                    ...style 
+                }} 
+            />
         </div>
+        {helper && <div style={{ marginTop: '0.1rem' }}>{helper}</div>}
     </div>
 );
 
