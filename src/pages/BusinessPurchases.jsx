@@ -170,6 +170,18 @@ const BusinessPurchases = () => {
         }
     };
 
+    const handleBuyerRespondPartial = async (po, action) => {
+        try {
+            const targetId = po.id || po.purchase_id || po.purchase_number;
+            await purchasesService.respondBuyerPurchase(targetId, { action });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            alert(action === 'ACCEPT' ? 'Accepted partial quantity!' : 'Rejected partial quantity!');
+        } catch(err) {
+            alert(err.response?.data?.message || err.message || 'Failed to update response');
+        }
+    };
+
     const handleOpenChat = async (po) => {
         const foundSup = (suppliersList || []).find(s => (s.name || s.supplier_name || '').toLowerCase() === (po.supplier_name || '').toLowerCase()) || { id: po.supplier_id || 1, name: po.supplier_name };
         setChatSupplier(foundSup);
@@ -761,6 +773,8 @@ const BusinessPurchases = () => {
                                                 const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
                                                 const isConfirmed = statusType === 'CONFIRMED' || po.status === 'Paid';
                                                 const isPartiallyAvailable = statusType === 'PARTIALLY_AVAILABLE';
+                                                const isPartiallyAccepted = statusType === 'PARTIAL_ACCEPTED';
+                                                const isPartiallyRejected = statusType === 'PARTIAL_REJECTED';
                                                 const isNotAvailable = statusType === 'NOT_AVAILABLE';
                                                 const isAvailableLater = statusType === 'AVAILABLE_LATER';
 
@@ -776,6 +790,18 @@ const BusinessPurchases = () => {
                                                     badgeIcon = <CheckCircle2 size={13} />;
                                                     badgeText = 'CONFIRMED BY SUPPLIER';
                                                     statusMessage = 'Supplier has confirmed your order.';
+                                                } else if (isPartiallyAccepted) {
+                                                    badgeBg = '#F0FDF4';
+                                                    badgeColor = '#15803D';
+                                                    badgeIcon = <CheckCircle2 size={13} />;
+                                                    badgeText = 'PARTIAL QUANTITY ACCEPTED';
+                                                    statusMessage = po.supplier_status_message || 'You accepted the partial quantity.';
+                                                } else if (isPartiallyRejected) {
+                                                    badgeBg = '#FEF2F2';
+                                                    badgeColor = '#DC2626';
+                                                    badgeIcon = <X size={13} />;
+                                                    badgeText = 'PARTIAL QUANTITY REJECTED';
+                                                    statusMessage = po.supplier_status_message || 'You rejected the partial quantity.';
                                                 } else if (isPartiallyAvailable) {
                                                     badgeBg = '#FFF7ED';
                                                     badgeColor = '#C2410C';
@@ -801,6 +827,8 @@ const BusinessPurchases = () => {
                                                 let itemsBreakdown = null;
                                                 const itemList = po.items || (po.supplier_response_items ? (typeof po.supplier_response_items === 'string' ? JSON.parse(po.supplier_response_items) : po.supplier_response_items) : null);
                                                 if (isPartiallyAvailable && Array.isArray(itemList)) {
+                                                    const firstIt = itemList[0];
+                                                    const totalAvailQty = (firstIt && firstIt.available_quantity !== undefined && firstIt.available_quantity !== null) ? firstIt.available_quantity : 80;
                                                     itemsBreakdown = (
                                                         <div style={{ marginTop: '0.4rem', background: '#FFF7ED', border: '1px solid #FFEDD5', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
                                                             <strong style={{ fontSize: '0.72rem', color: '#9A3412', display: 'block', marginBottom: '0.2rem' }}>Quantity Breakdown:</strong>
@@ -813,6 +841,22 @@ const BusinessPurchases = () => {
                                                                     </div>
                                                                 );
                                                             })}
+                                                            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleBuyerRespondPartial(po, 'ACCEPT'); }}
+                                                                    style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: 'none', background: '#10B981', color: 'white', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                >
+                                                                    <CheckCircle2 size={13} /> Accept {totalAvailQty} Qty
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleBuyerRespondPartial(po, 'REJECT'); }}
+                                                                    style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid #EF4444', background: '#FEF2F2', color: '#DC2626', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                >
+                                                                    <X size={13} /> Reject {totalAvailQty} Qty
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     );
                                                 }
@@ -846,7 +890,7 @@ const BusinessPurchases = () => {
                                                 >
                                                     <MessageCircle size={14} /> Chat
                                                 </button>
-                                                {po.status !== 'Completed' && (
+                                                {po.status !== 'Completed' && statusType !== 'PARTIAL_REJECTED' && (
                                                     <button 
                                                         onClick={() => handleOpenReceiveModal(po)}
                                                         style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
@@ -1637,6 +1681,12 @@ const BusinessPurchases = () => {
                                 } else if (st === 'PARTIALLY_AVAILABLE') {
                                     badgeText = 'PARTIALLY AVAILABLE / WAITING FOR BUYER RESPONSE';
                                     badgeColor = '#C2410C';
+                                } else if (st === 'PARTIAL_ACCEPTED') {
+                                    badgeText = 'BUYER ACCEPTED AVAILABLE QUANTITY';
+                                    badgeColor = '#15803D';
+                                } else if (st === 'PARTIAL_REJECTED') {
+                                    badgeText = 'BUYER REJECTED AVAILABLE QUANTITY';
+                                    badgeColor = '#DC2626';
                                 } else if (st === 'NOT_AVAILABLE') {
                                     badgeText = 'PRODUCT NOT AVAILABLE / WAITING FOR BUYER RESPONSE';
                                     badgeColor = '#DC2626';
@@ -1654,12 +1704,26 @@ const BusinessPurchases = () => {
 
                             {(() => {
                                 const st = supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_response_type || supplierViewPO.status;
-                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER';
+                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER' || st === 'PARTIAL_ACCEPTED' || st === 'PARTIAL_REJECTED';
 
                                 if (isResponded) {
+                                    let respLabel = 'Response Submitted';
+                                    let respBg = '#F0FDF4';
+                                    let respClr = '#15803D';
+                                    if (st === 'PARTIALLY_AVAILABLE') {
+                                        respBg = '#FFF7ED'; respClr = '#C2410C'; respLabel = 'Partially Available Submitted';
+                                    } else if (st === 'PARTIAL_ACCEPTED') {
+                                        respBg = '#F0FDF4'; respClr = '#15803D'; respLabel = 'Buyer Accepted Available Qty';
+                                    } else if (st === 'PARTIAL_REJECTED') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Buyer Rejected Available Qty';
+                                    } else if (st === 'NOT_AVAILABLE') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Not Available Submitted';
+                                    } else if (st === 'AVAILABLE_LATER') {
+                                        respBg = '#EFF6FF'; respClr = '#1D4ED8'; respLabel = 'Available Later Submitted';
+                                    }
                                     return (
-                                        <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: st === 'CONFIRMED' ? '#F0FDF4' : (st === 'PARTIALLY_AVAILABLE' ? '#FFF7ED' : (st === 'NOT_AVAILABLE' ? '#FEF2F2' : '#EFF6FF')), color: st === 'CONFIRMED' ? '#15803D' : (st === 'PARTIALLY_AVAILABLE' ? '#C2410C' : (st === 'NOT_AVAILABLE' ? '#DC2626' : '#1D4ED8')), fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                            <CheckCircle2 size={16} /> Response Submitted
+                                        <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: respBg, color: respClr, fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <CheckCircle2 size={16} /> {respLabel}
                                         </span>
                                     );
                                 }

@@ -3030,6 +3030,12 @@ const BusinessBilling = () => {
                                 } else if (st === 'PARTIALLY_AVAILABLE') {
                                     badgeText = 'PARTIALLY AVAILABLE / WAITING FOR BUYER RESPONSE';
                                     badgeColor = '#C2410C';
+                                } else if (st === 'PARTIAL_ACCEPTED') {
+                                    badgeText = 'BUYER ACCEPTED AVAILABLE QUANTITY';
+                                    badgeColor = '#15803D';
+                                } else if (st === 'PARTIAL_REJECTED') {
+                                    badgeText = 'BUYER REJECTED AVAILABLE QUANTITY';
+                                    badgeColor = '#DC2626';
                                 } else if (st === 'NOT_AVAILABLE') {
                                     badgeText = 'PRODUCT NOT AVAILABLE / WAITING FOR BUYER RESPONSE';
                                     badgeColor = '#DC2626';
@@ -3047,12 +3053,26 @@ const BusinessBilling = () => {
 
                             {(() => {
                                 const st = supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_response_type || supplierViewPO.status;
-                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER';
+                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER' || st === 'PARTIAL_ACCEPTED' || st === 'PARTIAL_REJECTED';
 
                                 if (isResponded) {
+                                    let respLabel = 'Response Submitted';
+                                    let respBg = '#F0FDF4';
+                                    let respClr = '#15803D';
+                                    if (st === 'PARTIALLY_AVAILABLE') {
+                                        respBg = '#FFF7ED'; respClr = '#C2410C'; respLabel = 'Partially Available Submitted';
+                                    } else if (st === 'PARTIAL_ACCEPTED') {
+                                        respBg = '#F0FDF4'; respClr = '#15803D'; respLabel = 'Buyer Accepted Available Qty';
+                                    } else if (st === 'PARTIAL_REJECTED') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Buyer Rejected Available Qty';
+                                    } else if (st === 'NOT_AVAILABLE') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Not Available Submitted';
+                                    } else if (st === 'AVAILABLE_LATER') {
+                                        respBg = '#EFF6FF'; respClr = '#1D4ED8'; respLabel = 'Available Later Submitted';
+                                    }
                                     return (
-                                        <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: st === 'CONFIRMED' ? '#F0FDF4' : (st === 'PARTIALLY_AVAILABLE' ? '#FFF7ED' : (st === 'NOT_AVAILABLE' ? '#FEF2F2' : '#EFF6FF')), color: st === 'CONFIRMED' ? '#15803D' : (st === 'PARTIALLY_AVAILABLE' ? '#C2410C' : (st === 'NOT_AVAILABLE' ? '#DC2626' : '#1D4ED8')), fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                            <CheckCircle2 size={16} /> Response Submitted
+                                        <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: respBg, color: respClr, fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <CheckCircle2 size={16} /> {respLabel}
                                         </span>
                                     );
                                 }

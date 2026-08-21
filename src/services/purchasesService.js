@@ -22,6 +22,7 @@ export const purchasesService = {
 
     updatePurchaseStatus: (id, status) => apiClient.patch(`/purchases/${id}/status`, { status }).then(res => res.data.data || res.data),
     confirmSupplierPurchase: (id, payload) => apiClient.post(`/purchases/${id}/supplier-confirm`, payload).then(res => res.data.data || res.data),
+    respondBuyerPurchase: (id, payload) => apiClient.post(`/purchases/${id}/buyer-response`, payload).then(res => res.data.data || res.data),
     getSupplierPortalOrders: () => apiClient.get('/purchases/portal/orders').then(res => res.data.data || res.data),
 
     // Payments
