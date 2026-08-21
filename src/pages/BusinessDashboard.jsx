@@ -92,8 +92,15 @@ const BusinessDashboard = () => {
     const [hoveredDonutSegment, setHoveredDonutSegment] = useState(null);
     
     const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
+        const validIds = MASTER_SHORTCUTS.map(s => s.id);
         const saved = localStorage.getItem('cliks_dashboard_shortcuts');
-        return saved ? JSON.parse(saved) : MASTER_SHORTCUTS.map(s => s.id);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return parsed.filter(id => validIds.includes(id));
+            } catch(e) {}
+        }
+        return validIds;
     });
     const [isModalOpen, setIsModalOpen] = useState(false);
 
