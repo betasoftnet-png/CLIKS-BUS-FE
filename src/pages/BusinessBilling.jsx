@@ -49,7 +49,8 @@ import {
     productsService,
     settingsService,
     returnsService,
-    purchasesService
+    purchasesService,
+    suppliersService
 } from '../services';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
@@ -691,6 +692,47 @@ const BusinessBilling = () => {
         if (rawBankAccounts?.data && Array.isArray(rawBankAccounts.data)) return rawBankAccounts.data;
         return [];
     }, [rawBankAccounts]);
+
+    const { data: rawSuppliers = [] } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => suppliersService.getSuppliers().catch(() => []),
+        refetchOnWindowFocus: false
+    });
+    const suppliersList = React.useMemo(() => {
+        if (Array.isArray(rawSuppliers)) return rawSuppliers;
+        if (rawSuppliers?.suppliers && Array.isArray(rawSuppliers.suppliers)) return rawSuppliers.suppliers;
+        if (rawSuppliers?.data && Array.isArray(rawSuppliers.data)) return rawSuppliers.data;
+        return [];
+    }, [rawSuppliers]);
+
+    const { data: rawPurchases = [] } = useQuery({
+        queryKey: ['purchases'],
+        queryFn: () => purchasesService.getPurchases().catch(() => []),
+        refetchOnWindowFocus: false
+    });
+    const purchasesList = React.useMemo(() => {
+        if (Array.isArray(rawPurchases)) return rawPurchases;
+        if (rawPurchases?.purchases && Array.isArray(rawPurchases.purchases)) return rawPurchases.purchases;
+        if (rawPurchases?.data && Array.isArray(rawPurchases.data)) return rawPurchases.data;
+        return [];
+    }, [rawPurchases]);
+
+    const availableInvoicesForReturn = React.useMemo(() => {
+        if (!newReturnData.client_name) return [];
+        const selName = newReturnData.client_name.trim().toLowerCase();
+        
+        if (returnFormType === 'purchase') {
+            return (purchasesList || []).filter(p => {
+                const sName = (p.supplier_name || p.client_name || '').trim().toLowerCase();
+                return sName === selName || (sName && sName.includes(selName)) || (selName && selName.includes(sName));
+            });
+        } else {
+            return (invoices || []).filter(inv => {
+                const cName = (inv.client_name || inv.customer_name || inv.client_email || '').trim().toLowerCase();
+                return cName === selName || (cName && cName.includes(selName)) || (selName && selName.includes(cName));
+            });
+        }
+    }, [invoices, purchasesList, newReturnData.client_name, returnFormType]);
 
     React.useEffect(() => {
         const email = formData.client_email ? String(formData.client_email).trim() : '';
@@ -2788,26 +2830,90 @@ const BusinessBilling = () => {
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
                                     {returnFormType === 'purchase' ? 'Supplier Name *' : 'Customer Name *'}
                                 </label>
-                                <input 
+                                <select 
                                     required 
-                                    type="text" 
                                     value={newReturnData.client_name} 
-                                    onChange={(e) => setNewReturnData({ ...newReturnData, client_name: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                    placeholder="Name" 
-                                />
+                                    onChange={(e) => {
+                                        const chosenName = e.target.value;
+                                        setNewReturnData(prev => ({ 
+                                            ...prev, 
+                                            client_name: chosenName,
+                                            invoice_number: '' 
+                                        }));
+                                    }} 
+                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, background: 'white', cursor: 'pointer' }}
+                                >
+                                    <option value="">{returnFormType === 'purchase' ? '-- Select Supplier --' : '-- Select Customer --'}</option>
+                                    {returnFormType === 'purchase' ? (
+                                        suppliersList.map((sup, idx) => {
+                                            const name = sup.name || sup.supplier_name;
+                                            if (!name) return null;
+                                            return (
+                                                <option key={idx} value={name}>
+                                                    {name} {sup.phone ? `(${sup.phone})` : ''}
+                                                </option>
+                                            );
+                                        })
+                                    ) : (
+                                        customers.map((cust, idx) => {
+                                            const name = cust.name || cust.customer_name || cust.client_name;
+                                            if (!name) return null;
+                                            return (
+                                                <option key={idx} value={name}>
+                                                    {name} {cust.phone ? `(${cust.phone})` : ''}
+                                                </option>
+                                            );
+                                        })
+                                    )}
+                                </select>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
                                     {returnFormType === 'warranty' ? 'Serial / IMEI Number' : 'Invoice / Bill Number'}
                                 </label>
-                                <input 
-                                    type="text" 
-                                    value={newReturnData.invoice_number} 
-                                    onChange={(e) => setNewReturnData({ ...newReturnData, invoice_number: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
-                                    placeholder="e.g. POS-123456 / BILL-001" 
-                                />
+                                {returnFormType === 'warranty' ? (
+                                    <input 
+                                        type="text" 
+                                        value={newReturnData.invoice_number} 
+                                        onChange={(e) => setNewReturnData({ ...newReturnData, invoice_number: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
+                                        placeholder="e.g. POS-123456 / BILL-001" 
+                                    />
+                                ) : (
+                                    <select 
+                                        required
+                                        value={newReturnData.invoice_number} 
+                                        onChange={(e) => {
+                                            const invNum = e.target.value;
+                                            const matchInv = availableInvoicesForReturn.find(i => (i.invoice_number || i.purchase_number || i.id?.toString()) === invNum);
+                                            const invAmt = matchInv ? (matchInv.total_amount || matchInv.grand_total || matchInv.amount || '') : newReturnData.total_amount;
+                                            setNewReturnData(prev => ({ 
+                                                ...prev, 
+                                                invoice_number: invNum,
+                                                total_amount: invAmt !== undefined && invAmt !== null && invAmt !== '' ? invAmt.toString() : prev.total_amount
+                                            }));
+                                        }} 
+                                        style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace', background: 'white', cursor: 'pointer' }} 
+                                    >
+                                        <option value="">
+                                            {!newReturnData.client_name 
+                                                ? (returnFormType === 'purchase' ? '-- Select Supplier First --' : '-- Select Customer First --')
+                                                : (availableInvoicesForReturn.length === 0 ? '-- No Invoices Found for Selected Party --' : '-- Select Invoice / Bill Number --')
+                                            }
+                                        </option>
+                                        {availableInvoicesForReturn.map((inv, idx) => {
+                                            const num = inv.invoice_number || inv.purchase_number || inv.id;
+                                            if (!num) return null;
+                                            const amt = inv.total_amount || inv.grand_total || inv.amount || 0;
+                                            const dt = inv.created_at ? inv.created_at.split('T')[0] : (inv.invoice_date || inv.date || '');
+                                            return (
+                                                <option key={idx} value={num}>
+                                                    {num} — ₹{amt} {dt ? `(${dt})` : ''}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                )}
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Return Amount (₹) *</label>
