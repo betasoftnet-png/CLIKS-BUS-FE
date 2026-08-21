@@ -185,9 +185,20 @@ const BusinessCustomization = () => {
         setConfig(prev => {
             const updated = { ...prev, [key]: !prev[key] };
             if (key === 'darkMode') {
-                document.body.classList.toggle('dark-theme', updated.darkMode);
                 localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
+                if (updated.darkMode) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.documentElement.classList.add('dark-theme', 'dark');
+                    document.body.classList.add('dark-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    document.documentElement.classList.remove('dark-theme', 'dark');
+                    document.body.classList.remove('dark-theme', 'dark');
+                }
             }
+            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
             return updated;
         });
     };
@@ -195,10 +206,25 @@ const BusinessCustomization = () => {
     const handleTextChange = (key, val) => {
         if (key === 'gstinRef') {
             const sanitized = val.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15);
-            setConfig(prev => ({ ...prev, gstinRef: sanitized }));
+            setConfig(prev => {
+                const updated = { ...prev, gstinRef: sanitized };
+                localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+                window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                return updated;
+            });
             return;
         }
-        setConfig(prev => ({ ...prev, [key]: val }));
+        if (key === 'language') {
+            localStorage.setItem('cliks_language', val);
+            document.documentElement.setAttribute('lang', val);
+        }
+        setConfig(prev => {
+            const updated = { ...prev, [key]: val };
+            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            return updated;
+        });
     };
 
     const handleSave = async () => {

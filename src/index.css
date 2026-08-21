@@ -585,17 +585,143 @@ a {
   border-color: #374151;
 }
 
-/* Dark mode basic support - assuming a .dark class or media query */
-@media (prefers-color-scheme: dark) {
-  .dark\:border-gray-500 {
-    border-color: #6b7280;
-  }
+/* ==========================================================================
+   COMPREHENSIVE DARK MODE SYSTEM
+   ========================================================================== */
 
-  .dark\:border-gray-600 {
-    border-color: #4b5563;
-  }
+html[data-theme='dark'],
+html.dark-theme,
+body.dark-theme,
+[data-theme='dark'] body {
+  background-color: #0B0F19 !important;
+  color: #F8FAFC !important;
+}
 
-  .dark\:border-gray-700 {
-    border-color: #374151;
-  }
+/* Page Containers & Main Content */
+[data-theme='dark'] #root,
+[data-theme='dark'] .app-container,
+[data-theme='dark'] .main-content,
+[data-theme='dark'] .premium-container,
+[data-theme='dark'] .page-container,
+[data-theme='dark'] .dashboard-container,
+[data-theme='dark'] main {
+  background-color: #0B0F19 !important;
+  color: #F8FAFC !important;
+}
+
+/* Sidebar Styling in Dark Mode */
+[data-theme='dark'] aside,
+[data-theme='dark'] .sidebar-container,
+[data-theme='dark'] div[style*="background: #FFFFFF"][style*="border-right"],
+[data-theme='dark'] div[style*="background: white"][style*="border-right"] {
+  background-color: #0F172A !important;
+  border-right-color: #1E293B !important;
+}
+
+[data-theme='dark'] .sidebar-container a,
+[data-theme='dark'] .sidebar-container button,
+[data-theme='dark'] .sidebar-label {
+  color: #E2E8F0 !important;
+}
+
+/* Cards, Panels & White Containers */
+[data-theme='dark'] .card,
+[data-theme='dark'] .stat-card,
+[data-theme='dark'] .customization-card,
+[data-theme='dark'] div[style*="background: white"],
+[data-theme='dark'] div[style*="background: '#FFFFFF'"],
+[data-theme='dark'] div[style*="background: #FFFFFF"],
+[data-theme='dark'] div[style*="background: rgb(255, 255, 255)"],
+[data-theme='dark'] div[style*="background: #FAFBFC"],
+[data-theme='dark'] div[style*="background: #F8FAFC"] {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+/* Tables in Dark Mode */
+[data-theme='dark'] table {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme='dark'] th {
+  background-color: #0F172A !important;
+  color: #CBD5E1 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme='dark'] td {
+  border-color: #334155 !important;
+  color: #E2E8F0 !important;
+}
+
+[data-theme='dark'] tr:hover {
+  background-color: #334155 !important;
+}
+
+/* Forms, Inputs, Dropdowns & Textareas */
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  background-color: #0F172A !important;
+  color: #F8FAFC !important;
+  border-color: #334155 !important;
+}
+
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: #64748B !important;
+}
+
+[data-theme='dark'] select option {
+  background-color: #0F172A !important;
+  color: #F8FAFC !important;
+}
+
+/* Headings & Text Color Overrides for High Contrast */
+[data-theme='dark'] h1,
+[data-theme='dark'] h2,
+[data-theme='dark'] h3,
+[data-theme='dark'] h4,
+[data-theme='dark'] h5,
+[data-theme='dark'] h6 {
+  color: #F8FAFC !important;
+}
+
+[data-theme='dark'] p,
+[data-theme='dark'] label,
+[data-theme='dark'] span,
+[data-theme='dark'] div {
+  color: inherit;
+}
+
+/* Specific inline text color overrides */
+[data-theme='dark'] [style*="color: #0F172A"],
+[data-theme='dark'] [style*="color: #1E293B"],
+[data-theme='dark'] [style*="color: #111827"],
+[data-theme='dark'] [style*="color: rgb(15, 23, 42)"],
+[data-theme='dark'] [style*="color: rgb(30, 41, 59)"] {
+  color: #F8FAFC !important;
+}
+
+[data-theme='dark'] [style*="color: #334155"],
+[data-theme='dark'] [style*="color: #475569"],
+[data-theme='dark'] [style*="color: #64748B"] {
+  color: #CBD5E1 !important;
+}
+
+/* Dividers & Borders */
+[data-theme='dark'] hr,
+[data-theme='dark'] div[style*="height: 1px"] {
+  background-color: #334155 !important;
+  border-color: #334155 !important;
+}
+
+/* Modals & Dialogs */
+[data-theme='dark'] .modal,
+[data-theme='dark'] div[style*="position: fixed"] > div {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
 }

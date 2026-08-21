@@ -40,11 +40,44 @@ const Settings = () => {
     });
 
     const handleToggle = (key) => {
-        setLocalSettings(prev => ({ ...prev, [key]: !prev[key] }));
+        setLocalSettings(prev => {
+            const updated = { ...prev, [key]: !prev[key] };
+            if (key === 'darkMode') {
+                localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
+                if (updated.darkMode) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    document.documentElement.classList.add('dark-theme', 'dark');
+                    document.body.classList.add('dark-theme', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    document.documentElement.classList.remove('dark-theme', 'dark');
+                    document.body.classList.remove('dark-theme', 'dark');
+                }
+            }
+            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            return updated;
+        });
+    };
+
+    const handleLanguageChange = (val) => {
+        setLocalSettings(prev => {
+            const updated = { ...prev, language: val };
+            localStorage.setItem('cliks_language', val);
+            document.documentElement.setAttribute('lang', val);
+            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            return updated;
+        });
     };
 
     const handleSave = () => {
         mutation.mutate(localSettings);
+        localStorage.setItem('cliks_business_config', JSON.stringify(localSettings));
+        localStorage.setItem('cliks_active_config', JSON.stringify(localSettings));
+        window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: localSettings }));
     };
 
     if (isLoading) {
@@ -85,13 +118,24 @@ const Settings = () => {
                     isToggled={localSettings.darkMode}
                     onToggle={() => handleToggle('darkMode')}
                 />
-                <SettingItem
-                    label="Language"
-                    description="Current system language: English (US)"
-                    isToggled={true}
-                    onToggle={() => { }}
-                    last={true}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem' }}>
+                    <div>
+                        <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>Language</div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748B' }}>System localization language</div>
+                    </div>
+                    <select 
+                        value={localSettings.language || 'EN-US'} 
+                        onChange={(e) => handleLanguageChange(e.target.value)}
+                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '6px', fontWeight: '750', color: '#1E293B', cursor: 'pointer', outline: 'none' }}
+                    >
+                        <option value="EN-US">EN-US (English)</option>
+                        <option value="HI-IN">HI-IN (Hindi)</option>
+                        <option value="TA-IN">TA-IN (Tamil)</option>
+                        <option value="TE-IN">TE-IN (Telugu)</option>
+                        <option value="MR-IN">MR-IN (Marathi)</option>
+                        <option value="GU-IN">GU-IN (Gujarati)</option>
+                    </select>
+                </div>
             </SettingSection>
 
             <SettingSection title="Notifications" icon={Bell}>

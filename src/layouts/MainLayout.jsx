@@ -62,13 +62,42 @@ const MainLayout = ({ children }) => {
 
     const activeConfig = userSettings?.data || userSettings || {};
 
-    useEffect(() => {
-        if (activeConfig.darkMode) {
+    const applyDarkModeTheme = useCallback(() => {
+        const storedDarkMode = localStorage.getItem('cliks_dark_mode');
+        const storedConfigRaw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+        let storedConfig = {};
+        try {
+            storedConfig = storedConfigRaw ? JSON.parse(storedConfigRaw) : {};
+        } catch (e) {}
+
+        const isDark = storedDarkMode === 'true' || Boolean(storedConfig.darkMode) || Boolean(activeConfig.darkMode);
+
+        if (isDark) {
             document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.classList.add('dark-theme', 'dark');
+            document.body.classList.add('dark-theme', 'dark');
         } else {
             document.documentElement.removeAttribute('data-theme');
+            document.documentElement.classList.remove('dark-theme', 'dark');
+            document.body.classList.remove('dark-theme', 'dark');
         }
-    }, [activeConfig.darkMode]);
+
+        const storedLang = localStorage.getItem('cliks_language') || storedConfig.language || activeConfig.language || 'EN-US';
+        document.documentElement.setAttribute('lang', storedLang);
+    }, [activeConfig.darkMode, activeConfig.language]);
+
+    useEffect(() => {
+        applyDarkModeTheme();
+
+        const handleSync = () => applyDarkModeTheme();
+        window.addEventListener('cliksConfigUpdated', handleSync);
+        window.addEventListener('storage', handleSync);
+
+        return () => {
+            window.removeEventListener('cliksConfigUpdated', handleSync);
+            window.removeEventListener('storage', handleSync);
+        };
+    }, [applyDarkModeTheme]);
 
     useEffect(() => {
         const handleResize = () => {

@@ -22,14 +22,19 @@
     font-weight: 400;
 }
 
-[data-theme='dark'] {
-    --bg-color: #020804;
-    --text-main: #ECFDF5;
-    --text-muted: #A7F3D0;
-    --card-bg: #06150B;
-    --border-color: #064E3B;
+[data-theme='dark'],
+.dark-theme,
+.dark {
+    --bg-color: #0B0F19;
+    --card-bg: #1E293B;
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+    --border-color: #334155;
     --primary: #10B981;
     --primary-hover: #34D399;
+    --card-blue: #3B82F6;
+    --card-dark-blue: #1E293B;
+    color-scheme: dark;
 }
 
 html {
