@@ -213,10 +213,9 @@ export default function BusinessCA() {
     const [newRequestTitle, setNewRequestTitle] = useState('');
     const [newRequestDesc, setNewRequestDesc] = useState('');
     const [newRequestDueDate, setNewRequestDueDate] = useState('');
-    const [newRequestPriority, setNewRequestPriority] = useState('Medium');
     const [newRequestDocType, setNewRequestDocType] = useState('Form 16');
-
-    const [selectedRequestForReview, setSelectedRequestForReview] = useState(null);
+    const [isCustomDocType, setIsCustomDocType] = useState(false);
+    const [customDocTypeInput, setCustomDocTypeInput] = useState('');
 
     const { data: practiceTasks = [], refetch: refetchTasks } = useQuery({
         queryKey: ['practiceTasks'],
@@ -686,6 +685,10 @@ export default function BusinessCA() {
     const handleAddPracticeRequest = (e) => {
         e.preventDefault();
         if (!newRequestTitle.trim()) return;
+        const finalDocType = (newRequestDocType === 'Custom' || isCustomDocType)
+            ? (customDocTypeInput.trim() || 'Custom Document')
+            : newRequestDocType;
+
         addRequestMutation.mutate({
             clientName: newRequestClient,
             title: newRequestTitle.trim(),
@@ -693,8 +696,10 @@ export default function BusinessCA() {
             // eslint-disable-next-line react-hooks/purity
             dueDate: newRequestDueDate || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().split('T')[0],
             priority: newRequestPriority,
-            docType: newRequestDocType
+            docType: finalDocType
         });
+        setIsCustomDocType(false);
+        setCustomDocTypeInput('');
     };
 
     const handleAddPracticeTask = (e) => {
@@ -4422,16 +4427,40 @@ export default function BusinessCA() {
                                     <textarea value={newRequestDesc} onChange={e => setNewRequestDesc(e.target.value)} placeholder="Please upload the employer issued Form 16..." style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none', height: '80px', resize: 'none' }} />
                                 </div>
 
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DOCUMENT CATEGORY</label>
+                                    <select 
+                                        value={newRequestDocType} 
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            setNewRequestDocType(val);
+                                            if (val === 'Custom') {
+                                                setIsCustomDocType(true);
+                                            } else {
+                                                setIsCustomDocType(false);
+                                            }
+                                        }} 
+                                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}
+                                    >
+                                        <option value="Form 16">Form 16 PDF</option>
+                                        <option value="Excel Ledger">Excel Inward Ledger</option>
+                                        <option value="KYC Scans">KYC Scans (PAN/Aadhaar)</option>
+                                        <option value="Interest Cert">Interest Certificate</option>
+                                        <option value="Custom">+ Custom Document Category</option>
+                                    </select>
+                                    {(newRequestDocType === 'Custom' || isCustomDocType) && (
+                                        <input
+                                            type="text"
+                                            value={customDocTypeInput}
+                                            onChange={e => setCustomDocTypeInput(e.target.value)}
+                                            placeholder="Enter custom category (e.g. Sales Ledger)..."
+                                            required
+                                            style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #15803d', fontSize: '12.5px', fontWeight: '600', outline: 'none', marginTop: '4px', background: '#F0FDF4', color: '#14532D' }}
+                                        />
+                                    )}
+                                </div>
+
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>DOCUMENT CATEGORY</label>
-                                        <select value={newRequestDocType} onChange={e => setNewRequestDocType(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
-                                            <option value="Form 16">Form 16 PDF</option>
-                                            <option value="Excel Ledger">Excel Inward Ledger</option>
-                                            <option value="KYC Scans">KYC Scans (PAN/Aadhaar)</option>
-                                            <option value="Interest Cert">Interest Certificate</option>
-                                        </select>
-                                    </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         <label style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B' }}>PRIORITY</label>
                                         <select value={newRequestPriority} onChange={e => setNewRequestPriority(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '700', color: '#475569', outline: 'none' }}>
