@@ -25,7 +25,6 @@ import {
     Gift,
     Coins,
     Truck,
-    Factory,
     Users2,
     Activity,
     Wrench,
@@ -81,7 +80,6 @@ const MASTER_SHORTCUTS = [
 
     // 🚚 Operations, Customization & CRM
     { id: 'delivery_challan', label: 'Delivery Challan', path: '/sales/delivery', icon: Truck, color: '#0891B2' },
-    { id: 'manufacturing_bom', label: 'Manufacturing BOM', path: '/manufacturing', icon: Factory, color: '#65A30D' },
     { id: 'customization', label: 'Theme Customization', path: '/customization', icon: Wrench, color: '#475569' },
 ];
 

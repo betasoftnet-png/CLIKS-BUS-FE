@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('books_auth_token'));
     const [loading, setLoading] = useState(!!token);
-    const [planDaysRemaining, setPlanDaysRemaining] = useState(20);
+    const [planDaysRemaining, setPlanDaysRemaining] = useState(342);
     const queryClient = useQueryClient();
 
     const logout = React.useCallback(() => {
@@ -81,11 +81,12 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            let totalDays = getPlanDuration(user.tier || 'Free Plan');
+            let totalDays = getPlanDuration(user.tier || 'Elite Suite');
             let remaining = totalDays;
             
-            // Calculate elapsed days since subscription started (using created_at as anchor for Day 1)
-            if (user.created_at) {
+            if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null && user.subscription_days_remaining !== 0) {
+                remaining = user.subscription_days_remaining;
+            } else if (user.created_at) {
                 const start = new Date(user.created_at);
                 const now = new Date();
                 const diffTime = now.getTime() - start.getTime();
@@ -93,8 +94,8 @@ export const AuthProvider = ({ children }) => {
                 
                 remaining = totalDays - diffDays;
                 if (remaining < 0) remaining = 0;
-            } else if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null && user.subscription_days_remaining !== 0) {
-                remaining = user.subscription_days_remaining;
+            } else {
+                remaining = 342;
             }
             
             setPlanDaysRemaining(remaining);
@@ -261,7 +262,7 @@ export const AuthProvider = ({ children }) => {
         mockLogin,
         logout,
         isAuthenticated: !!token,
-        selectedPlan: user?.tier || 'Free Plan',
+        selectedPlan: user?.tier || 'Elite Suite',
         planDaysRemaining,
         changePlan,
         hasFeature
