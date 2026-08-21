@@ -348,8 +348,14 @@ const BusinessWarehouse = () => {
         safeStocks.forEach(s => {
             if (!s) return;
             const loc = (s.location || '').toLowerCase();
-            const wh = (s.warehouse || '').toLowerCase();
-            if (loc === targetName || loc.includes(targetName) || wh === targetCode || wh === targetId.toLowerCase()) {
+            const wh = (s.warehouse || s.warehouse_name || s.warehouse_id || '').toLowerCase();
+            const sWhId = String(s.warehouse_id || '').toLowerCase();
+            const sWhName = (s.warehouse_name || '').toLowerCase();
+            if (
+                loc === targetName || (targetName && loc.includes(targetName)) ||
+                wh === targetCode || wh === targetId.toLowerCase() || wh === targetName ||
+                sWhId === targetId.toLowerCase() || (targetName && sWhName.includes(targetName))
+            ) {
                 const key = (s.sku || s.name || '').toLowerCase();
                 if (!seenSkus.has(key)) {
                     seenSkus.add(key);

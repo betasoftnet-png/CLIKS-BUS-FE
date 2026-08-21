@@ -242,6 +242,7 @@ const BusinessBilling = () => {
             queryClient.invalidateQueries({ queryKey: ['returns'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             alert('Returned items successfully assigned & moved to warehouse stock!');
             setMoveWarehouseModalReturn(null);
             setSelectedWarehouseForMove('');
