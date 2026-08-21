@@ -109,11 +109,14 @@ const BusinessCustomization = () => {
 
         // SYSTEM PREFERENCES (INTEGRATED FROM SETTINGS PAGE)
         darkMode: false,
+        language: 'EN-US',
         notifications: true,
         emailDigest: false,
         publicProfile: true,
         twoFactor: true,
         dataSharing: false,
+        passcodePin: '1234',
+        betaClubApplied: false,
 
         // PAYMENT MODULE CONFIGS
         paymentUpi: true,
@@ -147,11 +150,15 @@ const BusinessCustomization = () => {
                     userProfile = res?.data || res || {};
                 }
 
+                const localConfig = localStorage.getItem('cliks_business_config');
+                const parsedLocal = localConfig ? JSON.parse(localConfig) : {};
+
                 setConfig(prev => {
                     const merged = {
                         ...prev,
                         ...dbSettings,
-                        ...(dbSettings.settings || {})
+                        ...(dbSettings.settings || {}),
+                        ...parsedLocal
                     };
                     
                     // Fallback empty profile settings to registered account details
@@ -175,7 +182,14 @@ const BusinessCustomization = () => {
     }, []);
 
     const handleToggle = (key) => {
-        setConfig(prev => ({ ...prev, [key]: !prev[key] }));
+        setConfig(prev => {
+            const updated = { ...prev, [key]: !prev[key] };
+            if (key === 'darkMode') {
+                document.body.classList.toggle('dark-theme', updated.darkMode);
+                localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
+            }
+            return updated;
+        });
     };
 
     const handleTextChange = (key, val) => {
@@ -197,11 +211,15 @@ const BusinessCustomization = () => {
         try {
             await settingsService.updateSettings(config);
             localStorage.setItem('cliks_business_config', JSON.stringify(config));
-            alert('Master deployment parameters synchronized to secure ledger successfully!');
+            localStorage.setItem('cliks_active_config', JSON.stringify(config));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: config }));
+            alert('✅ Engine parameters & master configuration synchronized successfully!');
         } catch (err) {
-            console.warn('[Sync Router] Failed to write metadata, saving locally:', err);
+            console.warn('[Sync Router] Network sync error, saving locally:', err);
             localStorage.setItem('cliks_business_config', JSON.stringify(config));
-            alert('Deployment parameters saved to local workspace configuration!');
+            localStorage.setItem('cliks_active_config', JSON.stringify(config));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: config }));
+            alert('✅ Deployment parameters saved to local workspace configuration!');
         } finally {
             setIsSaving(false);
         }
@@ -709,6 +727,19 @@ const BusinessCustomization = () => {
                     <CustomizationCard title="Application Core" icon={Sliders}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <PremiumToggleItem label="Security Passcode" desc="Validate auth tokens before destructive operations." active={config.passcode} onToggle={() => handleToggle('passcode')} />
+                            {config.passcode && (
+                                <div style={{ marginLeft: '2.75rem', padding: '0.75rem 1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Security PIN:</label>
+                                    <input 
+                                        type="password" 
+                                        maxLength={6} 
+                                        value={config.passcodePin || '1234'} 
+                                        onChange={(e) => handleTextChange('passcodePin', e.target.value)} 
+                                        style={{ width: '80px', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: '800', letterSpacing: '2px', fontSize: '0.9rem' }} 
+                                    />
+                                    <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Default: 1234</span>
+                                </div>
+                            )}
                             <Divider />
                             <PremiumToggleItem label="Prevent Negative Inventory" desc="Restrict invoicing items when stock level <= 0." active={config.negativeStock} onToggle={() => handleToggle('negativeStock')} />
                             <Divider />
@@ -768,9 +799,20 @@ const BusinessCustomization = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#334155' }}>Language</h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Current system language: English (US)</p>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>System localization language</p>
                             </div>
-                            <div style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', background: '#F1F5F9', borderRadius: '6px', fontWeight: '750', color: '#475569' }}>EN-US</div>
+                            <select 
+                                value={config.language || 'EN-US'} 
+                                onChange={(e) => handleTextChange('language', e.target.value)}
+                                style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '6px', fontWeight: '750', color: '#1E293B', cursor: 'pointer', outline: 'none' }}
+                            >
+                                <option value="EN-US">EN-US (English)</option>
+                                <option value="HI-IN">HI-IN (Hindi)</option>
+                                <option value="TA-IN">TA-IN (Tamil)</option>
+                                <option value="TE-IN">TE-IN (Telugu)</option>
+                                <option value="MR-IN">MR-IN (Marathi)</option>
+                                <option value="GU-IN">GU-IN (Gujarati)</option>
+                            </select>
                         </div>
                     </div>
                 </CustomizationCard>
@@ -1044,6 +1086,17 @@ const BusinessCustomization = () => {
         </CustomizationCard>
     );
 
+    const handleApplyBeta = () => {
+        const isAlreadyApplied = Boolean(config.betaClubApplied);
+        const newStatus = !isAlreadyApplied;
+        setConfig(prev => ({ ...prev, betaClubApplied: newStatus }));
+        if (newStatus) {
+            alert('✅ Beta Club Application Submitted! Your business workspace has been queued for priority board review.');
+        } else {
+            alert('Application withdrawn.');
+        }
+    };
+
     const renderBetaClub = () => (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', padding: '2rem 0' }}>
             <div style={{ width: '100%', background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', borderRadius: '16px', padding: '3.5rem', textAlign: 'center', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
@@ -1055,10 +1108,21 @@ const BusinessCustomization = () => {
                 <p style={{ margin: '1.5rem auto', fontSize: '1.1rem', color: '#94A3B8', maxWidth: '650px', lineHeight: '1.7', fontWeight: '500' }}>
                     Gain exclusive early access to experimental features, AI-powered insights, and advanced integrations before they roll out to the public.
                 </p>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.5rem' }}>
-                    <button onClick={() => alert('Application queued! The board will review.')} style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#FFFFFF', border: 'none', padding: '1rem 2.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 10px 25px rgba(245, 158, 11, 0.3)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Crown size={18} /> APPLY FOR ACCESS
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '2.5rem' }}>
+                    <button 
+                        onClick={handleApplyBeta} 
+                        style={{ 
+                            background: config.betaClubApplied ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
+                            color: '#FFFFFF', border: 'none', padding: '1rem 2.5rem', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 10px 25px rgba(245, 158, 11, 0.3)', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' 
+                        }}
+                    >
+                        <Crown size={18} /> {config.betaClubApplied ? '✓ APPLICATION UNDER BOARD REVIEW' : 'APPLY FOR ACCESS'}
                     </button>
+                    {config.betaClubApplied && (
+                        <div style={{ fontSize: '0.8rem', color: '#10B981', fontWeight: '750', background: 'rgba(16, 185, 129, 0.1)', padding: '0.4rem 1rem', borderRadius: '100px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                            Status: Priority Queue Assigned — Board Review Pending
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
