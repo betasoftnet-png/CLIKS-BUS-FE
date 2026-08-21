@@ -1393,6 +1393,14 @@ const BusinessBilling = () => {
                         <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                             <Filter size={15} />
                         </button>
+                        {activeMainTab === 'sales_returns' && (
+                            <button 
+                                onClick={() => { setReturnFormType('sales'); setIsReturnModalOpen(true); }} 
+                                style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
+                            >
+                                + Create Sales Return
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1507,12 +1515,6 @@ const BusinessBilling = () => {
                                                 <RotateCcw size={32} opacity={0.4} />
                                                 <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Customer Sales Returns Found</p>
                                                 <span style={{ fontSize: '0.8rem' }}>Log sales returns and customer refund requests directly from invoices.</span>
-                                                <button 
-                                                    onClick={() => { setReturnFormType('sales'); setIsReturnModalOpen(true); }} 
-                                                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
-                                                >
-                                                    + Create Sales Return
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
