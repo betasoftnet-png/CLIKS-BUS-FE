@@ -1,0 +1,107 @@
+export const PERMISSIONS = {
+  // 1. FINANCE
+  FINANCE_ALL: 100,
+  FIN_ACC_ALL: 110,
+  FIN_ACC_PL: 111,
+  FIN_ACC_BALANCE_SHEET: 112,
+  FIN_ACC_REC_PAY: 113,
+  FIN_ACC_EXPENSES: 114,
+  FIN_ACC_CASH_BANK: 115,
+  FIN_EXP_ALL: 120,
+  FIN_EXP_REGISTRY_ITC: 121,
+  FIN_EXP_RECURRING: 122,
+  FIN_EXP_DEPT_BUDGETS: 123,
+  FIN_EXP_STAFF_REIMBURSE: 124,
+  FIN_TAX_ALL: 130,
+  FIN_TAX_GSTR1: 131,
+  FIN_TAX_GSTR2: 132,
+  FIN_TAX_GSTR3B: 133,
+  FIN_TAX_GSTR9: 134,
+  FIN_TAX_EINVOICE: 135,
+  FIN_TAX_EWAY: 136,
+
+  // 2. SALES
+  SALES_ALL: 200,
+  SALES_SEC_ALL: 210,
+  SALES_INVOICE: 211,
+  SALES_ORDERS_LIST: 212,
+  SALES_RETURNS: 213,
+  SALES_WARRANTY_CLAIMS: 214,
+  SALES_CUST_ALL: 220,
+  SALES_CUST_LIST: 221,
+  SALES_CUST_AGING_REPORTS: 222,
+  SALES_CUST_POINTS_RULES: 223,
+
+  // 3. PURCHASES
+  PURCHASES_ALL: 300,
+  PUR_SEC_ALL: 310,
+  PUR_INVOICE: 311,
+  PUR_ORDERS_PO: 312,
+  PUR_BILLS_INVOICES: 313,
+  PUR_RETURNS: 314,
+  PUR_SUPP_ALL: 320,
+  PUR_SUPP_LIST: 321,
+  PUR_SUPP_LEDGER: 322,
+  PUR_SUPP_AGING_REMINDERS: 323,
+
+  // 4. INVENTORY
+  INVENTORY_ALL: 400,
+  INV_SEC_ALL: 410,
+  INV_PRODUCTS: 411,
+  INV_STOCK: 412,
+  INV_STOCK_REGISTRY: 413,
+  INV_INWARD_OUTWARD: 414,
+  INV_TRANSFERS: 415,
+  INV_BATCHES_EXPIRY: 416,
+  INV_WH_ALL: 420,
+  INV_WH_GODOWNS: 421,
+  INV_WH_STOCK_REGISTRY: 422,
+  INV_WH_GOODS_LOGS: 423,
+  INV_WH_INTER_TRANSFERS: 424,
+
+  // 5. HR
+  HR_ALL: 500,
+  HR_STAFF_ALL: 510,
+  HR_STAFF_PROFILES: 511,
+  HR_STAFF_LEAVE_ROSTERS: 512,
+  HR_STAFF_APPRAISALS: 513,
+  HR_STAFF_REIMBURSEMENTS: 514,
+  HR_ATT_ALL: 520,
+  HR_ATT_TODAY_LOGS: 521,
+  HR_ATT_HISTORY_LEDGERS: 522,
+  HR_ATT_SHIFT_CONFIGS: 523,
+  HR_ATT_GPS_FENCING: 524,
+  HR_ATT_CORRECTION_VERIFY: 525,
+  HR_ATT_CALENDAR: 526,
+  HR_PAY_ALL: 530,
+  HR_PAY_MONTHLY_REGISTER: 531,
+  HR_PAY_SALARY_STRUCTURES: 532,
+  HR_PAY_COMPLIANCE: 533,
+  HR_PAY_LOANS_ADVANCES: 534,
+
+  // 6 - 9. OTHERS
+  POS_BILLING: 600,
+  REPORTS: 700,
+  BARCODE_GEN: 800,
+  MARKETING: 900
+};
+
+export function hasAccess(user, featureId) {
+  // Full access for parents or users without a permissions array
+  if (!user || !user.is_sub_id || !Array.isArray(user.permissions)) return true;
+
+  const perms = user.permissions;
+  
+  // 1. Check specific feature (e.g. 211)
+  if (perms.includes(featureId)) return true;
+  
+  // 2. Check sub-module parent (e.g. 210)
+  const subModuleId = Math.floor(featureId / 10) * 10; 
+  if (perms.includes(subModuleId)) return true;
+  
+  // 3. Check module parent (e.g. 200)
+  const moduleId = Math.floor(featureId / 100) * 100;
+  if (perms.includes(moduleId)) return true;
+
+  return false;
+}

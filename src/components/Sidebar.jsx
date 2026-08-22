@@ -52,13 +52,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/auth-context';
 import { useLanguage } from '../context/LanguageContext';
+import { PERMISSIONS, hasAccess } from '../utils/permissions';
 import '../App.css';
 import logoPng from '../assets/cliks6.png';
 import inventoryIconPng from '../assets/image.png';
 import hrIconPng from '../assets/image copy.png';
 import storageLogo from '../assets/storagelogo.png';
 
-const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false }) => {
+const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false, user }) => {
+    if (item.permission && !hasAccess(user, item.permission)) {
+        return null;
+    }
+    
     const IconComp = item.icon;
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
@@ -148,6 +153,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                                 isAdmin={isAdmin}
                                 isSales={isSales}
                                 isSupport={isSupport}
+                                user={user}
                             />
                         ))}
                     </div>
@@ -187,7 +193,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
 const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { selectedPlan, planDaysRemaining } = useAuth();
+    const { selectedPlan, planDaysRemaining, user } = useAuth();
 
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
@@ -314,50 +320,55 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             {
                 label: 'Finance',
                 icon: Banknote,
+                permission: PERMISSIONS.FINANCE_ALL,
                 children: [
-                    { label: 'Accounting', icon: Calculator, path: '/finance/accounting' },
-                    { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses' },
-                    { label: 'Tax', icon: PercentCircle, path: '/finance/gst' }
+                    { label: 'Accounting', icon: Calculator, path: '/finance/accounting', permission: PERMISSIONS.FIN_ACC_ALL },
+                    { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses', permission: PERMISSIONS.FIN_EXP_ALL },
+                    { label: 'Tax', icon: PercentCircle, path: '/finance/gst', permission: PERMISSIONS.FIN_TAX_ALL }
                 ]
             },
             {
                 label: 'Sales',
                 icon: ShoppingCart,
+                permission: PERMISSIONS.SALES_ALL,
                 children: [
-                    { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice' },
-                    { label: 'Customers', icon: Users, path: '/sales/customers' }
+                    { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice', permission: PERMISSIONS.SALES_SEC_ALL },
+                    { label: 'Customers', icon: Users, path: '/sales/customers', permission: PERMISSIONS.SALES_CUST_ALL }
                 ]
             },
             {
                 label: 'Purchases',
                 icon: ShoppingCart,
+                permission: PERMISSIONS.PURCHASES_ALL,
                 children: [
-                    { label: 'Purchase Invoice', icon: ShoppingCart, path: '/purchases/purchases' },
-                    { label: 'Suppliers', icon: UsersRound, path: '/purchases/suppliers' }
+                    { label: 'Purchase Invoice', icon: ShoppingCart, path: '/purchases/purchases', permission: PERMISSIONS.PUR_SEC_ALL },
+                    { label: 'Suppliers', icon: UsersRound, path: '/purchases/suppliers', permission: PERMISSIONS.PUR_SUPP_ALL }
                 ]
             },
             {
                 label: 'Inventory',
                 icon: Package,
+                permission: PERMISSIONS.INVENTORY_ALL,
                 children: [
-                    { label: 'Products', icon: Package, path: '/inventory/products' },
-                    { label: 'Stock', icon: Layers, path: '/inventory/stock' },
-                    { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse' }
+                    { label: 'Products', icon: Package, path: '/inventory/products', permission: PERMISSIONS.INV_PRODUCTS },
+                    { label: 'Stock', icon: Layers, path: '/inventory/stock', permission: PERMISSIONS.INV_STOCK },
+                    { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse', permission: PERMISSIONS.INV_WH_ALL }
                 ]
             },
             {
                 label: 'HR',
                 icon: UsersRound,
+                permission: PERMISSIONS.HR_ALL,
                 children: [
-                    { label: 'Staff', icon: UsersRound, path: '/hr/staff' },
-                    { label: 'Attendance', icon: Calendar, path: '/hr/attendance' },
-                    { label: 'Payroll', icon: FileCheck, path: '/hr/payroll' }
+                    { label: 'Staff', icon: UsersRound, path: '/hr/staff', permission: PERMISSIONS.HR_STAFF_ALL },
+                    { label: 'Attendance', icon: Calendar, path: '/hr/attendance', permission: PERMISSIONS.HR_ATT_ALL },
+                    { label: 'Payroll', icon: FileCheck, path: '/hr/payroll', permission: PERMISSIONS.HR_PAY_ALL }
                 ]
             },
-            { label: 'POS Billing', icon: Monitor, path: '/pos' },
-            { label: 'Reports', icon: BarChart3, path: '/reports' },
-            { label: 'Barcode Gen', icon: Barcode, path: '/barcode' },
-            { label: 'Marketing', icon: Megaphone, path: '/marketing' }
+            { label: 'POS Billing', icon: Monitor, path: '/pos', permission: PERMISSIONS.POS_BILLING },
+            { label: 'Reports', icon: BarChart3, path: '/reports', permission: PERMISSIONS.REPORTS },
+            { label: 'Barcode Gen', icon: Barcode, path: '/barcode', permission: PERMISSIONS.BARCODE_GEN },
+            { label: 'Marketing', icon: Megaphone, path: '/marketing', permission: PERMISSIONS.MARKETING }
         ],
         social: [
             { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub', color: '#FFD700' },
@@ -456,6 +467,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                     toggleMenu={toggleMenu}
                                     handleItemClick={handleItemClick}
                                     isAdmin={true}
+                                    user={user}
                                 />
                             ))}
                         </>
@@ -471,6 +483,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                     toggleMenu={toggleMenu}
                                     handleItemClick={handleItemClick}
                                     isSales={true}
+                                    user={user}
                                 />
                             ))}
                         </>
@@ -486,6 +499,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                     toggleMenu={toggleMenu}
                                     handleItemClick={handleItemClick}
                                     isSupport={true}
+                                    user={user}
                                 />
                             ))}
                         </>
@@ -495,7 +509,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             <div style={{ paddingTop: '1.5rem' }}>
                                 {navigationConfig.social.map(item => (
                                     <React.Fragment key={item.label}>
-                                        <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                        <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} user={user} />
                                         {item.label === 'Trading docs' && (
                                             <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '10px 0.75rem', opacity: 0.6 }} />
                                         )}
@@ -535,7 +549,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             </button>
                             {navigationConfig.financeMode.map(item => (
                                 <React.Fragment key={item.label}>
-                                    <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                    <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} user={user} />
                                 </React.Fragment>
                             ))}
                         </>
@@ -543,7 +557,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         <>
                             {navigationConfig.standard.map(item => (
                                 <React.Fragment key={item.label}>
-                                    <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} />
+                                    <MenuItem item={item} activeItem={activeItem} openMenus={openMenus} toggleMenu={toggleMenu} handleItemClick={handleItemClick} user={user} />
                                     {item.label === 'Dashboard' && (
                                         <>
                                             <button
