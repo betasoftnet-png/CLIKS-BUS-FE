@@ -787,6 +787,17 @@ const BusinessBilling = () => {
         return list;
     }, [rawWarehouses]);
 
+    const { data: rawProducts = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts().catch(() => []),
+        refetchOnWindowFocus: false
+    });
+
+    const warrantyEligibleProducts = React.useMemo(() => {
+        const prods = Array.isArray(rawProducts) ? rawProducts : (rawProducts?.data || []);
+        return prods.filter(p => p.has_warranty === 'Yes' || p.has_warranty === true || String(p.has_warranty).toLowerCase() === 'yes');
+    }, [rawProducts]);
+
     React.useEffect(() => {
         const email = formData.client_email ? String(formData.client_email).trim() : '';
         if (!email || !email.includes('@')) {
@@ -2971,6 +2982,48 @@ const BusinessBilling = () => {
                                     )}
                                 </select>
                             </div>
+                            {returnFormType === 'warranty' && (
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                        Select Covered Product *
+                                    </label>
+                                    <select
+                                        required
+                                        value={newReturnData.product_name || ''}
+                                        onChange={(e) => {
+                                            const pName = e.target.value;
+                                            const matchedProd = warrantyEligibleProducts.find(p => p.name === pName);
+                                            setNewReturnData(prev => ({
+                                                ...prev,
+                                                product_name: pName,
+                                                warranty_period: matchedProd?.warranty_period || ''
+                                            }));
+                                            if (matchedProd) {
+                                                setSelectedReturnItems([{
+                                                    id: matchedProd.id,
+                                                    product_id: matchedProd.id,
+                                                    product_name: matchedProd.name,
+                                                    return_quantity: 1,
+                                                    price: parseFloat(matchedProd.selling_price || matchedProd.price || 0),
+                                                    selected: true
+                                                }]);
+                                            }
+                                        }}
+                                        style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, background: 'white', cursor: 'pointer' }}
+                                    >
+                                        <option value="">-- Select Warranty-Covered Product --</option>
+                                        {warrantyEligibleProducts.length === 0 ? (
+                                            <option value="" disabled>No Warranty-Covered Products Registered (Warranty Details: Yes)</option>
+                                        ) : (
+                                            warrantyEligibleProducts.map((p, idx) => (
+                                                <option key={idx} value={p.name}>
+                                                    {p.name} {p.sku ? `[${p.sku}]` : ''} — Warranty: {p.warranty_period || 'Covered'}
+                                                </option>
+                                            ))
+                                        )}
+                                    </select>
+                                </div>
+                            )}
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
                                     {returnFormType === 'warranty' ? 'Serial / IMEI Number' : 'Invoice / Bill Number'}

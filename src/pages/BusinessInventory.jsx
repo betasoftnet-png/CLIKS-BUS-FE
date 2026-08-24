@@ -335,7 +335,9 @@ const BusinessInventory = () => {
         secondary_unit: 'box',
         conversion_rate: 1,
         warehouse: 'Main Godown',
-        rack_number: ''
+        rack_number: '',
+        has_warranty: 'No',
+        warranty_period: ''
     }));
 
     // HSN Intelligent Search State (Placed after formData & isModalOpen declarations)
@@ -479,7 +481,9 @@ const BusinessInventory = () => {
             secondary_unit: 'box',
             conversion_rate: 1,
             warehouse: 'Main Godown',
-            rack_number: ''
+            rack_number: '',
+            has_warranty: 'No',
+            warranty_period: ''
         });
     };
 
@@ -519,7 +523,9 @@ const BusinessInventory = () => {
             secondary_unit: item.secondary_unit || 'box',
             conversion_rate: item.conversion_rate || 1,
             warehouse: item.warehouse || 'Main Godown',
-            rack_number: item.rack_number || ''
+            rack_number: item.rack_number || '',
+            has_warranty: item.has_warranty || 'No',
+            warranty_period: item.warranty_period || ''
         });
         setIsModalOpen(true);
     };
@@ -1346,6 +1352,55 @@ const BusinessInventory = () => {
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Rack Location</label>
                                             <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Rack 4" />
                                         </div>
+                                    </div>
+
+                                    {/* Warranty Details */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', borderTop: '1px solid #DCF2E4', paddingTop: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warranty Details</label>
+                                            <div style={{ display: 'flex', gap: '0.35rem', background: 'white', padding: '4px', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setFormData({ ...formData, has_warranty: 'Yes', warranty_period: formData.warranty_period || '1 Year' })} 
+                                                    style={{ 
+                                                        flex: 1, padding: '0.55rem', borderRadius: '9px', border: 'none', 
+                                                        background: formData.has_warranty === 'Yes' ? '#1B6B3A' : 'transparent', 
+                                                        color: formData.has_warranty === 'Yes' ? 'white' : '#64748B', 
+                                                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' 
+                                                    }}
+                                                >
+                                                    Yes
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setFormData({ ...formData, has_warranty: 'No', warranty_period: '' })} 
+                                                    style={{ 
+                                                        flex: 1, padding: '0.55rem', borderRadius: '9px', border: 'none', 
+                                                        background: formData.has_warranty !== 'Yes' ? '#64748B' : 'transparent', 
+                                                        color: formData.has_warranty !== 'Yes' ? 'white' : '#64748B', 
+                                                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' 
+                                                    }}
+                                                >
+                                                    No
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {formData.has_warranty === 'Yes' && (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warranty Period *</label>
+                                                <select 
+                                                    value={formData.warranty_period || '1 Year'} 
+                                                    onChange={(e) => setFormData({ ...formData, warranty_period: e.target.value })} 
+                                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}
+                                                >
+                                                    <option value="6 Months">6 Months</option>
+                                                    <option value="1 Year">1 Year</option>
+                                                    <option value="2 Years">2 Years</option>
+                                                    <option value="3 Years">3 Years</option>
+                                                    <option value="5 Years">5 Years</option>
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
