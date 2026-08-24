@@ -1176,10 +1176,10 @@ const BusinessCRM = () => {
                                                     <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0 }}>{row.name}</p>
                                                     <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Code: {row.customer_code}</span>
                                                     {(() => {
-                                                        const rawSt = String(row.status || row.connection_status || row.connectionStatus || '').toLowerCase();
+                                                        const rawSt = String(row.connection_status || row.connectionStatus || row.status || '').toLowerCase();
                                                         let displayStatus = 'unconnected';
                                                         let statusColor = '#64748B';
-                                                        if (rawSt === 'accepted' || rawSt === 'connected') {
+                                                        if (rawSt === 'accepted' || rawSt === 'connected' || rawSt === 'active') {
                                                             displayStatus = 'connected';
                                                             statusColor = '#10B981';
                                                         } else if (rawSt === 'pending') {

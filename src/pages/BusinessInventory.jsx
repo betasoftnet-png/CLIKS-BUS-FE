@@ -334,7 +334,7 @@ const BusinessInventory = () => {
         primary_unit: 'pcs',
         secondary_unit: 'box',
         conversion_rate: 1,
-        warehouse: 'Main Godown',
+        warehouse: '',
         rack_number: '',
         has_warranty: 'No',
         warranty_period: ''
@@ -480,7 +480,7 @@ const BusinessInventory = () => {
             primary_unit: 'pcs',
             secondary_unit: 'box',
             conversion_rate: 1,
-            warehouse: 'Main Godown',
+            warehouse: '',
             rack_number: '',
             has_warranty: 'No',
             warranty_period: ''
@@ -554,6 +554,11 @@ const BusinessInventory = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        if (!formData.warehouse || !String(formData.warehouse).trim()) {
+            alert("Please select a warehouse storage facility.");
+            return;
+        }
 
         // Enforce GST law: HSN/SAC code must strictly be numeric (4, 6, or 8 digits)
         const cleanHsn = (formData.hsn_code || '').trim();
@@ -1337,22 +1342,28 @@ const BusinessInventory = () => {
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
-                                            <select value={formData.warehouse} onChange={(e) => setFormData({...formData, warehouse: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}>
+                                            <select 
+                                                required
+                                                value={formData.warehouse} 
+                                                onChange={(e) => setFormData({...formData, warehouse: e.target.value})} 
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: formData.warehouse ? '#0F172A' : '#94A3B8' }}
+                                            >
+                                                <option value="" disabled hidden>Select your warehouse</option>
                                                 {dbWarehouses.length > 0 ? (
                                                     dbWarehouses.map(w => {
                                                         const wName = w.name || w.warehouse_name;
                                                         return (
-                                                            <option key={w.id} value={wName}>
+                                                            <option key={w.id} value={wName} style={{ color: '#0F172A' }}>
                                                                 {wName}
                                                             </option>
                                                         );
                                                     })
                                                 ) : (
                                                     <>
-                                                        <option value="Main Godown">Main Godown (Bulk Storage)</option>
-                                                        <option value="Chennai godown">Chennai godown</option>
-                                                        <option value="Tiruvallur godown">Tiruvallur godown</option>
-                                                        <option value="Damaged products godown">⚠️ Damaged products godown (Non-Sellable)</option>
+                                                        <option value="Main Godown" style={{ color: '#0F172A' }}>Main Godown (Bulk Storage)</option>
+                                                        <option value="Chennai godown" style={{ color: '#0F172A' }}>Chennai godown</option>
+                                                        <option value="Tiruvallur godown" style={{ color: '#0F172A' }}>Tiruvallur godown</option>
+                                                        <option value="Damaged products godown" style={{ color: '#0F172A' }}>⚠️ Damaged products godown (Non-Sellable)</option>
                                                     </>
                                                 )}
                                             </select>
