@@ -1034,7 +1034,6 @@ const BusinessPurchases = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead style={{ background: '#F8FAFC' }}>
                                 <tr>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Return Ref</th>
                                     <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / Purchase ID</th>
                                     <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
                                     <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
@@ -1046,8 +1045,7 @@ const BusinessPurchases = () => {
                                 {supplierReturnsList.length > 0 ? (
                                     supplierReturnsList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((pr) => (
                                         <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{pr.return_number || `PRN-${pr.id}`}</td>
-                                            <td style={{ padding: '1.25rem', fontWeight: '700', color: '#475569' }}>{pr.purchase_id || pr.purchase_number || 'N/A'}</td>
+                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{pr.return_number || pr.purchase_id || pr.purchase_number || `PRN-${pr.id}`}</td>
                                             <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{pr.supplier_name || 'N/A'}</td>
                                             <td style={{ padding: '1.25rem' }}>
                                                 {(pr.items || []).map((item, idx) => (
@@ -1075,8 +1073,7 @@ const BusinessPurchases = () => {
                                 ) : (
                                     purchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
                                         <tr key={ret.return_id || ret.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#B91C1C' }}>{ret.return_id || ret.doc_number}</td>
-                                            <td style={{ padding: '1.25rem', fontWeight: '700', color: '#475569' }}>{ret.purchase_number || 'N/A'}</td>
+                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{ret.return_id || ret.doc_number || ret.purchase_number}</td>
                                             <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{ret.supplier_name}</td>
                                             <td style={{ padding: '1.25rem' }}>
                                                 {(ret.items || ret.returned_items || []).map((item, idx) => (
