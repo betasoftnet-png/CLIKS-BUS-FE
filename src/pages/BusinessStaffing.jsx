@@ -1411,24 +1411,8 @@ const BusinessStaffing = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Corporate Email (BNX / Company Mail)</label>
-                                                <span style={{ fontSize: '0.68rem', color: '#10B981', fontWeight: '750' }}>CLIKS App Sync</span>
-                                            </div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Corporate Email (BNX / Company Mail)</label>
                                             <input required type="email" value={newEmp.email} onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="arun.kumar@bnxmail.com" />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    if (!newEmp.email) {
-                                                        alert("Please enter the employee's corporate email first.");
-                                                        return;
-                                                    }
-                                                    alert(`Invitation request dispatched to ${newEmp.email}! The employee will receive a notification in CLIKS app to connect with your company.`);
-                                                }}
-                                                style={{ marginTop: '0.4rem', padding: '0.35rem 0.65rem', borderRadius: '8px', background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#047857', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                            >
-                                                <Send size={12} /> Send CLIKS Connection Request
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
