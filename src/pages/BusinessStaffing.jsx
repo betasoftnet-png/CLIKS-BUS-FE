@@ -1403,11 +1403,36 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Blood Group</label>
-                                                <input type="text" value={newEmp.blood_group} onChange={(e) => setNewEmp({ ...newEmp, blood_group: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="O+" />
+                                                <select 
+                                                    value={newEmp.blood_group || 'O+'} 
+                                                    onChange={(e) => setNewEmp({ ...newEmp, blood_group: e.target.value })} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}
+                                                >
+                                                    <option value="A+">A+</option>
+                                                    <option value="A-">A-</option>
+                                                    <option value="B+">B+</option>
+                                                    <option value="B-">B-</option>
+                                                    <option value="O+">O+</option>
+                                                    <option value="O-">O-</option>
+                                                    <option value="AB+">AB+</option>
+                                                    <option value="AB-">AB-</option>
+                                                </select>
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Phone</label>
-                                                <input required type="text" value={newEmp.phone_number} onChange={(e) => setNewEmp({ ...newEmp, phone_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="+91 98765 43210" />
+                                                <input 
+                                                    required 
+                                                    type="text" 
+                                                    maxLength={10}
+                                                    pattern="[0-9]{10}"
+                                                    value={newEmp.phone_number} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                                                        setNewEmp({ ...newEmp, phone_number: val });
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                    placeholder="9876543210" 
+                                                />
                                             </div>
                                         </div>
                                         <div>
