@@ -213,9 +213,18 @@ const BusinessDelivery = () => {
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
         queryKey: ['settings'],
         queryFn: settingsService.getSettings,
-        refetchOnWindowFocus: false
+        refetchOnWindowFocus: true
     });
-    const activeConfig = userSettings?.data || userSettings || {};
+    const fetchedSettings = userSettings?.data || userSettings || {};
+    const localActive = localStorage.getItem('cliks_active_config') || localStorage.getItem('cliks_business_config');
+    const parsedLocalActive = localActive ? JSON.parse(localActive) : {};
+
+    const activeConfig = {
+        deliveryChallan: true,
+        ...parsedLocalActive,
+        ...fetchedSettings,
+        ...(fetchedSettings.settings || {})
+    };
 
     const [deliveries, setDeliveries] = useState(() => {
         const local = localStorage.getItem('cliks_deliveries');

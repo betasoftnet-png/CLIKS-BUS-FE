@@ -7,6 +7,7 @@ import {
     Globe, Shield, Coins, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import '../App.css';
 import { Toggle } from '../components/ui/toggle';
 import { settingsService, profileService } from '../services';
@@ -17,6 +18,7 @@ const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 const BusinessCustomization = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [isSaving, setIsSaving] = useState(false);
     const { currency } = useCurrency();
     const { t, language, setLanguage } = useLanguage();
@@ -157,11 +159,17 @@ const BusinessCustomization = () => {
                 setConfig(prev => {
                     const merged = {
                         ...prev,
+                        ...parsedLocal,
                         ...dbSettings,
-                        ...(dbSettings.settings || {}),
-                        ...parsedLocal
+                        ...(dbSettings.settings || {})
                     };
                     
+                    if (dbSettings.deliveryChallan !== undefined) {
+                        merged.deliveryChallan = Boolean(dbSettings.deliveryChallan);
+                    } else if (dbSettings.settings && dbSettings.settings.deliveryChallan !== undefined) {
+                        merged.deliveryChallan = Boolean(dbSettings.settings.deliveryChallan);
+                    }
+
                     // Priority for signatureUrl & logoUrl: check dbSettings first, then parsedLocal
                     if (dbSettings.signatureUrl !== undefined) {
                         merged.signatureUrl = dbSettings.signatureUrl;
@@ -215,6 +223,11 @@ const BusinessCustomization = () => {
             localStorage.setItem('cliks_business_config', JSON.stringify(updated));
             localStorage.setItem('cliks_active_config', JSON.stringify(updated));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+
+            // Auto-persist toggle update to backend database permanently
+            settingsService.updateSettings(updated).catch(err => console.warn('[Settings Engine] Failed to save toggle to cloud:', err));
+            try { queryClient.invalidateQueries({ queryKey: ['settings'] }); } catch (e) {}
+
             return updated;
         });
     };
