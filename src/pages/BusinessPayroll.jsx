@@ -76,6 +76,7 @@ const BusinessPayroll = () => {
         mutationFn: ({ id, data }) => payrollService.createLoan(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', salary_advance: '', deduction_months: '' });
             setIsLoanModalOpen(false);
             alert('Employee loan allocation verified and remaining balance recorded successfully!');
         }
@@ -257,16 +258,21 @@ const BusinessPayroll = () => {
 
     const handleCreateLoan = (e) => {
         e.preventDefault();
+        const loanAmt = parseFloat(loanForm.loan_amount) || 0;
+        const emiAmt = parseFloat(loanForm.emi_amount) || 0;
+        const months = emiAmt > 0 ? Math.ceil(loanAmt / emiAmt) : (parseInt(loanForm.deduction_months) || 0);
+
         const matchingRecord = payrollRecords.find(r => r.employee_name === loanForm.employee_name);
         const targetId = matchingRecord ? matchingRecord.payroll_id : 1;
         createLoanMutation.mutate({
             id: targetId,
             data: {
                 employee_name: loanForm.employee_name,
-                loan_amount: parseFloat(loanForm.loan_amount) || 0,
-                emi_amount: parseFloat(loanForm.emi_amount) || 0,
-                remaining_balance: parseFloat(loanForm.loan_amount) || 0,
-                salary_advance: parseFloat(loanForm.salary_advance) || 0
+                loan_amount: loanAmt,
+                emi_amount: emiAmt,
+                remaining_balance: loanAmt,
+                salary_advance: parseFloat(loanForm.salary_advance) || 0,
+                deduction_months: months
             }
         });
     };
@@ -305,7 +311,10 @@ const BusinessPayroll = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
-                        onClick={() => setIsLoanModalOpen(true)}
+                        onClick={() => {
+                            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', salary_advance: '', deduction_months: '' });
+                            setIsLoanModalOpen(true);
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Sliders size={15} /> Allocate Employee Loan
@@ -697,7 +706,7 @@ const BusinessPayroll = () => {
                                 <select 
                                     required 
                                     value={loanForm.employee_name} 
-                                    onChange={(e) => setLoanForm({ ...loanForm, employee_name: e.target.value })} 
+                                    onChange={(e) => setLoanForm(prev => ({ ...prev, employee_name: e.target.value }))} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     <option value="">-- Select Employee --</option>
@@ -713,31 +722,81 @@ const BusinessPayroll = () => {
                                         type="number" 
                                         placeholder="e.g. 2000"
                                         value={loanForm.loan_amount} 
-                                        onChange={(e) => setLoanForm({ ...loanForm, loan_amount: e.target.value })} 
+                                        onChange={(e) => {
+                                            const amt = e.target.value;
+                                            setLoanForm(prev => {
+                                                const emi = parseFloat(prev.emi_amount);
+                                                const loan = parseFloat(amt);
+                                                const months = (loan > 0 && emi > 0) ? Math.ceil(loan / emi) : prev.deduction_months;
+                                                return { ...prev, loan_amount: amt, deduction_months: months };
+                                            });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly EMI</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly EMI ({currency.symbol})</label>
                                     <input 
                                         type="number" 
                                         placeholder="e.g. 50"
                                         value={loanForm.emi_amount} 
-                                        onChange={(e) => setLoanForm({ ...loanForm, emi_amount: e.target.value })} 
+                                        onChange={(e) => {
+                                            const emiStr = e.target.value;
+                                            setLoanForm(prev => {
+                                                const emi = parseFloat(emiStr);
+                                                const loan = parseFloat(prev.loan_amount);
+                                                const months = (loan > 0 && emi > 0) ? Math.ceil(loan / emi) : prev.deduction_months;
+                                                return { ...prev, emi_amount: emiStr, deduction_months: months };
+                                            });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
                             </div>
 
-                            {/* Loan Deduction Duration Calculation */}
-                            {parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > 0 && (
-                                <div style={{ background: '#F0FDF4', border: '1px solid #DCF2E4', padding: '0.65rem 0.85rem', borderRadius: '12px', fontSize: '0.8rem', color: '#166534', fontWeight: '750', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>🗓️ Loan Deduction Tenure:</span>
-                                    <span style={{ fontWeight: '850', color: '#15803D' }}>
-                                        {Math.ceil(parseFloat(loanForm.loan_amount) / parseFloat(loanForm.emi_amount))} Months ({currency.symbol}{parseFloat(loanForm.emi_amount)}/mo)
+                            {/* Loan Deduction Period (Months) Field */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Deduction Period (Months)</label>
+                                <input 
+                                    type="number" 
+                                    placeholder="e.g. 40"
+                                    value={
+                                        loanForm.deduction_months !== undefined && loanForm.deduction_months !== ''
+                                            ? loanForm.deduction_months
+                                            : ((parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > 0)
+                                                ? Math.ceil(parseFloat(loanForm.loan_amount) / parseFloat(loanForm.emi_amount))
+                                                : '')
+                                    }
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const months = parseFloat(val);
+                                        const loanAmt = parseFloat(loanForm.loan_amount);
+                                        if (months > 0 && loanAmt > 0) {
+                                            const emi = Math.round((loanAmt / months) * 100) / 100;
+                                            setLoanForm(prev => ({ ...prev, emi_amount: String(emi), deduction_months: val }));
+                                        } else {
+                                            setLoanForm(prev => ({ ...prev, deduction_months: val }));
+                                        }
+                                    }}
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                />
+                                {parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > 0 && (
+                                    <span style={{ fontSize: '0.72rem', color: '#166534', fontWeight: '700', marginTop: '0.35rem', display: 'block' }}>
+                                        {(() => {
+                                            const loanAmt = parseFloat(loanForm.loan_amount);
+                                            const emiAmt = parseFloat(loanForm.emi_amount);
+                                            const months = Math.ceil(loanAmt / emiAmt);
+                                            const fullMonths = Math.floor(loanAmt / emiAmt);
+                                            const remainder = Math.round((loanAmt - (fullMonths * emiAmt)) * 100) / 100;
+                                            if (remainder > 0) {
+                                                return `🗓️ Deduction Period: ${fullMonths} cycles @ ${currency.symbol}${emiAmt} + final cycle @ ${currency.symbol}${remainder} (${months} Months total)`;
+                                            } else {
+                                                return `🗓️ Deduction Period: ${months} cycles @ ${currency.symbol}${emiAmt}/month (${months} Months total)`;
+                                            }
+                                        })()}
                                     </span>
-                                </div>
-                            )}
+                                )}
+                            </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Immediate Salary Advance ({currency.symbol})</label>
@@ -745,7 +804,7 @@ const BusinessPayroll = () => {
                                     type="number" 
                                     placeholder="e.g. 500"
                                     value={loanForm.salary_advance} 
-                                    onChange={(e) => setLoanForm({ ...loanForm, salary_advance: e.target.value })} 
+                                    onChange={(e) => setLoanForm(prev => ({ ...prev, salary_advance: e.target.value }))} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                             </div>
