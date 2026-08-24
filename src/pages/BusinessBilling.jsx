@@ -3166,74 +3166,91 @@ const BusinessBilling = () => {
                 </div>
             )}
             {/* MOVE TO WAREHOUSE MODAL POPUP */}
-            {moveWarehouseModalReturn && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '20px', padding: '1.5rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
-                                    <Warehouse size={20} />
+            {moveWarehouseModalReturn && (() => {
+                const items = Array.isArray(moveWarehouseModalReturn.items) ? moveWarehouseModalReturn.items : [];
+                const prodName = items.length > 0 ? (items[0].product_name || items[0].name) : (moveWarehouseModalReturn.product_name || 'Returned Item');
+                const retQty = items.length > 0 ? (items[0].return_quantity || items[0].quantity || 1) : (moveWarehouseModalReturn.return_quantity || 1);
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '20px', padding: '1.5rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.2)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+                                        <Warehouse size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>Move Returned Products</h4>
+                                        <span style={{ fontSize: '0.75rem', color: '#2563EB', fontWeight: 800, fontFamily: 'monospace' }}>
+                                            Return Ref: {moveWarehouseModalReturn.return_number || `RET-${moveWarehouseModalReturn.id}`}
+                                        </span>
+                                    </div>
                                 </div>
+                                <button onClick={() => setMoveWarehouseModalReturn(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
+                            </div>
+
+                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700' }}>Product:</span>
+                                    <span style={{ fontSize: '0.82rem', color: '#0F172A', fontWeight: '800' }}>{prodName}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700' }}>Returned Quantity:</span>
+                                    <span style={{ fontSize: '0.82rem', color: '#2563EB', fontWeight: '850' }}>{retQty}</span>
+                                </div>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!selectedWarehouseForMove) {
+                                    alert('Please select a warehouse');
+                                    return;
+                                }
+                                assignWarehouseMutation.mutate({
+                                    returnId: moveWarehouseModalReturn.id,
+                                    warehouseName: selectedWarehouseForMove
+                                });
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div>
-                                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>Move to Warehouse</h4>
-                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>
-                                        {moveWarehouseModalReturn.return_number || `RET-${moveWarehouseModalReturn.id}`}
-                                    </span>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '6px', textTransform: 'uppercase' }}>
+                                        Select Warehouse *
+                                    </label>
+                                    <select
+                                        required
+                                        value={selectedWarehouseForMove}
+                                        onChange={(e) => setSelectedWarehouseForMove(e.target.value)}
+                                        style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', cursor: 'pointer' }}
+                                    >
+                                        <option value="">-- Select Registered Warehouse --</option>
+                                        {dbWarehousesList.map((wh, idx) => (
+                                            <option key={idx} value={wh.name || wh.id}>
+                                                {wh.name} {wh.code ? `(${wh.code})` : ''} {wh.location ? `— ${wh.location}` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
-                            </div>
-                            <button onClick={() => setMoveWarehouseModalReturn(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
+
+                                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMoveWarehouseModalReturn(null)}
+                                        style={{ padding: '0.6rem 1.1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#475569', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={assignWarehouseMutation.isPending}
+                                        style={{ padding: '0.6rem 1.4rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', opacity: assignWarehouseMutation.isPending ? 0.7 : 1 }}
+                                    >
+                                        {assignWarehouseMutation.isPending ? 'Submitting...' : 'Move to Warehouse'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            if (!selectedWarehouseForMove) {
-                                alert('Please select a warehouse');
-                                return;
-                            }
-                            assignWarehouseMutation.mutate({
-                                returnId: moveWarehouseModalReturn.id,
-                                warehouseName: selectedWarehouseForMove
-                            });
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '6px', textTransform: 'uppercase' }}>
-                                    Select Destination Warehouse *
-                                </label>
-                                <select
-                                    required
-                                    value={selectedWarehouseForMove}
-                                    onChange={(e) => setSelectedWarehouseForMove(e.target.value)}
-                                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', cursor: 'pointer' }}
-                                >
-                                    <option value="">-- Select Registered Warehouse --</option>
-                                    {dbWarehousesList.map((wh, idx) => (
-                                        <option key={idx} value={wh.name || wh.id}>
-                                            {wh.name} {wh.code ? `(${wh.code})` : ''} {wh.location ? `— ${wh.location}` : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => setMoveWarehouseModalReturn(null)}
-                                    style={{ padding: '0.6rem 1.1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#475569', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={assignWarehouseMutation.isPending}
-                                    style={{ padding: '0.6rem 1.4rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', opacity: assignWarehouseMutation.isPending ? 0.7 : 1 }}
-                                >
-                                    {assignWarehouseMutation.isPending ? 'Submitting...' : 'Confirm Move'}
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                );
+            })()}
             {/* Supplier Portal View (Confirm Order & Availability Response) Modal */}
             {isSupplierViewModalOpen && supplierViewPO && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
