@@ -436,6 +436,8 @@ const BusinessPOS = () => {
     // 4b. Fetch Customer Specific Order History
     const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);
     const [customerHistoryModalCustomer, setCustomerHistoryModalCustomer] = useState(null);
+    const [historyProductFilter, setHistoryProductFilter] = useState('');
+    const [historyPosSearch, setHistoryPosSearch] = useState('');
 
     const { data: customerOrders = [], isLoading: isCustomerOrdersLoading } = useQuery({
         queryKey: ['customer-orders', customerHistoryModalCustomer?.id || customerHistoryModalCustomer?.customer_id, customerHistoryModalCustomer?.name, customerHistoryModalCustomer?.email],
@@ -484,6 +486,44 @@ const BusinessPOS = () => {
         },
         enabled: isCustomerHistoryModalOpen && !!customerHistoryModalCustomer
     });
+
+    const customerPurchasedProducts = React.useMemo(() => {
+        const set = new Set();
+        customerOrders.forEach(order => {
+            const items = Array.isArray(order.items) ? order.items : [];
+            items.forEach(item => {
+                const name = item.name || item.description;
+                if (name && name.trim()) {
+                    set.add(name.trim());
+                }
+            });
+        });
+        return Array.from(set).sort();
+    }, [customerOrders]);
+
+    const filteredCustomerOrders = React.useMemo(() => {
+        return customerOrders.filter(order => {
+            if (historyProductFilter && historyProductFilter !== 'All') {
+                const items = Array.isArray(order.items) ? order.items : [];
+                const hasProduct = items.some(item => {
+                    const name = (item.name || item.description || '').trim().toLowerCase();
+                    return name === historyProductFilter.trim().toLowerCase();
+                });
+                if (!hasProduct) return false;
+            }
+
+            if (historyPosSearch && historyPosSearch.trim()) {
+                const searchLower = historyPosSearch.trim().toLowerCase();
+                const orderNum = (order.invoice_number || `POS-${order.id}` || '').toLowerCase();
+                const altId = String(order.id || '').toLowerCase();
+                if (!orderNum.includes(searchLower) && !altId.includes(searchLower)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [customerOrders, historyProductFilter, historyPosSearch]);
 
     // 5. Checkout Mutation
     const checkoutMutation = useMutation({
@@ -552,7 +592,9 @@ const BusinessPOS = () => {
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['stockStats'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            queryClient.invalidateQueries({ queryKey: ['returns'] });
             queryClient.invalidateQueries({ queryKey: ['business-customers'] });
+            queryClient.refetchQueries({ queryKey: ['returns'] });
             queryClient.refetchQueries({ queryKey: ['business-customers'] });
             refetchSummary();
         },
@@ -3549,7 +3591,7 @@ const BusinessPOS = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
                     <div style={{ background: '#FFFFFF', width: '100%', maxWidth: '680px', maxHeight: '85vh', borderRadius: '24px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                         {/* Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9', marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9', marginBottom: '1.25rem', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <History size={20} />
@@ -3561,13 +3603,68 @@ const BusinessPOS = () => {
                                     </p>
                                 </div>
                             </div>
-                            <button 
-                                type="button" 
-                                onClick={() => { setIsCustomerHistoryModalOpen(false); setCustomerHistoryModalCustomer(null); }}
-                                style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                                <X size={18} />
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {/* Product Filter Dropdown */}
+                                <select 
+                                    value={historyProductFilter} 
+                                    onChange={(e) => setHistoryProductFilter(e.target.value)}
+                                    style={{
+                                        padding: '0.4rem 0.6rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid #CBD5E1',
+                                        outline: 'none',
+                                        fontSize: '0.78rem',
+                                        color: '#1E293B',
+                                        fontWeight: '600',
+                                        background: '#F8FAFC',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="">All Products</option>
+                                    {customerPurchasedProducts.map((pName, idx) => (
+                                        <option key={idx} value={pName}>{pName}</option>
+                                    ))}
+                                </select>
+
+                                {/* POS Billing Number Search Input */}
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search POS Number..." 
+                                        value={historyPosSearch} 
+                                        onChange={(e) => setHistoryPosSearch(e.target.value)}
+                                        style={{
+                                            padding: '0.4rem 0.6rem 0.4rem 1.8rem',
+                                            borderRadius: '8px',
+                                            border: '1px solid #CBD5E1',
+                                            outline: 'none',
+                                            fontSize: '0.78rem',
+                                            color: '#1E293B',
+                                            fontWeight: '500',
+                                            background: '#F8FAFC',
+                                            width: '140px'
+                                        }}
+                                    />
+                                    <Search size={13} style={{ position: 'absolute', left: '0.5rem', color: '#94A3B8', pointerEvents: 'none' }} />
+                                    {historyPosSearch && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setHistoryPosSearch('')}
+                                            style={{ position: 'absolute', right: '0.4rem', border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <button 
+                                    type="button" 
+                                    onClick={() => { setIsCustomerHistoryModalOpen(false); setCustomerHistoryModalCustomer(null); setHistoryProductFilter(''); setHistoryPosSearch(''); }}
+                                    style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Orders List */}
@@ -3582,9 +3679,21 @@ const BusinessPOS = () => {
                                     <ShoppingBag size={36} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
                                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#64748B' }}>No previous orders found for this customer.</p>
                                 </div>
+                            ) : filteredCustomerOrders.length === 0 ? (
+                                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94A3B8' }}>
+                                    <ShoppingBag size={36} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
+                                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#64748B' }}>No orders found matching the selected filter(s).</p>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => { setHistoryProductFilter(''); setHistoryPosSearch(''); }}
+                                        style={{ marginTop: '0.75rem', padding: '0.35rem 0.85rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#2563EB', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer' }}
+                                    >
+                                        Clear Filters
+                                    </button>
+                                </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                    {customerOrders.map(order => {
+                                    {filteredCustomerOrders.map(order => {
                                         const orderItems = Array.isArray(order.items) ? order.items : [];
                                         const orderDate = order.created_at || order.issue_date || order.date;
                                         const formattedDate = orderDate ? new Date(orderDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';

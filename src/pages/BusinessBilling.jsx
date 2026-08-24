@@ -750,6 +750,8 @@ const BusinessBilling = () => {
         return [];
     }, [rawPurchases]);
 
+
+
     const availableInvoicesForReturn = React.useMemo(() => {
         if (!newReturnData.client_name) return [];
         const selName = newReturnData.client_name.trim().toLowerCase();
