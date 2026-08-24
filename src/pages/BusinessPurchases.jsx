@@ -883,13 +883,6 @@ const BusinessPurchases = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
-                                                <button
-                                                    onClick={() => handleOpenChat(po)}
-                                                    title="Dealer-Supplier Chat"
-                                                    style={{ padding: '0.45rem 0.75rem', borderRadius: '10px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                                                >
-                                                    <MessageCircle size={14} /> Chat
-                                                </button>
                                                 {po.status !== 'Completed' && (po.supplier_response_type || po.supplier_confirmation_status || po.status) !== 'PARTIAL_REJECTED' && (
                                                     <button 
                                                         onClick={() => handleOpenReceiveModal(po)}
