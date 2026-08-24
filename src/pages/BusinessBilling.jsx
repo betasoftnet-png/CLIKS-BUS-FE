@@ -2918,6 +2918,10 @@ const BusinessBilling = () => {
                             createReturnMutation.mutate({
                                 ...newReturnData,
                                 return_type: returnFormType,
+                                return_date: new Date().toISOString(),
+                                customer_name: newReturnData.client_name || 'Customer',
+                                supplier_name: newReturnData.client_name || 'Supplier',
+                                refund_amount: parseFloat(newReturnData.total_amount) || 0,
                                 amount: parseFloat(newReturnData.total_amount) || 0,
                                 total_amount: parseFloat(newReturnData.total_amount) || 0,
                                 items: itemsToReturn

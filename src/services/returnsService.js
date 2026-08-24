@@ -50,7 +50,11 @@ export const returnsService = {
 
     createReturn: async (data) => {
         try {
-            const res = await apiClient.post('/returns', data);
+            const payload = {
+                return_date: new Date().toISOString(),
+                ...data
+            };
+            const res = await apiClient.post('/returns', payload);
             return res.data?.data || res.data;
         } catch (error) {
             console.warn('[ReturnsService] Saving return to local storage fallback due to connection issue.', error.message);
@@ -58,6 +62,7 @@ export const returnsService = {
                 id: Date.now(),
                 return_number: `RET-${Date.now().toString().slice(-6)}`,
                 created_at: new Date().toISOString(),
+                return_date: new Date().toISOString(),
                 ...data
             };
             const currentLocal = getLocalReturns();
