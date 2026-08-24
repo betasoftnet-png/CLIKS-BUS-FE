@@ -1385,22 +1385,58 @@ const BusinessInventory = () => {
                                                 </button>
                                             </div>
                                         </div>
-                                        {formData.has_warranty === 'Yes' && (
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warranty Period *</label>
-                                                <select 
-                                                    value={formData.warranty_period || '1 Year'} 
-                                                    onChange={(e) => setFormData({ ...formData, warranty_period: e.target.value })} 
-                                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}
-                                                >
-                                                    <option value="6 Months">6 Months</option>
-                                                    <option value="1 Year">1 Year</option>
-                                                    <option value="2 Years">2 Years</option>
-                                                    <option value="3 Years">3 Years</option>
-                                                    <option value="5 Years">5 Years</option>
-                                                </select>
-                                            </div>
-                                        )}
+                                        {formData.has_warranty === 'Yes' && (() => {
+                                            const standardOptions = ['6 Months', '1 Year', '2 Years', '3 Years', '5 Years'];
+                                            const isStandard = standardOptions.includes(formData.warranty_period);
+                                            const selectedOption = isStandard ? formData.warranty_period : (formData.warranty_period ? 'Custom' : '1 Year');
+
+                                            return (
+                                                <>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warranty Period *</label>
+                                                        <select 
+                                                            value={selectedOption} 
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === 'Custom') {
+                                                                    setFormData({ ...formData, warranty_period: 'Custom', custom_warranty_text: '' });
+                                                                } else {
+                                                                    setFormData({ ...formData, warranty_period: val, custom_warranty_text: '' });
+                                                                }
+                                                            }} 
+                                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}
+                                                        >
+                                                            <option value="6 Months">6 Months</option>
+                                                            <option value="1 Year">1 Year</option>
+                                                            <option value="2 Years">2 Years</option>
+                                                            <option value="3 Years">3 Years</option>
+                                                            <option value="5 Years">5 Years</option>
+                                                            <option value="Custom">Custom</option>
+                                                        </select>
+                                                    </div>
+                                                    {selectedOption === 'Custom' && (
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Custom Warranty *</label>
+                                                            <input 
+                                                                type="text"
+                                                                required
+                                                                value={formData.custom_warranty_text !== undefined ? formData.custom_warranty_text : (isStandard ? '' : (formData.warranty_period === 'Custom' ? '' : formData.warranty_period))}
+                                                                onChange={(e) => {
+                                                                    const customVal = e.target.value;
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        custom_warranty_text: customVal,
+                                                                        warranty_period: customVal || 'Custom'
+                                                                    });
+                                                                }}
+                                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
+                                                                placeholder="e.g. 18 Months / 90 Days"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}
