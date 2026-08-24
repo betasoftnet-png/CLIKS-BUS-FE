@@ -561,6 +561,11 @@ const BusinessInventory = () => {
             alert("Malformed HSN Code blocked: HSN / SAC Code must strictly be numeric (4, 6, or 8 digits) under GST regulations.");
             return;
         }
+        const isWarrantyActive = formData.has_warranty === 'Yes' || formData.warrantyDetails === 'Yes';
+        const resolvedWarrantyPeriod = isWarrantyActive
+            ? (formData.warranty_period === 'Custom' ? (formData.custom_warranty_text || formData.warrantyPeriod) : (formData.warranty_period || formData.warrantyPeriod || '1 Year'))
+            : null;
+
         const payload = {
             name: formData.name,
             sku: formData.sku,
@@ -574,7 +579,11 @@ const BusinessInventory = () => {
             expiry_date: formData.expiry_date,
             tax_percentage: parseFloat(formData.gst_percentage) || 18,
             warehouse_id: formData.warehouse,
-            hsn_code: formData.hsn_code
+            hsn_code: formData.hsn_code,
+            has_warranty: isWarrantyActive ? 'Yes' : 'No',
+            warrantyDetails: isWarrantyActive ? 'Yes' : 'No',
+            warranty_period: resolvedWarrantyPeriod,
+            warrantyPeriod: resolvedWarrantyPeriod
         };
 
         if (editingItem) {
