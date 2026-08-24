@@ -1388,9 +1388,27 @@ const BusinessPurchases = () => {
 
                             {/* Additional return specifics */}
                             {createDocType === 'RETURN' && (
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reason for Return</label>
-                                    <input type="text" value={formHeader.return_reason} onChange={(e) => setFormHeader({ ...formHeader, return_reason: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Damaged Goods / Wrong Item Shipped" />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse *</label>
+                                        <select
+                                            required
+                                            value={formHeader.warehouse_id}
+                                            onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })}
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}
+                                        >
+                                            <option value="">-- Select Warehouse --</option>
+                                            {warehousesList.map((wh, idx) => (
+                                                <option key={idx} value={wh.name || wh.id}>
+                                                    {wh.name || wh.warehouse_name} {wh.code ? `(${wh.code})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reason for Return</label>
+                                        <input type="text" value={formHeader.return_reason} onChange={(e) => setFormHeader({ ...formHeader, return_reason: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Damaged Goods / Wrong Item Shipped" />
+                                    </div>
                                 </div>
                             )}
 
