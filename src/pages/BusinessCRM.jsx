@@ -44,31 +44,38 @@ import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 
 const COUNTRIES = [
-    { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳', digits: 10 },
-    { code: 'US', name: 'United States', dialCode: '+1', flag: '🇺🇸', digits: 10 },
-    { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧', digits: 10 },
-    { code: 'AE', name: 'United Arab Emirates', dialCode: '+971', flag: '🇦🇪', digits: 9 },
-    { code: 'SG', name: 'Singapore', dialCode: '+65', flag: '🇸🇬', digits: 8 },
-    { code: 'MY', name: 'Malaysia', dialCode: '+60', flag: '🇲🇾', digits: 10 },
-    { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺', digits: 9 },
-    { code: 'CA', name: 'Canada', dialCode: '+1', flag: '🇨🇦', digits: 10 },
-    { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪', digits: 11 },
-    { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷', digits: 9 },
-    { code: 'JP', name: 'Japan', dialCode: '+81', flag: '🇯🇵', digits: 10 },
-    { code: 'CN', name: 'China', dialCode: '+86', flag: '🇨🇳', digits: 11 },
-    { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', flag: '🇸🇦', digits: 9 },
-    { code: 'QA', name: 'Qatar', dialCode: '+974', flag: '🇶🇦', digits: 8 },
-    { code: 'KW', name: 'Kuwait', dialCode: '+965', flag: '🇰🇼', digits: 8 },
-    { code: 'OM', name: 'Oman', dialCode: '+968', flag: '🇴🇲', digits: 8 },
-    { code: 'BH', name: 'Bahrain', dialCode: '+973', flag: '🇧🇭', digits: 8 },
-    { code: 'LK', name: 'Sri Lanka', dialCode: '+94', flag: '🇱🇰', digits: 9 },
-    { code: 'BD', name: 'Bangladesh', dialCode: '+880', flag: '🇧🇩', digits: 10 },
-    { code: 'NP', name: 'Nepal', dialCode: '+977', flag: '🇳🇵', digits: 10 }
+    { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳', minDigits: 10, maxDigits: 10, digits: 10 },
+    { code: 'US', name: 'United States', dialCode: '+1', flag: '🇺🇸', minDigits: 10, maxDigits: 10, digits: 10 },
+    { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧', minDigits: 10, maxDigits: 11, digits: 10 },
+    { code: 'AE', name: 'United Arab Emirates', dialCode: '+971', flag: '🇦🇪', minDigits: 9, maxDigits: 9, digits: 9 },
+    { code: 'SG', name: 'Singapore', dialCode: '+65', flag: '🇸🇬', minDigits: 8, maxDigits: 8, digits: 8 },
+    { code: 'MY', name: 'Malaysia', dialCode: '+60', flag: '🇲🇾', minDigits: 9, maxDigits: 10, digits: 10 },
+    { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺', minDigits: 9, maxDigits: 9, digits: 9 },
+    { code: 'CA', name: 'Canada', dialCode: '+1', flag: '🇨🇦', minDigits: 10, maxDigits: 10, digits: 10 },
+    { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪', minDigits: 10, maxDigits: 11, digits: 11 },
+    { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷', minDigits: 9, maxDigits: 9, digits: 9 },
+    { code: 'JP', name: 'Japan', dialCode: '+81', flag: '🇯🇵', minDigits: 10, maxDigits: 10, digits: 10 },
+    { code: 'CN', name: 'China', dialCode: '+86', flag: '🇨🇳', minDigits: 11, maxDigits: 11, digits: 11 },
+    { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', flag: '🇸🇦', minDigits: 9, maxDigits: 9, digits: 9 },
+    { code: 'QA', name: 'Qatar', dialCode: '+974', flag: '🇶🇦', minDigits: 8, maxDigits: 8, digits: 8 },
+    { code: 'KW', name: 'Kuwait', dialCode: '+965', flag: '🇰🇼', minDigits: 8, maxDigits: 8, digits: 8 },
+    { code: 'OM', name: 'Oman', dialCode: '+968', flag: '🇴🇲', minDigits: 8, maxDigits: 8, digits: 8 },
+    { code: 'BH', name: 'Bahrain', dialCode: '+973', flag: '🇧🇭', minDigits: 8, maxDigits: 8, digits: 8 },
+    { code: 'LK', name: 'Sri Lanka', dialCode: '+94', flag: '🇱🇰', minDigits: 9, maxDigits: 9, digits: 9 },
+    { code: 'BD', name: 'Bangladesh', dialCode: '+880', flag: '🇧🇩', minDigits: 10, maxDigits: 10, digits: 10 },
+    { code: 'NP', name: 'Nepal', dialCode: '+977', flag: '🇳🇵', minDigits: 10, maxDigits: 10, digits: 10 }
 ];
 
+const getCountryPhoneRule = (dialCode) => {
+    const found = COUNTRIES.find(c => c.dialCode === dialCode) || COUNTRIES[0];
+    const min = found.minDigits || found.digits || 10;
+    const max = found.maxDigits || found.digits || 10;
+    const label = min === max ? `${min} digits required` : `${min}-${max} digits required`;
+    return { min, max, label, countryName: found.name };
+};
+
 const getPhoneMaxDigits = (dialCode) => {
-    const found = COUNTRIES.find(c => c.dialCode === dialCode);
-    return found ? found.digits : 10;
+    return getCountryPhoneRule(dialCode).max;
 };
 
 const parsePhone = (rawPhone) => {
@@ -706,15 +713,15 @@ const BusinessCRM = () => {
             const rawPhoneDigits = (formData.phone_number || '').replace(/\D/g, '');
             const rawAltDigits = (formData.alternate_phone || '').replace(/\D/g, '');
 
-            const reqPhoneDigits = getPhoneMaxDigits(formData.phone_country_code || '+91');
-            const reqAltDigits = getPhoneMaxDigits(formData.alt_phone_country_code || '+91');
+            const phoneRule = getCountryPhoneRule(formData.phone_country_code || '+91');
+            const altRule = getCountryPhoneRule(formData.alt_phone_country_code || '+91');
 
-            if (rawPhoneDigits.length !== reqPhoneDigits) {
-                alert(`Phone Number: ${reqPhoneDigits} digits required`);
+            if (rawPhoneDigits.length < phoneRule.min || rawPhoneDigits.length > phoneRule.max) {
+                alert(`Phone Number: ${phoneRule.label}`);
                 return;
             }
-            if (rawAltDigits.length > 0 && rawAltDigits.length !== reqAltDigits) {
-                alert(`Alternate Phone: ${reqAltDigits} digits required`);
+            if (rawAltDigits.length > 0 && (rawAltDigits.length < altRule.min || rawAltDigits.length > altRule.max)) {
+                alert(`Alternate Phone: ${altRule.label}`);
                 return;
             }
 
@@ -1463,8 +1470,8 @@ const BusinessCRM = () => {
                                         <CountryCodeSelector
                                             selectedDialCode={formData.phone_country_code || '+91'}
                                             onSelect={(c) => {
-                                                const maxLen = c.digits || 10;
-                                                const sliced = (formData.phone_number || '').slice(0, maxLen);
+                                                const rule = getCountryPhoneRule(c.dialCode);
+                                                const sliced = (formData.phone_number || '').slice(0, rule.max);
                                                 setFormData({ ...formData, phone_country_code: c.dialCode, phone_number: sliced });
                                             }}
                                         />
@@ -1472,10 +1479,10 @@ const BusinessCRM = () => {
                                             required 
                                             type="text" 
                                             value={formData.phone_number || ''} 
-                                            maxLength={getPhoneMaxDigits(formData.phone_country_code || '+91')}
+                                            maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max}
                                             onChange={(e) => {
-                                                const maxLen = getPhoneMaxDigits(formData.phone_country_code || '+91');
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                                                const rule = getCountryPhoneRule(formData.phone_country_code || '+91');
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, rule.max);
                                                 setFormData({...formData, phone_number: val});
                                             }} 
                                             style={{ 
@@ -1490,11 +1497,18 @@ const BusinessCRM = () => {
                                             placeholder="9876543210" 
                                         />
                                     </div>
-                                    {formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < getPhoneMaxDigits(formData.phone_country_code || '+91') && (
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                            Phone Number: {getPhoneMaxDigits(formData.phone_country_code || '+91')} digits required
-                                        </span>
-                                    )}
+                                    {(() => {
+                                        const rule = getCountryPhoneRule(formData.phone_country_code || '+91');
+                                        const len = (formData.phone_number || '').length;
+                                        if (len > 0 && (len < rule.min || len > rule.max)) {
+                                            return (
+                                                <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                                    Phone Number: {rule.label}
+                                                </span>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
@@ -1502,18 +1516,18 @@ const BusinessCRM = () => {
                                         <CountryCodeSelector
                                             selectedDialCode={formData.alt_phone_country_code || '+91'}
                                             onSelect={(c) => {
-                                                const maxLen = c.digits || 10;
-                                                const sliced = (formData.alternate_phone || '').slice(0, maxLen);
+                                                const rule = getCountryPhoneRule(c.dialCode);
+                                                const sliced = (formData.alternate_phone || '').slice(0, rule.max);
                                                 setFormData({ ...formData, alt_phone_country_code: c.dialCode, alternate_phone: sliced });
                                             }}
                                         />
                                         <input 
                                             type="text" 
                                             value={formData.alternate_phone || ''} 
-                                            maxLength={getPhoneMaxDigits(formData.alt_phone_country_code || '+91')}
+                                            maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max}
                                             onChange={(e) => {
-                                                const maxLen = getPhoneMaxDigits(formData.alt_phone_country_code || '+91');
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                                                const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91');
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, rule.max);
                                                 setFormData({...formData, alternate_phone: val});
                                             }} 
                                             style={{ 
@@ -1528,11 +1542,18 @@ const BusinessCRM = () => {
                                             placeholder="9123456780" 
                                         />
                                     </div>
-                                    {formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < getPhoneMaxDigits(formData.alt_phone_country_code || '+91') && (
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                            Alternate Phone: {getPhoneMaxDigits(formData.alt_phone_country_code || '+91')} digits required
-                                        </span>
-                                    )}
+                                    {(() => {
+                                        const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91');
+                                        const len = (formData.alternate_phone || '').length;
+                                        if (len > 0 && (len < rule.min || len > rule.max)) {
+                                            return (
+                                                <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                                    Alternate Phone: {rule.label}
+                                                </span>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address</label>
