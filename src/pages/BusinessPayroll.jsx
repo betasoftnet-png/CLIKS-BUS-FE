@@ -200,14 +200,6 @@ const BusinessPayroll = () => {
             });
         }
 
-        if (list.length === 0) {
-            list.push(
-                { id: 'EMP-101', name: 'kiran Kumar C', department: 'Finance', salary: 50000 },
-                { id: 'EMP-102', name: 'Arun Kumar', department: 'Sales', salary: 45000 },
-                { id: 'EMP-103', name: 'Priya Sharma', department: 'HR', salary: 40000 }
-            );
-        }
-
         return list;
     }, [staffList, payrollRecords]);
 
