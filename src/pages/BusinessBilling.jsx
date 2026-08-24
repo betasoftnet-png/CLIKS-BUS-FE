@@ -1652,13 +1652,14 @@ const BusinessBilling = () => {
                                     <th style={{ padding: '0.75rem 1.25rem' }}>Serial / IMEI</th>
                                     <th style={{ padding: '0.75rem 1.25rem' }}>Claim Type</th>
                                     <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Period</th>
                                     <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {warrantyClaimsList.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                                        <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                                                 <ShieldCheck size={32} opacity={0.4} />
                                                 <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Warranty & Replacement Claims Found</p>
@@ -1678,6 +1679,9 @@ const BusinessBilling = () => {
                                                 <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: '#D1FAE5', color: '#047857' }}>
                                                     {(claim.status || 'Active').toUpperCase()}
                                                 </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}>
+                                                {claim.warranty_period || claim.period || (claim.reason_code && claim.reason_code.includes('Warranty Period:') ? claim.reason_code.split('Warranty Period:')[1].split('(')[0].trim() : '1 Year')}
                                             </td>
                                             <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
                                                 <button onClick={() => alert(`Warranty Claim #${claim.claim_number || claim.id}\nProduct: ${claim.product_name}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Manage Claim</button>
