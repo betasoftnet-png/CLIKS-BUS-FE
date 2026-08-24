@@ -1422,6 +1422,14 @@ const BusinessBilling = () => {
 
                     {/* Right Side: Filters */}
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                        {activeMainTab === 'warranty' && (
+                            <button 
+                                onClick={() => { setReturnFormType('warranty'); setIsReturnModalOpen(true); }} 
+                                style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                            >
+                                + Log Warranty Claim
+                            </button>
+                        )}
                         <input 
                             type="date" 
                             value={dateFilter}
@@ -1642,12 +1650,6 @@ const BusinessBilling = () => {
                                                 <ShieldCheck size={32} opacity={0.4} />
                                                 <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Warranty & Replacement Claims Found</p>
                                                 <span style={{ fontSize: '0.8rem' }}>Log product replacement claims, repairs, and vendor warranty tickets.</span>
-                                                <button 
-                                                    onClick={() => { setReturnFormType('warranty'); setIsReturnModalOpen(true); }} 
-                                                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
-                                                >
-                                                    + Log Warranty Claim
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
