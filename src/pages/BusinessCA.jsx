@@ -616,6 +616,26 @@ export default function BusinessCA() {
         setCaShowGstPass(false);
     }, [selectedWorkpaperClientId]);
 
+    const AUDIT_PORTALS = [
+        { id: 'gst', name: 'GST Portal', shortName: 'GST Portal', url: 'https://www.gst.gov.in', icon: '🔐', desc: 'File GST returns (GSTR-1/3B) and reconcile Input Tax Credit (ITC).' },
+        { id: 'incometax', name: 'Income Tax Portal', shortName: 'Income Tax', url: 'https://www.incometax.gov.in', icon: '📋', desc: 'File income tax returns and view tax credits (Form 26AS/AIS).' },
+        { id: 'traces', name: 'TRACES Portal', shortName: 'TRACES', url: 'https://www.tdscpc.gov.in', icon: '📄', desc: 'Download official tax deduction (TDS) certificates.' },
+        { id: 'mca', name: 'MCA Portal', shortName: 'MCA Portal', url: 'https://www.mca.gov.in', icon: '🏛️', desc: 'File company annual returns, ROC compliance & Director Identification (DIN).' },
+        { id: 'epfo', name: 'EPFO / ESIC Portal', shortName: 'EPFO / ESIC', url: 'https://www.epfindia.gov.in', icon: '👷', desc: 'Employee Provident Fund & Social Security labor law compliance.' },
+        { id: 'stategst', name: 'MSFC / State GST Portals', shortName: 'State GST / MSFC', url: 'https://mahagst.gov.in', icon: '🏢', desc: 'Check state-level taxes or industrial loans if applicable.' }
+    ];
+
+    const [activePortalTab, setActivePortalTab] = useState('gst');
+    const [caPortalTab, setCaPortalTab] = useState('gst');
+    const [portalsState, setPortalsState] = useState({
+        gst: { username: '', password: '' },
+        incometax: { username: '', password: '' },
+        traces: { username: '', password: '' },
+        mca: { username: '', password: '' },
+        epfo: { username: '', password: '' },
+        stategst: { username: '', password: '' }
+    });
+
     // Business Owner credentials states and queries
     const [ownerGstUser, setOwnerGstUser] = useState('');
     const [ownerGstPass, setOwnerGstPass] = useState('');
@@ -631,6 +651,17 @@ export default function BusinessCA() {
         if (ownerGstCreds) {
             setOwnerGstUser(ownerGstCreds.gstUsername || '');
             setOwnerGstPass(ownerGstCreds.gstPassword || '');
+            if (ownerGstCreds.portals) {
+                setPortalsState(prev => ({
+                    ...prev,
+                    ...ownerGstCreds.portals
+                }));
+            } else if (ownerGstCreds.gstUsername) {
+                setPortalsState(prev => ({
+                    ...prev,
+                    gst: { username: ownerGstCreds.gstUsername, password: ownerGstCreds.gstPassword }
+                }));
+            }
         }
     }, [ownerGstCreds]);
 
@@ -1570,7 +1601,7 @@ export default function BusinessCA() {
                                                 </div>
                                             )}
 
-                                            {/* 🔐 GST Portal Credentials Section (Moved to Left Column) */}
+                                            {/* 🔐 Portal Credentials Section (Private Sharing) */}
                                             <div style={{
                                                 background: '#FFFFFF',
                                                 padding: '24px',
@@ -1579,103 +1610,179 @@ export default function BusinessCA() {
                                                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '16px'
+                                                gap: '18px'
                                             }}>
                                                 <div>
                                                     <div style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                                                        🔐 GST Portal Credentials (Private Sharing)
+                                                        🔐 Government & Compliance Portal Credentials (Private Sharing)
                                                     </div>
                                                     <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '4px' }}>
-                                                        Only your connected Chartered Accountant can access these credentials after you choose to share them.
+                                                        Only your connected Chartered Accountant / Auditor can access these credentials after you choose to share them.
                                                     </div>
                                                 </div>
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                        <label htmlFor="owner-gst-username" style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Username / Email *</label>
-                                                        <input
-                                                            id="owner-gst-username"
-                                                            name="gst_username"
-                                                            type="text"
-                                                            autoComplete="username"
-                                                            placeholder="Enter GST login email or username"
-                                                            value={ownerGstUser}
-                                                            onChange={(e) => setOwnerGstUser(e.target.value)}
-                                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                        />
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                        <label htmlFor="owner-gst-password" style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>GST Portal Password *</label>
-                                                        <input
-                                                            id="owner-gst-password"
-                                                            name="gst_password"
-                                                            type={showOwnerGstPass ? 'text' : 'password'}
-                                                            autoComplete="current-password"
-                                                            placeholder="Enter GST password"
-                                                            value={ownerGstPass}
-                                                            onChange={(e) => setOwnerGstPass(e.target.value)}
-                                                            style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
-                                                        />
-                                                    </div>
-
-                                                </div>
-
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={showOwnerGstPass}
-                                                            onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
-                                                            style={{ width: '15px', height: '15px', cursor: 'pointer' }}
-                                                        />
-                                                        Show Password
-                                                    </label>
-
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
-                                                        <span>Status:</span>
-                                                        {ownerGstCreds?.gstShareStatus === 'Shared' ? (
-                                                            <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
-                                                                Shared with Connected CA
-                                                            </span>
-                                                        ) : (
-                                                            <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
-                                                                Not Shared
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (!ownerGstUser.trim() || !ownerGstPass.trim()) {
-                                                                alert('Both Username/Email and Password are required to share.');
-                                                                return;
-                                                            }
-                                                            saveOwnerGstMutation.mutate({ gstUsername: ownerGstUser.trim(), gstPassword: ownerGstPass.trim(), share: true });
-                                                        }}
-                                                        style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                    >
-                                                        Save & Share with CA
-                                                    </button>
-
-                                                    {ownerGstCreds?.gstShareStatus === 'Shared' && (
+                                                {/* Tabs Selector for Portals */}
+                                                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', borderBottom: '1px solid #E2E8F0' }}>
+                                                    {AUDIT_PORTALS.map(portal => (
                                                         <button
+                                                            key={portal.id}
                                                             type="button"
-                                                            onClick={() => {
-                                                                if (confirm('Are you sure you want to revoke GST credentials access? Your CA will no longer be able to view them.')) {
-                                                                    revokeOwnerGstMutation.mutate();
-                                                                }
+                                                            onClick={() => setActivePortalTab(portal.id)}
+                                                            style={{
+                                                                padding: '8px 14px',
+                                                                borderRadius: '8px',
+                                                                border: '1.5px solid',
+                                                                borderColor: activePortalTab === portal.id ? '#004aad' : '#CBD5E1',
+                                                                background: activePortalTab === portal.id ? '#EFF6FF' : '#FFFFFF',
+                                                                color: activePortalTab === portal.id ? '#004aad' : '#475569',
+                                                                fontWeight: activePortalTab === portal.id ? '800' : '600',
+                                                                fontSize: '12.5px',
+                                                                cursor: 'pointer',
+                                                                whiteSpace: 'nowrap',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                transition: 'all 0.15s ease'
                                                             }}
-                                                            style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
                                                         >
-                                                            Revoke Sharing
+                                                            <span>{portal.icon}</span>
+                                                            <span>{portal.shortName}</span>
                                                         </button>
-                                                    )}
+                                                    ))}
+                                                </div>
+
+                                                {(() => {
+                                                    const curPortal = AUDIT_PORTALS.find(p => p.id === activePortalTab) || AUDIT_PORTALS[0];
+                                                    const curData = portalsState[activePortalTab] || { username: '', password: '' };
+                                                    const isShared = ownerGstCreds?.portals?.[activePortalTab]?.isShared || (activePortalTab === 'gst' && ownerGstCreds?.gstShareStatus === 'Shared');
+
+                                                    return (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                    <label htmlFor={`owner-portal-user-${activePortalTab}`} style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>
+                                                                        {curPortal.name} Username / Email *
+                                                                    </label>
+                                                                    <input
+                                                                        id={`owner-portal-user-${activePortalTab}`}
+                                                                        type="text"
+                                                                        autoComplete="username"
+                                                                        placeholder={`Enter ${curPortal.name} login email or username`}
+                                                                        value={curData.username}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setPortalsState(prev => ({
+                                                                                ...prev,
+                                                                                [activePortalTab]: { ...prev[activePortalTab], username: val }
+                                                                            }));
+                                                                            if (activePortalTab === 'gst') setOwnerGstUser(val);
+                                                                        }}
+                                                                        style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                                    />
+                                                                </div>
+
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                    <label htmlFor={`owner-portal-pass-${activePortalTab}`} style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>
+                                                                        {curPortal.name} Password *
+                                                                    </label>
+                                                                    <input
+                                                                        id={`owner-portal-pass-${activePortalTab}`}
+                                                                        type={showOwnerGstPass ? 'text' : 'password'}
+                                                                        autoComplete="current-password"
+                                                                        placeholder={`Enter ${curPortal.name} password`}
+                                                                        value={curData.password}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setPortalsState(prev => ({
+                                                                                ...prev,
+                                                                                [activePortalTab]: { ...prev[activePortalTab], password: val }
+                                                                            }));
+                                                                            if (activePortalTab === 'gst') setOwnerGstPass(val);
+                                                                        }}
+                                                                        style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '13px', fontWeight: '600', outline: 'none' }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none' }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={showOwnerGstPass}
+                                                                        onChange={() => setShowOwnerGstPass(!showOwnerGstPass)}
+                                                                        style={{ width: '15px', height: '15px', cursor: 'pointer' }}
+                                                                    />
+                                                                    Show Password
+                                                                </label>
+
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800' }}>
+                                                                    <span>Status:</span>
+                                                                    {isShared ? (
+                                                                        <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16A34A' }}></span>
+                                                                            Shared with Connected CA
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }}></span>
+                                                                            Not Shared
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (!curData.username.trim() || !curData.password.trim()) {
+                                                                            alert(`Both Username/Email and Password are required for ${curPortal.name}.`);
+                                                                            return;
+                                                                        }
+                                                                        saveOwnerGstMutation.mutate({
+                                                                            portalType: activePortalTab,
+                                                                            username: curData.username.trim(),
+                                                                            password: curData.password.trim(),
+                                                                            gstUsername: curData.username.trim(),
+                                                                            gstPassword: curData.password.trim(),
+                                                                            share: true
+                                                                        });
+                                                                    }}
+                                                                    style={{ padding: '10px 20px', background: '#15803d', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                                >
+                                                                    Save & Share {curPortal.shortName} with CA
+                                                                </button>
+
+                                                                {isShared && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (confirm(`Are you sure you want to revoke ${curPortal.name} credentials access? Your CA will no longer be able to view them.`)) {
+                                                                                revokeOwnerGstMutation.mutate();
+                                                                            }
+                                                                        }}
+                                                                        style={{ padding: '10px 20px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+                                                                    >
+                                                                        Revoke Sharing
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                {/* Down Side Portal Descriptions Box as requested */}
+                                                <div style={{ marginTop: '8px', background: '#F8FAFC', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div style={{ fontSize: '12.5px', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        ℹ️ Compliance & Tax Portals Supported
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        <div><strong>Income Tax Portal:</strong> File income tax returns and view tax credits (Form 26AS/AIS).</div>
+                                                        <div><strong>TRACES Portal:</strong> Download official tax deduction (TDS) certificates.</div>
+                                                        <div><strong>MSFC / State GST Portals:</strong> Check state-level taxes or industrial loans if applicable.</div>
+                                                        <div><strong>MCA Portal:</strong> File company annual returns, ROC compliance & Director Identification (DIN).</div>
+                                                        <div><strong>EPFO / ESIC Portals:</strong> Employee Provident Fund & Social Security labor law compliance.</div>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -3772,88 +3879,126 @@ export default function BusinessCA() {
                                                                                     transition={{ duration: 0.2 }}
                                                                                     style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}
                                                                                 >
-                                                                                    {(!gstCredentials || (!gstCredentials.gstUsername && !gstCredentials.gstPassword)) ? (
-                                                                                        <p style={{ fontSize: '12.5px', color: '#64748B', fontStyle: 'italic', margin: 0 }}>
-                                                                                            Loading credentials...
-                                                                                        </p>
-                                                                                    ) : (
-                                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                                                <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Portal</span>
-                                                                                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>https://www.gst.gov.in</span>
-                                                                                            </div>
+                                                                                    {/* Tabs Selector for CA */}
+                                                                                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', borderBottom: '1px solid #E2E8F0', marginBottom: '4px' }}>
+                                                                                        {AUDIT_PORTALS.map(portal => (
+                                                                                            <button
+                                                                                                key={portal.id}
+                                                                                                type="button"
+                                                                                                onClick={() => setCaPortalTab(portal.id)}
+                                                                                                style={{
+                                                                                                    padding: '6px 10px',
+                                                                                                    borderRadius: '6px',
+                                                                                                    border: '1.5px solid',
+                                                                                                    borderColor: caPortalTab === portal.id ? '#1E3A8A' : '#CBD5E1',
+                                                                                                    background: caPortalTab === portal.id ? '#EFF6FF' : '#FFFFFF',
+                                                                                                    color: caPortalTab === portal.id ? '#1E3A8A' : '#475569',
+                                                                                                    fontWeight: caPortalTab === portal.id ? '800' : '600',
+                                                                                                    fontSize: '11.5px',
+                                                                                                    cursor: 'pointer',
+                                                                                                    whiteSpace: 'nowrap'
+                                                                                                }}
+                                                                                            >
+                                                                                                {portal.icon} {portal.shortName}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
 
-                                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
-                                                                                                <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Username / Email</span>
-                                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                                                                    <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A', wordBreak: 'break-all' }}>{gstCredentials.gstUsername}</span>
-                                                                                                    <button
-                                                                                                        type="button"
-                                                                                                        onClick={() => handleCopyUser(gstCredentials.gstUsername)}
-                                                                                                        style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                    {(() => {
+                                                                                        const curPortal = AUDIT_PORTALS.find(p => p.id === caPortalTab) || AUDIT_PORTALS[0];
+                                                                                        const pData = gstCredentials?.portals?.[caPortalTab] || (caPortalTab === 'gst' ? { username: gstCredentials?.gstUsername, password: gstCredentials?.gstPassword } : null);
+
+                                                                                        if (!pData || (!pData.username && !pData.password)) {
+                                                                                            return (
+                                                                                                <p style={{ fontSize: '12.5px', color: '#64748B', fontStyle: 'italic', margin: 0, padding: '8px 0' }}>
+                                                                                                    {curPortal.name} credentials have not been provided yet by the Business Owner.
+                                                                                                </p>
+                                                                                            );
+                                                                                        }
+
+                                                                                        return (
+                                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{curPortal.name}</span>
+                                                                                                    <a href={curPortal.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', fontWeight: '700', color: '#1D4ED8', textDecoration: 'underline' }}>{curPortal.url}</a>
+                                                                                                </div>
+
+                                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Username / Email</span>
+                                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                                                        <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A', wordBreak: 'break-all' }}>{pData.username || 'Not set'}</span>
+                                                                                                        {pData.username && (
+                                                                                                            <button
+                                                                                                                type="button"
+                                                                                                                onClick={() => handleCopyUser(pData.username)}
+                                                                                                                style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                                            >
+                                                                                                                {copiedUser ? 'Copied!' : 'Copy'}
+                                                                                                            </button>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
+                                                                                                    <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Password</span>
+                                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                                                                        <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A' }}>
+                                                                                                            {caShowGstPass ? pData.password : (pData.password ? '••••••••••••' : 'Not set')}
+                                                                                                        </span>
+                                                                                                        {pData.password && (
+                                                                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                                                                <button
+                                                                                                                    type="button"
+                                                                                                                    onClick={() => setCaShowGstPass(!caShowGstPass)}
+                                                                                                                    style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer' }}
+                                                                                                                >
+                                                                                                                    {caShowGstPass ? 'Hide' : 'Show'}
+                                                                                                                </button>
+                                                                                                                <button
+                                                                                                                    type="button"
+                                                                                                                    onClick={() => handleCopyPass(pData.password)}
+                                                                                                                    style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                                                                                                >
+                                                                                                                    {copiedPass ? 'Copied!' : 'Copy'}
+                                                                                                                </button>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
+                                                                                                    <a
+                                                                                                        href={curPortal.url}
+                                                                                                        target="_blank"
+                                                                                                        rel="noopener noreferrer"
+                                                                                                        onClick={() => {
+                                                                                                            if (selectedWorkpaperClientId) {
+                                                                                                                caService.logGstClientAction(selectedWorkpaperClientId, 'open_portal').catch(console.error);
+                                                                                                            }
+                                                                                                        }}
+                                                                                                        style={{
+                                                                                                            display: 'flex',
+                                                                                                            width: '100%',
+                                                                                                            alignItems: 'center',
+                                                                                                            justifyContent: 'center',
+                                                                                                            padding: '8px 16px',
+                                                                                                            background: '#15803d',
+                                                                                                            color: '#FFFFFF',
+                                                                                                            border: 'none',
+                                                                                                            borderRadius: '8px',
+                                                                                                            fontSize: '12.5px',
+                                                                                                            fontWeight: '800',
+                                                                                                            cursor: 'pointer',
+                                                                                                            textDecoration: 'none',
+                                                                                                            boxSizing: 'border-box'
+                                                                                                        }}
                                                                                                     >
-                                                                                                        {copiedUser ? 'Copied!' : 'Copy'}
-                                                                                                    </button>
+                                                                                                        🌐 Open {curPortal.name}
+                                                                                                    </a>
                                                                                                 </div>
                                                                                             </div>
-
-                                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid #F1F5F9', paddingTop: '12px' }}>
-                                                                                                <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GST Password</span>
-                                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                                                                    <span style={{ fontSize: '13px', fontWeight: '750', color: '#0F172A' }}>
-                                                                                                        {caShowGstPass ? gstCredentials.gstPassword : '••••••••••••••'}
-                                                                                                    </span>
-                                                                                                    <button
-                                                                                                        type="button"
-                                                                                                        onClick={() => handleCopyPass(gstCredentials.gstPassword)}
-                                                                                                        style={{ padding: '4px 10px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '11.5px', fontWeight: '800', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                                                                                    >
-                                                                                                        {copiedPass ? 'Copied!' : 'Copy'}
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#475569', fontWeight: '650', cursor: 'pointer', userSelect: 'none', marginTop: '4px' }}>
-                                                                                                    <input
-                                                                                                        type="checkbox"
-                                                                                                        checked={caShowGstPass}
-                                                                                                        onChange={() => setCaShowGstPass(!caShowGstPass)}
-                                                                                                        style={{ width: '14px', height: '14px', cursor: 'pointer' }}
-                                                                                                    />
-                                                                                                    Show Password
-                                                                                                </label>
-                                                                                            </div>
-
-                                                                                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '14px', marginTop: '4px' }}>
-                                                                                                <a
-                                                                                                    href="https://www.gst.gov.in"
-                                                                                                    target="_blank"
-                                                                                                    rel="noopener noreferrer"
-                                                                                                    onClick={() => {
-                                                                                                        if (selectedWorkpaperClientId) {
-                                                                                                            caService.logGstClientAction(selectedWorkpaperClientId, 'open_portal').catch(console.error);
-                                                                                                        }
-                                                                                                    }}
-                                                                                                    style={{
-                                                                                                        display: 'flex',
-                                                                                                        width: '100%',
-                                                                                                        alignItems: 'center',
-                                                                                                        justifyContent: 'center',
-                                                                                                        padding: '8px 16px',
-                                                                                                        background: '#15803d',
-                                                                                                        color: '#FFFFFF',
-                                                                                                        border: 'none',
-                                                                                                        borderRadius: '8px',
-                                                                                                        fontSize: '12.5px',
-                                                                                                        fontWeight: '800',
-                                                                                                        cursor: 'pointer',
-                                                                                                        textDecoration: 'none',
-                                                                                                        boxSizing: 'border-box'
-                                                                                                    }}
-                                                                                                >
-                                                                                                    🌐 Open GST Portal
-                                                                                                </a>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    )}
+                                                                                        );
+                                                                                    })()}
                                                                                 </Motion.div>
                                                                             )}
                                                                         </AnimatePresence>
