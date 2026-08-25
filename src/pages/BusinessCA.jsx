@@ -246,12 +246,101 @@ export default function BusinessCA() {
     const [timerAuditDescription, setTimerAuditDescription] = useState('');
     const [lastSavedSession, setLastSavedSession] = useState(null);
 
-    const { data: auditSessions = [], refetch: refetchAuditSessions } = useQuery({
+    // Persistent session storage helper
+    const getStoredAuditSessions = () => {
+        try {
+            const raw = localStorage.getItem('cliks_saved_audit_sessions');
+            return raw ? JSON.parse(raw) : [];
+        } catch {
+            return [];
+        }
+    };
+
+    const persistAuditSession = (session) => {
+        try {
+            const current = getStoredAuditSessions();
+            const sessionKey = session.id || session.session_id || session.sessionId;
+            const exists = current.some(s => String(s.id || s.session_id) === String(sessionKey));
+            if (!exists) {
+                const updated = [session, ...current];
+                localStorage.setItem('cliks_saved_audit_sessions', JSON.stringify(updated));
+            }
+        } catch (e) {
+            console.warn('[Audit Session] Failed to save session locally:', e);
+        }
+    };
+
+    const { data: auditSessionsRaw = [], refetch: refetchAuditSessions } = useQuery({
         queryKey: ['auditSessions'],
         queryFn: () => caService.getAuditSessions(),
         enabled: personalTab === 'timetracking' || personalTab === 'documents' || showSessionPopover,
         retry: false
     });
+
+    const auditSessions = React.useMemo(() => {
+        const localSaved = getStoredAuditSessions();
+        const map = new Map();
+        (auditSessionsRaw || []).forEach(s => {
+            const key = s.id || s.session_id || s.sessionId;
+            if (key) map.set(String(key), s);
+        });
+        localSaved.forEach(s => {
+            const key = s.id || s.session_id || s.sessionId;
+            if (key && !map.has(String(key))) {
+                map.set(String(key), s);
+            }
+        });
+        return Array.from(map.values());
+    }, [auditSessionsRaw]);
+
+    // Active timer state persistence across refresh
+    useEffect(() => {
+        if (isTimerRunning && auditStartTime) {
+            const timerData = {
+                isTimerRunning: true,
+                timerSeconds,
+                auditStartTime,
+                timerClient,
+                timerAuditDescription
+            };
+            localStorage.setItem('cliks_active_audit_timer', JSON.stringify(timerData));
+        } else if (!isTimerRunning && timerSeconds > 0) {
+            const timerData = {
+                isTimerRunning: false,
+                timerSeconds,
+                auditStartTime,
+                timerClient,
+                timerAuditDescription
+            };
+            localStorage.setItem('cliks_active_audit_timer', JSON.stringify(timerData));
+        } else if (!isTimerRunning && timerSeconds === 0) {
+            localStorage.removeItem('cliks_active_audit_timer');
+        }
+    }, [isTimerRunning, timerSeconds, auditStartTime, timerClient, timerAuditDescription]);
+
+    // Restore running/paused timer on mount
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('cliks_active_audit_timer');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && (parsed.timerSeconds > 0 || parsed.auditStartTime)) {
+                    if (parsed.timerClient) setTimerClient(parsed.timerClient);
+                    if (parsed.timerAuditDescription) setTimerAuditDescription(parsed.timerAuditDescription);
+                    if (parsed.auditStartTime) setAuditStartTime(parsed.auditStartTime);
+                    
+                    if (parsed.isTimerRunning && parsed.auditStartTime) {
+                        const elapsed = Math.max(0, Math.floor((Date.now() - new Date(parsed.auditStartTime).getTime()) / 1000));
+                        setTimerSeconds(elapsed);
+                        setIsTimerRunning(true);
+                    } else {
+                        setTimerSeconds(parsed.timerSeconds || 0);
+                        setIsTimerRunning(false);
+                    }
+                }
+            }
+        } catch (e) {}
+    }, []);
 
     const { data: proInvoices = [], refetch: refetchProInvoices } = useQuery({
         queryKey: ['proInvoices'],
@@ -315,9 +404,12 @@ export default function BusinessCA() {
 
     const saveAuditSessionMutation = useMutation({
         mutationFn: (session) => caService.addAuditSession(session),
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
+            if (data && (data.id || data.session_id)) {
+                persistAuditSession({ ...variables, ...data });
+            }
             refetchAuditSessions();
-            setLastSavedSession(data);
+            setLastSavedSession(data || variables);
             alert('Audit session saved successfully!');
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to save audit session')
@@ -3170,16 +3262,44 @@ export default function BusinessCA() {
                                                                     const stopTime = new Date().toISOString();
                                                                     setAuditStopTime(stopTime);
                                                                     setIsTimerRunning(false);
+                                                                    localStorage.removeItem('cliks_active_audit_timer');
 
-                                                                    saveAuditSessionMutation.mutate({
-                                                                        clientId: timerClient,
-                                                                        startTime: auditStartTime,
+                                                                    const clientObj = allPracticeClients.find(c => String(c.id) === String(timerClient)) || allPracticeClients[0] || {};
+                                                                    const finalClientId = timerClient || clientObj.id || 1;
+                                                                    const finalClientName = clientObj.name || 'Client Audit';
+                                                                    const finalStartTime = auditStartTime || new Date(Date.now() - timerSeconds * 1000).toISOString();
+                                                                    const finalDesc = timerAuditDescription || 'GST Return Filing (GSTR-1) & Audit Review';
+                                                                    const sessId = `AUD-SESS-${Date.now()}`;
+
+                                                                    const sessionPayload = {
+                                                                        id: sessId,
+                                                                        session_id: sessId,
+                                                                        client_id: finalClientId,
+                                                                        clientId: finalClientId,
+                                                                        client_name: finalClientName,
+                                                                        ca_user_id: user?.id || 1,
+                                                                        ca_name: user?.username || user?.email || 'CA Advisor',
+                                                                        start_time: new Date(finalStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                                                        startTime: finalStartTime,
+                                                                        stop_time: stopTime,
                                                                         stopTime: stopTime,
+                                                                        end_time: stopTime,
+                                                                        endTime: stopTime,
+                                                                        duration_seconds: timerSeconds,
                                                                         durationSeconds: timerSeconds,
+                                                                        audit_date: new Date().toISOString().split('T')[0],
                                                                         auditDate: new Date().toISOString().split('T')[0],
-                                                                        auditDescription: timerAuditDescription || 'GST Return Filing (GSTR-1) & Audit Review',
-                                                                        hourlyRate: 500
-                                                                    });
+                                                                        audit_description: finalDesc,
+                                                                        auditDescription: finalDesc,
+                                                                        hourly_rate: 500,
+                                                                        hourlyRate: 500,
+                                                                        status: 'Completed',
+                                                                        paymentStatus: 'Pending Payment'
+                                                                    };
+
+                                                                    persistAuditSession(sessionPayload);
+
+                                                                    saveAuditSessionMutation.mutate(sessionPayload);
 
                                                                     // Reset local timer
                                                                     setTimerSeconds(0);
@@ -3343,6 +3463,33 @@ export default function BusinessCA() {
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
                                                     {/* Checklist */}
                                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                        {/* Select All Checkbox */}
+                                                        {checkItems.length > 0 && (
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', marginBottom: '2px' }}>
+                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', fontWeight: '800', color: '#0F172A', cursor: 'pointer' }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={checkItems.length > 0 && checkItems.every(i => !!checks[i.id])}
+                                                                        onChange={() => {
+                                                                            const areAllSelected = checkItems.length > 0 && checkItems.every(i => !!checks[i.id]);
+                                                                            const newChecks = {};
+                                                                            checkItems.forEach(i => {
+                                                                                newChecks[i.id] = !areAllSelected;
+                                                                            });
+                                                                            setClientWorkpaperChecks(prev => ({
+                                                                                ...prev,
+                                                                                [selectedWorkpaperClientId]: newChecks
+                                                                            }));
+                                                                        }}
+                                                                        style={{ accentColor: '#15803d', width: '16px', height: '16px', cursor: 'pointer' }}
+                                                                    />
+                                                                    <span>Select All Procedures</span>
+                                                                </label>
+                                                                <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748B' }}>
+                                                                    {doneCount} / {checkItems.length} Selected
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                             {checkItems.map(item => {
                                                                 const isEditingThis = editingCheckItemId === item.id;

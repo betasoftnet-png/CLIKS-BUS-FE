@@ -11,10 +11,12 @@ import {
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context';
 
 const BusinessRewards = () => {
     
     const navigate = useNavigate();
+    const { t } = useLanguage();
     
     const [rewardPoints] = useState(() => {
         const saved = localStorage.getItem('cliks_reward_points');
@@ -31,7 +33,7 @@ const BusinessRewards = () => {
     const premiumOffers = [
         {
             id: 'offer_1',
-            title: 'Starter Wallet Load Reward',
+            title: t('starterWalletReward', 'Starter Wallet Load Reward'),
             description: 'Load ₹5,000 or more into your Cliks Wallet and claim a 2% flat discount on your next monthly or annual Cliks Pro subscription.',
             shortLabel: '2% OFF PRO',
             type: 'wallet_starter',
@@ -39,12 +41,12 @@ const BusinessRewards = () => {
             badgeColor: '#ECFDF5',
             accentColor: '#10B981',
             textColor: '#065F46',
-            actionLabel: 'Load Wallet Now',
+            actionLabel: t('loadWalletNow', 'Load Wallet Now'),
             link: '/payments/wallet?addMoney=true'
         },
         {
             id: 'offer_2',
-            title: 'Silver Wallet Load Reward',
+            title: t('silverWalletReward', 'Silver Wallet Load Reward'),
             description: 'Load ₹10,000 or more into your Cliks Wallet and claim a 3.5% flat discount on your next monthly or annual Cliks Pro subscription.',
             shortLabel: '3.5% OFF PRO',
             type: 'wallet_silver',
@@ -52,12 +54,12 @@ const BusinessRewards = () => {
             badgeColor: '#EFF6FF',
             accentColor: '#3B82F6',
             textColor: '#1E40AF',
-            actionLabel: 'Load Wallet Now',
+            actionLabel: t('loadWalletNow', 'Load Wallet Now'),
             link: '/payments/wallet?addMoney=true'
         },
         {
             id: 'offer_3',
-            title: 'Gold Wallet Load Reward',
+            title: t('goldWalletReward', 'Gold Wallet Load Reward'),
             description: 'Load ₹25,000 or more into your Cliks Wallet and claim a 5% flat discount on your next monthly or annual Cliks Pro subscription.',
             shortLabel: '5% OFF PRO',
             type: 'wallet_gold',
@@ -65,12 +67,12 @@ const BusinessRewards = () => {
             badgeColor: '#FFFBEB',
             accentColor: '#F59E0B',
             textColor: '#78350F',
-            actionLabel: 'Load Wallet Now',
+            actionLabel: t('loadWalletNow', 'Load Wallet Now'),
             link: '/payments/wallet?addMoney=true'
         },
         {
             id: 'offer_4',
-            title: 'Platinum Wallet Load Reward',
+            title: t('platinumWalletReward', 'Platinum Wallet Load Reward'),
             description: 'Load ₹50,000 or more into your Cliks Wallet and claim an 8% flat discount on your next monthly or annual Cliks Pro subscription.',
             shortLabel: '8% OFF PRO',
             type: 'wallet_platinum',
@@ -78,7 +80,7 @@ const BusinessRewards = () => {
             badgeColor: '#FDF2F8',
             accentColor: '#EC4899',
             textColor: '#9D174D',
-            actionLabel: 'Load Wallet Now',
+            actionLabel: t('loadWalletNow', 'Load Wallet Now'),
             link: '/payments/wallet?addMoney=true'
         }
     ];
@@ -114,8 +116,8 @@ const BusinessRewards = () => {
                         <Gift size={20} />
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Rewards & Offers</h1>
-                        <p style={{ color: '#64748B', fontSize: '0.825rem', fontWeight: '500', margin: '0.1rem 0 0 0' }}>Unlock special platform deals, discounts, and premium tier unlocks.</p>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{t('rewardsOffers', 'Rewards & Offers')}</h1>
+                        <p style={{ color: '#64748B', fontSize: '0.825rem', fontWeight: '500', margin: '0.1rem 0 0 0' }}>{t('rewardsSubtitle', 'Unlock special platform deals, discounts, and premium tier unlocks.')}</p>
                     </div>
                 </div>
             </div>
@@ -144,11 +146,11 @@ const BusinessRewards = () => {
                     <div style={{ maxWidth: '65%', zIndex: 1 }}>
                         <div style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '0.4rem 0.75rem', borderRadius: '99px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}>
                             <Sparkles size={14} color="#FCD34D" />
-                            <span style={{ fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#A7F3D0' }}>Active Rewards Plan</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#A7F3D0' }}>{t('activeRewardsPlan', 'Active Rewards Plan')}</span>
                         </div>
-                        <h2 style={{ fontSize: '1.75rem', fontWeight: '850', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>Grow Your Business, Collect Premium Perks</h2>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: '850', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>{t('growBusinessPerks', 'Grow Your Business, Collect Premium Perks')}</h2>
                         <p style={{ opacity: 0.85, fontSize: '0.9rem', lineHeight: 1.4, margin: 0, color: '#ECFDF5' }}>
-                            Complete milestones, scale your active ledger, and transact consistently to stack loyalty points and unlock deep discounts across your workspace subscriptions.
+                            {t('rewardsDescription', 'Complete milestones, scale your active ledger, and transact consistently to stack loyalty points and unlock deep discounts across your workspace subscriptions.')}
                         </p>
                     </div>
 
@@ -178,7 +180,7 @@ const BusinessRewards = () => {
                         }}>
                             <Coins size={22} />
                         </div>
-                        <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#A7F3D0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem' }}>Total Wallet Points</span>
+                        <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#A7F3D0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem' }}>{t('totalWalletPoints', 'Total Wallet Points')}</span>
                         <h3 style={{ fontSize: '2.25rem', fontWeight: '900', margin: 0, color: '#FFFFFF', lineHeight: 1 }}>{rewardPoints.toLocaleString()}</h3>
                         <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#A7F3D0', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
                             ≈ ₹{(rewardPoints / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Value
@@ -225,7 +227,7 @@ const BusinessRewards = () => {
                             }}
                         >
                             <Wallet size={14} />
-                            Convert to Wallet
+                            {t('convertToWallet', 'Convert to Wallet')}
                         </button>
                     </div>
                 </div>
@@ -236,9 +238,9 @@ const BusinessRewards = () => {
                     {/* Exclusive Offers & Boosters */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Exclusive Offers & Boosters</h3>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t('exclusiveOffersBoosters', 'Exclusive Offers & Boosters')}</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#10B981', fontWeight: '700' }}>
-                                <Clock size={13} /> Updated Hourly
+                                <Clock size={13} /> {t('updatedHourly', 'Updated Hourly')}
                             </div>
                         </div>
 
