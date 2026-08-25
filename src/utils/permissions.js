@@ -88,20 +88,30 @@ export const PERMISSIONS = {
 
 export function hasAccess(user, featureId) {
   // Full access for parents or users without a permissions array
-  if (!user || !user.is_sub_id || !Array.isArray(user.permissions)) return true;
+  const isSubId = user && (user.is_sub_id === true || user.role === 'sub_id' || user.role === 'SUB_ID');
+  if (!isSubId) return true;
+  if (!user.permissions || !Array.isArray(user.permissions)) return true;
 
-  const perms = user.permissions;
+  const perms = user.permissions.map(Number);
   
-  // 1. Check specific feature (e.g. 211)
+  // 1. Check specific exact match (e.g. 211)
   if (perms.includes(featureId)) return true;
   
-  // 2. Check sub-module parent (e.g. 210)
+  // 2. User has a parent permission granting access to this child feature
   const subModuleId = Math.floor(featureId / 10) * 10; 
   if (perms.includes(subModuleId)) return true;
   
-  // 3. Check module parent (e.g. 200)
   const moduleId = Math.floor(featureId / 100) * 100;
   if (perms.includes(moduleId)) return true;
+
+  // 3. The feature being checked is a parent module/sub-module, and the user has a child permission within it
+  if (featureId % 100 === 0) {
+    // Parent module check (e.g. 100). Allow if user has ANY 1xx permission
+    if (perms.some(p => Math.floor(p / 100) * 100 === featureId)) return true;
+  } else if (featureId % 10 === 0) {
+    // Sub-module check (e.g. 110). Allow if user has ANY 11x permission
+    if (perms.some(p => Math.floor(p / 10) * 10 === featureId)) return true;
+  }
 
   return false;
 }
