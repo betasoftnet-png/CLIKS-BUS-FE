@@ -390,12 +390,20 @@ const BusinessPOS = () => {
                     source: 'stock'
                 }));
 
-                // Aggregate and de-duplicate by exact case-insensitive name
+                // Aggregate items by unique SKU/ID and Warehouse so separate SKU inventory records with identical names stay distinct
                 const allItems = [...catalogItems, ...legacyItems, ...stockItems];
                 const uniqueMap = new Map();
                 allItems.forEach(item => {
                     if (!item.name) return;
-                    const key = item.name.toLowerCase().trim();
+                    const skuPart = (item.sku || '').toLowerCase().trim();
+                    const namePart = (item.name || '').toLowerCase().trim();
+                    const whPart = (item.warehouse_id || item.location || '').toLowerCase().trim();
+                    const idPart = item.id !== undefined && item.id !== null ? String(item.id) : '';
+                    
+                    const key = skuPart 
+                        ? `${skuPart}_${whPart}` 
+                        : (idPart ? `${item.source}_${idPart}_${whPart}` : `${namePart}_${whPart}`);
+
                     if (!uniqueMap.has(key)) {
                         uniqueMap.set(key, item);
                     }
@@ -865,7 +873,7 @@ const BusinessPOS = () => {
         const prodUnit = prod.unit || 'PCS';
         const isDec = isDecimalUnit(prodUnit);
 
-        const cartItem = cart.find(item => item.id === prod.id || (item.name && prod.name && item.name.toLowerCase().trim() === prod.name.toLowerCase().trim()));
+        const cartItem = cart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
         const currentCartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
         const availableStock = (parseFloat(prod.quantity) || 0) - currentCartQty;
 
@@ -875,7 +883,7 @@ const BusinessPOS = () => {
         }
 
         setCart(prevCart => {
-            const existing = prevCart.find(item => item.id === prod.id || (item.name && prod.name && item.name.toLowerCase().trim() === prod.name.toLowerCase().trim()));
+            const existing = prevCart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
             if (existing) {
                 const addStep = isDec ? 0.25 : 1;
                 const newQty = isDec 
@@ -888,7 +896,7 @@ const BusinessPOS = () => {
                 }
 
                 return prevCart.map(item =>
-                    (item.id === prod.id || (item.name && prod.name && item.name.toLowerCase().trim() === prod.name.toLowerCase().trim()))
+                    (item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku))
                         ? { ...item, quantity: newQty, total: Math.round(newQty * (item.price || 0) * 100) / 100 }
                         : item
                 );
@@ -912,7 +920,7 @@ const BusinessPOS = () => {
             const existing = prevCart.find(item => item.id === id);
             if (!existing) return prevCart;
 
-            const invProd = inventory.find(p => p.id === id);
+            const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
             const maxStock = invProd ? invProd.quantity : Infinity;
             const isDec = isDecimalUnit(existing.unit);
 
@@ -950,7 +958,7 @@ const BusinessPOS = () => {
                 return prevCart.map(item => item.id === id ? { ...item, quantity: '', total: 0 } : item);
             }
 
-            const invProd = inventory.find(p => p.id === id);
+            const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
             const maxStock = invProd ? invProd.quantity : Infinity;
             const isDec = isDecimalUnit(existing.unit);
 
@@ -1041,7 +1049,7 @@ const BusinessPOS = () => {
 
         // Prevent selling more quantity than available stock
         for (const item of validCartItems) {
-            const catItem = inventory.find(p => p.id === item.id || (p.name && item.name && p.name.toLowerCase().trim() === item.name.toLowerCase().trim()));
+            const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
             const maxStock = catItem ? (parseFloat(catItem.quantity) || 0) : Infinity;
             const requestedQty = parseFloat(item.quantity) || 0;
             if (requestedQty > maxStock) {
@@ -1564,7 +1572,7 @@ const BusinessPOS = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
                             <AnimatePresence>
                                 {filteredProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => {
-                                    const cartItem = cart.find(c => c.id === prod.id || (c.name && prod.name && c.name.toLowerCase().trim() === prod.name.toLowerCase().trim()));
+                                    const cartItem = cart.find(c => c.id === prod.id || (c.sku && prod.sku && c.sku === prod.sku));
                                     const cartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
                                     const rawStock = parseFloat(prod.quantity) || 0;
                                     const isDec = isDecimalUnit(prod.unit);
@@ -1578,7 +1586,7 @@ const BusinessPOS = () => {
                                     return (
                                         <motion.div
                                             layout
-                                            key={prod.id}
+                                            key={prod.id ? `prod_${prod.id}_${prod.sku}` : `${prod.source}_${prod.sku}`}
                                             whileHover={{ y: -2, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)' }}
                                             whileTap={{ scale: 0.97 }}
                                             onClick={() => !isOutOfStock && addToCart(prod)}
