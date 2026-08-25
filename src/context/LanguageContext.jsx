@@ -918,6 +918,99 @@ export const LanguageProvider = ({ children }) => {
         return fallback || key;
     }, [language]);
 
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+
+        let isScanning = false;
+
+        const scanAndTranslate = () => {
+            if (isScanning || !document.body) return;
+            isScanning = true;
+
+            const walk = (node) => {
+                if (!node) return;
+
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tag = node.tagName ? node.tagName.toLowerCase() : '';
+                    if (['script', 'style', 'code', 'pre', 'svg', 'canvas', 'iframe', 'textarea'].includes(tag)) {
+                        return;
+                    }
+                    if (tag === 'input' && node.placeholder) {
+                        if (node.dataset.origPlaceholder === undefined) {
+                            node.dataset.origPlaceholder = node.placeholder;
+                        }
+                        const orig = node.dataset.origPlaceholder;
+                        if (language === 'EN-US') {
+                            if (node.placeholder !== orig) node.placeholder = orig;
+                        } else {
+                            const translated = t(orig);
+                            if (translated && translated !== orig) {
+                                node.placeholder = translated;
+                            }
+                        }
+                    }
+                }
+
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const txt = node.nodeValue;
+                    if (txt) {
+                        const trimmed = txt.trim();
+                        if (trimmed.length > 0 && /[a-zA-Z]/.test(trimmed)) {
+                            if (node._origText === undefined) {
+                                node._origText = txt;
+                            }
+                            const orig = node._origText;
+                            const origTrimmed = orig.trim();
+
+                            if (language === 'EN-US') {
+                                if (node.nodeValue !== orig) {
+                                    node.nodeValue = orig;
+                                }
+                            } else {
+                                const translated = t(origTrimmed);
+                                if (translated && translated !== origTrimmed) {
+                                    node.nodeValue = orig.replace(origTrimmed, translated);
+                                }
+                            }
+                        }
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const children = Array.from(node.childNodes);
+                    for (let i = 0; i < children.length; i++) {
+                        walk(children[i]);
+                    }
+                }
+            };
+
+            walk(document.body);
+            isScanning = false;
+        };
+
+        scanAndTranslate();
+
+        const observer = new MutationObserver((mutations) => {
+            let shouldScan = false;
+            for (let i = 0; i < mutations.length; i++) {
+                const m = mutations[i];
+                if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
+                    shouldScan = true;
+                    break;
+                }
+            }
+            if (shouldScan) {
+                observer.disconnect();
+                scanAndTranslate();
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [language, t]);
+
     return (
         <LanguageContext.Provider value={{ language, setLanguage, t, translations }}>
             {children}
