@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     ArrowLeft, Save, Sliders, FileText, RefreshCw, Building2, 
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
-    Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, Edit,
+    Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, EyeOff, Edit,
     Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X,
     Globe, Shield, Coins, Zap
 } from 'lucide-react';
@@ -20,6 +20,7 @@ const BusinessCustomization = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isSaving, setIsSaving] = useState(false);
+    const [showPin, setShowPin] = useState(false);
     const { currency } = useCurrency();
     const { t, language, setLanguage } = useLanguage();
     const [activeTab, setActiveTab] = useState('profile');
@@ -842,13 +843,23 @@ const BusinessCustomization = () => {
                             {config.passcode && (
                                 <div style={{ marginLeft: '2.75rem', padding: '0.75rem 1rem', background: '#F8FAFC', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                     <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Security PIN:</label>
-                                    <input 
-                                        type="password" 
-                                        maxLength={6} 
-                                        value={config.passcodePin || '1234'} 
-                                        onChange={(e) => handleTextChange('passcodePin', e.target.value)} 
-                                        style={{ width: '80px', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: '800', letterSpacing: '2px', fontSize: '0.9rem' }} 
-                                    />
+                                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                        <input 
+                                            type={showPin ? 'text' : 'password'} 
+                                            maxLength={6} 
+                                            value={config.passcodePin || '1234'} 
+                                            onChange={(e) => handleTextChange('passcodePin', e.target.value)} 
+                                            style={{ width: '95px', padding: '0.35rem 1.7rem 0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: '800', letterSpacing: '2px', fontSize: '0.9rem' }} 
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPin(prev => !prev)}
+                                            style={{ position: 'absolute', right: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                            title={showPin ? 'Hide PIN' : 'Show PIN'}
+                                        >
+                                            {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        </button>
+                                    </div>
                                     <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Default: 1234</span>
                                 </div>
                             )}
