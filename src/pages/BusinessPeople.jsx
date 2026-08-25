@@ -22,7 +22,8 @@ import {
     Edit2,
     Pin,
     MoreVertical,
-    Share2
+    Share2,
+    Tag
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { settingsService } from '../services/settingsService';
